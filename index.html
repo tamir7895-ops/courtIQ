@@ -3383,13 +3383,13 @@
         <li><a href="#positions">Positions</a></li>
         <li><a href="#testimonials">Success Stories</a></li>
         <li><a href="#pricing">Pricing</a></li>
-        <li><a href="#dashboard" style="color:var(--c-amber);font-weight:600;">Dashboard</a></li>
+        <li><a href="app.html" style="color:var(--c-amber);font-weight:600;">Dashboard</a></li>
       </ul>
 
       <!-- CTA -->
       <div class="nav-cta">
         <a href="#" class="nav-signin" onclick="event.preventDefault();openAuth('signin')">Sign In</a>
-        <button class="nav-btn" aria-label="Start free trial" onclick="openAuth('signup')">Free Trial</button>
+        <button class="nav-btn" aria-label="Start free trial" onclick="window.location.href='app.html'">Free Trial</button>
         <div class="nav-mobile-toggle" aria-label="Open menu" role="button" tabindex="0" id="mobileToggle">
           <span></span><span></span><span></span>
         </div>
@@ -3406,8 +3406,8 @@
   <a href="#positions"    onclick="closeMobileNav()">Positions</a>
   <a href="#testimonials" onclick="closeMobileNav()">Success Stories</a>
   <a href="#pricing"      onclick="closeMobileNav()">Pricing</a>
-  <a href="#dashboard"   onclick="closeMobileNav()" style="color:var(--c-amber);font-weight:600;">Dashboard</a>
-  <a href="#" class="drawer-cta" onclick="closeMobileNav();openAuth('signup')">Start Free Trial →</a>
+  <a href="app.html"   onclick="closeMobileNav()" style="color:var(--c-amber);font-weight:600;">Dashboard</a>
+  <a href="#" class="drawer-cta" onclick="closeMobileNav();window.location.href='app.html'">Start Free Trial →</a>
 </div>
 <!-- ══════════════════════════════════════════
      HERO SECTION
@@ -3437,10 +3437,10 @@
         </p>
 
         <div class="hero-cta-group">
-          <button class="btn-primary" onclick="openAuth('signup')" aria-label="Start your free trial">
+          <a href="app.html" class="btn-primary" aria-label="Start your free trial" style="display:inline-flex;align-items:center;gap:8px;text-decoration:none;">
             Start Free Trial
             <span class="btn-arrow" aria-hidden="true">→</span>
-          </button>
+          </a>
           <button class="btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})" aria-label="Watch demo">
             ▶ &nbsp;Watch Demo
           </button>
@@ -4137,7 +4137,7 @@
           <li class="plan-feature excluded"><span class="feat-check no">✕</span>AI coaching chat</li>
         </ul>
 
-        <button class="plan-cta plan-cta-outline" onclick="openAuth('signup','starter');setTimeout(()=>document.getElementById('dashboard').scrollIntoView({behavior:'smooth'}),300)">Get Started Free</button>
+        <button class="plan-cta plan-cta-outline" onclick="window.location.href='app.html'">Get Started Free</button>
         <p class="plan-guarantee">14-day free trial · No card required</p>
       </article>
 
@@ -4169,7 +4169,7 @@
           <li class="plan-feature excluded"><span class="feat-check no">✕</span>1-on-1 coach review sessions</li>
         </ul>
 
-        <button class="plan-cta plan-cta-filled" onclick="openAuth('signup','pro')">Start Pro Free Trial
+        <button class="plan-cta plan-cta-filled" onclick="window.location.href='app.html'">Start Pro Free Trial
           <span style="margin-left:6px;">→</span>
         </button>
         <p class="plan-guarantee">14-day free trial · Cancel anytime</p>
@@ -4203,7 +4203,7 @@
           <li class="plan-feature included" onclick="openFeature('early-access')"><span class="feat-check elite">✓</span><span class="feat-label">Early access to new features</span><span class="feat-tip">→ preview</span></li>
         </ul>
 
-        <button class="plan-cta plan-cta-elite" onclick="openAuth('signup','elite')">Go Elite</button>
+        <button class="plan-cta plan-cta-elite" onclick="window.location.href='app.html'">Go Elite</button>
         <p class="plan-guarantee">7-day free trial · Cancel anytime</p>
       </article>
 
@@ -4217,546 +4217,6 @@
   </div>
 </section>
 
-
-<!-- ══════════════════════════════════════════
-     AI PERFORMANCE DASHBOARD
-══════════════════════════════════════════ -->
-<section id="dashboard" class="section dashboard-section" aria-labelledby="dashboard-title">
-  <div class="container" style="position:relative;z-index:2;">
-
-    <header class="section-header reveal" style="margin-bottom:36px;">
-      <a href="#dashboard" class="label-tag" style="text-decoration:none;cursor:pointer;">Live Dashboard</a>
-      <h2 class="section-title" id="dashboard-title">
-        <a href="#dashboard" style="text-decoration:none;color:inherit;">Track Your<br>
-        <span>Progress</span><br>
-        <span class="outline">With AI</span></a>
-      </h2>
-      <p class="section-desc" style="margin:0 auto;">
-        Log your daily training sessions and get instant AI-generated weekly summaries, progress graphs, and personalized coaching feedback.
-      </p>
-    </header>
-
-    <!-- Player context row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;" class="reveal">
-      <div class="db-field">
-        <label class="db-label">👤 Player Name</label>
-        <input class="db-input" id="db-player" type="text" value="Marcus R." />
-      </div>
-      <div class="db-field">
-        <label class="db-label">🏀 Position</label>
-        <select class="db-input" id="db-position">
-          <option>Point Guard</option><option>Shooting Guard</option>
-          <option>Small Forward</option><option>Power Forward</option><option>Center</option>
-        </select>
-      </div>
-      <div class="db-week-pill">
-        <span id="db-week-label">Week 4</span>
-        <span id="db-session-count">0 sessions logged</span>
-      </div>
-    </div>
-
-    <!-- Tab nav -->
-    <div class="db-tabs reveal">
-      <button class="db-tab active" onclick="dbSwitchTab('log',this)">📋 Log Session</button>
-      <button class="db-tab" onclick="dbSwitchTab('summary',this)">📊 Weekly Summary</button>
-      <button class="db-tab" onclick="dbSwitchTab('history',this)">📅 History</button>
-      <button class="db-tab" onclick="dbSwitchTab('notifications',this)">🔔 Notifications</button>
-      <button class="db-tab" onclick="dbSwitchTab('coach',this)">🏋️ AI Coach</button>
-      <button class="db-tab" onclick="dbSwitchTab('calendar',this)">📆 Weekly Calendar</button>
-    </div>
-
-    <!-- ── TAB: LOG ── -->
-    <div class="db-panel active" id="db-panel-log">
-      <div class="db-layout">
-
-        <!-- Input form -->
-        <div class="db-card">
-          <div class="db-card-title">Log Today's Training</div>
-          <div class="db-card-sub" id="db-session-label">Session 1 — Monday</div>
-          <div class="db-fields">
-            <div class="db-row-2">
-              <div class="db-field">
-                <label class="db-label">🎯 Shots Made</label>
-                <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
-              </div>
-              <div class="db-field">
-                <label class="db-label">⚪ Shots Attempted</label>
-                <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
-              </div>
-            </div>
-            <div class="db-field">
-              <label class="db-label">⚡ Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
-              <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
-            </div>
-            <div class="db-field">
-              <label class="db-label">↑ Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
-              <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
-            </div>
-            <div class="db-field">
-              <label class="db-label">🏃 Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
-              <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
-            </div>
-            <div class="db-field">
-              <label class="db-label">📝 Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
-              <textarea class="db-input" id="db-notes" rows="2" placeholder="Felt strong today, nailed catch-and-shoot…"></textarea>
-            </div>
-            <div class="db-error" id="db-error"></div>
-            <div class="db-btn-row">
-              <button class="db-add-btn" onclick="dbAddSession()">+ Add Session</button>
-              <button class="db-generate-btn" id="db-gen-btn" onclick="dbGenerate()" disabled
-                style="flex:2;margin-top:0;opacity:0.4;cursor:not-allowed;">
-                🤖 Generate AI Summary →
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Session log list -->
-        <div class="db-card" style="display:flex;flex-direction:column;">
-          <div class="db-card-title">Week <span id="db-week-num">4</span> Log</div>
-          <div class="db-card-sub" id="db-remaining-label">Add your first session →</div>
-          <div id="db-session-list" style="flex:1;">
-            <div class="db-empty">
-              <div class="db-empty-icon">📋</div>
-              <div class="db-empty-text">No sessions logged yet.<br>Fill the form and tap <strong>Add Session</strong>.</div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── TAB: SUMMARY ── -->
-    <div class="db-panel" id="db-panel-summary">
-      <div id="db-summary-empty" style="text-align:center;padding:60px 0;color:var(--c-muted);">
-        <div style="font-size:48px;margin-bottom:16px;">📊</div>
-        <div style="font-family:var(--font-display);font-size:24px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Summary Yet</div>
-        <p style="font-size:14px;margin-bottom:24px;">Log at least 2 sessions then hit <strong style="color:var(--c-amber)">Generate AI Summary</strong>.</p>
-        <button class="db-generate-btn" style="width:auto;padding:12px 32px;" onclick="dbSwitchTabById('log')">→ Log Sessions</button>
-      </div>
-      <div id="db-summary-content" style="display:none;">
-        <!-- AI feedback banner -->
-        <div class="db-feedback" id="db-feedback-banner">
-          <div class="db-feedback-inner">
-            <div class="db-ai-icon">🤖</div>
-            <div style="flex:1;">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                <span class="label-tag" id="db-fb-tag">AI Coach · Week 4</span>
-                <span class="db-trend-badge" id="db-trend-badge"></span>
-              </div>
-              <div class="db-headline" id="db-headline">—</div>
-              <div class="db-summary-text" id="db-summary-text">—</div>
-              <div class="db-feedback-cols">
-                <div>
-                  <div class="db-feedback-col-label" style="color:#56d364;">✦ Strengths</div>
-                  <div id="db-strengths"></div>
-                </div>
-                <div>
-                  <div class="db-feedback-col-label" style="color:#f85149;">⚑ Focus Areas</div>
-                  <div id="db-focus"></div>
-                </div>
-                <div>
-                  <div class="db-feedback-col-label" style="color:#4ca3ff;">🎯 Drill This Week</div>
-                  <div id="db-drill" style="font-size:13px;color:var(--c-muted);"></div>
-                </div>
-              </div>
-              <div class="db-coach-note" id="db-coach-note">—</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- KPI row -->
-        <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.02em;" id="db-kpi-title">Week 4 — Averages</div>
-        <div class="db-kpi-row" id="db-kpi-row">
-          <div class="db-kpi"><div class="db-kpi-label">Shooting %</div><div class="db-kpi-val" id="kpi-shot">—<span class="db-kpi-unit">%</span></div><div class="db-kpi-delta" id="kpi-shot-d"></div></div>
-          <div class="db-kpi"><div class="db-kpi-label">Dribbling</div><div class="db-kpi-val" id="kpi-drib">—<span class="db-kpi-unit"> min</span></div><div class="db-kpi-delta" id="kpi-drib-d"></div></div>
-          <div class="db-kpi"><div class="db-kpi-label">Vertical Jump</div><div class="db-kpi-val" id="kpi-vert">—<span class="db-kpi-unit">"</span></div><div class="db-kpi-delta" id="kpi-vert-d"></div></div>
-          <div class="db-kpi"><div class="db-kpi-label">Sprint Time</div><div class="db-kpi-val" id="kpi-sprint">—<span class="db-kpi-unit">s</span></div><div class="db-kpi-delta" id="kpi-sprint-d"></div></div>
-        </div>
-
-        <!-- Charts row 1 -->
-        <div class="db-charts-2">
-          <div class="db-card" style="padding-bottom:20px;">
-            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Daily Breakdown</div>
-            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Shooting % Per Session</div>
-            <div class="db-chart-wrap"><canvas id="db-chart-line"></canvas></div>
-          </div>
-          <div class="db-card" style="padding-bottom:20px;">
-            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Weekly Trend</div>
-            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Shooting % — All Weeks</div>
-            <div class="db-chart-wrap"><canvas id="db-chart-bar"></canvas></div>
-          </div>
-        </div>
-
-        <!-- Charts row 2 -->
-        <div class="db-charts-2">
-          <div class="db-card" style="padding-bottom:20px;">
-            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Athleticism</div>
-            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Vertical Jump Trend</div>
-            <div class="db-chart-wrap"><canvas id="db-chart-vert"></canvas></div>
-          </div>
-          <div class="db-card" style="padding-bottom:20px;">
-            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Speed</div>
-            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Sprint Time Trend</div>
-            <div class="db-chart-wrap"><canvas id="db-chart-sprint"></canvas></div>
-          </div>
-        </div>
-
-        <!-- JSON output -->
-        <div class="db-json-pane">
-          <div class="db-json-header">
-            <div class="db-json-dot" style="background:#f85149;"></div>
-            <div class="db-json-dot" style="background:#f5a623;"></div>
-            <div class="db-json-dot" style="background:#56d364;"></div>
-            <span class="db-json-filename" id="db-json-filename">week_4_performance.json</span>
-            <button class="db-copy-btn" onclick="dbCopyJSON()">Copy JSON</button>
-          </div>
-          <div class="db-json-body" id="db-json-body">{ }</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ── TAB: HISTORY ── -->
-    <div class="db-panel" id="db-panel-history">
-      <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;margin-bottom:6px;">All Weeks</div>
-      <div style="font-size:13px;color:var(--c-muted);margin-bottom:24px;" id="db-history-count">3 weeks tracked</div>
-      <div id="db-history-list"></div>
-    </div>
-
-    <!-- ── TAB: NOTIFICATIONS ── -->
-    <div class="db-panel" id="db-panel-notifications">
-
-      <!-- Header row -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
-        <div>
-          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Workout Notifications</div>
-          <div style="font-size:13px;color:var(--c-muted);">AI-generated push & email alerts for your upcoming week — personalized by name, drills, and focus area.</div>
-        </div>
-        <button class="db-generate-btn" id="notif-gen-btn" onclick="notifGenerate()" style="width:auto;padding:12px 24px;margin-top:0;font-size:15px;">
-          🔔 Generate Notifications
-        </button>
-      </div>
-
-      <!-- Config row -->
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
-        <div class="db-field">
-          <label class="db-label">👤 Athlete Name</label>
-          <input class="db-input" id="notif-name" type="text" placeholder="e.g. Marcus" value="Marcus" />
-        </div>
-        <div class="db-field">
-          <label class="db-label">🏀 Focus Goal</label>
-          <select class="db-input" id="notif-goal">
-            <option>Improve 3-point shot</option>
-            <option>Ball handling speed</option>
-            <option>Vertical jump</option>
-            <option>Defensive footwork</option>
-            <option>Conditioning & stamina</option>
-            <option>Post moves</option>
-          </select>
-        </div>
-        <div class="db-field">
-          <label class="db-label">📤 Channel</label>
-          <select class="db-input" id="notif-channel">
-            <option value="both">Push + Email</option>
-            <option value="push">Push Only</option>
-            <option value="email">Email Only</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- Error -->
-      <div class="db-error" id="notif-error"></div>
-
-      <!-- Loading state -->
-      <div id="notif-loading" style="display:none;text-align:center;padding:48px 0;">
-        <div style="font-size:36px;margin-bottom:14px;animation:fw-bounce 1s infinite;">🤖</div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">Generating your notifications…</div>
-        <div style="font-size:13px;color:var(--c-muted);">AI is crafting personalized push & email content for each training day.</div>
-      </div>
-
-      <!-- Empty state -->
-      <div id="notif-empty" style="text-align:center;padding:52px 0;">
-        <div style="font-size:52px;margin-bottom:16px;">🔔</div>
-        <div style="font-family:var(--font-display);font-size:24px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Notifications Yet</div>
-        <p style="font-size:14px;color:var(--c-muted);max-width:380px;margin:0 auto 24px;">Hit <strong style="color:var(--c-amber)">Generate Notifications</strong> to create a full week of personalized push alerts and email copy.</p>
-        <button class="db-generate-btn" onclick="notifGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">🔔 Generate Now</button>
-      </div>
-
-      <!-- Results -->
-      <div id="notif-results" style="display:none;">
-
-        <!-- Prompt used (collapsible) -->
-        <div style="margin-bottom:20px;">
-          <button onclick="notifTogglePrompt()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:9px 14px;color:var(--c-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:var(--transition);width:100%;" id="notif-prompt-toggle">
-            <span>📋</span> <span style="flex:1;text-align:left;">View AI Prompt Used</span> <span id="notif-prompt-arrow">▼</span>
-          </button>
-          <div id="notif-prompt-box" style="display:none;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 8px 8px;padding:16px;font-family:'Fira Code',monospace;font-size:11.5px;color:rgba(240,237,230,0.45);line-height:1.7;white-space:pre-wrap;"></div>
-        </div>
-
-        <!-- Notification cards grid -->
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="notif-week-label">Week 4 — Notification Schedule</div>
-        <div id="notif-cards" style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px;"></div>
-
-        <!-- JSON output -->
-        <div class="db-json-pane">
-          <div class="db-json-header">
-            <div class="db-json-dot" style="background:#f85149;"></div>
-            <div class="db-json-dot" style="background:#f5a623;"></div>
-            <div class="db-json-dot" style="background:#56d364;"></div>
-            <span class="db-json-filename">notifications_week.json</span>
-            <button class="db-copy-btn" onclick="notifCopyJSON()">Copy JSON</button>
-          </div>
-          <div class="db-json-body" id="notif-json-body">{ }</div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- ── TAB: AI COACH ── -->
-    <div class="db-panel" id="db-panel-coach">
-
-      <!-- Header -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:26px;">
-        <div>
-          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">AI Coach Adjustment</div>
-          <div style="font-size:13px;color:var(--c-muted);max-width:540px;line-height:1.7;">Enter last week's performance data — sets completed, success rate, and time spent. The AI Coach analyzes your weak areas and rebuilds next week's schedule at the right intensity.</div>
-        </div>
-        <button class="db-generate-btn" id="coach-gen-btn" onclick="coachGenerate()" style="width:auto;padding:12px 26px;margin-top:0;font-size:15px;">
-          🏋️ Adjust My Program
-        </button>
-      </div>
-
-      <!-- Performance input grid -->
-      <div class="db-card" style="margin-bottom:22px;">
-        <div class="db-card-title" style="font-size:18px;margin-bottom:4px;">Last Week's Performance</div>
-        <div class="db-card-sub">Fill in how each drill category went — be honest, the AI uses this to recalibrate everything.</div>
-
-        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;" id="coach-perf-grid">
-
-          <!-- Shooting -->
-          <div class="coach-perf-block" data-area="Shooting">
-            <div class="coach-area-header">
-              <span class="coach-area-icon">🎯</span>
-              <span class="coach-area-name">Shooting</span>
-              <span class="coach-area-badge" id="badge-shooting">—</span>
-            </div>
-            <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-shooting-sets" type="number" min="0" max="20" placeholder="e.g. 8" oninput="coachUpdateBadge('shooting')"/></div>
-              <div class="db-field"><label class="db-label">Success % (make rate)</label><input class="db-input coach-input" id="c-shooting-pct" type="number" min="0" max="100" placeholder="e.g. 62" oninput="coachUpdateBadge('shooting')"/></div>
-            </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-shooting-time" type="number" min="0" placeholder="e.g. 25" oninput="coachUpdateBadge('shooting')"/></div>
-            <div class="coach-notes-field"><textarea class="db-input" id="c-shooting-notes" rows="2" placeholder="Any notes? e.g. struggled from corner, missed short shots…"></textarea></div>
-          </div>
-
-          <!-- Ball Handling -->
-          <div class="coach-perf-block" data-area="Ball Handling">
-            <div class="coach-area-header">
-              <span class="coach-area-icon">⚡</span>
-              <span class="coach-area-name">Ball Handling</span>
-              <span class="coach-area-badge" id="badge-ballhandling">—</span>
-            </div>
-            <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-ballhandling-sets" type="number" min="0" max="20" placeholder="e.g. 6" oninput="coachUpdateBadge('ballhandling')"/></div>
-              <div class="db-field"><label class="db-label">Success % (clean reps)</label><input class="db-input coach-input" id="c-ballhandling-pct" type="number" min="0" max="100" placeholder="e.g. 75" oninput="coachUpdateBadge('ballhandling')"/></div>
-            </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-ballhandling-time" type="number" min="0" placeholder="e.g. 20" oninput="coachUpdateBadge('ballhandling')"/></div>
-            <div class="coach-notes-field"><textarea class="db-input" id="c-ballhandling-notes" rows="2" placeholder="Any notes? e.g. crossover was good but speed needs work…"></textarea></div>
-          </div>
-
-          <!-- Athleticism -->
-          <div class="coach-perf-block" data-area="Athleticism">
-            <div class="coach-area-header">
-              <span class="coach-area-icon">💪</span>
-              <span class="coach-area-name">Athleticism</span>
-              <span class="coach-area-badge" id="badge-athleticism">—</span>
-            </div>
-            <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-athleticism-sets" type="number" min="0" max="20" placeholder="e.g. 5" oninput="coachUpdateBadge('athleticism')"/></div>
-              <div class="db-field"><label class="db-label">Success % (form quality)</label><input class="db-input coach-input" id="c-athleticism-pct" type="number" min="0" max="100" placeholder="e.g. 80" oninput="coachUpdateBadge('athleticism')"/></div>
-            </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-athleticism-time" type="number" min="0" placeholder="e.g. 18" oninput="coachUpdateBadge('athleticism')"/></div>
-            <div class="coach-notes-field"><textarea class="db-input" id="c-athleticism-notes" rows="2" placeholder="Any notes? e.g. box jumps felt easy, sprint was tiring…"></textarea></div>
-          </div>
-
-          <!-- Defense -->
-          <div class="coach-perf-block" data-area="Defense">
-            <div class="coach-area-header">
-              <span class="coach-area-icon">🛡️</span>
-              <span class="coach-area-name">Defense</span>
-              <span class="coach-area-badge" id="badge-defense">—</span>
-            </div>
-            <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-defense-sets" type="number" min="0" max="20" placeholder="e.g. 4" oninput="coachUpdateBadge('defense')"/></div>
-              <div class="db-field"><label class="db-label">Success % (execution)</label><input class="db-input coach-input" id="c-defense-pct" type="number" min="0" max="100" placeholder="e.g. 58" oninput="coachUpdateBadge('defense')"/></div>
-            </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-defense-time" type="number" min="0" placeholder="e.g. 15" oninput="coachUpdateBadge('defense')"/></div>
-            <div class="coach-notes-field"><textarea class="db-input" id="c-defense-notes" rows="2" placeholder="Any notes? e.g. closeouts felt slow, lateral speed improving…"></textarea></div>
-          </div>
-
-        </div><!-- /grid -->
-      </div><!-- /card -->
-
-      <!-- Equipment toggle -->
-      <div class="db-card" style="margin-bottom:22px;">
-        <div class="db-card-title" style="font-size:16px;margin-bottom:4px;">Equipment Available</div>
-        <div class="db-card-sub">Select what you have access to — AI will suggest alternatives if needed.</div>
-        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="coach-equipment">
-          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">🏀 Basketball</button>
-          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">🏟️ Full Court</button>
-          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📦 Cones</button>
-          <button class="coach-eq-btn" onclick="coachToggleEq(this)">🎽 Resistance Bands</button>
-          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📏 Agility Ladder</button>
-          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">💨 Open Space</button>
-          <button class="coach-eq-btn" onclick="coachToggleEq(this)">🏋️ Weights</button>
-          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📹 Film Camera</button>
-        </div>
-      </div>
-
-      <div class="db-error" id="coach-error"></div>
-
-      <!-- Loading -->
-      <div id="coach-loading" style="display:none;text-align:center;padding:52px 0;">
-        <div style="font-size:40px;margin-bottom:14px;animation:fw-bounce 1s infinite;">🏋️</div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">AI Coach is adjusting your program…</div>
-        <div style="font-size:13px;color:var(--c-muted);">Analyzing performance gaps, weak areas, and equipment to build next week's optimal schedule.</div>
-      </div>
-
-      <!-- Empty state -->
-      <div id="coach-empty" style="text-align:center;padding:16px 0 40px;">
-        <div style="font-size:52px;margin-bottom:14px;">🏋️</div>
-        <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:6px;">Ready to Adapt</div>
-        <p style="font-size:13px;color:var(--c-muted);max-width:400px;margin:0 auto;">Fill in last week's performance above and hit <strong style="color:var(--c-amber)">Adjust My Program</strong>. The AI Coach will recalibrate intensity, fix weak areas, and swap drills based on your equipment.</p>
-      </div>
-
-      <!-- Results -->
-      <div id="coach-results" style="display:none;">
-
-        <!-- AI analysis banner -->
-        <div class="db-feedback" style="margin-bottom:24px;">
-          <div class="db-feedback-inner">
-            <div class="db-ai-icon">🏋️</div>
-            <div style="flex:1;">
-              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
-                <span class="label-tag" id="coach-week-tag">AI Coach · Next Week</span>
-                <span id="coach-intensity-badge"></span>
-              </div>
-              <div class="db-headline" id="coach-headline">—</div>
-              <div class="db-summary-text" id="coach-analysis">—</div>
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:14px;">
-                <div><div style="font-size:10px;font-weight:700;color:#f85149;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">⚠ Weak Areas</div><div id="coach-weak"></div></div>
-                <div><div style="font-size:10px;font-weight:700;color:#56d364;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">✦ Strengths</div><div id="coach-strong"></div></div>
-                <div><div style="font-size:10px;font-weight:700;color:#4ca3ff;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">🔄 Key Adjustments</div><div id="coach-adjustments"></div></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Weekly schedule cards -->
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="coach-schedule-title">Next Week — Adjusted Schedule</div>
-        <div id="coach-schedule-cards" style="display:flex;flex-direction:column;gap:12px;margin-bottom:26px;"></div>
-
-        <!-- JSON output pane -->
-        <div class="db-json-pane">
-          <div class="db-json-header">
-            <div class="db-json-dot" style="background:#f85149;"></div>
-            <div class="db-json-dot" style="background:#f5a623;"></div>
-            <div class="db-json-dot" style="background:#56d364;"></div>
-            <span class="db-json-filename" id="coach-json-filename">adjusted_schedule_week.json</span>
-            <button class="db-copy-btn" onclick="coachCopyJSON()">Copy JSON</button>
-          </div>
-          <div class="db-json-body" id="coach-json-body">{ }</div>
-        </div>
-
-      </div>
-
-    </div><!-- /coach panel -->
-
-    <!-- ══════════════════════════════════════════
-         TAB: WEEKLY CALENDAR
-    ══════════════════════════════════════════ -->
-    <div class="db-panel" id="db-panel-calendar">
-
-      <!-- Header -->
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
-        <div>
-          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Weekly Calendar</div>
-          <div style="font-size:13px;color:var(--c-muted);max-width:560px;line-height:1.7;">Paste any weekly training JSON — from the AI Coach or your own — and it becomes a live interactive calendar. Click any day to expand, tick off exercises as you complete them.</div>
-        </div>
-        <button class="db-generate-btn" id="cal-gen-btn" onclick="calGenerate()" style="width:auto;padding:12px 26px;margin-top:0;font-size:15px;">
-          📆 Build Calendar
-        </button>
-      </div>
-
-      <!-- Source selector -->
-      <div class="db-card" style="margin-bottom:20px;">
-        <div class="db-card-title" style="font-size:16px;margin-bottom:4px;">Training Data Source</div>
-        <div class="db-card-sub" style="margin-bottom:14px;">Use your latest AI Coach output, or paste custom JSON below.</div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
-          <button class="cal-src-btn active" id="cal-src-coach" onclick="calSetSource('coach',this)">🏋️ Use AI Coach Output</button>
-          <button class="cal-src-btn" id="cal-src-log"   onclick="calSetSource('log',this)">📋 Use Logged Sessions</button>
-          <button class="cal-src-btn" id="cal-src-paste" onclick="calSetSource('paste',this)">📋 Paste Custom JSON</button>
-        </div>
-        <div id="cal-paste-area" style="display:none;">
-          <textarea class="db-input" id="cal-json-input" rows="7"
-            placeholder='Paste weekly schedule JSON here…&#10;&#10;Expected shape: { "days": [ { "day":"Monday", "focus":"...", "drills": [...] } ] }'
-            style="font-family:'Fira Code',monospace;font-size:12px;resize:vertical;"></textarea>
-        </div>
-        <div id="cal-src-status" style="font-size:12px;color:var(--c-muted);margin-top:6px;"></div>
-      </div>
-
-      <!-- Error -->
-      <div class="db-error" id="cal-error"></div>
-
-      <!-- Loading -->
-      <div id="cal-loading" style="display:none;text-align:center;padding:52px 0;">
-        <div style="font-size:40px;margin-bottom:14px;animation:fw-bounce 1s infinite;">📆</div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">Converting to interactive calendar…</div>
-        <div style="font-size:13px;color:var(--c-muted);">AI is building your day-by-day schedule with React/JS-compatible JSON output.</div>
-      </div>
-
-      <!-- Empty state -->
-      <div id="cal-empty" style="text-align:center;padding:20px 0 44px;">
-        <div style="font-size:52px;margin-bottom:14px;">📆</div>
-        <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Calendar Yet</div>
-        <p style="font-size:13px;color:var(--c-muted);max-width:420px;margin:0 auto 24px;">Select a data source above and hit <strong style="color:var(--c-amber)">Build Calendar</strong>. The AI converts it into a live interactive week view — collapsible days, exercise checkboxes, and React-compatible JSON export.</p>
-        <button class="db-generate-btn" onclick="calGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">📆 Build Now</button>
-      </div>
-
-      <!-- Results -->
-      <div id="cal-results" style="display:none;">
-
-        <!-- Progress bar strip -->
-        <div class="cal-progress-strip">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--c-white);" id="cal-week-label">Week Overview</div>
-            <div style="font-size:12px;color:var(--c-muted);"><span id="cal-done-count">0</span> / <span id="cal-total-count">0</span> exercises completed</div>
-          </div>
-          <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
-            <div id="cal-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--c-amber),#56d364);border-radius:3px;width:0%;transition:width 0.5s ease;"></div>
-          </div>
-          <!-- Day nav dots -->
-          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;" id="cal-day-dots"></div>
-        </div>
-
-        <!-- Calendar day cards -->
-        <div id="cal-day-cards" style="display:flex;flex-direction:column;gap:10px;margin-bottom:26px;"></div>
-
-        <!-- JSON output pane -->
-        <div class="db-json-pane">
-          <div class="db-json-header">
-            <div class="db-json-dot" style="background:#f85149;"></div>
-            <div class="db-json-dot" style="background:#f5a623;"></div>
-            <div class="db-json-dot" style="background:#56d364;"></div>
-            <span class="db-json-filename" id="cal-json-filename">weekly_calendar.json</span>
-            <button class="db-copy-btn" onclick="calCopyJSON()">Copy JSON</button>
-          </div>
-          <div class="db-json-body" id="cal-json-body">{ }</div>
-        </div>
-
-      </div><!-- /cal-results -->
-    </div><!-- /calendar panel -->
-
-  </div>
-</section>
 
 
 <!-- ══════════════════════════════════════════
@@ -4792,7 +4252,7 @@
           <a href="#positions">Positions</a>
           <a href="#testimonials">Success Stories</a>
           <a href="#pricing">Pricing</a>
-          <a href="#dashboard">Dashboard</a>
+          <a href="app.html">Dashboard</a>
         </nav>
       </div>
 
@@ -5517,692 +4977,6 @@
 
   // Combined keydown already declared above
 
-  /* ══════════════════════════════════════════════════════════════
-     AI PERFORMANCE DASHBOARD
-  ══════════════════════════════════════════════════════════════ */
-
-  /* ── Seed data: 3 prior weeks ── */
-  const DB_SEED = [
-    { week:'Week 1', label:'W1', days:[
-      {day:'Mon',shots_made:18,shots_attempted:42,dribbling_min:12,vertical_in:22,sprint_sec:4.9},
-      {day:'Tue',shots_made:15,shots_attempted:38,dribbling_min:14,vertical_in:21,sprint_sec:5.0},
-      {day:'Wed',shots_made:21,shots_attempted:44,dribbling_min:11,vertical_in:23,sprint_sec:4.8},
-      {day:'Thu',shots_made:17,shots_attempted:39,dribbling_min:16,vertical_in:22,sprint_sec:4.9},
-      {day:'Fri',shots_made:23,shots_attempted:46,dribbling_min:18,vertical_in:24,sprint_sec:4.7},
-    ]},
-    { week:'Week 2', label:'W2', days:[
-      {day:'Mon',shots_made:22,shots_attempted:42,dribbling_min:15,vertical_in:24,sprint_sec:4.7},
-      {day:'Tue',shots_made:20,shots_attempted:40,dribbling_min:17,vertical_in:23,sprint_sec:4.7},
-      {day:'Wed',shots_made:26,shots_attempted:45,dribbling_min:13,vertical_in:25,sprint_sec:4.6},
-      {day:'Thu',shots_made:21,shots_attempted:41,dribbling_min:19,vertical_in:24,sprint_sec:4.6},
-      {day:'Fri',shots_made:28,shots_attempted:47,dribbling_min:21,vertical_in:26,sprint_sec:4.5},
-    ]},
-    { week:'Week 3', label:'W3', days:[
-      {day:'Mon',shots_made:25,shots_attempted:43,dribbling_min:19,vertical_in:26,sprint_sec:4.5},
-      {day:'Tue',shots_made:23,shots_attempted:41,dribbling_min:21,vertical_in:25,sprint_sec:4.5},
-      {day:'Wed',shots_made:29,shots_attempted:47,dribbling_min:17,vertical_in:27,sprint_sec:4.4},
-      {day:'Thu',shots_made:27,shots_attempted:45,dribbling_min:23,vertical_in:27,sprint_sec:4.3},
-      {day:'Fri',shots_made:31,shots_attempted:49,dribbling_min:24,vertical_in:28,sprint_sec:4.2},
-    ]},
-  ];
-
-  const DB_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let dbWeeks    = [...DB_SEED];
-  let dbSessions = [];
-  let dbResult   = null;
-  let dbCharts   = {};
-  let dbLoading  = false;
-
-  /* ── helpers ── */
-  function dbMean(arr, fn) { return arr.reduce((s,x) => s + fn(x), 0) / arr.length; }
-  function dbWeekStats(w) {
-    const d = w.days;
-    return {
-      shooting_pct: Math.round(dbMean(d, r => (r.shots_made/r.shots_attempted)*100)),
-      dribbling_min: +dbMean(d, r => r.dribbling_min).toFixed(1),
-      vertical_in:   +dbMean(d, r => r.vertical_in).toFixed(1),
-      sprint_sec:    +dbMean(d, r => r.sprint_sec).toFixed(2),
-      shots_made:    Math.round(dbMean(d, r => r.shots_made)),
-    };
-  }
-  function dbPctChange(curr, prev) {
-    return prev === 0 ? 0 : Math.round(((curr - prev) / Math.abs(prev)) * 100);
-  }
-  function dbWeekNum() { return dbWeeks.length + 1; }
-  function dbPrevStats() { return dbWeeks.length > 0 ? dbWeekStats(dbWeeks[dbWeeks.length-1]) : null; }
-
-  /* ── tab switching ── */
-  function dbSwitchTab(id, btn) {
-    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
-    if (id === 'history') dbRenderHistory();
-  }
-  function dbSwitchTabById(id) {
-    const tabs = document.querySelectorAll('.db-tab');
-    const ids = ['log','summary','history'];
-    tabs.forEach((t,i) => t.classList.toggle('active', ids[i] === id));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('db-panel-' + id).classList.add('active');
-  }
-
-  /* ── update header labels ── */
-  function dbUpdateLabels() {
-    const wn = dbWeekNum();
-    document.getElementById('db-week-label').textContent = 'Week ' + wn;
-    document.getElementById('db-week-num').textContent = wn;
-    document.getElementById('db-session-count').textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
-    const dayLabel = DB_DAYS[dbSessions.length] || 'Extra Day';
-    document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
-    const rem = Math.max(0, 5 - dbSessions.length);
-    document.getElementById('db-remaining-label').textContent = dbSessions.length === 0
-      ? 'Add your first session →'
-      : (rem > 0 ? rem + ' session' + (rem > 1 ? 's' : '') + ' left this week' : 'Week complete!');
-  }
-
-  /* ── render session list ── */
-  function dbRenderSessions() {
-    const list = document.getElementById('db-session-list');
-    if (dbSessions.length === 0) {
-      list.innerHTML = `<div class="db-empty"><div class="db-empty-icon">📋</div><div class="db-empty-text">No sessions logged yet.<br>Fill the form and tap <strong>Add Session</strong>.</div></div>`;
-      return;
-    }
-    list.innerHTML = dbSessions.map((s, i) => {
-      const pct = Math.round((s.shots_made / s.shots_attempted) * 100);
-      const bc  = pct >= 65 ? '#56d364' : pct >= 50 ? '#f5a623' : '#f85149';
-      return `
-        <div class="db-session-card">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-            <div class="db-session-day">${s.day}</div>
-            <div style="font-size:10px;color:var(--c-dimmer);">Session ${i+1}</div>
-          </div>
-          <div class="db-session-bar">
-            <div class="db-session-bar-fill" style="width:${pct}%;background:${bc};"></div>
-          </div>
-          <div class="db-session-metrics">
-            <div class="db-metric-mini"><div class="db-metric-mini-label">Shot%</div><div class="db-metric-mini-val" style="color:${bc}">${pct}%</div></div>
-            <div class="db-metric-mini"><div class="db-metric-mini-label">Drib</div><div class="db-metric-mini-val" style="color:#4ca3ff">${s.dribbling_min}m</div></div>
-            <div class="db-metric-mini"><div class="db-metric-mini-label">Vert</div><div class="db-metric-mini-val" style="color:#bc8cff">${s.vertical_in}"</div></div>
-            <div class="db-metric-mini"><div class="db-metric-mini-label">Sprint</div><div class="db-metric-mini-val" style="color:#3ddbd9">${s.sprint_sec}s</div></div>
-          </div>
-        </div>`;
-    }).join('');
-    // Show generate button
-    const btn = document.getElementById('db-gen-btn');
-    if (dbSessions.length >= 2) {
-      btn.disabled = false; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
-    }
-  }
-
-  /* ── add session ── */
-  function dbAddSession() {
-    const sm  = parseFloat(document.getElementById('db-shots-made').value);
-    const sa  = parseFloat(document.getElementById('db-shots-att').value);
-    const dr  = parseFloat(document.getElementById('db-dribbling').value);
-    const ve  = parseFloat(document.getElementById('db-vertical').value);
-    const sp  = parseFloat(document.getElementById('db-sprint').value);
-    const err = document.getElementById('db-error');
-
-    err.style.display = 'none';
-    if (isNaN(sm) || isNaN(sa) || isNaN(dr) || isNaN(ve) || isNaN(sp)) {
-      err.textContent = '⚠ Fill in all 5 performance fields.'; err.style.display = 'block'; return;
-    }
-    if (sm > sa) {
-      err.textContent = '⚠ Shots made can\'t exceed shots attempted.'; err.style.display = 'block'; return;
-    }
-
-    dbSessions.push({
-      day: DB_DAYS[dbSessions.length] || ('Day ' + (dbSessions.length + 1)),
-      shots_made: sm, shots_attempted: sa,
-      dribbling_min: dr, vertical_in: ve, sprint_sec: sp,
-      notes: document.getElementById('db-notes').value,
-    });
-
-    // clear form
-    ['db-shots-made','db-shots-att','db-dribbling','db-vertical','db-sprint','db-notes'].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.value = '';
-    });
-
-    dbUpdateLabels();
-    dbRenderSessions();
-    showToast('Session logged for ' + dbSessions[dbSessions.length-1].day + '!');
-  }
-
-  /* ── chart helpers ── */
-  const DB_CHART_DEFAULTS = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: {
-      backgroundColor: '#181c26', borderColor: 'rgba(255,255,255,0.07)',
-      borderWidth: 1, titleColor: 'rgba(240,237,230,0.45)', bodyColor: '#f0ede6',
-      padding: 10, titleFont: { size: 10 }, bodyFont: { size: 13, weight: 700 },
-    }},
-    scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(240,237,230,0.45)', font: { size: 11 } }, border: { display: false } },
-      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(240,237,230,0.45)', font: { size: 11 } }, border: { display: false } },
-    },
-  };
-
-  function dbDestroyChart(key) {
-    if (dbCharts[key]) { dbCharts[key].destroy(); delete dbCharts[key]; }
-  }
-
-  function dbBuildCharts(result) {
-    // ── Line: daily shooting % ──
-    dbDestroyChart('line');
-    const lineCtx = document.getElementById('db-chart-line');
-    if (lineCtx) {
-      dbCharts.line = new Chart(lineCtx, {
-        type: 'line',
-        data: {
-          labels: result.chart_data.daily.map(d => d.day),
-          datasets: [{
-            label: 'Shooting %', data: result.chart_data.daily.map(d => d.shooting_pct),
-            borderColor: '#f5a623', backgroundColor: 'rgba(245,166,35,0.12)',
-            borderWidth: 2.5, fill: true, tension: 0.4,
-            pointBackgroundColor: '#f5a623', pointRadius: 5, pointHoverRadius: 7,
-          }],
-        },
-        options: { ...DB_CHART_DEFAULTS, scales: { ...DB_CHART_DEFAULTS.scales, y: { ...DB_CHART_DEFAULTS.scales.y, min: 20, max: 100 } } },
-      });
-    }
-
-    // ── Bar: weekly shooting % all weeks ──
-    dbDestroyChart('bar');
-    const trendData = [...dbWeeks.slice(-3).map(w => ({ name: w.label, val: dbWeekStats(w).shooting_pct })),
-                       { name: 'W' + dbWeekNum(), val: result.weekly_summary.averages.shooting_pct }];
-    const barCtx = document.getElementById('db-chart-bar');
-    if (barCtx) {
-      dbCharts.bar = new Chart(barCtx, {
-        type: 'bar',
-        data: {
-          labels: trendData.map(d => d.name),
-          datasets: [{
-            label: 'Shooting %', data: trendData.map(d => d.val),
-            backgroundColor: trendData.map((d,i) => i === trendData.length-1 ? '#f5a623' : 'rgba(245,166,35,0.3)'),
-            borderRadius: 5, borderSkipped: false,
-          }],
-        },
-        options: { ...DB_CHART_DEFAULTS, scales: { ...DB_CHART_DEFAULTS.scales, y: { ...DB_CHART_DEFAULTS.scales.y, min: 0, max: 100 } } },
-      });
-    }
-
-    // ── Line: vertical trend ──
-    dbDestroyChart('vert');
-    const allWeeksVert = [...dbWeeks.slice(-3).map(w => ({ name: w.label, val: dbWeekStats(w).vertical_in })),
-                          { name: 'W' + dbWeekNum(), val: result.weekly_summary.averages.vertical_in }];
-    const vertCtx = document.getElementById('db-chart-vert');
-    if (vertCtx) {
-      dbCharts.vert = new Chart(vertCtx, {
-        type: 'line',
-        data: {
-          labels: allWeeksVert.map(d => d.name),
-          datasets: [{
-            label: 'Vertical (in)', data: allWeeksVert.map(d => d.val),
-            borderColor: '#bc8cff', backgroundColor: 'rgba(188,140,255,0.1)',
-            borderWidth: 2.5, fill: true, tension: 0.4,
-            pointBackgroundColor: '#bc8cff', pointRadius: 5,
-          }],
-        },
-        options: DB_CHART_DEFAULTS,
-      });
-    }
-
-    // ── Line: sprint trend ──
-    dbDestroyChart('sprint');
-    const allWeeksSprint = [...dbWeeks.slice(-3).map(w => ({ name: w.label, val: dbWeekStats(w).sprint_sec })),
-                            { name: 'W' + dbWeekNum(), val: result.weekly_summary.averages.sprint_sec }];
-    const sprintCtx = document.getElementById('db-chart-sprint');
-    if (sprintCtx) {
-      dbCharts.sprint = new Chart(sprintCtx, {
-        type: 'line',
-        data: {
-          labels: allWeeksSprint.map(d => d.name),
-          datasets: [{
-            label: 'Sprint (s)', data: allWeeksSprint.map(d => d.val),
-            borderColor: '#3ddbd9', backgroundColor: 'rgba(61,219,217,0.1)',
-            borderWidth: 2.5, fill: true, tension: 0.4,
-            pointBackgroundColor: '#3ddbd9', pointRadius: 5,
-          }],
-        },
-        options: DB_CHART_DEFAULTS,
-      });
-    }
-  }
-
-  /* ── render summary from result ── */
-  function dbRenderSummary(result) {
-    const wn   = dbWeekNum();
-    const prev = dbPrevStats();
-
-    document.getElementById('db-summary-empty').style.display   = 'none';
-    document.getElementById('db-summary-content').style.display = 'block';
-
-    // tag + trend badge
-    document.getElementById('db-fb-tag').textContent = 'AI Coach · Week ' + (wn - 1);
-    document.getElementById('db-kpi-title').textContent = 'Week ' + (wn - 1) + ' — Averages';
-    document.getElementById('db-json-filename').textContent = 'week_' + (wn - 1) + '_performance.json';
-
-    const trend  = result.comparison.overall_trend;
-    const badge  = document.getElementById('db-trend-badge');
-    const tColor = trend === 'improving' ? '#56d364' : trend === 'declining' ? '#f85149' : '#4ca3ff';
-    badge.textContent = trend;
-    badge.style.background = `rgba(${tColor === '#56d364' ? '86,211,100' : tColor === '#f85149' ? '248,81,73' : '76,163,255'},0.12)`;
-    badge.style.border     = `1px solid rgba(${tColor === '#56d364' ? '86,211,100' : tColor === '#f85149' ? '248,81,73' : '76,163,255'},0.3)`;
-    badge.style.borderRadius = '100px'; badge.style.padding = '3px 10px';
-    badge.style.fontSize = '11px'; badge.style.fontWeight = '700'; badge.style.letterSpacing = '0.1em';
-    badge.style.color = tColor;
-
-    // feedback text
-    document.getElementById('db-headline').textContent     = result.feedback.headline;
-    document.getElementById('db-summary-text').textContent = result.feedback.summary;
-    document.getElementById('db-strengths').innerHTML = result.feedback.strengths.map(s => `<div class="db-feedback-item">· ${s}</div>`).join('');
-    document.getElementById('db-focus').innerHTML     = result.feedback.focus_areas.map(f => `<div class="db-feedback-item">· ${f}</div>`).join('');
-    document.getElementById('db-drill').textContent   = result.feedback.drill_recommendation;
-    document.getElementById('db-coach-note').textContent = '"' + result.feedback.coach_note + '"';
-
-    // KPIs
-    const avg = result.weekly_summary.averages;
-    function setKPI(valId, deltaId, curr, prevVal, lowerBetter) {
-      document.getElementById(valId).childNodes[0].textContent = curr;
-      if (prev && prevVal !== undefined) {
-        const d = dbPctChange(curr, prevVal);
-        const pos = lowerBetter ? d <= 0 : d >= 0;
-        const el = document.getElementById(deltaId);
-        el.textContent = (pos ? '▲ ' : '▼ ') + Math.abs(d) + '% vs prev week';
-        el.style.color = pos ? '#56d364' : '#f85149';
-      }
-    }
-    setKPI('kpi-shot',   'kpi-shot-d',   avg.shooting_pct,  prev?.shooting_pct,  false);
-    setKPI('kpi-drib',   'kpi-drib-d',   avg.dribbling_min, prev?.dribbling_min, false);
-    setKPI('kpi-vert',   'kpi-vert-d',   avg.vertical_in,   prev?.vertical_in,   false);
-    setKPI('kpi-sprint', 'kpi-sprint-d', avg.sprint_sec,    prev?.sprint_sec,    true);
-
-    // JSON pane
-    document.getElementById('db-json-body').textContent = JSON.stringify(result, null, 2);
-
-    // charts (slight delay so canvas is visible)
-    setTimeout(() => dbBuildCharts(result), 80);
-  }
-
-  /* ── render history ── */
-  function dbRenderHistory() {
-    const list = document.getElementById('db-history-list');
-    document.getElementById('db-history-count').textContent = dbWeeks.length + ' week' + (dbWeeks.length !== 1 ? 's' : '') + ' tracked';
-    if (dbWeeks.length === 0) {
-      list.innerHTML = `<div class="db-empty"><div class="db-empty-icon">📅</div><div class="db-empty-text">No history yet. Complete a week to see it here.</div></div>`;
-      return;
-    }
-    list.innerHTML = [...dbWeeks].reverse().map((w, i) => {
-      const s = dbWeekStats(w);
-      const isLatest = i === 0 && dbResult;
-      return `
-        <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : ''}">
-          <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : ''}">
-            <div class="db-history-week" style="color:${isLatest ? '#f5a623' : 'var(--c-white)'}">${w.week}${isLatest ? ' <span style="font-size:13px;font-weight:400;">· Latest</span>' : ''}</div>
-            <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} sessions</div>
-          </div>
-          <div class="db-history-body">
-            <div class="db-history-stats">
-              ${[
-                {l:'Shooting%', v:s.shooting_pct+'%'},
-                {l:'Avg Dribble', v:s.dribbling_min+'m'},
-                {l:'Avg Vertical', v:s.vertical_in+'"'},
-                {l:'Avg Sprint', v:s.sprint_sec+'s'},
-                {l:'Sessions', v:w.days.length},
-              ].map(({l,v}) => `<div class="db-history-stat"><div class="db-history-stat-label">${l}</div><div class="db-history-stat-val">${v}</div></div>`).join('')}
-            </div>
-            <div class="db-day-bars">
-              ${w.days.map(d => {
-                const pct = Math.round((d.shots_made/d.shots_attempted)*100);
-                const bc  = pct>=65?'rgba(86,211,100,0.45)':pct>=50?'rgba(245,166,35,0.45)':'rgba(248,81,73,0.4)';
-                return `<div class="db-day-bar-wrap"><div class="db-day-bar-bg"><div class="db-day-bar-fill" style="height:${pct}%;background:${bc}"></div></div><div class="db-day-bar-label">${d.day}</div></div>`;
-              }).join('')}
-            </div>
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  /* ── copy JSON ── */
-  function dbCopyJSON() {
-    if (!dbResult) return;
-    const text = JSON.stringify(dbResult, null, 2);
-    if (navigator.clipboard) navigator.clipboard.writeText(text);
-    const btn = document.querySelector('.db-copy-btn');
-    btn.textContent = '✓ Copied!';
-    btn.style.color  = '#56d364';
-    setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
-  }
-
-  /* ── GENERATE via Anthropic API ── */
-  async function dbGenerate() {
-    if (dbSessions.length < 2) return;
-    if (dbLoading) return;
-    dbLoading = true;
-
-    const btn = document.getElementById('db-gen-btn');
-    btn.textContent = '⚙️ Analyzing with AI…';
-    btn.disabled = true;
-
-    const wn   = dbWeekNum();
-    const prev = dbPrevStats();
-    const player   = document.getElementById('db-player').value || 'Athlete';
-    const position = document.getElementById('db-position').value || 'Point Guard';
-
-    const prompt = `You are an elite basketball performance analytics AI for CourtIQ.
-
-Player: ${player} | Position: ${position} | Analyzing: Week ${wn}
-
-Week ${wn} sessions (${dbSessions.length} days):
-${JSON.stringify(dbSessions, null, 2)}
-
-Previous weeks stats:
-${JSON.stringify(dbWeeks.map(w => ({ week: w.week, stats: dbWeekStats(w) })), null, 2)}
-
-Return ONLY valid JSON with this exact schema — no markdown, no extra text:
-{
-  "player": "${player}",
-  "position": "${position}",
-  "week": "Week ${wn}",
-  "generated_at": "<ISO 8601>",
-  "weekly_summary": {
-    "sessions_logged": <number>,
-    "consistency_score": <0-100>,
-    "averages": {
-      "shooting_pct": <number>,
-      "dribbling_min": <number>,
-      "vertical_in": <number>,
-      "sprint_sec": <number>,
-      "shots_made": <number>
-    },
-    "best_session": { "day": "<string>", "reason": "<max 12 words>" },
-    "weakest_session": { "day": "<string>", "reason": "<max 12 words>" }
-  },
-  "comparison": {
-    "vs_prev_week": {
-      "shooting_pct":  { "delta": <number>, "pct_change": <number>, "trend": "up|down|flat" },
-      "dribbling_min": { "delta": <number>, "pct_change": <number>, "trend": "up|down|flat" },
-      "vertical_in":   { "delta": <number>, "pct_change": <number>, "trend": "up|down|flat" },
-      "sprint_sec":    { "delta": <number>, "pct_change": <number>, "trend": "up|down|flat" }
-    },
-    "overall_trend": "improving|plateauing|declining"
-  },
-  "chart_data": {
-    "daily": [
-      { "day": "<string>", "shooting_pct": <number>, "dribbling_min": <number>, "vertical_in": <number>, "sprint_sec": <number> }
-    ]
-  },
-  "feedback": {
-    "headline": "<8-10 word punchy headline>",
-    "summary": "<2-3 sentences of specific data-driven analysis>",
-    "strengths": ["<strength 1>", "<strength 2>"],
-    "focus_areas": ["<area 1>", "<area 2>"],
-    "drill_recommendation": "<one specific drill + brief reason, max 20 words>",
-    "coach_note": "<one motivational sentence, max 15 words>"
-  }
-}`;
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1200,
-          messages: [{ role: 'user', content: prompt }],
-        }),
-      });
-      const data = await res.json();
-      const text = (data.content || []).map(b => b.text || '').join('');
-      const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-
-      dbResult = result;
-      dbWeeks  = [...dbWeeks, { week: 'Week ' + wn, label: 'W' + wn, days: dbSessions }];
-      dbSessions = [];
-
-      dbUpdateLabels();
-      dbRenderSessions();
-      dbRenderSummary(result);
-
-      // switch to summary
-      dbSwitchTabById('summary');
-      document.getElementById('dashboard').scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-    } catch(e) {
-      const err = document.getElementById('db-error');
-      err.textContent = '⚠ AI analysis failed — check your connection and try again.';
-      err.style.display = 'block';
-      console.error(e);
-    } finally {
-      dbLoading = false;
-      btn.textContent = '🤖 Generate AI Summary →';
-      btn.disabled = dbSessions.length < 2;
-      if (dbSessions.length < 2) { btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
-    }
-  }
-
-  /* init labels on load */
-  dbUpdateLabels();
-  dbRenderHistory();
-
-  /* ══════════════════════════════════════════════════════════════
-     NOTIFICATIONS TAB — AI-generated push & email content
-     Prompt: Generate push notifications and emails for upcoming
-     workouts including day, exercises, and motivation as JSON.
-  ══════════════════════════════════════════════════════════════ */
-
-  let notifResult = null;
-  let notifLoading = false;
-
-  /* The exact system prompt as specified */
-  const NOTIF_SYSTEM_PROMPT = `You are an AI assistant. Generate text for push notifications and emails for upcoming workouts:
-- Include day, exercises, and motivation
-- Example: "Hey [Name], today's workout: 5 shooting drills + 15 minutes conditioning. Let's improve your 3-point shot!"
-Output as JSON array of notifications per day.`;
-
-  function notifBuildUserPrompt(name, goal, channel) {
-    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const drillSets = [
-      ['3-point shooting circuit','catch & shoot reps','pull-up jumper series','spot-up 3s','off-screen shooting'],
-      ['crossover dribble drill','behind-the-back combo','tennis ball ball-handling','figure-8 dribble','speed dribble sprints'],
-      ['box jump series','lateral hurdle hops','depth jump protocol','single-leg squat jumps','sprint intervals'],
-      ['defensive slide drill','closeout technique','on-ball pressure drill','help-side rotations','box-out footwork'],
-      ['full-court layup series','euro step finishing','floater practice','reverse layup reps','contact finishing'],
-      ['active recovery stretching','film review session','light shooting warmup'],
-    ];
-    const weekDays = days.map((d, i) => ({
-      day: d,
-      exercises: drillSets[i].slice(0, i === 5 ? 3 : 4),
-      intensity: i === 5 ? 'Recovery' : i % 2 === 0 ? 'High' : 'Medium',
-    }));
-
-    return `Generate a full week of workout notifications for the following athlete:
-
-Name: ${name}
-Goal: ${goal}
-Channel: ${channel}
-Week: Week ${dbWeeks.length + 1}
-
-Training schedule:
-${JSON.stringify(weekDays, null, 2)}
-
-Return ONLY a valid JSON array — no markdown, no extra text. Each element must have:
-{
-  "day": "Monday",
-  "date": "Mar 3, 2025",
-  "exercises": ["exercise 1", "exercise 2", ...],
-  "intensity": "High|Medium|Recovery",
-  "push_notification": {
-    "title": "Short title (max 8 words)",
-    "body": "Full push text mentioning name, exercises, motivation (max 30 words)"
-  },
-  "email": {
-    "subject": "Email subject line (max 10 words)",
-    "preview_text": "Preview snippet shown in inbox (max 20 words)",
-    "body": "Full email body — 3-4 sentences. Mention name, specific exercises, the goal (${goal}), and a motivational close."
-  },
-  "motivation_quote": "One short punchy motivational line (max 12 words)"
-}`;
-  }
-
-  async function notifGenerate() {
-    if (notifLoading) return;
-    notifLoading = true;
-
-    const name    = document.getElementById('notif-name').value.trim() || 'Athlete';
-    const goal    = document.getElementById('notif-goal').value;
-    const channel = document.getElementById('notif-channel').value;
-
-    const btn = document.getElementById('notif-gen-btn');
-    btn.textContent = '⚙️ Generating…';
-    btn.disabled = true;
-
-    document.getElementById('notif-empty').style.display    = 'none';
-    document.getElementById('notif-results').style.display  = 'none';
-    document.getElementById('notif-loading').style.display  = 'block';
-    document.getElementById('notif-error').style.display    = 'none';
-
-    const userPrompt = notifBuildUserPrompt(name, goal, channel);
-
-    // Store prompt for display
-    const fullPrompt = NOTIF_SYSTEM_PROMPT + '\n\n---\n\n' + userPrompt;
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          system: NOTIF_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-      });
-
-      const data   = await res.json();
-      const text   = (data.content || []).map(b => b.text || '').join('');
-      const clean  = text.replace(/```json|```/g, '').trim();
-      const result = JSON.parse(clean);
-
-      notifResult = result;
-
-      document.getElementById('notif-loading').style.display  = 'none';
-      document.getElementById('notif-results').style.display  = 'block';
-      document.getElementById('notif-prompt-box').textContent = fullPrompt;
-      document.getElementById('notif-week-label').textContent = `Week ${dbWeeks.length + 1} — Notification Schedule`;
-      document.getElementById('notif-json-body').textContent  = JSON.stringify(result, null, 2);
-
-      notifRenderCards(result, channel);
-
-    } catch(e) {
-      document.getElementById('notif-loading').style.display = 'none';
-      document.getElementById('notif-empty').style.display   = 'block';
-      const errEl = document.getElementById('notif-error');
-      errEl.textContent = '⚠ Failed to generate notifications. Check your connection and try again.';
-      errEl.style.display = 'block';
-      console.error(e);
-    } finally {
-      notifLoading = false;
-      btn.textContent = '🔔 Regenerate';
-      btn.disabled = false;
-    }
-  }
-
-  function notifRenderCards(days, channel) {
-    const container = document.getElementById('notif-cards');
-    const showPush  = channel !== 'email';
-    const showEmail = channel !== 'push';
-
-    const intensityColor = { High:'#f85149', Medium:'#f5a623', Recovery:'#56d364' };
-
-    container.innerHTML = days.map(d => {
-      const ic = intensityColor[d.intensity] || '#f5a623';
-      return `
-        <div class="notif-card">
-          <div class="notif-card-header">
-            <div>
-              <div class="notif-day-name">${d.day}</div>
-              <div class="notif-day-date">${d.date || ''}</div>
-            </div>
-            <div style="display:flex;align-items:center;gap:8px;margin-left:12px;">
-              <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;padding:3px 9px;border-radius:100px;background:rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.1);color:${ic};border:1px solid rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.25);">${d.intensity}</span>
-            </div>
-            <div class="notif-channels">
-              ${showPush  ? '<span class="notif-chip push">📱 Push</span>'  : ''}
-              ${showEmail ? '<span class="notif-chip email">✉ Email</span>' : ''}
-            </div>
-          </div>
-
-          <div class="notif-card-body">
-
-            <!-- Exercises -->
-            <div>
-              <div class="notif-message-label">🏀 Exercises</div>
-              <div class="notif-exercises">
-                ${(d.exercises || []).map(ex => `<span class="notif-ex-tag">${ex}</span>`).join('')}
-              </div>
-            </div>
-
-            ${showPush && d.push_notification ? `
-            <!-- Push notification -->
-            <div class="notif-message-block">
-              <div class="notif-message-label">📱 Push Notification</div>
-              <div class="notif-push-bubble">
-                <div class="notif-push-title">${d.push_notification.title || ''}</div>
-                <div class="notif-push-body">${d.push_notification.body || ''}</div>
-              </div>
-            </div>` : ''}
-
-            ${showEmail && d.email ? `
-            <!-- Email -->
-            <div class="notif-message-block">
-              <div class="notif-message-label">✉ Email</div>
-              <div class="notif-email-block">
-                <div class="notif-email-subject">Subject: ${d.email.subject || ''}</div>
-                ${d.email.preview_text ? `<div style="font-size:11px;color:var(--c-dimmer);margin-bottom:8px;font-style:italic;">Preview: ${d.email.preview_text}</div>` : ''}
-                <div class="notif-email-preview">${d.email.body || ''}</div>
-              </div>
-            </div>` : ''}
-
-            <!-- Motivation -->
-            ${d.motivation_quote ? `
-            <div class="notif-motivation">"${d.motivation_quote}"</div>` : ''}
-
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  function notifTogglePrompt() {
-    const box   = document.getElementById('notif-prompt-box');
-    const arrow = document.getElementById('notif-prompt-arrow');
-    const open  = box.style.display === 'block';
-    box.style.display  = open ? 'none' : 'block';
-    arrow.textContent  = open ? '▼' : '▲';
-  }
-
-  function notifCopyJSON() {
-    if (!notifResult) return;
-    const text = JSON.stringify(notifResult, null, 2);
-    if (navigator.clipboard) navigator.clipboard.writeText(text);
-    const btn = document.querySelector('#db-panel-notifications .db-copy-btn');
-    if (!btn) return;
-    btn.textContent = '✓ Copied!';
-    btn.style.color  = '#56d364';
-    setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
-  }
-
-  /* patch dbSwitchTab to handle notifications panel */
-  const _origSwitch = dbSwitchTab;
-  function dbSwitchTab(id, btn) {
-    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
-    if (id === 'history') dbRenderHistory();
-  }
 
 
   function submitNewsletter() {
@@ -6249,7 +5023,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
                 <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;border-radius:100px;background:${d.intensity==='High'?'rgba(245,166,35,0.12)':d.intensity==='Max'?'rgba(248,81,73,0.12)':d.intensity==='Low'?'rgba(86,211,100,0.1)':'rgba(255,255,255,0.06)'};color:${d.intensity==='High'?'#f5a623':d.intensity==='Max'?'#f85149':d.intensity==='Low'?'#56d364':'var(--c-muted)'};">${d.intensity}</span>
               </div>`).join('')}
           </div>
-          <button class="fw-btn" onclick="openAuth('signup')">Start My Program →</button>`;
+          <button class="fw-btn" onclick="window.location.href='app.html'">Start My Program →</button>`;
       }
     },
 
@@ -6285,7 +5059,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               </div>`).join('')}
           </div>
           ${limit >= 6 ? '<div style="font-size:12px;color:var(--c-muted);text-align:center;margin-bottom:16px;">Showing 6 of 500+ drills available in Pro</div>' : ''}
-          <button class="fw-btn" onclick="openAuth('signup','pro')">Unlock All Drills →</button>`;
+          <button class="fw-btn" onclick="window.location.href='app.html'">Unlock All Drills →</button>`;
       }
     },
 
@@ -6311,7 +5085,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
             </div>
           </div>
           <div style="font-size:12px;color:var(--c-muted);margin-bottom:14px;">🔒 Upgrade to Pro for advanced analytics — per-drill breakdowns, trend graphs, and AI insights.</div>
-          <button class="fw-btn" onclick="openAuth('signup')">Start Tracking →</button>`;
+          <button class="fw-btn" onclick="window.location.href='app.html'">Start Tracking →</button>`;
       }
     },
 
@@ -6327,7 +5101,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
           ${['Ball handling at speed','Pick & roll decision making','Drive & kick passing','Catch & shoot 3s','Transition offense'].map(f=>`<div style="font-size:13px;color:var(--c-muted);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${f}</div>`).join('')}
         </div>
         <div style="font-size:12px;color:var(--c-muted);text-align:center;margin:14px 0 4px;">Pro & Elite unlock all 5 positions (PF and C included)</div>
-        <button class="fw-btn" style="width:100%;margin-top:10px;" onclick="openAuth('signup')">Get Started →</button>`;
+        <button class="fw-btn" style="width:100%;margin-top:10px;" onclick="window.location.href='app.html'">Get Started →</button>`;
       }
     },
 
@@ -6364,7 +5138,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               <span style="font-size:13px;color:var(--c-muted);">${f}</span>
             </div>`).join('')}
         </div>
-        <button class="fw-btn" onclick="openAuth('signup','pro')">Get Pro (includes all of Starter) →</button>`;
+        <button class="fw-btn" onclick="window.location.href='app.html'">Get Pro (includes all of Starter) →</button>`;
       }
     },
 
@@ -6394,7 +5168,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
             <div style="font-size:12px;color:var(--c-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Example — Shooting plateau detected</div>
             <div style="font-size:13px;color:rgba(240,237,230,0.8);line-height:1.65;">"Marcus has plateaued at 62% shooting for 3 weeks. Recommending: increased mid-range volume, catch-and-shoot reps off screens, and defender pressure drills."</div>
           </div>
-          <button class="fw-btn" onclick="openAuth('signup','pro')">Unlock Adaptive AI →</button>`;
+          <button class="fw-btn" onclick="window.location.href='app.html'">Unlock Adaptive AI →</button>`;
       }
     },
 
@@ -6425,7 +5199,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
                 </div>`).join('')}
             </div>
           </div>
-          <button class="fw-btn" style="margin-top:14px;" onclick="openAuth('signup','pro')">Access Full Library →</button>`;
+          <button class="fw-btn" style="margin-top:14px;" onclick="window.location.href='app.html'">Access Full Library →</button>`;
       }
     },
 
@@ -6486,7 +5260,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               ].map(k=>`<div class="fw-card" style="text-align:center;"><div style="font-size:20px;margin-bottom:4px;">${k.icon}</div><div style="font-size:10px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.1em;">${k.label}</div><div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--c-white);">${k.val}</div></div>`).join('')}
             </div>
           </div>
-          <button class="fw-btn" style="width:100%;margin-top:4px;" onclick="openAuth('signup','pro')">Unlock Analytics →</button>`;
+          <button class="fw-btn" style="width:100%;margin-top:4px;" onclick="window.location.href='app.html'">Unlock Analytics →</button>`;
       }
     },
 
@@ -6513,7 +5287,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               <div id="fw-pos-list">${focus['PG'].map(f=>`<div style="font-size:13px;color:var(--c-muted);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${f}</div>`).join('')}</div>
             </div>
           </div>
-          <button class="fw-btn" style="width:100%;margin-top:14px;" onclick="openAuth('signup','pro')">Start My Position Program →</button>
+          <button class="fw-btn" style="width:100%;margin-top:14px;" onclick="window.location.href='app.html'">Start My Position Program →</button>
           <script>
             window._fwPosData=${JSON.stringify({pos,focus})};
             function fwSelectPos(p){
@@ -6538,7 +5312,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               <span style="font-size:13px;color:var(--c-muted);">${f}</span>
             </div>`).join('')}
         </div>
-        <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="openAuth('signup','elite')">Go Elite →</button>`;
+        <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Go Elite →</button>`;
       }
     },
 
@@ -6576,7 +5350,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               ${slots.map(s=>`<div class="fw-card" onclick="fwSelectSlot(this)" style="font-size:12px;color:var(--c-muted);cursor:pointer;transition:var(--transition);text-align:center;">${s}</div>`).join('')}
             </div>
           </div>
-          <button class="fw-btn" onclick="openAuth('signup','elite')" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);">Book My Session →</button>`;
+          <button class="fw-btn" onclick="window.location.href='app.html'" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);">Book My Session →</button>`;
       }
     },
 
@@ -6605,7 +5379,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               ].map(i=>`<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;"><span style="font-size:16px;">${i.icon}</span><span style="font-size:13px;color:rgba(240,237,230,0.75);line-height:1.5;">${i.insight}</span></div>`).join('')}
             </div>
           </div>
-          <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);margin-top:6px;" onclick="openAuth('signup','elite')">Unlock Film Analysis →</button>`;
+          <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);margin-top:6px;" onclick="window.location.href='app.html'">Unlock Film Analysis →</button>`;
       }
     },
 
@@ -6633,7 +5407,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               <div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--c-amber);">${r.val}</div>
             </div>`).join('')}
           </div>
-          <button class="fw-btn" style="width:100%;margin-top:14px;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="openAuth('signup','elite')">Get My Season Plan →</button>`;
+          <button class="fw-btn" style="width:100%;margin-top:14px;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get My Season Plan →</button>`;
       }
     },
 
@@ -6669,7 +5443,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
               ].map(r=>`<div class="fw-card" style="display:flex;gap:12px;align-items:center;"><div style="font-size:20px;">${r.icon}</div><div><div style="font-size:13px;font-weight:600;color:var(--c-white);">${r.item}</div><div style="font-size:12px;color:var(--c-muted);">${r.detail}</div></div></div>`).join('')}
             </div>
           </div>
-          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="openAuth('signup','elite')">Get My Nutrition Plan →</button>`;
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get My Nutrition Plan →</button>`;
       }
     },
 
@@ -6699,7 +5473,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
             <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--c-amber);">&lt; 2 hours</div>
             <div style="font-size:13px;color:var(--c-muted);">Average response time for Elite members</div>
           </div>
-          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="openAuth('signup','elite')">Get Elite Support →</button>`;
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get Elite Support →</button>`;
       }
     },
 
@@ -6730,7 +5504,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
                 </div>
               </div>`).join('')}
           </div>
-          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="openAuth('signup','elite')">Join Elite Waitlist →</button>`;
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Join Elite Waitlist →</button>`;
       }
     },
   };
@@ -6910,609 +5684,696 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
   });
 
   /* ══════════════════════════════════════════════════════════════
-     AI COACH — adaptive weekly program adjustment
-     Prompt: Analyze performance data (sets, success %, time),
-     increase/decrease intensity, focus on weak areas, suggest
-     alternative drills if equipment is limited.
-     Output: updated weekly schedule as JSON.
+     FEATURE MODALS — each plan feature opens a live demo
   ══════════════════════════════════════════════════════════════ */
 
-  const COACH_SYSTEM_PROMPT = `You are an AI Basketball Coach. Given the user's performance data (completed sets, success %, time spent), adjust the next week's training:
-- Increase or decrease intensity
-- Focus more on weak areas
-- Suggest alternative drills if equipment is limited
-Output updated weekly schedule in the same JSON format as the original program.`;
+  const FEATURE_CONTENT = {
 
-  let coachResult = null;
-  let coachLoading = false;
+    /* ── Starter features ── */
+    'ai-program': {
+      icon: '🤖', iconBg: 'rgba(245,166,35,0.12)',
+      title: 'AI Weekly Program', sub: 'Your personalized training schedule — auto-generated every week',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">This Week's Program — Point Guard</div>
+            ${[
+              {day:'Monday',   focus:'Ball Handling + Shooting', drills:['Crossover Dribble Circuit','3-Point Catch & Shoot','Pull-Up Jumper'], intensity:'High'},
+              {day:'Tuesday',  focus:'Conditioning + Defense',   drills:['Defensive Slide Drill','Sprint Intervals','Box Jump Series'],       intensity:'Medium'},
+              {day:'Wednesday',focus:'Rest Day',                 drills:['Light Stretch','Film Review'],                                     intensity:'Low'},
+              {day:'Thursday', focus:'Shooting + IQ',            drills:['Mid-Range Pull-Up','Pick & Roll Read','Spot-Up 3s'],               intensity:'High'},
+              {day:'Friday',   focus:'Full Workout',             drills:['5-Spot Shooting','Full-Court Layups','1-on-1 Closeout'],           intensity:'Max'},
+            ].map(d => `
+              <div class="fw-card" style="margin-bottom:8px;display:flex;align-items:center;gap:14px;">
+                <div style="font-family:var(--font-display);font-size:14px;font-weight:800;color:var(--c-amber);width:80px;flex-shrink:0;">${d.day}</div>
+                <div style="flex:1;">
+                  <div style="font-size:13px;font-weight:600;color:var(--c-white);margin-bottom:2px;">${d.focus}</div>
+                  <div style="font-size:11px;color:var(--c-muted);">${d.drills.join(' · ')}</div>
+                </div>
+                <span style="font-size:10px;font-weight:700;letter-spacing:0.08em;padding:3px 8px;border-radius:100px;background:${d.intensity==='High'?'rgba(245,166,35,0.12)':d.intensity==='Max'?'rgba(248,81,73,0.12)':d.intensity==='Low'?'rgba(86,211,100,0.1)':'rgba(255,255,255,0.06)'};color:${d.intensity==='High'?'#f5a623':d.intensity==='Max'?'#f85149':d.intensity==='Low'?'#56d364':'var(--c-muted)'};">${d.intensity}</span>
+              </div>`).join('')}
+          </div>
+          <button class="fw-btn" onclick="window.location.href='app.html'">Start My Program →</button>`;
+      }
+    },
 
-  function coachToggleEq(btn) { btn.classList.toggle('active'); }
+    'drill-library-50': {
+      icon: '🎯', iconBg: 'rgba(86,211,100,0.1)',
+      title: '50+ Position Drills', sub: 'Starter library — drills tailored to your position',
+      render() { return FEATURE_CONTENT['drill-library-500'].render(3); }
+    },
 
-  function coachUpdateBadge(area) {
-    const pct   = parseFloat(document.getElementById('c-'+area+'-pct')?.value);
-    const sets  = parseFloat(document.getElementById('c-'+area+'-sets')?.value);
-    const badge = document.getElementById('badge-'+area);
-    if (!badge) return;
-    if (isNaN(pct)||isNaN(sets)){ badge.textContent='—'; badge.className='coach-area-badge'; return; }
-    if (pct>=75&&sets>=6){ badge.textContent='Strong ▲'; badge.className='coach-area-badge strong'; }
-    else if (pct>=55&&sets>=4){ badge.textContent='Average →'; badge.className='coach-area-badge medium'; }
-    else { badge.textContent='Weak ↓'; badge.className='coach-area-badge weak'; }
-  }
+    'drill-library-500': {
+      icon: '🎯', iconBg: 'rgba(245,166,35,0.1)',
+      title: '500+ Drill Library', sub: 'Browse by position, skill, and intensity',
+      render(limit = 6) {
+        const drills = [
+          {name:'3-Point Catch & Shoot', pos:'PG/SG', focus:'Shooting',   icon:'🏀', bg:'rgba(245,166,35,0.1)',  pct:72},
+          {name:'Crossover Into Pull-Up', pos:'PG',   focus:'Ball Handle', icon:'⚡', bg:'rgba(76,163,255,0.1)',  pct:58},
+          {name:'Box Jump Series',        pos:'ALL',  focus:'Athleticism', icon:'💪', bg:'rgba(86,211,100,0.1)', pct:85},
+          {name:'Defensive Closeout',     pos:'SF/SG',focus:'Defense',     icon:'🛡️', bg:'rgba(188,140,255,0.1)',pct:64},
+          {name:'Post Hook Shot',         pos:'C/PF', focus:'Post Game',   icon:'🎯', bg:'rgba(61,219,217,0.1)', pct:45},
+          {name:'Pick & Roll Read',       pos:'PG',   focus:'IQ',          icon:'🧠', bg:'rgba(248,81,73,0.1)',  pct:91},
+        ].slice(0, limit);
+        return `
+          <div class="fw-section">
+            <div class="fw-label">${limit >= 6 ? 'Featured Drills' : 'Starter Drills'}</div>
+            ${drills.map(d => `
+              <div class="fw-drill">
+                <div class="fw-drill-icon" style="background:${d.bg};">${d.icon}</div>
+                <div style="flex:1;">
+                  <div class="fw-drill-name">${d.name}</div>
+                  <div class="fw-drill-meta">${d.pos} · ${d.focus}</div>
+                </div>
+                <div class="fw-drill-bar"><div class="fw-drill-fill" style="width:${d.pct}%;background:var(--c-amber);"></div></div>
+              </div>`).join('')}
+          </div>
+          ${limit >= 6 ? '<div style="font-size:12px;color:var(--c-muted);text-align:center;margin-bottom:16px;">Showing 6 of 500+ drills available in Pro</div>' : ''}
+          <button class="fw-btn" onclick="window.location.href='app.html'">Unlock All Drills →</button>`;
+      }
+    },
 
-  function coachGetEquipment() {
-    return Array.from(document.querySelectorAll('.coach-eq-btn.active')).map(b=>b.textContent.trim());
-  }
+    'basic-tracking': {
+      icon: '📊', iconBg: 'rgba(76,163,255,0.1)',
+      title: 'Basic Progress Tracking', sub: 'Track shooting %, sessions logged, and weekly streaks',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Your Weekly Stats</div>
+            <div class="fw-card" style="margin-bottom:12px;">
+              ${[
+                {label:'Shooting Accuracy', val:'61%', fill:61, color:'#f5a623'},
+                {label:'Sessions This Week', val:'4/5',  fill:80, color:'#56d364'},
+                {label:'Drills Completed',   val:'18',  fill:72, color:'#4ca3ff'},
+                {label:'Training Streak',    val:'14d', fill:56, color:'#bc8cff'},
+              ].map(s => `
+                <div class="fw-stat-row">
+                  <div class="fw-stat-name">${s.label}</div>
+                  <div class="fw-stat-bar"><div class="fw-stat-fill" style="width:${s.fill}%;background:${s.color};"></div></div>
+                  <div class="fw-stat-val">${s.val}</div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <div style="font-size:12px;color:var(--c-muted);margin-bottom:14px;">🔒 Upgrade to Pro for advanced analytics — per-drill breakdowns, trend graphs, and AI insights.</div>
+          <button class="fw-btn" onclick="window.location.href='app.html'">Start Tracking →</button>`;
+      }
+    },
 
-  function coachGetPerformance() {
-    const areas  = ['shooting','ballhandling','athleticism','defense'];
-    const labels = {shooting:'Shooting',ballhandling:'Ball Handling',athleticism:'Athleticism',defense:'Defense'};
-    return areas.map(a=>({
-      area: labels[a],
-      sets_completed: parseFloat(document.getElementById('c-'+a+'-sets')?.value)||0,
-      success_pct:    parseFloat(document.getElementById('c-'+a+'-pct')?.value)||0,
-      time_spent_min: parseFloat(document.getElementById('c-'+a+'-time')?.value)||0,
-      notes: document.getElementById('c-'+a+'-notes')?.value||'',
-    }));
-  }
+    '3-positions': {
+      icon: '🏀', iconBg: 'rgba(245,166,35,0.1)',
+      title: '3 Positions — Starter', sub: 'Drills optimized for PG, SG, and SF',
+      render() {
+        return `<div class="fw-pos-grid" style="grid-template-columns:repeat(3,1fr);">
+          ${['PG','SG','SF'].map((p,i)=>`<div class="fw-pos-btn active" style="border-color:rgba(245,166,35,0.35);color:var(--c-amber);">${p}</div>`).join('')}
+        </div>
+        <div class="fw-card">
+          <div style="font-size:13px;font-weight:600;color:var(--c-white);margin-bottom:10px;">Point Guard — Focus Areas</div>
+          ${['Ball handling at speed','Pick & roll decision making','Drive & kick passing','Catch & shoot 3s','Transition offense'].map(f=>`<div style="font-size:13px;color:var(--c-muted);padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${f}</div>`).join('')}
+        </div>
+        <div style="font-size:12px;color:var(--c-muted);text-align:center;margin:14px 0 4px;">Pro & Elite unlock all 5 positions (PF and C included)</div>
+        <button class="fw-btn" style="width:100%;margin-top:10px;" onclick="window.location.href='app.html'">Get Started →</button>`;
+      }
+    },
 
-  async function coachGenerate() {
-    if (coachLoading) return;
-    const perf = coachGetPerformance();
-    const hasData = perf.some(p=>p.sets_completed>0||p.success_pct>0);
-    if (!hasData) {
-      const err=document.getElementById('coach-error');
-      err.textContent='⚠ Enter at least one area performance data before generating.';
-      err.style.display='block';
-      setTimeout(()=>err.style.display='none',3000);
-      return;
-    }
-    coachLoading = true;
-    const player    = document.getElementById('db-player')?.value||'Athlete';
-    const position  = document.getElementById('db-position')?.value||'Point Guard';
-    const equipment = coachGetEquipment();
-    const weekNum   = dbWeeks.length+1;
-    const btn = document.getElementById('coach-gen-btn');
-    btn.textContent='⚙️ Adjusting…'; btn.disabled=true;
-    document.getElementById('coach-empty').style.display='none';
-    document.getElementById('coach-results').style.display='none';
-    document.getElementById('coach-loading').style.display='block';
-    document.getElementById('coach-error').style.display='none';
+    'mobile-app': {
+      icon: '📱', iconBg: 'rgba(61,219,217,0.1)',
+      title: 'Mobile App', sub: 'Train anywhere — iOS & Android',
+      render() {
+        return `
+          <div class="fw-card" style="margin-bottom:16px;text-align:center;padding:24px;">
+            <div style="font-size:52px;margin-bottom:12px;">📱</div>
+            <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:var(--c-white);margin-bottom:6px;">CourtIQ Mobile</div>
+            <div style="font-size:13px;color:var(--c-muted);margin-bottom:18px;">Full workout access, offline mode, video playback, and real-time drill timer.</div>
+            <div style="display:flex;gap:10px;justify-content:center;">
+              <button class="fw-btn">🍎 App Store</button>
+              <button class="fw-btn" style="background:rgba(255,255,255,0.1);color:var(--c-white);box-shadow:none;">▶ Google Play</button>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+            ${[{i:'🔔',t:'Push Reminders'},{i:'📴',t:'Offline Mode'},{i:'⏱️',t:'Drill Timer'}].map(f=>`<div class="fw-card" style="text-align:center;padding:14px 8px;"><div style="font-size:24px;margin-bottom:6px;">${f.i}</div><div style="font-size:12px;color:var(--c-muted);">${f.t}</div></div>`).join('')}
+          </div>`;
+      }
+    },
 
-    const userPrompt=`Athlete: ${player} | Position: ${position} | Building schedule for: Week ${weekNum}
+    /* ── Pro features ── */
+    'everything-starter': {
+      icon: '✦', iconBg: 'rgba(245,166,35,0.1)',
+      title: 'Everything in Starter', sub: 'All Starter features — plus everything below',
+      render() {
+        return `<div class="fw-section">
+          <div class="fw-label">Included from Starter plan</div>
+          ${['AI-generated weekly program','50+ position-specific drills','Basic progress tracking','3 positions supported','Mobile app access'].map(f=>`
+            <div class="fw-card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+              <span style="color:#56d364;font-weight:700;">✓</span>
+              <span style="font-size:13px;color:var(--c-muted);">${f}</span>
+            </div>`).join('')}
+        </div>
+        <button class="fw-btn" onclick="window.location.href='app.html'">Get Pro (includes all of Starter) →</button>`;
+      }
+    },
 
-LAST WEEK PERFORMANCE DATA:
-${JSON.stringify(perf,null,2)}
+    'adaptive-reprogramming': {
+      icon: '🔄', iconBg: 'rgba(61,219,217,0.1)',
+      title: 'Adaptive Reprogramming', sub: 'AI rebuilds your plan monthly based on your real results',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">How It Works</div>
+            <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:18px;">
+              ${[
+                {step:'01', title:'You Train & Log', desc:'Log daily sessions — shots, dribbling, jumps, sprints'},
+                {step:'02', title:'AI Analyzes Patterns', desc:'Detects plateaus, breakthroughs, and weak areas automatically'},
+                {step:'03', title:'Program Rebuilds', desc:'New month, new optimized program — always ahead of your curve'},
+              ].map(s=>`
+                <div style="display:flex;gap:14px;align-items:flex-start;">
+                  <div style="font-family:var(--font-display);font-size:22px;font-weight:900;color:rgba(245,166,35,0.3);width:30px;flex-shrink:0;">${s.step}</div>
+                  <div>
+                    <div style="font-size:14px;font-weight:600;color:var(--c-white);margin-bottom:2px;">${s.title}</div>
+                    <div style="font-size:13px;color:var(--c-muted);">${s.desc}</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <div class="fw-card" style="margin-bottom:16px;">
+            <div style="font-size:12px;color:var(--c-muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.1em;font-weight:700;">Example — Shooting plateau detected</div>
+            <div style="font-size:13px;color:rgba(240,237,230,0.8);line-height:1.65;">"Marcus has plateaued at 62% shooting for 3 weeks. Recommending: increased mid-range volume, catch-and-shoot reps off screens, and defender pressure drills."</div>
+          </div>
+          <button class="fw-btn" onclick="window.location.href='app.html'">Unlock Adaptive AI →</button>`;
+      }
+    },
 
-AVAILABLE EQUIPMENT:
-${equipment.join(', ')}
+    'video-drill-library': {
+      icon: '🎬', iconBg: 'rgba(248,81,73,0.1)',
+      title: 'Video Drill Library', sub: 'Watch, learn, and execute — HD video for every drill',
+      render() {
+        const vids = [
+          {t:'Crossover Into Step-Back', d:'4:22'},
+          {t:'3-Point Spot-Up Circuit', d:'6:15'},
+          {t:'Defensive Slide Drill', d:'3:48'},
+          {t:'Box Jump Conditioning', d:'5:30'},
+        ];
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Featured Videos</div>
+            <div class="fw-video-grid">
+              ${vids.map((v,i) => `
+                <div class="fw-video-thumb" onclick="fwPlayVideo(this,'${v.t}')">
+                  <div style="font-size:${['🏀','⚡','🛡️','💪'][i]?.length?32:28}px;margin-bottom:8px;">${['🏀','⚡','🛡️','💪'][i]}</div>
+                  <div class="fw-video-play">▶</div>
+                  <div class="fw-video-title">${v.t}</div>
+                  <div class="fw-video-dur">${v.d}</div>
+                  <div class="fw-video-playing" id="fwvp${i}">
+                    <div style="font-size:24px;animation:fw-bounce 0.8s infinite;">⏸</div>
+                    <div style="font-size:11px;color:var(--c-amber);font-weight:700;margin-top:6px;">Playing…</div>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <button class="fw-btn" style="margin-top:14px;" onclick="window.location.href='app.html'">Access Full Library →</button>`;
+      }
+    },
 
-ORIGINAL PROGRAM FORMAT — output adjusted schedule in this exact JSON structure:
-{
-  "week": "Week ${weekNum}",
-  "player": "${player}",
-  "position": "${position}",
-  "overall_intensity": "Low|Medium|High|Max",
-  "coach_analysis": {
-    "headline": "Short punchy title (8-10 words)",
-    "summary": "2-3 sentences referencing actual performance numbers",
-    "weak_areas": ["area with specific reason"],
-    "strong_areas": ["area"],
-    "key_adjustments": ["adjustment 1","adjustment 2","adjustment 3"]
-  },
-  "days": [
-    {
-      "day": "Monday",
-      "focus": "Primary focus",
-      "intensity": "Low|Medium|High|Max",
-      "total_minutes": 60,
-      "drills": [
-        {
-          "name": "Drill name",
-          "sets": 3,
-          "reps_or_duration": "10 reps",
-          "focus_area": "Shooting|Ball Handling|Athleticism|Defense",
-          "intensity_change": "increased|decreased|unchanged",
-          "reason": "Why adjusted (max 12 words)",
-          "alternative_if_no_equipment": "Alt drill or null"
-        }
-      ],
-      "coach_note": "Motivational note max 15 words"
-    }
-  ]
-}
+    'ai-coaching-chat': {
+      icon: '💬', iconBg: 'rgba(76,163,255,0.1)',
+      title: 'AI Coaching Chat', sub: 'Ask anything about your training — instant expert answers',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Live Demo — try it</div>
+            <div class="fw-chat" id="fw-chat-log">
+              <div class="fw-msg ai">
+                <div class="fw-msg-avatar">🤖</div>
+                <div class="fw-msg-bubble">Hey Marcus! I've reviewed this week's sessions. Your shooting % is up 4% — great work on the catch-and-shoot reps. What would you like to focus on today?</div>
+              </div>
+            </div>
+            <div class="fw-chat-input-row">
+              <input class="fw-chat-input" id="fw-chat-input" placeholder="Ask your AI coach…" onkeydown="if(event.key==='Enter')fwSendChat()" />
+              <button class="fw-chat-send" onclick="fwSendChat()">→</button>
+            </div>
+          </div>`;
+      }
+    },
 
-Rules:
-- success_pct<60% or sets_completed<4 = WEAK: increase volume and add drills
-- success_pct>=75% and sets_completed>=6 = STRONG: maintain or push harder
-- Always fill alternative_if_no_equipment when equipment is limited
-- 6 days Mon-Sat, skip Sunday (rest)
-- Output ONLY valid JSON, no markdown`;
+    'unlimited-chat': {
+      icon: '💬', iconBg: 'rgba(188,140,255,0.1)',
+      title: 'Unlimited AI Chat', sub: 'No message limits — your coach is always available',
+      render() { return FEATURE_CONTENT['ai-coaching-chat'].render(); }
+    },
 
-    try {
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',
-          max_tokens:2400,
-          system:COACH_SYSTEM_PROMPT,
-          messages:[{role:'user',content:userPrompt}],
-        }),
+    'analytics-dashboard': {
+      icon: '📈', iconBg: 'rgba(245,166,35,0.1)',
+      title: 'Advanced Analytics', sub: 'Deep performance insights — see what the numbers reveal',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Weekly Performance Breakdown</div>
+            <div class="fw-card" style="margin-bottom:14px;">
+              ${[
+                {label:'Shooting Accuracy',  val:'67%', fill:67, color:'#f5a623', delta:'+4%'},
+                {label:'Dribbling Volume',   val:'22m',  fill:73, color:'#4ca3ff', delta:'+2m'},
+                {label:'Vertical Jump',      val:'27"',  fill:68, color:'#bc8cff', delta:'+1"'},
+                {label:'Sprint Time',        val:'4.3s', fill:82, color:'#56d364', delta:'-0.2s'},
+                {label:'Consistency Score',  val:'84',   fill:84, color:'#3ddbd9', delta:'+6'},
+              ].map(s => `
+                <div class="fw-stat-row">
+                  <div class="fw-stat-name">${s.label}</div>
+                  <div class="fw-stat-bar"><div class="fw-stat-fill" style="width:${s.fill}%;background:${s.color};"></div></div>
+                  <div class="fw-stat-val">${s.val}</div>
+                  <div style="font-size:11px;font-weight:700;color:#56d364;width:36px;text-align:right;flex-shrink:0;">${s.delta}</div>
+                </div>`).join('')}
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;">
+              ${[
+                {icon:'🔥',label:'Streak',val:'14 days'},
+                {icon:'🎯',label:'Best Day',val:'Wed (73%)'},
+                {icon:'📅',label:'Sessions',val:'5 / 5'},
+              ].map(k=>`<div class="fw-card" style="text-align:center;"><div style="font-size:20px;margin-bottom:4px;">${k.icon}</div><div style="font-size:10px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.1em;">${k.label}</div><div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--c-white);">${k.val}</div></div>`).join('')}
+            </div>
+          </div>
+          <button class="fw-btn" style="width:100%;margin-top:4px;" onclick="window.location.href='app.html'">Unlock Analytics →</button>`;
+      }
+    },
+
+    'all-positions': {
+      icon: '🏀', iconBg: 'rgba(245,166,35,0.1)',
+      title: 'All 5 Positions', sub: 'Full program support for every role on the court',
+      render() {
+        const pos = {PG:'Point Guard',SG:'Shooting Guard',SF:'Small Forward',PF:'Power Forward',C:'Center'};
+        const focus = {
+          PG:['Ball-handling at speed','Pick & roll reads','Transition offense','Pull-up jumper','Court vision'],
+          SG:['Catch & shoot 3s','Off-ball movement','Pull-up mid-range','Defensive one-on-one','Curl cuts'],
+          SF:['Face-up game','Post entry passing','Wing 3s','Defensive rebounding','Drive & kick'],
+          PF:['Low-post footwork','Midrange power','Screen setting','Defensive rotations','Putback finishes'],
+          C:['Drop-step hook','Interior defense','Lob catches','Box-out technique','Outlet passing'],
+        };
+        let active = 'PG';
+        return `
+          <div class="fw-pos-grid" id="fw-pos-grid">
+            ${Object.keys(pos).map(p=>`<div class="fw-pos-btn${p==='PG'?' active':''}" onclick="fwSelectPos('${p}')" id="fw-pos-${p}">${p}</div>`).join('')}
+          </div>
+          <div id="fw-pos-content">
+            <div class="fw-card">
+              <div style="font-family:var(--font-display);font-size:17px;font-weight:800;color:var(--c-amber);margin-bottom:10px;" id="fw-pos-title">Point Guard — Focus Areas</div>
+              <div id="fw-pos-list">${focus['PG'].map(f=>`<div style="font-size:13px;color:var(--c-muted);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${f}</div>`).join('')}</div>
+            </div>
+          </div>
+          <button class="fw-btn" style="width:100%;margin-top:14px;" onclick="window.location.href='app.html'">Start My Position Program →</button>
+          <script>
+            window._fwPosData=${JSON.stringify({pos,focus})};
+            function fwSelectPos(p){
+              document.querySelectorAll('.fw-pos-btn').forEach(b=>b.classList.remove('active'));
+              document.getElementById('fw-pos-'+p).classList.add('active');
+              document.getElementById('fw-pos-title').textContent=window._fwPosData.pos[p]+' — Focus Areas';
+              document.getElementById('fw-pos-list').innerHTML=window._fwPosData.focus[p].map(f=>'<div style="font-size:13px;color:var(--c-muted);padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· '+f+'</div>').join('');
+            }
+          <\/script>`;
+      }
+    },
+
+    'everything-pro': {
+      icon: '✦', iconBg: 'rgba(188,140,255,0.1)',
+      title: 'Everything in Pro', sub: 'Elite includes all Pro features — plus exclusive Elite perks',
+      render() {
+        return `<div class="fw-section">
+          <div class="fw-label">Included from Pro plan</div>
+          ${['500+ drills across all positions','Adaptive monthly reprogramming','Full video drill library','AI coaching chat (50 msgs → unlimited)','Advanced analytics dashboard','All 5 positions supported'].map(f=>`
+            <div class="fw-card" style="margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+              <span style="color:#f5a623;font-weight:700;">✓</span>
+              <span style="font-size:13px;color:var(--c-muted);">${f}</span>
+            </div>`).join('')}
+        </div>
+        <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Go Elite →</button>`;
+      }
+    },
+
+    'coach-review': {
+      icon: '📹', iconBg: 'rgba(76,163,255,0.1)',
+      title: 'Coach Review Sessions', sub: '2 live video sessions per month with a real coach',
+      render() {
+        const slots = ['Mon Mar 3 · 10:00 AM','Tue Mar 4 · 2:00 PM','Wed Mar 5 · 11:30 AM','Thu Mar 6 · 4:00 PM','Fri Mar 7 · 9:00 AM','Mon Mar 10 · 3:00 PM'];
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Your Coaches</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+              ${[
+                {name:'Coach D. Williams', spec:'Shooting & Ball Handling', rating:'4.9', sessions:'340+'},
+                {name:'Coach T. Rivera',   spec:'Defense & Conditioning',    rating:'4.8', sessions:'280+'},
+              ].map(c=>`
+                <div class="fw-card">
+                  <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+                    <div style="width:38px;height:38px;border-radius:50%;background:rgba(245,166,35,0.15);border:1px solid rgba(245,166,35,0.25);display:flex;align-items:center;justify-content:center;font-size:16px;">👤</div>
+                    <div>
+                      <div style="font-size:13px;font-weight:700;color:var(--c-white);">${c.name}</div>
+                      <div style="font-size:11px;color:var(--c-muted);">${c.spec}</div>
+                    </div>
+                  </div>
+                  <div style="display:flex;gap:10px;">
+                    <span style="font-size:11px;color:var(--c-amber);">⭐ ${c.rating}</span>
+                    <span style="font-size:11px;color:var(--c-muted);">${c.sessions} sessions</span>
+                  </div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <div class="fw-section">
+            <div class="fw-label">Book a Session</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+              ${slots.map(s=>`<div class="fw-card" onclick="fwSelectSlot(this)" style="font-size:12px;color:var(--c-muted);cursor:pointer;transition:var(--transition);text-align:center;">${s}</div>`).join('')}
+            </div>
+          </div>
+          <button class="fw-btn" onclick="window.location.href='app.html'" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);">Book My Session →</button>`;
+      }
+    },
+
+    'game-film': {
+      icon: '🎥', iconBg: 'rgba(248,81,73,0.1)',
+      title: 'Game Film Analysis', sub: 'Upload your game footage — AI breaks down your every move',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Upload Game Film</div>
+            <div class="fw-upload-zone" onclick="fwSimulateUpload(this)">
+              <div class="fw-upload-icon" id="fw-upload-icon">📤</div>
+              <div style="font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--c-white);margin-bottom:6px;" id="fw-upload-title">Drop your game film here</div>
+              <div style="font-size:13px;color:var(--c-muted);" id="fw-upload-sub">MP4, MOV · up to 2GB · 4 uploads/month</div>
+            </div>
+          </div>
+          <div class="fw-section" id="fw-analysis-preview" style="display:none;">
+            <div class="fw-label">AI Analysis Preview</div>
+            <div class="fw-card">
+              <div style="font-size:12px;color:var(--c-muted);text-transform:uppercase;letter-spacing:0.1em;font-weight:700;margin-bottom:10px;">Detected Patterns — vs. Eastside High</div>
+              ${[
+                {icon:'🎯',insight:'Shot selection: 68% of attempts came from high-efficiency zones'},
+                {icon:'⚡',insight:'Ball speed on drives was 12% faster than your season average'},
+                {icon:'🛡️',insight:'Off-ball movement needs work — you stood still 34% of the time'},
+                {icon:'💡',insight:'Recommend: more weak-side cuts and relocating after screens'},
+              ].map(i=>`<div style="display:flex;gap:10px;margin-bottom:10px;align-items:flex-start;"><span style="font-size:16px;">${i.icon}</span><span style="font-size:13px;color:rgba(240,237,230,0.75);line-height:1.5;">${i.insight}</span></div>`).join('')}
+            </div>
+          </div>
+          <button class="fw-btn" style="background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);margin-top:6px;" onclick="window.location.href='app.html'">Unlock Film Analysis →</button>`;
+      }
+    },
+
+    'season-plans': {
+      icon: '📅', iconBg: 'rgba(245,166,35,0.1)',
+      title: 'Season-Specific Plans', sub: 'Separate in-season and off-season training programs',
+      render() {
+        return `
+          <div class="fw-season-toggle" id="fw-season-toggle">
+            <button class="fw-season-btn active" onclick="fwSwitchSeason('in',this)">In-Season</button>
+            <button class="fw-season-btn" onclick="fwSwitchSeason('off',this)">Off-Season</button>
+          </div>
+          <div id="fw-season-content">
+            <div class="fw-card" style="margin-bottom:12px;">
+              <div style="font-size:13px;font-weight:700;color:var(--c-white);margin-bottom:8px;">🏀 In-Season Focus</div>
+              <div style="font-size:13px;color:var(--c-muted);line-height:1.7;">Maintain peak performance without overtraining. Lower volume, higher intensity — keeping you sharp for game nights.</div>
+            </div>
+            ${[
+              {label:'Training Days / Week', val:'3–4', note:'Preserves energy for games'},
+              {label:'Session Length',       val:'45 min', note:'Efficient, targeted work'},
+              {label:'Recovery Priority',    val:'High',   note:'Sleep & mobility focus'},
+              {label:'Skill Focus',          val:'Game-specific', note:'Simulate real scenarios'},
+            ].map(r=>`<div class="fw-card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;">
+              <div><div style="font-size:13px;color:var(--c-white);font-weight:500;">${r.label}</div><div style="font-size:11px;color:var(--c-muted);">${r.note}</div></div>
+              <div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--c-amber);">${r.val}</div>
+            </div>`).join('')}
+          </div>
+          <button class="fw-btn" style="width:100%;margin-top:14px;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get My Season Plan →</button>`;
+      }
+    },
+
+    'nutrition': {
+      icon: '🥗', iconBg: 'rgba(86,211,100,0.1)',
+      title: 'Nutrition & Recovery', sub: 'Fuel your game — personalized meal plans and recovery protocols',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Today's Macros — Training Day</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">
+              ${[
+                {label:'Calories', val:'3,200', color:'#f5a623', fill:80},
+                {label:'Protein',  val:'185g',  color:'#56d364', fill:75},
+                {label:'Carbs',    val:'380g',  color:'#4ca3ff', fill:85},
+                {label:'Fats',     val:'82g',   color:'#bc8cff', fill:60},
+              ].map(m=>`
+                <div class="fw-macro">
+                  <div class="fw-macro-ring" style="background:rgba(${m.color==='#f5a623'?'245,166,35':m.color==='#56d364'?'86,211,100':m.color==='#4ca3ff'?'76,163,255':'188,140,255'},0.1);border:2px solid ${m.color};color:${m.color};">${m.fill}%</div>
+                  <div style="font-family:var(--font-display);font-size:16px;font-weight:900;color:var(--c-white);">${m.val}</div>
+                  <div class="fw-macro-label">${m.label}</div>
+                </div>`).join('')}
+            </div>
+          </div>
+          <div class="fw-section">
+            <div class="fw-label">Recovery Protocol — Post Game</div>
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              ${[
+                {icon:'💧',item:'Hydration',       detail:'1L water + electrolytes within 30 min'},
+                {icon:'🍗',item:'Protein Window',   detail:'35-40g protein within 45 min'},
+                {icon:'😴',item:'Sleep Target',     detail:'8.5h minimum — growth hormone peak'},
+                {icon:'🧊',item:'Ice Bath',         detail:'10 min at 52°F — reduces inflammation'},
+              ].map(r=>`<div class="fw-card" style="display:flex;gap:12px;align-items:center;"><div style="font-size:20px;">${r.icon}</div><div><div style="font-size:13px;font-weight:600;color:var(--c-white);">${r.item}</div><div style="font-size:12px;color:var(--c-muted);">${r.detail}</div></div></div>`).join('')}
+            </div>
+          </div>
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get My Nutrition Plan →</button>`;
+      }
+    },
+
+    'priority-support': {
+      icon: '⚡', iconBg: 'rgba(245,166,35,0.1)',
+      title: 'Priority Support', sub: 'Real humans, real fast — under 2 hours guaranteed',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Recent Support Tickets</div>
+            ${[
+              {status:'#56d364', title:'Can I swap Wednesday\'s drills?',    meta:'Opened 18 min ago · Response in 14 min',   res:'Resolved'},
+              {status:'#56d364', title:'Program not updating after logging', meta:'Opened 2h ago · Response in 47 min',       res:'Resolved'},
+              {status:'#f5a623', title:'Vertical measurement questions',     meta:'Opened 5 min ago',                         res:'In Progress'},
+            ].map(t=>`
+              <div class="fw-ticket">
+                <div class="fw-ticket-dot" style="background:${t.status};"></div>
+                <div style="flex:1;">
+                  <div class="fw-ticket-title">${t.title}</div>
+                  <div class="fw-ticket-meta">${t.meta}</div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:${t.status};flex-shrink:0;">${t.res}</span>
+              </div>`).join('')}
+          </div>
+          <div class="fw-card" style="text-align:center;margin-bottom:16px;">
+            <div style="font-size:28px;margin-bottom:8px;">⚡</div>
+            <div style="font-family:var(--font-display);font-size:28px;font-weight:900;color:var(--c-amber);">&lt; 2 hours</div>
+            <div style="font-size:13px;color:var(--c-muted);">Average response time for Elite members</div>
+          </div>
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Get Elite Support →</button>`;
+      }
+    },
+
+    'early-access': {
+      icon: '🚀', iconBg: 'rgba(188,140,255,0.1)',
+      title: 'Early Access', sub: 'Be first — test new AI features months before public release',
+      render() {
+        return `
+          <div class="fw-section">
+            <div class="fw-label">Coming Soon — Elite Preview</div>
+            <div class="fw-badge-row">
+              <span class="fw-new-badge">Beta</span>
+              <span class="fw-new-badge">Preview</span>
+              <span class="fw-new-badge">Q2 2026</span>
+            </div>
+            ${[
+              {icon:'📸', name:'Pose Analysis AI', desc:'Upload a photo mid-drill — AI scores your form instantly', eta:'Beta · March 2026'},
+              {icon:'🤝', name:'Multiplayer Challenges', desc:'Challenge friends to weekly shooting contests', eta:'Preview · April 2026'},
+              {icon:'🧬', name:'DNA-Based Training', desc:'Personalize recovery based on genetic athletic markers', eta:'Research · Q3 2026'},
+              {icon:'🎮', name:'VR Drill Simulator', desc:'Practice in virtual game scenarios with AI defenders', eta:'Concept · Q4 2026'},
+            ].map(f=>`
+              <div class="fw-card" style="margin-bottom:10px;display:flex;gap:12px;align-items:flex-start;">
+                <div style="font-size:22px;">${f.icon}</div>
+                <div style="flex:1;">
+                  <div style="font-size:14px;font-weight:700;color:var(--c-white);margin-bottom:2px;">${f.name}</div>
+                  <div style="font-size:12px;color:var(--c-muted);margin-bottom:6px;">${f.desc}</div>
+                  <span class="fw-new-badge">${f.eta}</span>
+                </div>
+              </div>`).join('')}
+          </div>
+          <button class="fw-btn" style="width:100%;background:linear-gradient(135deg,#c77dff,#9d4edd);box-shadow:0 4px 20px rgba(199,125,255,0.3);" onclick="window.location.href='app.html'">Join Elite Waitlist →</button>`;
+      }
+    },
+  };
+
+  /* ── Feature modal open/close ── */
+  function openFeature(id) {
+    const f = FEATURE_CONTENT[id]; if (!f) return;
+    document.getElementById('fm-icon').textContent  = f.icon;
+    document.getElementById('fm-icon').style.background = f.iconBg;
+    document.getElementById('fm-title').textContent = f.title;
+    document.getElementById('fm-sub').textContent   = f.sub;
+    document.getElementById('fm-body').innerHTML    = f.render();
+    document.getElementById('featOverlay').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    // animate stat fills after render
+    setTimeout(() => {
+      document.querySelectorAll('.fw-stat-fill').forEach(el => {
+        const w = el.style.width; el.style.width = '0';
+        setTimeout(() => el.style.width = w, 30);
       });
-      const data=await res.json();
-      const text=(data.content||[]).map(b=>b.text||'').join('');
-      const result=JSON.parse(text.replace(/```json|```/g,'').trim());
-      coachResult=result;
+    }, 60);
+  }
 
-      document.getElementById('coach-loading').style.display='none';
-      document.getElementById('coach-results').style.display='block';
+  function closeFeature() {
+    document.getElementById('featOverlay').classList.remove('open');
+    document.body.style.overflow = '';
+  }
 
-      const a=result.coach_analysis||{};
-      document.getElementById('coach-week-tag').textContent='AI Coach · Week '+weekNum;
-      document.getElementById('coach-headline').textContent=a.headline||'—';
-      document.getElementById('coach-analysis').textContent=a.summary||'—';
-      document.getElementById('coach-schedule-title').textContent='Week '+weekNum+' — Adjusted Schedule';
-      document.getElementById('coach-json-filename').textContent='adjusted_schedule_week'+weekNum+'.json';
-      document.getElementById('coach-json-body').textContent=JSON.stringify(result,null,2);
+  function handleFeatOverlay(e) {
+    if (e.target === document.getElementById('featOverlay')) closeFeature();
+  }
 
-      const ib=document.getElementById('coach-intensity-badge');
-      const imap={Low:'86,211,100',Medium:'245,166,35',High:'248,81,73',Max:'188,140,255'};
-      const icolor={Low:'#56d364',Medium:'#f5a623',High:'#f85149',Max:'#bc8cff'};
-      const lvl=result.overall_intensity||'Medium';
-      const rgb=imap[lvl]||'245,166,35';
-      const hex=icolor[lvl]||'#f5a623';
-      ib.textContent=lvl+' Intensity';
-      ib.style.cssText=`font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;background:rgba(${rgb},0.12);color:${hex};border:1px solid rgba(${rgb},0.3);`;
+  /* ── Feature widget interaction helpers ── */
 
-      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${s}</div>`;
-      document.getElementById('coach-weak').innerHTML=(a.weak_areas||[]).map(row).join('');
-      document.getElementById('coach-strong').innerHTML=(a.strong_areas||[]).map(row).join('');
-      document.getElementById('coach-adjustments').innerHTML=(a.key_adjustments||[]).map(row).join('');
+  /* Video play toggle */
+  function fwPlayVideo(thumb, title) {
+    const playEl = thumb.querySelector('.fw-video-playing');
+    if (!playEl) return;
+    const isPlaying = playEl.style.display === 'flex';
+    // stop all
+    document.querySelectorAll('.fw-video-playing').forEach(el => el.style.display = 'none');
+    if (!isPlaying) playEl.style.display = 'flex';
+  }
 
-      coachRenderSchedule(result.days||[]);
-    } catch(e) {
-      document.getElementById('coach-loading').style.display='none';
-      document.getElementById('coach-empty').style.display='block';
-      const err=document.getElementById('coach-error');
-      err.textContent='⚠ Failed to generate adjusted schedule. Check connection and try again.';
-      err.style.display='block';
-      console.error(e);
-    } finally {
-      coachLoading=false;
-      btn.textContent='🏋️ Regenerate'; btn.disabled=false;
+  /* Calendar slot select */
+  function fwSelectSlot(el) {
+    document.querySelectorAll('#fm-body .fw-card').forEach(c => {
+      c.style.borderColor = ''; c.style.color = '';
+    });
+    el.style.borderColor = 'rgba(245,166,35,0.4)';
+    el.style.color = 'var(--c-amber)';
+    el.style.background = 'rgba(245,166,35,0.08)';
+  }
+
+  /* Film upload simulation */
+  function fwSimulateUpload(zone) {
+    const icon  = document.getElementById('fw-upload-icon');
+    const title = document.getElementById('fw-upload-title');
+    const sub   = document.getElementById('fw-upload-sub');
+    icon.textContent  = '⏳';
+    title.textContent = 'Uploading game_vs_eastside.mp4…';
+    sub.textContent   = '47% · 2.3 MB/s';
+    setTimeout(() => {
+      icon.textContent  = '⚙️';
+      title.textContent = 'AI analyzing your film…';
+      sub.textContent   = 'Detecting shot selection, movement, and tendencies';
+      setTimeout(() => {
+        icon.textContent  = '✅';
+        title.textContent = 'Analysis complete!';
+        sub.textContent   = 'See insights below ↓';
+        const preview = document.getElementById('fw-analysis-preview');
+        if (preview) preview.style.display = 'block';
+      }, 2000);
+    }, 1800);
+  }
+
+  /* Season toggle */
+  function fwSwitchSeason(mode, btn) {
+    document.querySelectorAll('.fw-season-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    const content = document.getElementById('fw-season-content');
+    if (!content) return;
+    const inSeason = [
+      {label:'Training Days / Week', val:'3–4',      note:'Preserves energy for games'},
+      {label:'Session Length',       val:'45 min',   note:'Efficient, targeted work'},
+      {label:'Recovery Priority',    val:'High',     note:'Sleep & mobility focus'},
+      {label:'Skill Focus',          val:'Game-specific', note:'Simulate real scenarios'},
+    ];
+    const offSeason = [
+      {label:'Training Days / Week', val:'5–6',      note:'Maximum development window'},
+      {label:'Session Length',       val:'90 min',   note:'Deep skill building'},
+      {label:'Recovery Priority',    val:'Moderate', note:'Push harder, recover smart'},
+      {label:'Skill Focus',          val:'Weaknesses', note:'Build your full arsenal'},
+    ];
+    const data = mode === 'in' ? inSeason : offSeason;
+    const emoji = mode === 'in' ? '🏀' : '💪';
+    const label = mode === 'in' ? 'In-Season' : 'Off-Season';
+    content.innerHTML = `<div class="fw-card" style="margin-bottom:12px;">
+      <div style="font-size:13px;font-weight:700;color:var(--c-white);margin-bottom:8px;">${emoji} ${label} Focus</div>
+      <div style="font-size:13px;color:var(--c-muted);line-height:1.7;">${mode === 'in' ? 'Maintain peak performance without overtraining. Lower volume, higher intensity — keeping you sharp for game nights.' : 'Build the athlete you\'ve always wanted to be. This is your window to fix weaknesses, add new skills, and level up every metric.'}</div>
+    </div>
+    ${data.map(r=>`<div class="fw-card" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;"><div><div style="font-size:13px;color:var(--c-white);font-weight:500;">${r.label}</div><div style="font-size:11px;color:var(--c-muted);">${r.note}</div></div><div style="font-family:var(--font-display);font-size:18px;font-weight:900;color:var(--c-amber);">${r.val}</div></div>`).join('')}`;
+  }
+
+  /* AI Chat in feature modal */
+  const FW_CHAT_RESPONSES = {
+    default: "Great question! Based on your recent sessions, I'd recommend focusing on catch-and-shoot reps from the corners. Your shooting % from there is 8% below your average.",
+    shoot: "Your shooting is trending up — 61% this week vs 57% last week. Keep running the 3-point spot-up circuit and you'll break 65% within two weeks.",
+    dribble: "For ball handling, try the tennis ball crossover drill: dribble your basketball while tossing a tennis ball with your off hand. 3 sets of 30 seconds each.",
+    jump: "Vertical gains come from consistent plyometrics. Box jumps, depth jumps, and single-leg Bulgarian squats 3× per week. You're at 27\" — 30\" is absolutely achievable.",
+    defense: "Elite defenders always guard the ball first. Work on your lateral quickness with the defensive slide cone drill — 4 sets × 20 seconds at maximum effort.",
+  };
+
+  function fwSendChat() {
+    const input = document.getElementById('fw-chat-input');
+    if (!input || !input.value.trim()) return;
+    const msg = input.value.trim();
+    input.value = '';
+    const log = document.getElementById('fw-chat-log');
+    if (!log) return;
+
+    // user message
+    log.innerHTML += `<div class="fw-msg user"><div class="fw-msg-avatar">👤</div><div class="fw-msg-bubble">${msg}</div></div>`;
+
+    // typing indicator
+    const typingId = 'fw-typing-' + Date.now();
+    log.innerHTML += `<div class="fw-msg ai" id="${typingId}"><div class="fw-msg-avatar">🤖</div><div class="fw-typing"><div class="fw-dot"></div><div class="fw-dot"></div><div class="fw-dot"></div></div></div>`;
+    log.scrollTop = log.scrollHeight;
+
+    // find best response
+    const lower = msg.toLowerCase();
+    let response = FW_CHAT_RESPONSES.default;
+    if (lower.includes('shoot') || lower.includes('shot') || lower.includes('3-point')) response = FW_CHAT_RESPONSES.shoot;
+    else if (lower.includes('dribble') || lower.includes('ball handle') || lower.includes('crossover')) response = FW_CHAT_RESPONSES.dribble;
+    else if (lower.includes('jump') || lower.includes('vertical') || lower.includes('vert')) response = FW_CHAT_RESPONSES.jump;
+    else if (lower.includes('defense') || lower.includes('defend') || lower.includes('lateral')) response = FW_CHAT_RESPONSES.defense;
+
+    setTimeout(() => {
+      const typing = document.getElementById(typingId);
+      if (typing) typing.outerHTML = `<div class="fw-msg ai"><div class="fw-msg-avatar">🤖</div><div class="fw-msg-bubble">${response}</div></div>`;
+      log.scrollTop = log.scrollHeight;
+    }, 1400);
+  }
+
+  /* Escape closes feature modal (in addition to auth) */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      if (document.getElementById('featOverlay')?.classList.contains('open')) closeFeature();
+      else if (document.getElementById('authOverlay')?.classList.contains('active')) closeAuth();
+      else if (document.getElementById('sidebar')?.classList.contains('open')) closeSidebar();
     }
-  }
-
-  function coachRenderSchedule(days) {
-    const c=document.getElementById('coach-schedule-cards');
-    const imap={Low:'86,211,100',Medium:'245,166,35',High:'248,81,73',Max:'188,140,255'};
-    const icolor={Low:'#56d364',Medium:'#f5a623',High:'#f85149',Max:'#bc8cff'};
-    const cicon={increased:'▲',decreased:'▼',unchanged:'→'};
-    const ccolor={increased:'#f85149',decreased:'#56d364',unchanged:'var(--c-muted)'};
-
-    c.innerHTML=days.map(day=>{
-      const rgb=imap[day.intensity]||'245,166,35';
-      const hex=icolor[day.intensity]||'#f5a623';
-      const drills=(day.drills||[]).map((d,i)=>`
-        <div class="coach-drill-row">
-          <div class="coach-drill-num">${String(i+1).padStart(2,'0')}</div>
-          <div class="coach-drill-info">
-            <div class="coach-drill-name">${d.name||''}</div>
-            <div class="coach-drill-meta">${d.sets||''} sets · ${d.reps_or_duration||''} · <span style="color:${ccolor[d.intensity_change]||'var(--c-muted)'};">${cicon[d.intensity_change]||'→'} ${d.intensity_change||''}</span></div>
-            ${d.reason?`<div style="font-size:11px;color:var(--c-dimmer);margin-top:2px;font-style:italic;">${d.reason}</div>`:''}
-            ${d.alternative_if_no_equipment?`<div class="coach-drill-alt">🔄 Alt: ${d.alternative_if_no_equipment}</div>`:''}
-          </div>
-          <span class="coach-focus-tag">${d.focus_area||''}</span>
-        </div>`).join('<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>');
-      return `
-        <div class="coach-day-card">
-          <div class="coach-day-header">
-            <div class="coach-day-name">${day.day}</div>
-            <div style="font-size:12px;color:var(--c-muted);flex:1;padding-left:10px;">${day.focus||''} · ${day.total_minutes||'—'} min</div>
-            <span class="coach-intensity-chip" style="background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${day.intensity}</span>
-          </div>
-          <div class="coach-day-body">
-            ${drills}
-            ${day.coach_note?`<div class="coach-day-note">"${day.coach_note}"</div>`:''}
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  function coachCopyJSON() {
-    if (!coachResult) return;
-    if (navigator.clipboard) navigator.clipboard.writeText(JSON.stringify(coachResult,null,2));
-    const btn=document.querySelector('#db-panel-coach .db-copy-btn');
-    if (!btn) return;
-    btn.textContent='✓ Copied!'; btn.style.color='#56d364';
-    setTimeout(()=>{btn.textContent='Copy JSON';btn.style.color='';},2000);
-  }
-
+  });
 
   /* ══════════════════════════════════════════════════════════════
-     WEEKLY CALENDAR — AI converts training JSON into interactive
-     collapsible calendar with completion tracking + React/JS JSON.
-     Prompt: Convert weekly training JSON into interactive calendar
-     with collapsible days, sets/reps/duration, completed vs pending
-     indicators, and React/JS-compatible JSON structure.
+     SIDEBAR
   ══════════════════════════════════════════════════════════════ */
-
-  const CAL_SYSTEM_PROMPT = `You are an AI UI assistant. Convert the weekly training JSON into an interactive weekly calendar:
-- Each day has a collapsible list of exercises
-- Show sets, reps, duration
-- Include visual indicators for completed vs pending exercises
-- Output JSON structure compatible with React/JS frontend`;
-
-  /* State */
-  let calData      = null;   // parsed calendar JSON from AI
-  let calLoading   = false;
-  let calSource    = 'coach'; // 'coach' | 'log' | 'paste'
-  let calCompleted = {};      // { "Monday_0": true, ... }
-
-  function calSetSource(src, btn) {
-    calSource = src;
-    document.querySelectorAll('.cal-src-btn').forEach(b => b.classList.remove('active'));
-    btn.classList.add('active');
-    const pasteArea = document.getElementById('cal-paste-area');
-    const statusEl  = document.getElementById('cal-src-status');
-    pasteArea.style.display = src === 'paste' ? 'block' : 'none';
-    if (src === 'coach') {
-      statusEl.textContent = coachResult
-        ? '✓ AI Coach output ready — Week ' + (dbWeeks.length + 1)
-        : '⚠ No AI Coach output yet — run the AI Coach tab first, or switch to Paste.';
-      statusEl.style.color = coachResult ? '#56d364' : 'var(--c-amber)';
-    } else if (src === 'log') {
-      const n = typeof dbSessions !== 'undefined' ? dbSessions.length : 0;
-      statusEl.textContent = n > 0
-        ? '✓ ' + n + ' logged sessions found'
-        : '⚠ No sessions logged yet — log sessions first or switch to Paste.';
-      statusEl.style.color = n > 0 ? '#56d364' : 'var(--c-amber)';
-    } else {
-      statusEl.textContent = 'Paste any weekly_schedule JSON in the box below.';
-      statusEl.style.color = 'var(--c-muted)';
+  function openSidebar() {
+    document.getElementById('sidebar').classList.add('open');
+    document.getElementById('sidebarOverlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebarOverlay').classList.remove('active');
+    if (!document.getElementById('authOverlay').classList.contains('active')) {
+      document.body.style.overflow = '';
     }
   }
-
-  function calGetInputData() {
-    if (calSource === 'coach') {
-      if (!coachResult) return null;
-      return coachResult;
+  document.addEventListener('click', e => {
+    const sidebar = document.getElementById('sidebar');
+    const trigger = document.getElementById('sidebarTrigger');
+    if (sidebar && sidebar.classList.contains('open') &&
+        !sidebar.contains(e.target) && !trigger.contains(e.target) &&
+        !e.target.closest('.sidebar-overlay')) {
+      // handled by overlay onclick
     }
-    if (calSource === 'log') {
-      // Build a lightweight schedule from logged sessions
-      if (!dbSessions || dbSessions.length === 0) return null;
-      const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-      return {
-        week: 'Week ' + (dbWeeks.length + 1),
-        player: document.getElementById('db-player')?.value || 'Athlete',
-        days: days.slice(0, Math.max(dbSessions.length, 3)).map((d, i) => {
-          const s = dbSessions[i];
-          if (!s) return { day: d, focus: 'Rest', intensity: 'Low', total_minutes: 0, drills: [] };
-          return {
-            day: d,
-            focus: 'Training Session ' + (i + 1),
-            intensity: s.pct >= 65 ? 'High' : s.pct >= 50 ? 'Medium' : 'Low',
-            total_minutes: Math.round((s.dribbling_min || 20) + 20),
-            drills: [
-              { name: 'Shooting Drill', sets: 3, reps_or_duration: s.shots_attempted + ' attempts', focus_area: 'Shooting' },
-              { name: 'Ball Handling Circuit', sets: 3, reps_or_duration: s.dribbling_min + ' min', focus_area: 'Ball Handling' },
-              { name: 'Vertical Jump Work', sets: 3, reps_or_duration: s.vertical_in + '" target', focus_area: 'Athleticism' },
-              { name: 'Sprint Intervals', sets: 4, reps_or_duration: s.sprint_sec + 's sprints', focus_area: 'Conditioning' },
-            ],
-          };
-        }),
-      };
-    }
-    // paste
-    const raw = document.getElementById('cal-json-input')?.value?.trim();
-    if (!raw) return null;
-    try { return JSON.parse(raw); } catch(e) { return 'error'; }
-  }
+  });
 
-  async function calGenerate() {
-    if (calLoading) return;
 
-    const inputData = calGetInputData();
-    if (inputData === 'error') {
-      const err = document.getElementById('cal-error');
-      err.textContent = '⚠ Invalid JSON — check your pasted data and try again.';
-      err.style.display = 'block';
-      setTimeout(() => err.style.display = 'none', 3500);
-      return;
-    }
-    if (!inputData) {
-      const err = document.getElementById('cal-error');
-      err.textContent = calSource === 'coach'
-        ? '⚠ No AI Coach output found. Run the AI Coach tab first.'
-        : calSource === 'log'
-        ? '⚠ No sessions logged. Log at least one session first.'
-        : '⚠ Paste valid JSON in the box above.';
-      err.style.display = 'block';
-      setTimeout(() => err.style.display = 'none', 3500);
-      return;
-    }
-
-    calLoading = true;
-    calCompleted = {};
-    const btn = document.getElementById('cal-gen-btn');
-    btn.textContent = '⚙️ Building…'; btn.disabled = true;
-
-    document.getElementById('cal-empty').style.display   = 'none';
-    document.getElementById('cal-results').style.display = 'none';
-    document.getElementById('cal-loading').style.display = 'block';
-    document.getElementById('cal-error').style.display   = 'none';
-
-    const userPrompt = `Convert this weekly training schedule into a React/JS-compatible interactive calendar JSON.
-
-INPUT SCHEDULE:
-${JSON.stringify(inputData, null, 2)}
-
-OUTPUT — return ONLY a valid JSON object with this exact structure (no markdown, no extra text):
-{
-  "week": "Week N",
-  "player": "Name",
-  "generated_at": "ISO timestamp",
-  "total_exercises": 24,
-  "days": [
-    {
-      "id": "monday",
-      "day": "Monday",
-      "date_label": "Day 1",
-      "focus": "Shooting & Ball Handling",
-      "intensity": "High",
-      "total_minutes": 60,
-      "is_rest": false,
-      "exercises": [
-        {
-          "id": "monday_0",
-          "name": "3-Point Catch & Shoot",
-          "sets": 3,
-          "reps": 10,
-          "duration_seconds": 0,
-          "rest_seconds": 30,
-          "focus_area": "Shooting",
-          "intensity_level": "High",
-          "completed": false,
-          "notes": "Focus on footwork and follow-through",
-          "alternative": "Wall shooting if no hoop available"
-        }
-      ],
-      "coach_note": "Short motivational note",
-      "completion_pct": 0
-    }
-  ],
-  "react_component_hints": {
-    "suggested_component": "WeeklyCalendar",
-    "props": ["days", "onExerciseToggle", "onDayExpand"],
-    "state": ["expandedDays", "completedExercises"],
-    "styling_notes": "Use conditional className for completed state, animate max-height for collapse"
-  }
-}
-
-Rules:
-- Each exercise must have a unique id in format dayname_index (e.g. monday_0)
-- duration_seconds should be 0 if reps are used, otherwise fill it
-- is_rest: true for rest days, exercises array empty
-- completion_pct starts at 0 for all days
-- Include react_component_hints at the end
-- Output ONLY valid JSON`;
-
-    try {
-      const res = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2800,
-          system: CAL_SYSTEM_PROMPT,
-          messages: [{ role: 'user', content: userPrompt }],
-        }),
-      });
-      const data   = await res.json();
-      const text   = (data.content || []).map(b => b.text || '').join('');
-      const result = JSON.parse(text.replace(/```json|```/g, '').trim());
-
-      calData = result;
-
-      document.getElementById('cal-loading').style.display  = 'none';
-      document.getElementById('cal-results').style.display  = 'block';
-
-      const weekNum = (result.week || 'Week').replace('Week','').trim() || (dbWeeks.length + 1);
-      document.getElementById('cal-week-label').textContent     = result.week || 'Week Overview';
-      document.getElementById('cal-json-filename').textContent  = 'weekly_calendar_week' + weekNum + '.json';
-      document.getElementById('cal-json-body').textContent      = JSON.stringify(result, null, 2);
-
-      calRenderCalendar(result);
-      calUpdateProgress();
-
-    } catch(e) {
-      document.getElementById('cal-loading').style.display = 'none';
-      document.getElementById('cal-empty').style.display   = 'block';
-      const err = document.getElementById('cal-error');
-      err.textContent = '⚠ Failed to build calendar. Check connection and try again.';
-      err.style.display = 'block';
-      console.error(e);
-    } finally {
-      calLoading = false;
-      btn.textContent = '📆 Rebuild'; btn.disabled = false;
-    }
-  }
-
-  function calRenderCalendar(result) {
-    const days = result.days || [];
-    const intensityRgb = { High: '248,81,73', Max: '188,140,255', Medium: '245,166,35', Low: '86,211,100' };
-    const intensityHex = { High: '#f85149', Max: '#bc8cff', Medium: '#f5a623', Low: '#56d364' };
-
-    /* Day dot nav */
-    const dotsEl = document.getElementById('cal-day-dots');
-    dotsEl.innerHTML = days.map(d => {
-      const cls = d.is_rest ? 'cal-dot rest' : 'cal-dot';
-      const abbr = (d.day || '').slice(0, 2).toUpperCase();
-      return `<div class="${cls}" id="dot-${d.id}" onclick="calScrollToDay('${d.id}')" title="${d.day}">${abbr}</div>`;
-    }).join('');
-
-    /* Day cards */
-    const container = document.getElementById('cal-day-cards');
-    container.innerHTML = days.map(d => {
-      const rgb = intensityRgb[d.intensity] || '245,166,35';
-      const hex = intensityHex[d.intensity] || '#f5a623';
-      const exCount = (d.exercises || []).length;
-      const isFirst = days.indexOf(d) === 0;
-
-      if (d.is_rest) {
-        return `
-          <div class="cal-day-card" id="daycard-${d.id}">
-            <div class="cal-day-card-header" onclick="calToggleDay('${d.id}')">
-              <div>
-                <div class="cal-day-label">${d.day} <span style="font-size:13px;opacity:0.4;font-weight:400;text-transform:none;">— Rest</span></div>
-                <div class="cal-day-sub">${d.date_label || ''}</div>
-              </div>
-              <span class="cal-day-stat">😴 Recovery</span>
-              <span class="cal-day-chevron">▾</span>
-            </div>
-            <div class="cal-exercise-list" id="exlist-${d.id}">
-              <div class="cal-rest-body">
-                <span style="font-size:22px;">🛌</span>
-                <span>Rest day — focus on sleep, hydration, and light mobility work. ${d.coach_note || ''}</span>
-              </div>
-            </div>
-          </div>`;
-      }
-
-      const exercisesHTML = (d.exercises || []).map((ex, idx) => {
-        const exKey = ex.id || (d.id + '_' + idx);
-        const isDone = !!calCompleted[exKey];
-        const doneClass = isDone ? ' completed' : '';
-        const pills = [
-          ex.sets       ? `<span class="cal-ex-pill sets">⚡ ${ex.sets} sets</span>` : '',
-          ex.reps       ? `<span class="cal-ex-pill reps">🔁 ${ex.reps} reps</span>` : '',
-          ex.duration_seconds && ex.duration_seconds > 0
-            ? `<span class="cal-ex-pill duration">⏱ ${ex.duration_seconds}s</span>` : '',
-          ex.rest_seconds && ex.rest_seconds > 0
-            ? `<span class="cal-ex-pill duration">💤 ${ex.rest_seconds}s rest</span>` : '',
-          ex.focus_area ? `<span class="cal-ex-pill focus">🎯 ${ex.focus_area}</span>` : '',
-        ].filter(Boolean).join('');
-
-        return `
-          <div class="cal-exercise-row${doneClass}" id="exrow-${exKey}" onclick="calToggleExercise('${exKey}','${d.id}')">
-            <div class="cal-check"><span class="cal-check-tick">✓</span></div>
-            <div style="flex:1;">
-              <div class="cal-ex-name">${ex.name || ''}</div>
-              <div class="cal-ex-meta">${pills}</div>
-              ${ex.notes     ? `<div style="font-size:11px;color:var(--c-dimmer);margin-top:4px;font-style:italic;">${ex.notes}</div>` : ''}
-              ${ex.alternative ? `<div class="cal-ex-alt">🔄 Alt: ${ex.alternative}</div>` : ''}
-            </div>
-          </div>`;
-      }).join('');
-
-      return `
-        <div class="cal-day-card${isFirst ? ' expanded' : ''}" id="daycard-${d.id}">
-          <div class="cal-day-card-header" onclick="calToggleDay('${d.id}')">
-            <div>
-              <div class="cal-day-label">${d.day}</div>
-              <div class="cal-day-sub">${d.date_label || ''} · ${d.focus || ''}</div>
-            </div>
-            <span style="font-size:10px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${d.intensity || ''}</span>
-            <span class="cal-day-stat">${d.total_minutes || 0} min · ${exCount} exercises</span>
-            <span class="cal-day-chevron">▾</span>
-          </div>
-          <div class="cal-day-done-bar"><div class="cal-day-done-fill" id="daybar-${d.id}" style="width:0%;"></div></div>
-          <div class="cal-exercise-list" id="exlist-${d.id}">
-            ${exercisesHTML}
-            ${d.coach_note ? `<div style="padding:12px 20px;font-size:12px;color:var(--c-muted);font-style:italic;border-top:1px solid rgba(255,255,255,0.04);">💬 "${d.coach_note}"</div>` : ''}
-          </div>
-        </div>`;
-    }).join('');
-  }
-
-  function calToggleDay(id) {
-    const card = document.getElementById('daycard-' + id);
-    if (!card) return;
-    card.classList.toggle('expanded');
-  }
-
-  function calScrollToDay(id) {
-    const card = document.getElementById('daycard-' + id);
-    if (!card) return;
-    if (!card.classList.contains('expanded')) card.classList.add('expanded');
-    card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    // Update dot active state
-    document.querySelectorAll('.cal-dot').forEach(d => d.classList.remove('active'));
-    const dot = document.getElementById('dot-' + id);
-    if (dot && !dot.classList.contains('rest')) dot.classList.add('active');
-  }
-
-  function calToggleExercise(exKey, dayId) {
-    calCompleted[exKey] = !calCompleted[exKey];
-    const row = document.getElementById('exrow-' + exKey);
-    if (row) row.classList.toggle('completed', calCompleted[exKey]);
-    calUpdateDayBar(dayId);
-    calUpdateProgress();
-    // Update JSON to reflect state
-    if (calData) {
-      const day = (calData.days || []).find(d => d.id === dayId);
-      if (day) {
-        const ex = (day.exercises || []).find(e => e.id === exKey);
-        if (ex) ex.completed = calCompleted[exKey];
-        day.completion_pct = calDayCompletionPct(day);
-        document.getElementById('cal-json-body').textContent = JSON.stringify(calData, null, 2);
-      }
-    }
-  }
-
-  function calDayCompletionPct(day) {
-    const exes = day.exercises || [];
-    if (!exes.length) return 0;
-    const done = exes.filter(e => calCompleted[e.id]).length;
-    return Math.round((done / exes.length) * 100);
-  }
-
-  function calUpdateDayBar(dayId) {
-    if (!calData) return;
-    const day = (calData.days || []).find(d => d.id === dayId);
-    if (!day) return;
-    const pct = calDayCompletionPct(day);
-    const bar = document.getElementById('daybar-' + dayId);
-    if (bar) bar.style.width = pct + '%';
-    // Update dot
-    const dot = document.getElementById('dot-' + dayId);
-    if (dot) {
-      dot.classList.remove('done','active');
-      if (pct === 100) dot.classList.add('done');
-    }
-  }
-
-  function calUpdateProgress() {
-    if (!calData) return;
-    const allEx  = (calData.days || []).flatMap(d => d.exercises || []);
-    const total  = allEx.length;
-    const done   = Object.values(calCompleted).filter(Boolean).length;
-    const pct    = total ? (done / total) * 100 : 0;
-    document.getElementById('cal-done-count').textContent  = done;
-    document.getElementById('cal-total-count').textContent = total;
-    document.getElementById('cal-progress-bar').style.width = pct + '%';
-  }
-
-  function calCopyJSON() {
-    if (!calData) return;
-    const text = JSON.stringify(calData, null, 2);
-    if (navigator.clipboard) navigator.clipboard.writeText(text);
-    const btn = document.querySelector('#db-panel-calendar .db-copy-btn');
-    if (!btn) return;
-    btn.textContent = '✓ Copied!'; btn.style.color = '#56d364';
-    setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
-  }
-
-  /* Refresh source status when switching to calendar tab */
-  const _origSwitchCal = dbSwitchTab;
-  function dbSwitchTab(id, btn) {
-    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
-    if (id === 'history') dbRenderHistory();
-    if (id === 'calendar') calSetSource(calSource, document.getElementById('cal-src-' + calSource));
-  }
 
 </script>
 
