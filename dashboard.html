@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en" style="background:#0c0d0f;">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0c0d0f" />
+  <title>CourtIQ — AI Performance Dashboard</title>
+  <meta name="description" content="CourtIQ AI Performance Dashboard — log sessions, track progress, and get AI-powered coaching feedback." />
+
+  <style>html,body{background:#0c0d0f!important;color:#f0ede6;}</style>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="styles/main.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div id="scroll-progress" aria-hidden="true"></div>
+<button id="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<nav id="navbar" role="navigation" aria-label="Main navigation">
+  <div class="container">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo" aria-label="CourtIQ - Home">
+        <div class="nav-logo-icon" aria-hidden="true">🏀</div>
+        Court<span>IQ</span>
+      </a>
+
+      <ul class="nav-links" role="list">
+        <li><a href="index.html#how-it-works">How It Works</a></li>
+        <li><a href="index.html#features">Features</a></li>
+        <li><a href="index.html#positions">Positions</a></li>
+        <li><a href="index.html#pricing">Pricing</a></li>
+        <li><a href="dashboard.html" style="color:var(--c-amber);font-weight:600;">Dashboard</a></li>
+      </ul>
+
+      <div class="nav-cta">
+        <a href="#" class="nav-signin" onclick="event.preventDefault();openAuth('signin')">Sign In</a>
+        <button class="nav-btn" aria-label="Start free trial" onclick="openAuth('signup')">Free Trial</button>
+        <div class="nav-mobile-toggle" aria-label="Open menu" role="button" tabindex="0" id="mobileToggle">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="nav-mobile-drawer" id="mobileDrawer" aria-label="Mobile navigation">
+  <a href="#" onclick="closeMobileNav();openAuth('signin')">Sign In</a>
+  <a href="index.html#how-it-works" onclick="closeMobileNav()">How It Works</a>
+  <a href="index.html#features"     onclick="closeMobileNav()">Features</a>
+  <a href="index.html#positions"    onclick="closeMobileNav()">Positions</a>
+  <a href="index.html#pricing"      onclick="closeMobileNav()">Pricing</a>
+  <a href="dashboard.html"          onclick="closeMobileNav()" style="color:var(--c-amber);font-weight:600;">Dashboard</a>
+  <a href="#" class="drawer-cta" onclick="closeMobileNav();openAuth('signup')">Start Free Trial →</a>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     AI PERFORMANCE DASHBOARD
+══════════════════════════════════════════ -->
+<section id="dashboard" class="section dashboard-section" aria-labelledby="dashboard-title">
+  <div class="container" style="position:relative;z-index:2;">
+
+    <header class="section-header reveal" style="margin-bottom:36px;">
+      <a href="#dashboard" class="label-tag" style="text-decoration:none;cursor:pointer;">Live Dashboard</a>
+      <h2 class="section-title" id="dashboard-title">
+        Track Your<br>
+        <span>Progress</span><br>
+        <span class="outline">With AI</span>
+      </h2>
+      <p class="section-desc" style="margin:0 auto;">
+        Log your daily training sessions and get instant AI-generated weekly summaries, progress graphs, and personalized coaching feedback.
+      </p>
+    </header>
+
+    <!-- Player context row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;" class="reveal">
+      <div class="db-field">
+        <label class="db-label">👤 Player Name</label>
+        <input class="db-input" id="db-player" type="text" value="Marcus R." />
+      </div>
+      <div class="db-field">
+        <label class="db-label">🏀 Position</label>
+        <select class="db-input" id="db-position">
+          <option>Point Guard</option><option>Shooting Guard</option>
+          <option>Small Forward</option><option>Power Forward</option><option>Center</option>
+        </select>
+      </div>
+      <div class="db-week-pill">
+        <span id="db-week-label">Week 4</span>
+        <span id="db-session-count">0 sessions logged</span>
+      </div>
+    </div>
+
+    <!-- Tab nav -->
+    <div class="db-tabs reveal">
+      <button class="db-tab active" onclick="dbSwitchTab('log',this)">📋 Log Session</button>
+      <button class="db-tab" onclick="dbSwitchTab('summary',this)">📊 Weekly Summary</button>
+      <button class="db-tab" onclick="dbSwitchTab('history',this)">📅 History</button>
+      <button class="db-tab" onclick="dbSwitchTab('notifications',this)">🔔 Notifications</button>
+      <button class="db-tab" onclick="dbSwitchTab('coach',this)">🏋️ AI Coach</button>
+      <button class="db-tab" onclick="dbSwitchTab('calendar',this)">📆 Weekly Calendar</button>
+    </div>
+
+    <!-- ── TAB: LOG ── -->
+    <div class="db-panel active" id="db-panel-log">
+      <div class="db-layout">
+
+        <!-- Input form -->
+        <div class="db-card">
+          <div class="db-card-title">Log Today's Training</div>
+          <div class="db-card-sub" id="db-session-label">Session 1 — Monday</div>
+          <div class="db-fields">
+            <div class="db-row-2">
+              <div class="db-field">
+                <label class="db-label">🎯 Shots Made</label>
+                <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
+              </div>
+              <div class="db-field">
+                <label class="db-label">⚪ Shots Attempted</label>
+                <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
+              </div>
+            </div>
+            <div class="db-field">
+              <label class="db-label">⚡ Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
+              <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
+            </div>
+            <div class="db-field">
+              <label class="db-label">↑ Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
+              <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
+            </div>
+            <div class="db-field">
+              <label class="db-label">🏃 Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
+              <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
+            </div>
+            <div class="db-field">
+              <label class="db-label">📝 Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
+              <textarea class="db-input" id="db-notes" rows="2" placeholder="Felt strong today, nailed catch-and-shoot…"></textarea>
+            </div>
+            <div class="db-error" id="db-error"></div>
+            <div class="db-btn-row">
+              <button class="db-add-btn" onclick="dbAddSession()">+ Add Session</button>
+              <button class="db-generate-btn" id="db-gen-btn" onclick="dbGenerate()" disabled
+                style="flex:2;margin-top:0;opacity:0.4;cursor:not-allowed;">
+                🤖 Generate AI Summary →
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Session log list -->
+        <div class="db-card" style="display:flex;flex-direction:column;">
+          <div class="db-card-title">Week <span id="db-week-num">4</span> Log</div>
+          <div class="db-card-sub" id="db-remaining-label">Add your first session →</div>
+          <div id="db-session-list" style="flex:1;">
+            <div class="db-empty">
+              <div class="db-empty-icon">📋</div>
+              <div class="db-empty-text">No sessions logged yet.<br>Fill the form and tap <strong>Add Session</strong>.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: SUMMARY ── -->
+    <div class="db-panel" id="db-panel-summary">
+      <div id="db-summary-empty" style="text-align:center;padding:60px 0;color:var(--c-muted);">
+        <div style="font-size:48px;margin-bottom:16px;">📊</div>
+        <div style="font-family:var(--font-display);font-size:24px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Summary Yet</div>
+        <p style="font-size:14px;margin-bottom:24px;">Log at least 2 sessions then hit <strong style="color:var(--c-amber)">Generate AI Summary</strong>.</p>
+        <button class="db-generate-btn" style="width:auto;padding:12px 32px;" onclick="dbSwitchTabById('log')">→ Log Sessions</button>
+      </div>
+      <div id="db-summary-content" style="display:none;">
+        <!-- AI feedback banner -->
+        <div class="db-feedback" id="db-feedback-banner">
+          <div class="db-feedback-inner">
+            <div class="db-ai-icon">🤖</div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                <span class="label-tag" id="db-fb-tag">AI Coach · Week 4</span>
+                <span class="db-trend-badge" id="db-trend-badge"></span>
+              </div>
+              <div class="db-headline" id="db-headline">—</div>
+              <div class="db-summary-text" id="db-summary-text">—</div>
+              <div class="db-feedback-cols">
+                <div>
+                  <div class="db-feedback-col-label" style="color:#56d364;">✦ Strengths</div>
+                  <div id="db-strengths"></div>
+                </div>
+                <div>
+                  <div class="db-feedback-col-label" style="color:#f85149;">⚑ Focus Areas</div>
+                  <div id="db-focus"></div>
+                </div>
+                <div>
+                  <div class="db-feedback-col-label" style="color:#4ca3ff;">🎯 Drill This Week</div>
+                  <div id="db-drill" style="font-size:13px;color:var(--c-muted);"></div>
+                </div>
+              </div>
+              <div class="db-coach-note" id="db-coach-note">—</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KPI row -->
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.02em;" id="db-kpi-title">Week 4 — Averages</div>
+        <div class="db-kpi-row" id="db-kpi-row">
+          <div class="db-kpi"><div class="db-kpi-label">Shooting %</div><div class="db-kpi-val" id="kpi-shot">—<span class="db-kpi-unit">%</span></div><div class="db-kpi-delta" id="kpi-shot-d"></div></div>
+          <div class="db-kpi"><div class="db-kpi-label">Dribbling</div><div class="db-kpi-val" id="kpi-drib">—<span class="db-kpi-unit"> min</span></div><div class="db-kpi-delta" id="kpi-drib-d"></div></div>
+          <div class="db-kpi"><div class="db-kpi-label">Vertical Jump</div><div class="db-kpi-val" id="kpi-vert">—<span class="db-kpi-unit">"</span></div><div class="db-kpi-delta" id="kpi-vert-d"></div></div>
+          <div class="db-kpi"><div class="db-kpi-label">Sprint Time</div><div class="db-kpi-val" id="kpi-sprint">—<span class="db-kpi-unit">s</span></div><div class="db-kpi-delta" id="kpi-sprint-d"></div></div>
+        </div>
+
+        <!-- Charts row 1 -->
+        <div class="db-charts-2">
+          <div class="db-card" style="padding-bottom:20px;">
+            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Daily Breakdown</div>
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Shooting % Per Session</div>
+            <div class="db-chart-wrap"><canvas id="db-chart-line"></canvas></div>
+          </div>
+          <div class="db-card" style="padding-bottom:20px;">
+            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Weekly Trend</div>
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Shooting % — All Weeks</div>
+            <div class="db-chart-wrap"><canvas id="db-chart-bar"></canvas></div>
+          </div>
+        </div>
+
+        <!-- Charts row 2 -->
+        <div class="db-charts-2">
+          <div class="db-card" style="padding-bottom:20px;">
+            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Athleticism</div>
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Vertical Jump Trend</div>
+            <div class="db-chart-wrap"><canvas id="db-chart-vert"></canvas></div>
+          </div>
+          <div class="db-card" style="padding-bottom:20px;">
+            <div style="font-size:10px;color:var(--c-dim);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:4px;">Speed</div>
+            <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:16px;">Sprint Time Trend</div>
+            <div class="db-chart-wrap"><canvas id="db-chart-sprint"></canvas></div>
+          </div>
+        </div>
+
+        <!-- JSON output -->
+        <div class="db-json-pane">
+          <div class="db-json-header">
+            <div class="db-json-dot" style="background:#f85149;"></div>
+            <div class="db-json-dot" style="background:#f5a623;"></div>
+            <div class="db-json-dot" style="background:#56d364;"></div>
+            <span class="db-json-filename" id="db-json-filename">week_4_performance.json</span>
+            <button class="db-copy-btn" onclick="dbCopyJSON()">Copy JSON</button>
+          </div>
+          <div class="db-json-body" id="db-json-body">{ }</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: HISTORY ── -->
+    <div class="db-panel" id="db-panel-history">
+      <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;margin-bottom:6px;">All Weeks</div>
+      <div style="font-size:13px;color:var(--c-muted);margin-bottom:24px;" id="db-history-count">3 weeks tracked</div>
+      <div id="db-history-list"></div>
+    </div>
+
+    <!-- ── TAB: NOTIFICATIONS ── -->
+    <div class="db-panel" id="db-panel-notifications">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+        <div>
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Workout Notifications</div>
+          <div style="font-size:13px;color:var(--c-muted);">AI-generated push & email alerts for your upcoming week — personalized by name, drills, and focus area.</div>
+        </div>
+        <button class="db-generate-btn" id="notif-gen-btn" onclick="notifGenerate()" style="width:auto;padding:12px 24px;margin-top:0;font-size:15px;">
+          🔔 Generate Notifications
+        </button>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
+        <div class="db-field">
+          <label class="db-label">👤 Athlete Name</label>
+          <input class="db-input" id="notif-name" type="text" placeholder="e.g. Marcus" value="Marcus" />
+        </div>
+        <div class="db-field">
+          <label class="db-label">🏀 Focus Goal</label>
+          <select class="db-input" id="notif-goal">
+            <option>Improve 3-point shot</option>
+            <option>Ball handling speed</option>
+            <option>Vertical jump</option>
+            <option>Defensive footwork</option>
+            <option>Conditioning & stamina</option>
+            <option>Post moves</option>
+          </select>
+        </div>
+        <div class="db-field">
+          <label class="db-label">📤 Channel</label>
+          <select class="db-input" id="notif-channel">
+            <option value="both">Push + Email</option>
+            <option value="push">Push Only</option>
+            <option value="email">Email Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="db-error" id="notif-error"></div>
+
+      <div id="notif-loading" style="display:none;text-align:center;padding:48px 0;">
+        <div style="font-size:36px;margin-bottom:14px;animation:fw-bounce 1s infinite;">🤖</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">Generating your notifications…</div>
+        <div style="font-size:13px;color:var(--c-muted);">AI is crafting personalized push & email content for each training day.</div>
+      </div>
+
+      <div id="notif-empty" style="text-align:center;padding:52px 0;">
+        <div style="font-size:52px;margin-bottom:16px;">🔔</div>
+        <div style="font-family:var(--font-display);font-size:24px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Notifications Yet</div>
+        <p style="font-size:14px;color:var(--c-muted);max-width:380px;margin:0 auto 24px;">Hit <strong style="color:var(--c-amber)">Generate Notifications</strong> to create a full week of personalized push alerts and email copy.</p>
+        <button class="db-generate-btn" onclick="notifGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">🔔 Generate Now</button>
+      </div>
+
+      <div id="notif-results" style="display:none;">
+        <div style="margin-bottom:20px;">
+          <button onclick="notifTogglePrompt()" style="display:flex;align-items:center;gap:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:9px 14px;color:var(--c-muted);font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font-body);transition:var(--transition);width:100%;" id="notif-prompt-toggle">
+            <span>📋</span> <span style="flex:1;text-align:left;">View AI Prompt Used</span> <span id="notif-prompt-arrow">▼</span>
+          </button>
+          <div id="notif-prompt-box" style="display:none;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 8px 8px;padding:16px;font-family:'Fira Code',monospace;font-size:11.5px;color:rgba(240,237,230,0.45);line-height:1.7;white-space:pre-wrap;"></div>
+        </div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="notif-week-label">Week 4 — Notification Schedule</div>
+        <div id="notif-cards" style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px;"></div>
+        <div class="db-json-pane">
+          <div class="db-json-header">
+            <div class="db-json-dot" style="background:#f85149;"></div>
+            <div class="db-json-dot" style="background:#f5a623;"></div>
+            <div class="db-json-dot" style="background:#56d364;"></div>
+            <span class="db-json-filename">notifications_week.json</span>
+            <button class="db-copy-btn" onclick="notifCopyJSON()">Copy JSON</button>
+          </div>
+          <div class="db-json-body" id="notif-json-body">{ }</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── TAB: AI COACH ── -->
+    <div class="db-panel" id="db-panel-coach">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:26px;">
+        <div>
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">AI Coach Adjustment</div>
+          <div style="font-size:13px;color:var(--c-muted);max-width:540px;line-height:1.7;">Enter last week's performance data — sets completed, success rate, and time spent. The AI Coach analyzes your weak areas and rebuilds next week's schedule at the right intensity.</div>
+        </div>
+        <button class="db-generate-btn" id="coach-gen-btn" onclick="coachGenerate()" style="width:auto;padding:12px 26px;margin-top:0;font-size:15px;">
+          🏋️ Adjust My Program
+        </button>
+      </div>
+
+      <div class="db-card" style="margin-bottom:22px;">
+        <div class="db-card-title" style="font-size:18px;margin-bottom:4px;">Last Week's Performance</div>
+        <div class="db-card-sub">Fill in how each drill category went — be honest, the AI uses this to recalibrate everything.</div>
+
+        <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px;" id="coach-perf-grid">
+
+          <div class="coach-perf-block" data-area="Shooting">
+            <div class="coach-area-header">
+              <span class="coach-area-icon">🎯</span>
+              <span class="coach-area-name">Shooting</span>
+              <span class="coach-area-badge" id="badge-shooting">—</span>
+            </div>
+            <div class="db-row-2" style="margin-top:10px;">
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-shooting-sets" type="number" min="0" max="20" placeholder="e.g. 8" oninput="coachUpdateBadge('shooting')"/></div>
+              <div class="db-field"><label class="db-label">Success % (make rate)</label><input class="db-input coach-input" id="c-shooting-pct" type="number" min="0" max="100" placeholder="e.g. 62" oninput="coachUpdateBadge('shooting')"/></div>
+            </div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-shooting-time" type="number" min="0" placeholder="e.g. 25" oninput="coachUpdateBadge('shooting')"/></div>
+            <div class="coach-notes-field"><textarea class="db-input" id="c-shooting-notes" rows="2" placeholder="Any notes? e.g. struggled from corner, missed short shots…"></textarea></div>
+          </div>
+
+          <div class="coach-perf-block" data-area="Ball Handling">
+            <div class="coach-area-header">
+              <span class="coach-area-icon">⚡</span>
+              <span class="coach-area-name">Ball Handling</span>
+              <span class="coach-area-badge" id="badge-ballhandling">—</span>
+            </div>
+            <div class="db-row-2" style="margin-top:10px;">
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-ballhandling-sets" type="number" min="0" max="20" placeholder="e.g. 6" oninput="coachUpdateBadge('ballhandling')"/></div>
+              <div class="db-field"><label class="db-label">Success % (clean reps)</label><input class="db-input coach-input" id="c-ballhandling-pct" type="number" min="0" max="100" placeholder="e.g. 75" oninput="coachUpdateBadge('ballhandling')"/></div>
+            </div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-ballhandling-time" type="number" min="0" placeholder="e.g. 20" oninput="coachUpdateBadge('ballhandling')"/></div>
+            <div class="coach-notes-field"><textarea class="db-input" id="c-ballhandling-notes" rows="2" placeholder="Any notes? e.g. crossover was good but speed needs work…"></textarea></div>
+          </div>
+
+          <div class="coach-perf-block" data-area="Athleticism">
+            <div class="coach-area-header">
+              <span class="coach-area-icon">💪</span>
+              <span class="coach-area-name">Athleticism</span>
+              <span class="coach-area-badge" id="badge-athleticism">—</span>
+            </div>
+            <div class="db-row-2" style="margin-top:10px;">
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-athleticism-sets" type="number" min="0" max="20" placeholder="e.g. 5" oninput="coachUpdateBadge('athleticism')"/></div>
+              <div class="db-field"><label class="db-label">Success % (form quality)</label><input class="db-input coach-input" id="c-athleticism-pct" type="number" min="0" max="100" placeholder="e.g. 80" oninput="coachUpdateBadge('athleticism')"/></div>
+            </div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-athleticism-time" type="number" min="0" placeholder="e.g. 18" oninput="coachUpdateBadge('athleticism')"/></div>
+            <div class="coach-notes-field"><textarea class="db-input" id="c-athleticism-notes" rows="2" placeholder="Any notes? e.g. box jumps felt easy, sprint was tiring…"></textarea></div>
+          </div>
+
+          <div class="coach-perf-block" data-area="Defense">
+            <div class="coach-area-header">
+              <span class="coach-area-icon">🛡️</span>
+              <span class="coach-area-name">Defense</span>
+              <span class="coach-area-badge" id="badge-defense">—</span>
+            </div>
+            <div class="db-row-2" style="margin-top:10px;">
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-defense-sets" type="number" min="0" max="20" placeholder="e.g. 4" oninput="coachUpdateBadge('defense')"/></div>
+              <div class="db-field"><label class="db-label">Success % (execution)</label><input class="db-input coach-input" id="c-defense-pct" type="number" min="0" max="100" placeholder="e.g. 58" oninput="coachUpdateBadge('defense')"/></div>
+            </div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-defense-time" type="number" min="0" placeholder="e.g. 15" oninput="coachUpdateBadge('defense')"/></div>
+            <div class="coach-notes-field"><textarea class="db-input" id="c-defense-notes" rows="2" placeholder="Any notes? e.g. closeouts felt slow, lateral speed improving…"></textarea></div>
+          </div>
+
+        </div>
+      </div>
+
+      <div class="db-card" style="margin-bottom:22px;">
+        <div class="db-card-title" style="font-size:16px;margin-bottom:4px;">Equipment Available</div>
+        <div class="db-card-sub">Select what you have access to — AI will suggest alternatives if needed.</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;" id="coach-equipment">
+          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">🏀 Basketball</button>
+          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">🏟️ Full Court</button>
+          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📦 Cones</button>
+          <button class="coach-eq-btn" onclick="coachToggleEq(this)">🎽 Resistance Bands</button>
+          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📏 Agility Ladder</button>
+          <button class="coach-eq-btn active" onclick="coachToggleEq(this)">💨 Open Space</button>
+          <button class="coach-eq-btn" onclick="coachToggleEq(this)">🏋️ Weights</button>
+          <button class="coach-eq-btn" onclick="coachToggleEq(this)">📹 Film Camera</button>
+        </div>
+      </div>
+
+      <div class="db-error" id="coach-error"></div>
+
+      <div id="coach-loading" style="display:none;text-align:center;padding:52px 0;">
+        <div style="font-size:40px;margin-bottom:14px;animation:fw-bounce 1s infinite;">🏋️</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">AI Coach is adjusting your program…</div>
+        <div style="font-size:13px;color:var(--c-muted);">Analyzing performance gaps, weak areas, and equipment to build next week's optimal schedule.</div>
+      </div>
+
+      <div id="coach-empty" style="text-align:center;padding:16px 0 40px;">
+        <div style="font-size:52px;margin-bottom:14px;">🏋️</div>
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:6px;">Ready to Adapt</div>
+        <p style="font-size:13px;color:var(--c-muted);max-width:400px;margin:0 auto;">Fill in last week's performance above and hit <strong style="color:var(--c-amber)">Adjust My Program</strong>. The AI Coach will recalibrate intensity, fix weak areas, and swap drills based on your equipment.</p>
+      </div>
+
+      <div id="coach-results" style="display:none;">
+        <div class="db-feedback" style="margin-bottom:24px;">
+          <div class="db-feedback-inner">
+            <div class="db-ai-icon">🏋️</div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;">
+                <span class="label-tag" id="coach-week-tag">AI Coach · Next Week</span>
+                <span id="coach-intensity-badge"></span>
+              </div>
+              <div class="db-headline" id="coach-headline">—</div>
+              <div class="db-summary-text" id="coach-analysis">—</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:14px;">
+                <div><div style="font-size:10px;font-weight:700;color:#f85149;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">⚠ Weak Areas</div><div id="coach-weak"></div></div>
+                <div><div style="font-size:10px;font-weight:700;color:#56d364;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">✦ Strengths</div><div id="coach-strong"></div></div>
+                <div><div style="font-size:10px;font-weight:700;color:#4ca3ff;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px;">🔄 Key Adjustments</div><div id="coach-adjustments"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="coach-schedule-title">Next Week — Adjusted Schedule</div>
+        <div id="coach-schedule-cards" style="display:flex;flex-direction:column;gap:12px;margin-bottom:26px;"></div>
+
+        <div class="db-json-pane">
+          <div class="db-json-header">
+            <div class="db-json-dot" style="background:#f85149;"></div>
+            <div class="db-json-dot" style="background:#f5a623;"></div>
+            <div class="db-json-dot" style="background:#56d364;"></div>
+            <span class="db-json-filename" id="coach-json-filename">adjusted_schedule_week.json</span>
+            <button class="db-copy-btn" onclick="coachCopyJSON()">Copy JSON</button>
+          </div>
+          <div class="db-json-body" id="coach-json-body">{ }</div>
+        </div>
+      </div>
+
+    </div><!-- /coach panel -->
+
+    <!-- ── TAB: WEEKLY CALENDAR ── -->
+    <div class="db-panel" id="db-panel-calendar">
+
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
+        <div>
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Weekly Calendar</div>
+          <div style="font-size:13px;color:var(--c-muted);max-width:560px;line-height:1.7;">Paste any weekly training JSON — from the AI Coach or your own — and it becomes a live interactive calendar. Click any day to expand, tick off exercises as you complete them.</div>
+        </div>
+        <button class="db-generate-btn" id="cal-gen-btn" onclick="calGenerate()" style="width:auto;padding:12px 26px;margin-top:0;font-size:15px;">
+          📆 Build Calendar
+        </button>
+      </div>
+
+      <div class="db-card" style="margin-bottom:20px;">
+        <div class="db-card-title" style="font-size:16px;margin-bottom:4px;">Training Data Source</div>
+        <div class="db-card-sub" style="margin-bottom:14px;">Use your latest AI Coach output, or paste custom JSON below.</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+          <button class="cal-src-btn active" id="cal-src-coach" onclick="calSetSource('coach',this)">🏋️ Use AI Coach Output</button>
+          <button class="cal-src-btn" id="cal-src-log"   onclick="calSetSource('log',this)">📋 Use Logged Sessions</button>
+          <button class="cal-src-btn" id="cal-src-paste" onclick="calSetSource('paste',this)">📋 Paste Custom JSON</button>
+        </div>
+        <div id="cal-paste-area" style="display:none;">
+          <textarea class="db-input" id="cal-json-input" rows="7"
+            placeholder='Paste weekly schedule JSON here…&#10;&#10;Expected shape: { "days": [ { "day":"Monday", "focus":"...", "drills": [...] } ] }'
+            style="font-family:'Fira Code',monospace;font-size:12px;resize:vertical;"></textarea>
+        </div>
+        <div id="cal-src-status" style="font-size:12px;color:var(--c-muted);margin-top:6px;"></div>
+      </div>
+
+      <div class="db-error" id="cal-error"></div>
+
+      <div id="cal-loading" style="display:none;text-align:center;padding:52px 0;">
+        <div style="font-size:40px;margin-bottom:14px;animation:fw-bounce 1s infinite;">📆</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:800;color:var(--c-white);margin-bottom:6px;">Converting to interactive calendar…</div>
+        <div style="font-size:13px;color:var(--c-muted);">AI is building your day-by-day schedule with React/JS-compatible JSON output.</div>
+      </div>
+
+      <div id="cal-empty" style="text-align:center;padding:20px 0 44px;">
+        <div style="font-size:52px;margin-bottom:14px;">📆</div>
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Calendar Yet</div>
+        <p style="font-size:13px;color:var(--c-muted);max-width:420px;margin:0 auto 24px;">Select a data source above and hit <strong style="color:var(--c-amber)">Build Calendar</strong>. The AI converts it into a live interactive week view — collapsible days, exercise checkboxes, and React-compatible JSON export.</p>
+        <button class="db-generate-btn" onclick="calGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">📆 Build Now</button>
+      </div>
+
+      <div id="cal-results" style="display:none;">
+        <div class="cal-progress-strip">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-family:var(--font-display);font-size:15px;font-weight:800;color:var(--c-white);" id="cal-week-label">Week Overview</div>
+            <div style="font-size:12px;color:var(--c-muted);"><span id="cal-done-count">0</span> / <span id="cal-total-count">0</span> exercises completed</div>
+          </div>
+          <div style="height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
+            <div id="cal-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--c-amber),#56d364);border-radius:3px;width:0%;transition:width 0.5s ease;"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:12px;flex-wrap:wrap;" id="cal-day-dots"></div>
+        </div>
+
+        <div id="cal-day-cards" style="display:flex;flex-direction:column;gap:10px;margin-bottom:26px;"></div>
+
+        <div class="db-json-pane">
+          <div class="db-json-header">
+            <div class="db-json-dot" style="background:#f85149;"></div>
+            <div class="db-json-dot" style="background:#f5a623;"></div>
+            <div class="db-json-dot" style="background:#56d364;"></div>
+            <span class="db-json-filename" id="cal-json-filename">weekly_calendar.json</span>
+            <button class="db-copy-btn" onclick="calCopyJSON()">Copy JSON</button>
+          </div>
+          <div class="db-json-body" id="cal-json-body">{ }</div>
+        </div>
+      </div>
+
+    </div><!-- /calendar panel -->
+
+  </div>
+</section>
+
+
+<footer role="contentinfo">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="footer-brand-logo">
+          <div class="footer-brand-icon" aria-hidden="true">🏀</div>
+          Court<span>IQ</span>
+        </div>
+        <p class="footer-tagline">
+          AI-powered basketball training personalized to your position, skill level, and goals. Train smarter. Dominate the court.
+        </p>
+        <nav class="footer-socials" aria-label="Social media links">
+          <a href="#" class="social-link" aria-label="Twitter">𝕏</a>
+          <a href="#" class="social-link" aria-label="Instagram">📸</a>
+          <a href="#" class="social-link" aria-label="TikTok">🎵</a>
+          <a href="#" class="social-link" aria-label="YouTube">▶</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="footer-col-title">Navigate</h3>
+        <nav class="footer-links" aria-label="Page navigation">
+          <a href="index.html#how-it-works">How It Works</a>
+          <a href="index.html#features">Features</a>
+          <a href="index.html#positions">Positions</a>
+          <a href="index.html#testimonials">Success Stories</a>
+          <a href="index.html#pricing">Pricing</a>
+          <a href="dashboard.html">Dashboard</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="footer-col-title">Company</h3>
+        <nav class="footer-links" aria-label="Company navigation">
+          <a href="#">About Us</a>
+          <a href="#">Blog</a>
+          <a href="#">Careers</a>
+          <a href="#">Press</a>
+          <a href="#">Partners</a>
+          <a href="#">API Docs</a>
+        </nav>
+      </div>
+      <div>
+        <h3 class="footer-col-title">Contact & Support</h3>
+        <nav class="footer-links" aria-label="Support navigation">
+          <a href="#">Help Center</a>
+          <a href="#">Community</a>
+          <a href="#">Status</a>
+          <a href="mailto:hello@courtiq.app">hello@courtiq.app</a>
+          <a href="mailto:support@courtiq.app">support@courtiq.app</a>
+          <a href="mailto:coaches@courtiq.app">coaches@courtiq.app</a>
+        </nav>
+      </div>
+    </div>
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin:36px 0 0;"></div>
+    <div style="padding:20px 0 28px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:14px;">
+      <p class="footer-copyright" style="margin:0;">&copy; 2026 CourtIQ, Inc. All rights reserved.</p>
+      <nav style="display:flex;flex-wrap:wrap;gap:6px 18px;align-items:center;" aria-label="Legal navigation">
+        <a href="#" class="footer-legal-link">Privacy Policy</a>
+        <a href="#" class="footer-legal-link">Terms of Service</a>
+        <a href="#" class="footer-legal-link">Cookie Policy</a>
+        <a href="#" class="footer-legal-link">Accessibility</a>
+        <a href="#" class="footer-legal-link">GDPR / Data Rights</a>
+        <a href="#" class="footer-legal-link">Contact Us</a>
+        <a href="#" class="footer-legal-link">Sitemap</a>
+      </nav>
+    </div>
+  </div>
+</footer>
+
+<!-- Auth Modal -->
+<div class="auth-overlay" id="authOverlay" onclick="handleAuthOverlayClick(event)">
+  <div class="auth-modal" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="auth-modal-header">
+      <div>
+        <div class="auth-modal-logo">
+          <div class="auth-modal-logo-icon" aria-hidden="true">🏀</div>
+          <div class="auth-modal-brand">Court<span>IQ</span></div>
+        </div>
+        <div class="auth-modal-title" id="auth-modal-title">Welcome Back</div>
+        <div class="auth-modal-sub" id="auth-modal-sub">Sign in to your CourtIQ account</div>
+      </div>
+      <button class="auth-modal-close" onclick="closeAuth()" aria-label="Close">✕</button>
+    </div>
+    <div class="auth-modal-body">
+      <div class="auth-tabs" role="tablist">
+        <button class="auth-tab" id="tab-signin" role="tab" aria-selected="false" onclick="switchAuthTab('signin')">Sign In</button>
+        <button class="auth-tab active" id="tab-signup" role="tab" aria-selected="true" onclick="switchAuthTab('signup')">Sign Up</button>
+      </div>
+      <div class="auth-error-msg" id="auth-error"></div>
+      <div class="auth-form-pane" id="pane-signin">
+        <div class="auth-field">
+          <label class="auth-field-label" for="si-email">Email Address</label>
+          <input class="auth-input" id="si-email" type="email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-field-label" for="si-password">Password</label>
+          <input class="auth-input" id="si-password" type="password" placeholder="••••••••" autocomplete="current-password" />
+        </div>
+        <div class="auth-forgot" onclick="showForgot()">Forgot your password?</div>
+        <button class="auth-submit" onclick="submitSignIn()">Sign In →</button>
+        <div class="auth-divider">or continue with</div>
+        <div class="auth-social-row">
+          <button class="auth-social-btn" onclick="socialAuth('google')"><span>G</span> Google</button>
+          <button class="auth-social-btn" onclick="socialAuth('apple')"><span>🍎</span> Apple</button>
+        </div>
+      </div>
+      <div class="auth-form-pane active" id="pane-signup">
+        <div class="auth-name-row">
+          <div class="auth-field">
+            <label class="auth-field-label" for="su-first">First Name</label>
+            <input class="auth-input" id="su-first" type="text" placeholder="Marcus" autocomplete="given-name" />
+          </div>
+          <div class="auth-field">
+            <label class="auth-field-label" for="su-last">Last Name</label>
+            <input class="auth-input" id="su-last" type="text" placeholder="Riley" autocomplete="family-name" />
+          </div>
+        </div>
+        <div class="auth-field">
+          <label class="auth-field-label" for="su-email">Email Address</label>
+          <input class="auth-input" id="su-email" type="email" placeholder="your@email.com" autocomplete="email" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-field-label" for="su-password">Create Password</label>
+          <input class="auth-input" id="su-password" type="password" placeholder="Min. 8 characters" autocomplete="new-password" />
+        </div>
+        <div class="auth-field">
+          <label class="auth-field-label" for="su-position">Your Position</label>
+          <select class="auth-input" id="su-position" style="cursor:pointer;">
+            <option value="" disabled selected>Select your position…</option>
+            <option value="pg">Point Guard (PG)</option>
+            <option value="sg">Shooting Guard (SG)</option>
+            <option value="sf">Small Forward (SF)</option>
+            <option value="pf">Power Forward (PF)</option>
+            <option value="c">Center (C)</option>
+          </select>
+        </div>
+        <button class="auth-submit" id="su-submit" onclick="submitSignUp()">Create Account →</button>
+        <div class="auth-divider">or sign up with</div>
+        <div class="auth-social-row">
+          <button class="auth-social-btn" onclick="socialAuth('google')"><span>G</span> Google</button>
+          <button class="auth-social-btn" onclick="socialAuth('apple')"><span>🍎</span> Apple</button>
+        </div>
+        <p class="auth-terms">By creating an account you agree to our
+          <a href="#">Terms of Service</a> and <a href="#">Privacy Policy</a>.
+        </p>
+      </div>
+      <div class="auth-success" id="auth-success">
+        <div class="auth-success-icon">🏀</div>
+        <div class="auth-success-title">You're <span>In!</span></div>
+        <p class="auth-success-text" id="auth-success-text">Welcome to CourtIQ. Redirecting you to your dashboard…</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/nav.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/ai-coach.js"></script>
+
+</body>
+</html>
