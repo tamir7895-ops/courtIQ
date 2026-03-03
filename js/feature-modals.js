@@ -187,6 +187,7 @@
           {t:'Box Jump Conditioning', d:'5:30'},
         ];
         return `
+          <div style="font-size:11px;color:var(--c-amber);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;text-align:center;font-weight:600;letter-spacing:0.05em;">INTERACTIVE PREVIEW — Full feature coming soon</div>
           <div class="fw-section">
             <div class="fw-label">Featured Videos</div>
             <div class="fw-video-grid">
@@ -363,6 +364,7 @@
       title: 'Game Film Analysis', sub: 'Upload your game footage — AI breaks down your every move',
       render() {
         return `
+          <div style="font-size:11px;color:var(--c-amber);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;text-align:center;font-weight:600;letter-spacing:0.05em;">INTERACTIVE PREVIEW — Full feature coming soon</div>
           <div class="fw-section">
             <div class="fw-label">Upload Game Film</div>
             <div class="fw-upload-zone" onclick="fwSimulateUpload(this)">
@@ -420,6 +422,7 @@
       title: 'Nutrition & Recovery', sub: 'Fuel your game — personalized meal plans and recovery protocols',
       render() {
         return `
+          <div style="font-size:11px;color:var(--c-amber);background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.2);border-radius:8px;padding:8px 12px;margin-bottom:14px;text-align:center;font-weight:600;letter-spacing:0.05em;">INTERACTIVE PREVIEW — Full feature coming soon</div>
           <div class="fw-section">
             <div class="fw-label">Today's Macros — Training Day</div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px;">

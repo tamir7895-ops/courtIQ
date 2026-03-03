@@ -1,4 +1,5 @@
-     AUTH MODAL
+/* ══════════════════════════════════════════════════════════════
+     AUTH MODAL — Real Supabase Auth
   ══════════════════════════════════════════════════════════════ */
   function openAuth(mode, plan) {
     const overlay = document.getElementById('authOverlay');
@@ -63,9 +64,28 @@
     const el = document.getElementById('auth-error');
     el.textContent = msg;
     el.style.display = 'block';
+    el.style.color = '';
+    el.style.background = '';
+    el.style.borderColor = '';
   }
 
-  function submitSignIn() {
+  function showAuthSuccess(type, name) {
+    // Hide form content
+    document.getElementById('auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
+    document.getElementById('auth-error').style.display = 'none';
+    document.querySelectorAll('.auth-form-pane').forEach(p => p.style.display = 'none');
+
+    const success = document.getElementById('auth-success');
+    const text    = document.getElementById('auth-success-text');
+    if (type === 'signin') {
+      text.textContent = 'Welcome back! Redirecting you to your dashboard\u2026';
+    } else {
+      text.textContent = `Welcome, ${name || 'Athlete'}! Your free trial is ready. Setting up your personalized program\u2026`;
+    }
+    success.classList.add('show');
+  }
+
+  async function submitSignIn() {
     const email = document.getElementById('si-email').value.trim();
     const pass  = document.getElementById('si-password').value;
     let valid = true;
@@ -84,11 +104,22 @@
     }
     if (!valid) { showAuthError('Please check your email and password.'); return; }
 
-    // Simulate sign in
+    const btn = document.querySelector('#pane-signin .auth-submit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Signing in\u2026'; }
+
+    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+
+    if (error) {
+      showAuthError(error.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+      return;
+    }
+
     showAuthSuccess('signin', email);
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
   }
 
-  function submitSignUp() {
+  async function submitSignUp() {
     const first    = document.getElementById('su-first').value.trim();
     const email    = document.getElementById('su-email').value.trim();
     const pass     = document.getElementById('su-password').value;
@@ -103,42 +134,65 @@
     if (!pass || pass.length < 8) { document.getElementById('su-password').classList.add('error'); valid = false; }
     if (!valid) { showAuthError('Please fill in all required fields correctly.'); return; }
 
+    const btn = document.getElementById('su-submit');
+    if (btn) { btn.disabled = true; btn.textContent = 'Creating account\u2026'; }
+
+    const { error } = await sb.auth.signUp({
+      email,
+      password: pass,
+      options: {
+        data: { first_name: first, position: position }
+      }
+    });
+
+    if (error) {
+      showAuthError(error.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      return;
+    }
+
     showAuthSuccess('signup', first);
+    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
   }
 
-  function showAuthSuccess(type, name) {
-    // Hide form content
-    document.getElementById('auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
-    document.getElementById('auth-error').style.display = 'none';
-    document.querySelectorAll('.auth-form-pane').forEach(p => p.style.display = 'none');
-
-    const success = document.getElementById('auth-success');
-    const text    = document.getElementById('auth-success-text');
-    if (type === 'signin') {
-      text.textContent = `Welcome back! Redirecting you to your dashboard…`;
-    } else {
-      text.textContent = `Welcome, ${name || 'Athlete'}! Your free trial is ready. Setting up your personalized program…`;
-    }
-    success.classList.add('show');
-
-    // Auto-close after 3s
-    setTimeout(() => closeAuth(), 3200);
+  async function signOut() {
+    await sb.auth.signOut();
+    window.location.href = 'index.html';
   }
 
   function socialAuth(provider) {
-    showAuthSuccess('signup', '');
-    document.getElementById('auth-success-text').textContent =
-      `Connecting with ${provider === 'google' ? 'Google' : 'Apple'}…`;
+    showAuthError('Social login coming soon. Please use email and password.');
   }
 
-  function showForgot() {
-    showAuthError('Password reset link sent! Check your inbox.');
-    document.getElementById('auth-error').style.color = '#a8e063';
-    document.getElementById('auth-error').style.background = 'rgba(168,224,99,0.08)';
-    document.getElementById('auth-error').style.borderColor = 'rgba(168,224,99,0.2)';
-    document.getElementById('auth-error').style.display = 'block';
+  async function showForgot() {
+    const email = document.getElementById('si-email').value.trim();
+    if (!email || !email.includes('@')) {
+      showAuthError('Enter your email address first.');
+      return;
+    }
+    const { error } = await sb.auth.resetPasswordForEmail(email);
+    if (error) { showAuthError(error.message); return; }
+    const el = document.getElementById('auth-error');
+    el.textContent = 'Password reset link sent! Check your inbox.';
+    el.style.color = '#a8e063';
+    el.style.background = 'rgba(168,224,99,0.08)';
+    el.style.borderColor = 'rgba(168,224,99,0.2)';
+    el.style.display = 'block';
   }
 
-  // Combined keydown already declared above
+  // On landing page: check if already logged in, update nav
+  (async function checkExistingSession() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (session) {
+      // Update nav buttons if on landing page
+      const navBtns = document.querySelector('.nav-buttons');
+      if (navBtns && !document.getElementById('db-panel-log')) {
+        navBtns.innerHTML = `
+          <a href="dashboard.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
+          <button onclick="signOut()" class="btn-hamburger" style="font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;">Sign Out</button>
+        `;
+      }
+    }
+  })();
 
-  /* ══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════ */

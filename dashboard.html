@@ -15,6 +15,7 @@
 
   <link rel="stylesheet" href="styles/main.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
 
@@ -38,9 +39,11 @@
         <li><a href="dashboard.html" style="color:var(--c-amber);font-weight:600;">Dashboard</a></li>
       </ul>
 
-      <div class="nav-cta">
-        <a href="#" class="nav-signin" onclick="event.preventDefault();openAuth('signin')">Sign In</a>
-        <button class="nav-btn" aria-label="Start free trial" onclick="openAuth('signup')">Free Trial</button>
+      <div class="nav-cta" id="nav-cta-area">
+        <span id="nav-user-greeting" style="display:none;font-size:12px;color:var(--c-muted);margin-right:8px;"></span>
+        <button id="nav-signout-btn" style="display:none;font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;" onclick="signOut()">Sign Out</button>
+        <a href="#" class="nav-signin" id="nav-signin-link" onclick="event.preventDefault();openAuth('signin')">Sign In</a>
+        <button class="nav-btn" id="nav-trial-btn" aria-label="Start free trial" onclick="openAuth('signup')">Free Trial</button>
         <div class="nav-mobile-toggle" aria-label="Open menu" role="button" tabindex="0" id="mobileToggle">
           <span></span><span></span><span></span>
         </div>
@@ -50,13 +53,12 @@
 </nav>
 
 <div class="nav-mobile-drawer" id="mobileDrawer" aria-label="Mobile navigation">
-  <a href="#" onclick="closeMobileNav();openAuth('signin')">Sign In</a>
   <a href="index.html#how-it-works" onclick="closeMobileNav()">How It Works</a>
   <a href="index.html#features"     onclick="closeMobileNav()">Features</a>
   <a href="index.html#positions"    onclick="closeMobileNav()">Positions</a>
   <a href="index.html#pricing"      onclick="closeMobileNav()">Pricing</a>
   <a href="dashboard.html"          onclick="closeMobileNav()" style="color:var(--c-amber);font-weight:600;">Dashboard</a>
-  <a href="#" class="drawer-cta" onclick="closeMobileNav();openAuth('signup')">Start Free Trial →</a>
+  <a href="#" class="drawer-cta" id="drawer-signout" onclick="closeMobileNav();signOut()" style="display:none;">Sign Out</a>
 </div>
 
 
@@ -714,6 +716,8 @@
   </div>
 </div>
 
+<script src="js/supabase-client.js"></script>
+<script src="js/data-service.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/dashboard.js"></script>

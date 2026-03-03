@@ -1,42 +1,149 @@
-     AI PERFORMANCE DASHBOARD
-  ══════════════════════════════════════════════════════════════ */
-
-  /* ── Seed data: 3 prior weeks ── */
-  const DB_SEED = [
-    { week:'Week 1', label:'W1', days:[
-      {day:'Mon',shots_made:18,shots_attempted:42,dribbling_min:12,vertical_in:22,sprint_sec:4.9},
-      {day:'Tue',shots_made:15,shots_attempted:38,dribbling_min:14,vertical_in:21,sprint_sec:5.0},
-      {day:'Wed',shots_made:21,shots_attempted:44,dribbling_min:11,vertical_in:23,sprint_sec:4.8},
-      {day:'Thu',shots_made:17,shots_attempted:39,dribbling_min:16,vertical_in:22,sprint_sec:4.9},
-      {day:'Fri',shots_made:23,shots_attempted:46,dribbling_min:18,vertical_in:24,sprint_sec:4.7},
-    ]},
-    { week:'Week 2', label:'W2', days:[
-      {day:'Mon',shots_made:22,shots_attempted:42,dribbling_min:15,vertical_in:24,sprint_sec:4.7},
-      {day:'Tue',shots_made:20,shots_attempted:40,dribbling_min:17,vertical_in:23,sprint_sec:4.7},
-      {day:'Wed',shots_made:26,shots_attempted:45,dribbling_min:13,vertical_in:25,sprint_sec:4.6},
-      {day:'Thu',shots_made:21,shots_attempted:41,dribbling_min:19,vertical_in:24,sprint_sec:4.6},
-      {day:'Fri',shots_made:28,shots_attempted:47,dribbling_min:21,vertical_in:26,sprint_sec:4.5},
-    ]},
-    { week:'Week 3', label:'W3', days:[
-      {day:'Mon',shots_made:25,shots_attempted:43,dribbling_min:19,vertical_in:26,sprint_sec:4.5},
-      {day:'Tue',shots_made:23,shots_attempted:41,dribbling_min:21,vertical_in:25,sprint_sec:4.5},
-      {day:'Wed',shots_made:29,shots_attempted:47,dribbling_min:17,vertical_in:27,sprint_sec:4.4},
-      {day:'Thu',shots_made:27,shots_attempted:45,dribbling_min:23,vertical_in:27,sprint_sec:4.3},
-      {day:'Fri',shots_made:31,shots_attempted:49,dribbling_min:24,vertical_in:28,sprint_sec:4.2},
-    ]},
-  ];
+/* ══════════════════════════════════════════════════════════════
+   AI PERFORMANCE DASHBOARD — Supabase-backed
+   ══════════════════════════════════════════════════════════════ */
 
   const DB_DAYS = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  let dbWeeks    = [...DB_SEED];
+  let dbWeeks    = [];
   let dbSessions = [];
   let dbResult   = null;
   let dbCharts   = {};
   let dbLoading  = false;
+  let currentWeekId  = null;
+  let currentWeekNum = 1;
+
+  /* ══════════════════════════════════════════════════════════════
+     AUTH GUARD — redirect if not logged in
+  ══════════════════════════════════════════════════════════════ */
+  (async function authGuard() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      window.location.href = 'index.html';
+      return;
+    }
+    window.currentUser = session.user;
+    window.currentSession = session;
+
+    // Update nav: show user greeting + sign out, hide sign in / free trial
+    const greeting = document.getElementById('nav-user-greeting');
+    const signoutBtn = document.getElementById('nav-signout-btn');
+    const signinLink = document.getElementById('nav-signin-link');
+    const trialBtn = document.getElementById('nav-trial-btn');
+    const drawerSignout = document.getElementById('drawer-signout');
+
+    if (greeting) {
+      const name = session.user.user_metadata?.first_name || session.user.email;
+      greeting.textContent = name;
+      greeting.style.display = '';
+    }
+    if (signoutBtn) signoutBtn.style.display = '';
+    if (signinLink) signinLink.style.display = 'none';
+    if (trialBtn) trialBtn.style.display = 'none';
+    if (drawerSignout) drawerSignout.style.display = '';
+
+    // Listen for session expiry
+    sb.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        window.location.href = 'index.html';
+      }
+    });
+
+    // Load data
+    await initDashboard();
+  })();
+
+  /* ══════════════════════════════════════════════════════════════
+     INIT — load profile + weeks from Supabase
+  ══════════════════════════════════════════════════════════════ */
+  async function initDashboard() {
+    try {
+      // Load profile → populate player name & position
+      const profile = await DataService.getProfile();
+      if (profile) {
+        const playerEl = document.getElementById('db-player');
+        const posEl    = document.getElementById('db-position');
+        if (playerEl && profile.first_name) playerEl.value = profile.first_name;
+        if (posEl && profile.position)      posEl.value = profile.position;
+      }
+
+      // Load all weeks with sessions
+      const weeks = await DataService.getWeeks();
+
+      // Find weeks that have a summary (completed) vs the current in-progress week
+      const completedWeeks = weeks.filter(w => w.summary_json);
+      const inProgressWeek = weeks.find(w => !w.summary_json);
+
+      // Map completed weeks to display format
+      dbWeeks = completedWeeks.map(w => ({
+        id: w.id,
+        week: 'Week ' + w.week_number,
+        label: w.label || ('W' + w.week_number),
+        days: (w.training_sessions || []).map(s => ({
+          day: s.day,
+          shots_made: Number(s.shots_made),
+          shots_attempted: Number(s.shots_attempted),
+          dribbling_min: Number(s.dribbling_min),
+          vertical_in: Number(s.vertical_in),
+          sprint_sec: Number(s.sprint_sec),
+          notes: s.notes || '',
+        })),
+        summary_json: w.summary_json,
+      }));
+
+      // Set up current week
+      if (inProgressWeek) {
+        currentWeekId  = inProgressWeek.id;
+        currentWeekNum = inProgressWeek.week_number;
+        dbSessions = (inProgressWeek.training_sessions || []).map(s => ({
+          day: s.day,
+          shots_made: Number(s.shots_made),
+          shots_attempted: Number(s.shots_attempted),
+          dribbling_min: Number(s.dribbling_min),
+          vertical_in: Number(s.vertical_in),
+          sprint_sec: Number(s.sprint_sec),
+          notes: s.notes || '',
+        }));
+      } else {
+        // Create a new week
+        currentWeekNum = completedWeeks.length + 1;
+        const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
+        currentWeekId = newWeek.id;
+        dbSessions = [];
+      }
+
+      // If the last completed week has a stored AI result, restore it
+      if (completedWeeks.length > 0) {
+        const lastWeek = completedWeeks[completedWeeks.length - 1];
+        if (lastWeek.summary_json) {
+          dbResult = lastWeek.summary_json;
+        }
+      }
+
+    } catch (e) {
+      console.error('Failed to load dashboard data:', e);
+      showToast('Failed to load your data. Please refresh.', true);
+    }
+
+    dbUpdateLabels();
+    dbRenderSessions();
+    dbRenderHistory();
+
+    // If we have a previous AI result, show the summary
+    if (dbResult) {
+      dbRenderSummary(dbResult);
+    }
+  }
 
   /* ── helpers ── */
+  function sanitize(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+  function clampLength(str, max) { return str.length > max ? str.slice(0, max) : str; }
   function dbMean(arr, fn) { return arr.reduce((s,x) => s + fn(x), 0) / arr.length; }
   function dbWeekStats(w) {
     const d = w.days;
+    if (!d || d.length === 0) return { shooting_pct:0, dribbling_min:0, vertical_in:0, sprint_sec:0, shots_made:0 };
     return {
       shooting_pct: Math.round(dbMean(d, r => (r.shots_made/r.shots_attempted)*100)),
       dribbling_min: +dbMean(d, r => r.dribbling_min).toFixed(1),
@@ -48,7 +155,7 @@
   function dbPctChange(curr, prev) {
     return prev === 0 ? 0 : Math.round(((curr - prev) / Math.abs(prev)) * 100);
   }
-  function dbWeekNum() { return dbWeeks.length + 1; }
+  function dbWeekNum() { return currentWeekNum; }
   function dbPrevStats() { return dbWeeks.length > 0 ? dbWeekStats(dbWeeks[dbWeeks.length-1]) : null; }
 
   /* ── tab switching ── */
@@ -77,7 +184,7 @@
     document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
     const rem = Math.max(0, 5 - dbSessions.length);
     document.getElementById('db-remaining-label').textContent = dbSessions.length === 0
-      ? 'Add your first session →'
+      ? 'Add your first session \u2192'
       : (rem > 0 ? rem + ' session' + (rem > 1 ? 's' : '') + ' left this week' : 'Week complete!');
   }
 
@@ -85,7 +192,7 @@
   function dbRenderSessions() {
     const list = document.getElementById('db-session-list');
     if (dbSessions.length === 0) {
-      list.innerHTML = `<div class="db-empty"><div class="db-empty-icon">📋</div><div class="db-empty-text">No sessions logged yet.<br>Fill the form and tap <strong>Add Session</strong>.</div></div>`;
+      list.innerHTML = '<div class="db-empty"><div class="db-empty-icon">\ud83d\udccb</div><div class="db-empty-text">No sessions logged yet.<br>Fill the form and tap <strong>Add Session</strong>.</div></div>';
       return;
     }
     list.innerHTML = dbSessions.map((s, i) => {
@@ -94,7 +201,7 @@
       return `
         <div class="db-session-card">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
-            <div class="db-session-day">${s.day}</div>
+            <div class="db-session-day">${sanitize(s.day)}</div>
             <div style="font-size:10px;color:var(--c-dimmer);">Session ${i+1}</div>
           </div>
           <div class="db-session-bar">
@@ -115,8 +222,8 @@
     }
   }
 
-  /* ── add session ── */
-  function dbAddSession() {
+  /* ── add session (with validation + DB save) ── */
+  async function dbAddSession() {
     const sm  = parseFloat(document.getElementById('db-shots-made').value);
     const sa  = parseFloat(document.getElementById('db-shots-att').value);
     const dr  = parseFloat(document.getElementById('db-dribbling').value);
@@ -125,19 +232,50 @@
     const err = document.getElementById('db-error');
 
     err.style.display = 'none';
+
+    // Validation
     if (isNaN(sm) || isNaN(sa) || isNaN(dr) || isNaN(ve) || isNaN(sp)) {
-      err.textContent = '⚠ Fill in all 5 performance fields.'; err.style.display = 'block'; return;
+      err.textContent = '\u26a0 Fill in all 5 performance fields.'; err.style.display = 'block'; return;
+    }
+    if (sm < 0 || sa < 0 || dr < 0 || ve < 0 || sp < 0) {
+      err.textContent = '\u26a0 Values cannot be negative.'; err.style.display = 'block'; return;
     }
     if (sm > sa) {
-      err.textContent = '⚠ Shots made can\'t exceed shots attempted.'; err.style.display = 'block'; return;
+      err.textContent = '\u26a0 Shots made can\u2019t exceed shots attempted.'; err.style.display = 'block'; return;
+    }
+    if (sa > 500) {
+      err.textContent = '\u26a0 Shots attempted seems too high (max 500).'; err.style.display = 'block'; return;
+    }
+    if (dr > 480) {
+      err.textContent = '\u26a0 Dribbling minutes seems too high (max 480).'; err.style.display = 'block'; return;
+    }
+    if (ve > 60 || ve < 3) {
+      err.textContent = '\u26a0 Vertical should be between 3 and 60 inches.'; err.style.display = 'block'; return;
+    }
+    if (sp > 15 || sp < 1) {
+      err.textContent = '\u26a0 Sprint time should be between 1.0 and 15.0 seconds.'; err.style.display = 'block'; return;
     }
 
-    dbSessions.push({
-      day: DB_DAYS[dbSessions.length] || ('Day ' + (dbSessions.length + 1)),
-      shots_made: sm, shots_attempted: sa,
+    const notes = clampLength(document.getElementById('db-notes').value || '', 500);
+    const day = DB_DAYS[dbSessions.length] || ('Day ' + (dbSessions.length + 1));
+
+    const sessionData = {
+      day, shots_made: sm, shots_attempted: sa,
       dribbling_min: dr, vertical_in: ve, sprint_sec: sp,
-      notes: document.getElementById('db-notes').value,
-    });
+      notes,
+    };
+
+    // Save to Supabase
+    try {
+      await DataService.addSession(currentWeekId, sessionData);
+    } catch (e) {
+      err.textContent = '\u26a0 Failed to save session. Please try again.';
+      err.style.display = 'block';
+      console.error(e);
+      return;
+    }
+
+    dbSessions.push(sessionData);
 
     // clear form
     ['db-shots-made','db-shots-att','db-dribbling','db-vertical','db-sprint','db-notes'].forEach(id => {
@@ -147,7 +285,7 @@
 
     dbUpdateLabels();
     dbRenderSessions();
-    showToast('Session logged for ' + dbSessions[dbSessions.length-1].day + '!');
+    showToast('Session logged for ' + day + '!');
   }
 
   /* ── chart helpers ── */
@@ -253,16 +391,16 @@
 
   /* ── render summary from result ── */
   function dbRenderSummary(result) {
-    const wn   = dbWeekNum();
     const prev = dbPrevStats();
+    const weekLabel = result.week || ('Week ' + dbWeekNum());
 
     document.getElementById('db-summary-empty').style.display   = 'none';
     document.getElementById('db-summary-content').style.display = 'block';
 
     // tag + trend badge
-    document.getElementById('db-fb-tag').textContent = 'AI Coach · Week ' + (wn - 1);
-    document.getElementById('db-kpi-title').textContent = 'Week ' + (wn - 1) + ' — Averages';
-    document.getElementById('db-json-filename').textContent = 'week_' + (wn - 1) + '_performance.json';
+    document.getElementById('db-fb-tag').textContent = 'AI Coach \u00b7 ' + weekLabel;
+    document.getElementById('db-kpi-title').textContent = weekLabel + ' \u2014 Averages';
+    document.getElementById('db-json-filename').textContent = weekLabel.toLowerCase().replace(/\s/g, '_') + '_performance.json';
 
     const trend  = result.comparison.overall_trend;
     const badge  = document.getElementById('db-trend-badge');
@@ -277,10 +415,10 @@
     // feedback text
     document.getElementById('db-headline').textContent     = result.feedback.headline;
     document.getElementById('db-summary-text').textContent = result.feedback.summary;
-    document.getElementById('db-strengths').innerHTML = result.feedback.strengths.map(s => `<div class="db-feedback-item">· ${s}</div>`).join('');
-    document.getElementById('db-focus').innerHTML     = result.feedback.focus_areas.map(f => `<div class="db-feedback-item">· ${f}</div>`).join('');
+    document.getElementById('db-strengths').innerHTML = result.feedback.strengths.map(s => `<div class="db-feedback-item">\u00b7 ${sanitize(s)}</div>`).join('');
+    document.getElementById('db-focus').innerHTML     = result.feedback.focus_areas.map(f => `<div class="db-feedback-item">\u00b7 ${sanitize(f)}</div>`).join('');
     document.getElementById('db-drill').textContent   = result.feedback.drill_recommendation;
-    document.getElementById('db-coach-note').textContent = '"' + result.feedback.coach_note + '"';
+    document.getElementById('db-coach-note').textContent = '\u201c' + result.feedback.coach_note + '\u201d';
 
     // KPIs
     const avg = result.weekly_summary.averages;
@@ -290,7 +428,7 @@
         const d = dbPctChange(curr, prevVal);
         const pos = lowerBetter ? d <= 0 : d >= 0;
         const el = document.getElementById(deltaId);
-        el.textContent = (pos ? '▲ ' : '▼ ') + Math.abs(d) + '% vs prev week';
+        el.textContent = (pos ? '\u25b2 ' : '\u25bc ') + Math.abs(d) + '% vs prev week';
         el.style.color = pos ? '#56d364' : '#f85149';
       }
     }
@@ -311,7 +449,7 @@
     const list = document.getElementById('db-history-list');
     document.getElementById('db-history-count').textContent = dbWeeks.length + ' week' + (dbWeeks.length !== 1 ? 's' : '') + ' tracked';
     if (dbWeeks.length === 0) {
-      list.innerHTML = `<div class="db-empty"><div class="db-empty-icon">📅</div><div class="db-empty-text">No history yet. Complete a week to see it here.</div></div>`;
+      list.innerHTML = '<div class="db-empty"><div class="db-empty-icon">\ud83d\udcc5</div><div class="db-empty-text">No history yet. Complete a week to see it here.</div></div>';
       return;
     }
     list.innerHTML = [...dbWeeks].reverse().map((w, i) => {
@@ -320,7 +458,7 @@
       return `
         <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : ''}">
           <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : ''}">
-            <div class="db-history-week" style="color:${isLatest ? '#f5a623' : 'var(--c-white)'}">${w.week}${isLatest ? ' <span style="font-size:13px;font-weight:400;">· Latest</span>' : ''}</div>
+            <div class="db-history-week" style="color:${isLatest ? '#f5a623' : 'var(--c-white)'}">${sanitize(w.week)}${isLatest ? ' <span style="font-size:13px;font-weight:400;">\u00b7 Latest</span>' : ''}</div>
             <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} sessions</div>
           </div>
           <div class="db-history-body">
@@ -351,19 +489,31 @@
     const text = JSON.stringify(dbResult, null, 2);
     if (navigator.clipboard) navigator.clipboard.writeText(text);
     const btn = document.querySelector('.db-copy-btn');
-    btn.textContent = '✓ Copied!';
+    btn.textContent = '\u2713 Copied!';
     btn.style.color  = '#56d364';
     setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
   }
 
-  /* ── GENERATE via Anthropic API ── */
+  /* ── helper: get auth header for API calls ── */
+  async function getAuthHeaders() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = 'index.html'; return {}; }
+    return {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + session.access_token,
+    };
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     GENERATE via Anthropic API (with error handling + DB save)
+  ══════════════════════════════════════════════════════════════ */
   async function dbGenerate() {
     if (dbSessions.length < 2) return;
     if (dbLoading) return;
     dbLoading = true;
 
     const btn = document.getElementById('db-gen-btn');
-    btn.textContent = '⚙️ Analyzing with AI…';
+    btn.textContent = '\u2699\ufe0f Analyzing with AI\u2026';
     btn.disabled = true;
 
     const wn   = dbWeekNum();
@@ -373,7 +523,7 @@
 
     const prompt = `You are an elite basketball performance analytics AI for CourtIQ.
 
-Player: ${player} | Position: ${position} | Analyzing: Week ${wn}
+Player: ${sanitize(player)} | Position: ${sanitize(position)} | Analyzing: Week ${wn}
 
 Week ${wn} sessions (${dbSessions.length} days):
 ${JSON.stringify(dbSessions, null, 2)}
@@ -381,10 +531,10 @@ ${JSON.stringify(dbSessions, null, 2)}
 Previous weeks stats:
 ${JSON.stringify(dbWeeks.map(w => ({ week: w.week, stats: dbWeekStats(w) })), null, 2)}
 
-Return ONLY valid JSON with this exact schema — no markdown, no extra text:
+Return ONLY valid JSON with this exact schema \u2014 no markdown, no extra text:
 {
-  "player": "${player}",
-  "position": "${position}",
+  "player": "${sanitize(player)}",
+  "position": "${sanitize(position)}",
   "week": "Week ${wn}",
   "generated_at": "<ISO 8601>",
   "weekly_summary": {
@@ -425,22 +575,54 @@ Return ONLY valid JSON with this exact schema — no markdown, no extra text:
 }`;
 
     try {
+      const headers = await getAuthHeaders();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('https://txnsuzlgfafjdipfqkqe.supabase.co/functions/v1/claude-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 1200,
           messages: [{ role: 'user', content: prompt }],
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw { status: res.status, message: errBody };
+      }
+
       const data = await res.json();
+      if (data.error) throw { message: data.error.message || 'AI service error' };
+
       const text = (data.content || []).map(b => b.text || '').join('');
       const result = JSON.parse(text.replace(/```json|```/g, '').trim());
 
       dbResult = result;
-      dbWeeks  = [...dbWeeks, { week: 'Week ' + wn, label: 'W' + wn, days: dbSessions }];
+
+      // Save summary to DB
+      try {
+        await DataService.saveWeekSummary(currentWeekId, result);
+      } catch (saveErr) {
+        console.error('Failed to save summary to DB:', saveErr);
+      }
+
+      // Move current week to completed list
+      dbWeeks = [...dbWeeks, { id: currentWeekId, week: 'Week ' + wn, label: 'W' + wn, days: dbSessions, summary_json: result }];
       dbSessions = [];
+
+      // Create next week
+      currentWeekNum = wn + 1;
+      try {
+        const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
+        currentWeekId = newWeek.id;
+      } catch (weekErr) {
+        console.error('Failed to create next week:', weekErr);
+      }
 
       dbUpdateLabels();
       dbRenderSessions();
@@ -452,31 +634,35 @@ Return ONLY valid JSON with this exact schema — no markdown, no extra text:
 
     } catch(e) {
       const err = document.getElementById('db-error');
-      err.textContent = '⚠ AI analysis failed — check your connection and try again.';
+      if (e.name === 'AbortError') {
+        err.textContent = '\u26a0 Request timed out. Please try again.';
+      } else if (!navigator.onLine) {
+        err.textContent = '\u26a0 You appear to be offline. Check your connection.';
+      } else if (e.status === 401) {
+        err.textContent = '\u26a0 Session expired. Please sign in again.';
+        setTimeout(() => { window.location.href = 'index.html'; }, 2000);
+      } else if (e.status === 429) {
+        err.textContent = '\u26a0 Too many requests. Please wait a moment and try again.';
+      } else {
+        err.textContent = '\u26a0 AI analysis failed \u2014 check your connection and try again.';
+      }
       err.style.display = 'block';
       console.error(e);
     } finally {
       dbLoading = false;
-      btn.textContent = '🤖 Generate AI Summary →';
+      btn.textContent = '\ud83e\udd16 Generate AI Summary \u2192';
       btn.disabled = dbSessions.length < 2;
       if (dbSessions.length < 2) { btn.style.opacity = '0.4'; btn.style.cursor = 'not-allowed'; }
     }
   }
 
-  /* init labels on load */
-  dbUpdateLabels();
-  dbRenderHistory();
-
   /* ══════════════════════════════════════════════════════════════
-     NOTIFICATIONS TAB — AI-generated push & email content
-     Prompt: Generate push notifications and emails for upcoming
-     workouts including day, exercises, and motivation as JSON.
+     NOTIFICATIONS TAB
   ══════════════════════════════════════════════════════════════ */
 
   let notifResult = null;
   let notifLoading = false;
 
-  /* The exact system prompt as specified */
   const NOTIF_SYSTEM_PROMPT = `You are an AI assistant. Generate text for push notifications and emails for upcoming workouts:
 - Include day, exercises, and motivation
 - Example: "Hey [Name], today's workout: 5 shooting drills + 15 minutes conditioning. Let's improve your 3-point shot!"
@@ -500,7 +686,7 @@ Output as JSON array of notifications per day.`;
 
     return `Generate a full week of workout notifications for the following athlete:
 
-Name: ${name}
+Name: ${sanitize(name)}
 Goal: ${goal}
 Channel: ${channel}
 Week: Week ${dbWeeks.length + 1}
@@ -508,7 +694,7 @@ Week: Week ${dbWeeks.length + 1}
 Training schedule:
 ${JSON.stringify(weekDays, null, 2)}
 
-Return ONLY a valid JSON array — no markdown, no extra text. Each element must have:
+Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element must have:
 {
   "day": "Monday",
   "date": "Mar 3, 2025",
@@ -521,7 +707,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
   "email": {
     "subject": "Email subject line (max 10 words)",
     "preview_text": "Preview snippet shown in inbox (max 20 words)",
-    "body": "Full email body — 3-4 sentences. Mention name, specific exercises, the goal (${goal}), and a motivational close."
+    "body": "Full email body \u2014 3-4 sentences. Mention name, specific exercises, the goal (${goal}), and a motivational close."
   },
   "motivation_quote": "One short punchy motivational line (max 12 words)"
 }`;
@@ -531,12 +717,12 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
     if (notifLoading) return;
     notifLoading = true;
 
-    const name    = document.getElementById('notif-name').value.trim() || 'Athlete';
+    const name    = clampLength(document.getElementById('notif-name').value.trim() || 'Athlete', 50);
     const goal    = document.getElementById('notif-goal').value;
     const channel = document.getElementById('notif-channel').value;
 
     const btn = document.getElementById('notif-gen-btn');
-    btn.textContent = '⚙️ Generating…';
+    btn.textContent = '\u2699\ufe0f Generating\u2026';
     btn.disabled = true;
 
     document.getElementById('notif-empty').style.display    = 'none';
@@ -545,23 +731,34 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
     document.getElementById('notif-error').style.display    = 'none';
 
     const userPrompt = notifBuildUserPrompt(name, goal, channel);
-
-    // Store prompt for display
     const fullPrompt = NOTIF_SYSTEM_PROMPT + '\n\n---\n\n' + userPrompt;
 
     try {
+      const headers = await getAuthHeaders();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
+
       const res = await fetch('https://txnsuzlgfafjdipfqkqe.supabase.co/functions/v1/claude-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 2000,
           system: NOTIF_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userPrompt }],
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+
+      if (!res.ok) {
+        const errBody = await res.text();
+        throw { status: res.status, message: errBody };
+      }
 
       const data   = await res.json();
+      if (data.error) throw { message: data.error.message || 'AI service error' };
+
       const text   = (data.content || []).map(b => b.text || '').join('');
       const clean  = text.replace(/```json|```/g, '').trim();
       const result = JSON.parse(clean);
@@ -571,7 +768,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
       document.getElementById('notif-loading').style.display  = 'none';
       document.getElementById('notif-results').style.display  = 'block';
       document.getElementById('notif-prompt-box').textContent = fullPrompt;
-      document.getElementById('notif-week-label').textContent = `Week ${dbWeeks.length + 1} — Notification Schedule`;
+      document.getElementById('notif-week-label').textContent = `Week ${dbWeeks.length + 1} \u2014 Notification Schedule`;
       document.getElementById('notif-json-body').textContent  = JSON.stringify(result, null, 2);
 
       notifRenderCards(result, channel);
@@ -580,12 +777,20 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
       document.getElementById('notif-loading').style.display = 'none';
       document.getElementById('notif-empty').style.display   = 'block';
       const errEl = document.getElementById('notif-error');
-      errEl.textContent = '⚠ Failed to generate notifications. Check your connection and try again.';
+      if (e.name === 'AbortError') {
+        errEl.textContent = '\u26a0 Request timed out. Please try again.';
+      } else if (!navigator.onLine) {
+        errEl.textContent = '\u26a0 You appear to be offline. Check your connection.';
+      } else if (e.status === 401) {
+        errEl.textContent = '\u26a0 Session expired. Please sign in again.';
+      } else {
+        errEl.textContent = '\u26a0 Failed to generate notifications. Check your connection and try again.';
+      }
       errEl.style.display = 'block';
       console.error(e);
     } finally {
       notifLoading = false;
-      btn.textContent = '🔔 Regenerate';
+      btn.textContent = '\ud83d\udd14 Regenerate';
       btn.disabled = false;
     }
   }
@@ -603,52 +808,48 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
         <div class="notif-card">
           <div class="notif-card-header">
             <div>
-              <div class="notif-day-name">${d.day}</div>
-              <div class="notif-day-date">${d.date || ''}</div>
+              <div class="notif-day-name">${sanitize(d.day)}</div>
+              <div class="notif-day-date">${sanitize(d.date || '')}</div>
             </div>
             <div style="display:flex;align-items:center;gap:8px;margin-left:12px;">
-              <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;padding:3px 9px;border-radius:100px;background:rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.1);color:${ic};border:1px solid rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.25);">${d.intensity}</span>
+              <span style="font-size:10px;font-weight:700;letter-spacing:0.1em;padding:3px 9px;border-radius:100px;background:rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.1);color:${ic};border:1px solid rgba(${ic==='#f85149'?'248,81,73':ic==='#f5a623'?'245,166,35':'86,211,100'},0.25);">${sanitize(d.intensity)}</span>
             </div>
             <div class="notif-channels">
-              ${showPush  ? '<span class="notif-chip push">📱 Push</span>'  : ''}
-              ${showEmail ? '<span class="notif-chip email">✉ Email</span>' : ''}
+              ${showPush  ? '<span class="notif-chip push">\ud83d\udcf1 Push</span>'  : ''}
+              ${showEmail ? '<span class="notif-chip email">\u2709 Email</span>' : ''}
             </div>
           </div>
 
           <div class="notif-card-body">
 
-            <!-- Exercises -->
             <div>
-              <div class="notif-message-label">🏀 Exercises</div>
+              <div class="notif-message-label">\ud83c\udfc0 Exercises</div>
               <div class="notif-exercises">
-                ${(d.exercises || []).map(ex => `<span class="notif-ex-tag">${ex}</span>`).join('')}
+                ${(d.exercises || []).map(ex => `<span class="notif-ex-tag">${sanitize(ex)}</span>`).join('')}
               </div>
             </div>
 
             ${showPush && d.push_notification ? `
-            <!-- Push notification -->
             <div class="notif-message-block">
-              <div class="notif-message-label">📱 Push Notification</div>
+              <div class="notif-message-label">\ud83d\udcf1 Push Notification</div>
               <div class="notif-push-bubble">
-                <div class="notif-push-title">${d.push_notification.title || ''}</div>
-                <div class="notif-push-body">${d.push_notification.body || ''}</div>
+                <div class="notif-push-title">${sanitize(d.push_notification.title || '')}</div>
+                <div class="notif-push-body">${sanitize(d.push_notification.body || '')}</div>
               </div>
             </div>` : ''}
 
             ${showEmail && d.email ? `
-            <!-- Email -->
             <div class="notif-message-block">
-              <div class="notif-message-label">✉ Email</div>
+              <div class="notif-message-label">\u2709 Email</div>
               <div class="notif-email-block">
-                <div class="notif-email-subject">Subject: ${d.email.subject || ''}</div>
-                ${d.email.preview_text ? `<div style="font-size:11px;color:var(--c-dimmer);margin-bottom:8px;font-style:italic;">Preview: ${d.email.preview_text}</div>` : ''}
-                <div class="notif-email-preview">${d.email.body || ''}</div>
+                <div class="notif-email-subject">Subject: ${sanitize(d.email.subject || '')}</div>
+                ${d.email.preview_text ? `<div style="font-size:11px;color:var(--c-dimmer);margin-bottom:8px;font-style:italic;">Preview: ${sanitize(d.email.preview_text)}</div>` : ''}
+                <div class="notif-email-preview">${sanitize(d.email.body || '')}</div>
               </div>
             </div>` : ''}
 
-            <!-- Motivation -->
             ${d.motivation_quote ? `
-            <div class="notif-motivation">"${d.motivation_quote}"</div>` : ''}
+            <div class="notif-motivation">\u201c${sanitize(d.motivation_quote)}\u201d</div>` : ''}
 
           </div>
         </div>`;
@@ -660,7 +861,7 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
     const arrow = document.getElementById('notif-prompt-arrow');
     const open  = box.style.display === 'block';
     box.style.display  = open ? 'none' : 'block';
-    arrow.textContent  = open ? '▼' : '▲';
+    arrow.textContent  = open ? '\u25bc' : '\u25b2';
   }
 
   function notifCopyJSON() {
@@ -669,21 +870,10 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
     if (navigator.clipboard) navigator.clipboard.writeText(text);
     const btn = document.querySelector('#db-panel-notifications .db-copy-btn');
     if (!btn) return;
-    btn.textContent = '✓ Copied!';
+    btn.textContent = '\u2713 Copied!';
     btn.style.color  = '#56d364';
     setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
   }
-
-  /* patch dbSwitchTab to handle notifications panel */
-  const _origSwitch = dbSwitchTab;
-  function dbSwitchTab(id, btn) {
-    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
-    if (id === 'history') dbRenderHistory();
-  }
-
 
   function submitNewsletter() {
     const name  = document.getElementById('sb-name').value.trim();
@@ -699,4 +889,4 @@ Return ONLY a valid JSON array — no markdown, no extra text. Each element must
     showToast('You\'re on the list! Check your inbox for a welcome email.');
   }
 
-  /* ══════════════════════════════════════════════════════════════
+  /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */

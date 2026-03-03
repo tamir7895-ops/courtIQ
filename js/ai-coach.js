@@ -117,17 +117,24 @@ Rules:
 - Output ONLY valid JSON, no markdown`;
 
     try {
+      const headers=await getAuthHeaders();
+      const controller=new AbortController();
+      const timeout=setTimeout(()=>controller.abort(),30000);
       const res=await fetch('https://txnsuzlgfafjdipfqkqe.supabase.co/functions/v1/claude-proxy',{
         method:'POST',
-        headers:{'Content-Type':'application/json'},
+        headers,
         body:JSON.stringify({
           model:'claude-sonnet-4-20250514',
           max_tokens:2400,
           system:COACH_SYSTEM_PROMPT,
           messages:[{role:'user',content:userPrompt}],
         }),
+        signal:controller.signal,
       });
+      clearTimeout(timeout);
+      if(!res.ok){const errBody=await res.text();throw{status:res.status,message:errBody};}
       const data=await res.json();
+      if(data.error)throw{message:data.error.message||'AI service error'};
       const text=(data.content||[]).map(b=>b.text||'').join('');
       const result=JSON.parse(text.replace(/```json|```/g,'').trim());
       coachResult=result;
@@ -162,7 +169,10 @@ Rules:
       document.getElementById('coach-loading').style.display='none';
       document.getElementById('coach-empty').style.display='block';
       const err=document.getElementById('coach-error');
-      err.textContent='⚠ Failed to generate adjusted schedule. Check connection and try again.';
+      if(e.name==='AbortError'){err.textContent='\u26a0 Request timed out. Please try again.';}
+      else if(!navigator.onLine){err.textContent='\u26a0 You appear to be offline. Check your connection.';}
+      else if(e.status===401){err.textContent='\u26a0 Session expired. Please sign in again.';setTimeout(()=>{window.location.href='index.html';},2000);}
+      else{err.textContent='\u26a0 Failed to generate adjusted schedule. Check connection and try again.';}
       err.style.display='block';
       console.error(e);
     } finally {
@@ -386,17 +396,24 @@ Rules:
 - Output ONLY valid JSON`;
 
     try {
+      const headers = await getAuthHeaders();
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 30000);
       const res = await fetch('https://txnsuzlgfafjdipfqkqe.supabase.co/functions/v1/claude-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514',
           max_tokens: 2800,
           system: CAL_SYSTEM_PROMPT,
           messages: [{ role: 'user', content: userPrompt }],
         }),
+        signal: controller.signal,
       });
+      clearTimeout(timeout);
+      if (!res.ok) { const errBody = await res.text(); throw { status: res.status, message: errBody }; }
       const data   = await res.json();
+      if (data.error) throw { message: data.error.message || 'AI service error' };
       const text   = (data.content || []).map(b => b.text || '').join('');
       const result = JSON.parse(text.replace(/```json|```/g, '').trim());
 
@@ -417,7 +434,10 @@ Rules:
       document.getElementById('cal-loading').style.display = 'none';
       document.getElementById('cal-empty').style.display   = 'block';
       const err = document.getElementById('cal-error');
-      err.textContent = '⚠ Failed to build calendar. Check connection and try again.';
+      if (e.name === 'AbortError') { err.textContent = '\u26a0 Request timed out. Please try again.'; }
+      else if (!navigator.onLine) { err.textContent = '\u26a0 You appear to be offline. Check your connection.'; }
+      else if (e.status === 401) { err.textContent = '\u26a0 Session expired. Please sign in again.'; setTimeout(() => { window.location.href = 'index.html'; }, 2000); }
+      else { err.textContent = '\u26a0 Failed to build calendar. Check connection and try again.'; }
       err.style.display = 'block';
       console.error(e);
     } finally {
