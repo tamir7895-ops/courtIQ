@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  body { font-family: monospace; background: #1a1a1a; color: #fff; padding: 20px; }
+  pre { background: #2a2a2a; padding: 20px; border-radius: 10px; white-space: pre-wrap; font-size: 14px; line-height: 1.6; }
+  button { display: block; width: 100%; padding: 16px; font-size: 18px; background: #22c55e; color: #fff; border: none; border-radius: 10px; margin-bottom: 20px; cursor: pointer; }
+  button:active { background: #16a34a; }
+</style>
+</head>
+<body>
+<button onclick="copy()">העתק SQL</button>
+<pre id="sql">create or replace function handle_new_user()
+returns trigger language plpgsql security definer as $func$
+begin
+  insert into profiles (id, first_name, last_name)
+  select id,
+    coalesce(raw_user_meta_data->>'first_name', ''),
+    coalesce(raw_user_meta_data->>'last_name', '')
+  from (select (NEW).*) as u
+  on conflict (id) do nothing;
+  return NEW;
+end;
+$func$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+  after insert on auth.users
+  for each row execute procedure handle_new_user();</pre>
+
+<script>
+function copy() {
+  const text = document.getElementById('sql').innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    document.querySelector('button').textContent = 'הועתק!';
+    setTimeout(() => document.querySelector('button').textContent = 'העתק SQL', 2000);
+  });
+}
+</script>
+</body>
+</html>
