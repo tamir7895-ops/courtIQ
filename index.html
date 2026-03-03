@@ -7,6 +7,21 @@
   <title>CourtIQ — Train Smarter. Dominate the Court.</title>
   <meta name="description" content="CourtIQ delivers personalized basketball training programs powered by artificial intelligence. Improve your game with adaptive drills, real-time feedback, and position-specific coaching." />
 
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL  = 'https://txnsuzlgfafjdipfqkqe.supabase.co';
+    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4bnN1emxnZmFmamRpcGZxa3FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjc1ODEsImV4cCI6MjA4ODEwMzU4MX0.e0FeyvvMuodRDMlvx7gHWxtwhDiYLA_gx36OqZRBcX4';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+    // Redirect logged-in users directly to app
+    supabase.auth.getSession().then(({ data: { session }}) => {
+      if (session && window.location.pathname.endsWith('index.html') || (session && window.location.pathname === '/')) {
+        // already logged in — go straight to app
+        // window.location.href = 'app.html'; // uncomment to auto-redirect
+      }
+    });
+  </script>
+
   <!-- Critical: paint background before anything else loads -->
   <style>html,body{background:#0c0d0f!important;color:#f0ede6;}</style>
 
@@ -4901,80 +4916,88 @@
     el.style.display = 'block';
   }
 
-  function submitSignIn() {
+  async function submitSignIn() {
     const email = document.getElementById('si-email').value.trim();
     const pass  = document.getElementById('si-password').value;
-    let valid = true;
-
     document.getElementById('auth-error').style.display = 'none';
-    document.getElementById('si-email').classList.remove('error');
-    document.getElementById('si-password').classList.remove('error');
+    ['si-email','si-password'].forEach(id => document.getElementById(id).classList.remove('error'));
 
-    if (!email || !email.includes('@')) {
-      document.getElementById('si-email').classList.add('error');
-      valid = false;
-    }
-    if (!pass || pass.length < 6) {
-      document.getElementById('si-password').classList.add('error');
-      valid = false;
-    }
-    if (!valid) { showAuthError('Please check your email and password.'); return; }
+    if (!email || !email.includes('@')) { document.getElementById('si-email').classList.add('error'); showAuthError('Please enter a valid email.'); return; }
+    if (!pass || pass.length < 6)       { document.getElementById('si-password').classList.add('error'); showAuthError('Password must be at least 6 characters.'); return; }
 
-    // Simulate sign in
+    const btn = document.querySelector('#pane-signin .auth-submit');
+    if (btn) { btn.textContent = 'Signing in…'; btn.disabled = true; }
+
+    const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
+    if (error) {
+      if (btn) { btn.textContent = 'Sign In →'; btn.disabled = false; }
+      showAuthError(error.message || 'Sign in failed. Check your credentials.');
+      return;
+    }
     showAuthSuccess('signin', email);
   }
 
-  function submitSignUp() {
+  async function submitSignUp() {
     const first    = document.getElementById('su-first').value.trim();
+    const last     = document.getElementById('su-last').value.trim();
     const email    = document.getElementById('su-email').value.trim();
     const pass     = document.getElementById('su-password').value;
     const position = document.getElementById('su-position').value;
-    let valid = true;
-
     document.getElementById('auth-error').style.display = 'none';
     ['su-first','su-email','su-password'].forEach(id => document.getElementById(id).classList.remove('error'));
 
-    if (!first) { document.getElementById('su-first').classList.add('error'); valid = false; }
-    if (!email || !email.includes('@')) { document.getElementById('su-email').classList.add('error'); valid = false; }
-    if (!pass || pass.length < 8) { document.getElementById('su-password').classList.add('error'); valid = false; }
-    if (!valid) { showAuthError('Please fill in all required fields correctly.'); return; }
+    if (!first)                         { document.getElementById('su-first').classList.add('error'); showAuthError('First name is required.'); return; }
+    if (!email || !email.includes('@')) { document.getElementById('su-email').classList.add('error'); showAuthError('Please enter a valid email.'); return; }
+    if (!pass || pass.length < 8)       { document.getElementById('su-password').classList.add('error'); showAuthError('Password must be at least 8 characters.'); return; }
 
+    const btn = document.getElementById('su-submit');
+    if (btn) { btn.textContent = 'Creating account…'; btn.disabled = true; }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password: pass,
+      options: { data: { first_name: first, last_name: last, position: position || '' } },
+    });
+
+    if (error) {
+      if (btn) { btn.textContent = 'Create Account →'; btn.disabled = false; }
+      showAuthError(error.message || 'Sign up failed. Please try again.');
+      return;
+    }
     showAuthSuccess('signup', first);
   }
 
   function showAuthSuccess(type, name) {
-    // Hide form content
-    document.getElementById('auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
+    document.querySelector('.auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
     document.getElementById('auth-error').style.display = 'none';
     document.querySelectorAll('.auth-form-pane').forEach(p => p.style.display = 'none');
 
     const success = document.getElementById('auth-success');
     const text    = document.getElementById('auth-success-text');
-    if (type === 'signin') {
-      text.textContent = `Welcome back! Redirecting you to your dashboard…`;
-    } else {
-      text.textContent = `Welcome, ${name || 'Athlete'}! Your free trial is ready. Setting up your personalized program…`;
-    }
+    text.textContent = type === 'signin'
+      ? 'Welcome back! Redirecting to your dashboard…'
+      : `Welcome, ${name || 'Athlete'}! Your account is ready. Setting up your program…`;
     success.classList.add('show');
-
-    // Auto-close after 3s
-    setTimeout(() => closeAuth(), 3200);
+    setTimeout(() => { window.location.href = 'app.html'; }, 2000);
   }
 
-  function socialAuth(provider) {
-    showAuthSuccess('signup', '');
-    document.getElementById('auth-success-text').textContent =
-      `Connecting with ${provider === 'google' ? 'Google' : 'Apple'}…`;
+  async function socialAuth(provider) {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: provider === 'google' ? 'google' : 'apple',
+      options: { redirectTo: window.location.origin + '/app.html' },
+    });
+    if (error) showAuthError(error.message);
   }
 
-  function showForgot() {
-    showAuthError('Password reset link sent! Check your inbox.');
-    document.getElementById('auth-error').style.color = '#a8e063';
-    document.getElementById('auth-error').style.background = 'rgba(168,224,99,0.08)';
-    document.getElementById('auth-error').style.borderColor = 'rgba(168,224,99,0.2)';
-    document.getElementById('auth-error').style.display = 'block';
+  async function showForgot() {
+    const email = document.getElementById('si-email').value.trim();
+    if (!email || !email.includes('@')) { showAuthError('Enter your email above, then click Forgot Password.'); return; }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + '/app.html' });
+    if (error) { showAuthError(error.message); return; }
+    const el = document.getElementById('auth-error');
+    el.textContent = '✓ Password reset link sent! Check your inbox.';
+    el.style.cssText += ';color:#a8e063;background:rgba(168,224,99,0.08);border-color:rgba(168,224,99,0.2);display:block;';
   }
-
   // Combined keydown already declared above
 
 

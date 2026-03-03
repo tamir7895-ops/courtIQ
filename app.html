@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
   <style>
     :root {
@@ -1642,12 +1643,13 @@
   <div class="sidebar-user">
     <div class="sidebar-avatar" id="sidebarAvatarInitial">M</div>
     <div class="sidebar-user-info">
-      <div class="sidebar-user-name" id="sidebarUserName">Marcus R.</div>
+      <div class="sidebar-user-name" id="sidebarUserName">—</div>
       <div class="sidebar-user-plan">
         <span class="plan-dot"></span>
         <span id="sidebarPlanLabel">Starter Plan</span>
       </div>
     </div>
+    <button onclick="signOut()" title="Sign out" style="background:none;border:none;cursor:pointer;color:var(--c-dimmer);font-size:16px;padding:4px;border-radius:4px;transition:color 0.2s;" onmouseover="this.style.color='var(--c-red)'" onmouseout="this.style.color='var(--c-dimmer)'">⏻</button>
   </div>
 
 </aside>
@@ -2513,29 +2515,31 @@
           <!-- API Key tab -->
           <div class="settings-section" id="settings-api">
             <div class="card">
-              <div class="card-title">Anthropic API Key</div>
-              <p class="settings-desc">CourtIQ uses the Anthropic Claude API to power all AI features. Enter your API key to enable AI Weekly Summaries, Coach Chat, Notifications, and more.<br><br>
-              Your key is stored only in your browser's localStorage and is never sent to our servers.</p>
-              <div class="settings-field">
-                <label class="field-label">API Key</label>
-                <div class="api-key-wrap">
-                  <input class="field-input" id="api-key-input" type="password" placeholder="sk-ant-..." />
-                  <button class="api-key-toggle" onclick="toggleApiKeyVisibility()" id="api-key-eye">👁</button>
+              <div class="card-title">AI Engine</div>
+              <div style="display:flex;align-items:center;gap:16px;padding:18px;background:rgba(86,211,100,0.06);border:1px solid rgba(86,211,100,0.2);border-radius:var(--r-md);margin-bottom:20px;">
+                <div style="font-size:36px;">🔐</div>
+                <div>
+                  <div style="font-weight:700;font-size:15px;color:var(--c-green);margin-bottom:4px;">API Key Secured on Server</div>
+                  <div style="font-size:13px;color:var(--c-muted);line-height:1.6;">The Anthropic Claude API key is stored securely as a server-side secret in Supabase Edge Functions. It is never exposed to the browser or sent to the client.</div>
                 </div>
-                <div id="api-key-status" class="api-status unsaved" style="display:none;">Not saved</div>
               </div>
-              <div style="display:flex;gap:10px;margin-top:6px;">
-                <button class="btn btn-primary" onclick="saveApiKey()">Save API Key</button>
-                <button class="btn btn-ghost btn-sm" onclick="clearApiKey()">Clear</button>
-              </div>
-              <div style="margin-top:20px;padding:14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);">
-                <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-dimmer);margin-bottom:8px;">How to get an API key:</div>
-                <ol style="font-size:13px;color:var(--c-muted);line-height:1.9;padding-left:18px;">
-                  <li>Visit console.anthropic.com</li>
-                  <li>Create an account or sign in</li>
-                  <li>Go to API Keys → Create Key</li>
-                  <li>Copy and paste your key above</li>
-                </ol>
+              <p class="settings-desc">All AI features — Weekly Summaries, Coach Chat, Calendar, Notifications, Film Analysis, and Nutrition — are powered by Claude and routed through a secure Supabase Edge Function.</p>
+              <div style="padding:14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);">
+                <div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--c-dimmer);margin-bottom:10px;">Infrastructure</div>
+                <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="color:var(--c-green);">✓</span>
+                    <span style="color:var(--c-muted);">Supabase Edge Function <code style="background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:4px;">claude-proxy</code></span>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="color:var(--c-green);">✓</span>
+                    <span style="color:var(--c-muted);">JWT authentication on every AI request</span>
+                  </div>
+                  <div style="display:flex;gap:10px;align-items:center;">
+                    <span style="color:var(--c-green);">✓</span>
+                    <span style="color:var(--c-muted);">Model: <code style="background:rgba(255,255,255,0.07);padding:1px 6px;border-radius:4px;">claude-sonnet-4-20250514</code></span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2594,16 +2598,23 @@
 </div>
 <script>
 /* ════════════════════════════════════════════════════════
+   SUPABASE CLIENT
+════════════════════════════════════════════════════════ */
+const SUPABASE_URL  = 'https://txnsuzlgfafjdipfqkqe.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR4bnN1emxnZmFmamRpcGZxa3FlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1Mjc1ODEsImV4cCI6MjA4ODEwMzU4MX0.e0FeyvvMuodRDMlvx7gHWxtwhDiYLA_gx36OqZRBcX4';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+
+/* ════════════════════════════════════════════════════════
    APP STATE
 ════════════════════════════════════════════════════════ */
 const APP = {
-  plan: localStorage.getItem('ciq_plan') || 'starter',
-  apiKey: localStorage.getItem('ciq_api_key') || '',
-  profile: JSON.parse(localStorage.getItem('ciq_profile') || '{"first":"Marcus","last":"R.","position":"Point Guard","skill":"Intermediate","goal":"All-Around Improvement"}'),
+  plan: 'starter',
+  profile: { first:'', last:'', position:'Point Guard', skill:'Intermediate', goal:'All-Around Improvement' },
   chatMsgs: 0,
   chatLimit: { starter: 0, pro: 50, elite: Infinity },
   calPlansCount: 0,
-  sessionMode: 'offseason', // or 'inseason'
+  sessionMode: 'offseason',
+  user: null,
 };
 
 const DB_SEED = [
@@ -2908,29 +2919,23 @@ function updateGenBtn() {
    GENERATE AI SUMMARY (Analytics)
 ════════════════════════════════════════════════════════ */
 async function callClaude(messages, systemPrompt, maxTokens) {
-  const key = APP.apiKey;
-  if (!key) {
-    throw new Error('No API key. Go to Settings → API Key to add your Anthropic API key.');
-  }
-  const body = {
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: maxTokens || 1500,
-    messages,
-  };
-  if (systemPrompt) body.system = systemPrompt;
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token || SUPABASE_ANON;
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/claude-proxy`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true',
+      'Authorization': `Bearer ${token}`,
     },
-    body: JSON.stringify(body),
+    body: JSON.stringify({
+      messages,
+      system: systemPrompt || undefined,
+      max_tokens: maxTokens || 1500,
+    }),
   });
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message || 'API error');
+  if (data.error) throw new Error(data.error.message || data.error || 'AI request failed');
   return (data.content || []).map(b => b.text || '').join('');
 }
 
@@ -3001,7 +3006,11 @@ Return ONLY valid JSON with this exact schema — no markdown, no extra text:
     const result = JSON.parse(text.replace(/\`\`\`json|\`\`\`/g, '').trim());
 
     lastSummaryResult = result;
-    allWeeks = [...allWeeks, { week: 'Week ' + wn, label: 'W' + wn, days: [...currentSessions] }];
+
+    // Save week + sessions to Supabase
+    const savedWeekId = await dbSaveWeek(wn, [...currentSessions], result);
+
+    allWeeks = [...allWeeks, { week: 'Week ' + wn, label: 'W' + wn, days: [...currentSessions], id: savedWeekId }];
     currentSessions = [];
     renderSessionList();
     updateGenBtn();
@@ -3949,7 +3958,9 @@ function saveProfile() {
   const goal = document.getElementById('settings-goal').value;
 
   APP.profile = { first, last, position, skill, goal };
-  localStorage.setItem('ciq_profile', JSON.stringify(APP.profile));
+
+  // Persist to Supabase
+  dbSaveProfile().catch(console.error);
 
   updateProfileUI();
   showToast('Profile saved!');
@@ -3992,49 +4003,27 @@ function getGreeting() {
 
 function selectPlan(plan) {
   APP.plan = plan;
-  localStorage.setItem('ciq_plan', plan);
 
   document.querySelectorAll('.plan-select-card').forEach(c => c.classList.remove('selected'));
-  document.getElementById('plan-card-' + plan).classList.add('selected');
+  const planCard = document.getElementById('plan-card-' + plan);
+  if (planCard) planCard.classList.add('selected');
 
   updateProfileUI();
-  showToast('Plan updated to ' + plan.charAt(0).toUpperCase() + plan.slice(1) + '!');
-  renderToday();
+
+  // Persist plan to Supabase (silently)
+  if (APP.user) dbSaveProfile().catch(console.error);
 }
 
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key || !key.startsWith('sk-')) {
-    showToast('Please enter a valid API key starting with "sk-"', true);
-    return;
-  }
-  APP.apiKey = key;
-  localStorage.setItem('ciq_api_key', key);
-  const status = document.getElementById('api-key-status');
-  status.textContent = '✓ API key saved';
-  status.className = 'api-status saved';
-  status.style.display = 'inline-flex';
-  showToast('API key saved securely!');
-}
-
-function clearApiKey() {
-  APP.apiKey = '';
-  localStorage.removeItem('ciq_api_key');
-  document.getElementById('api-key-input').value = '';
-  const status = document.getElementById('api-key-status');
-  status.style.display = 'none';
-  showToast('API key cleared.');
-}
-
+// API key is managed server-side via Supabase Edge Function.
+// No client-side key needed.
+function saveApiKey() { showToast('API key is managed securely on the server.'); }
+function clearApiKey() { showToast('API key is managed securely on the server.'); }
 function toggleApiKeyVisibility() {
   const input = document.getElementById('api-key-input');
   const btn = document.getElementById('api-key-eye');
-  if (input.type === 'password') {
-    input.type = 'text';
-    btn.textContent = '🙈';
-  } else {
-    input.type = 'password';
-    btn.textContent = '👁';
+  if (input && btn) {
+    input.type = input.type === 'password' ? 'text' : 'password';
+    btn.textContent = input.type === 'password' ? '👁' : '🙈';
   }
 }
 
@@ -4042,54 +4031,145 @@ function savePrefs() {
   showToast('Preferences saved!');
 }
 
+async function signOut() {
+  await supabase.auth.signOut();
+  window.location.href = 'index.html';
+}
+
+/* ════════════════════════════════════════════════════════
+   SUPABASE DB HELPERS
+════════════════════════════════════════════════════════ */
+
+async function dbLoadProfile() {
+  if (!APP.user) return;
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', APP.user.id)
+    .single();
+  if (error || !data) return;
+  APP.profile = { first: data.first_name, last: data.last_name, position: data.position, skill: data.skill_level, goal: data.goal };
+  APP.plan = data.plan || 'starter';
+  populateProfileForm();
+  selectPlan(APP.plan);
+  updateProfileUI();
+}
+
+async function dbLoadWeeks() {
+  if (!APP.user) return;
+  const { data, error } = await supabase
+    .from('training_weeks')
+    .select('*')
+    .eq('user_id', APP.user.id)
+    .order('week_number', { ascending: true });
+  if (error || !data) return;
+  allWeeks = data.map(w => ({
+    id: w.id,
+    week: 'Week ' + w.week_number,
+    label: w.label,
+    days: w.summary_json?.chart_data?.daily?.map((d, i) => ({
+      day: d.day,
+      shots_made: Math.round((d.shooting_pct / 100) * 45),
+      shots_attempted: 45,
+      dribbling_min: d.dribbling_min || 15,
+      vertical_in: d.vertical_in || 24,
+      sprint_sec: d.sprint_sec || 4.6,
+    })) || [],
+    summary_json: w.summary_json,
+  }));
+  renderHistory();
+  document.getElementById('cal-weeks-tracked').textContent = allWeeks.length;
+  document.getElementById('cal-total-sessions').textContent = allWeeks.reduce((s,w) => s + w.days.length, 0);
+}
+
+async function dbSaveWeek(weekNum, sessions, summaryResult) {
+  if (!APP.user) return null;
+  const { data, error } = await supabase
+    .from('training_weeks')
+    .insert({
+      user_id: APP.user.id,
+      week_number: weekNum,
+      label: 'W' + weekNum,
+      summary_json: summaryResult,
+    })
+    .select()
+    .single();
+  if (error) { console.error('dbSaveWeek error:', error); return null; }
+  // Save individual sessions linked to this week
+  const sessionRows = sessions.map(s => ({
+    user_id: APP.user.id,
+    week_id: data.id,
+    day: s.day,
+    shots_made: s.shots_made,
+    shots_attempted: s.shots_attempted,
+    dribbling_min: s.dribbling_min,
+    vertical_in: s.vertical_in,
+    sprint_sec: s.sprint_sec,
+    intensity: s.intensity || 'High',
+    notes: s.notes || '',
+  }));
+  await supabase.from('training_sessions').insert(sessionRows);
+  return data.id;
+}
+
+async function dbSaveProfile() {
+  if (!APP.user) return;
+  await supabase.from('profiles').upsert({
+    id: APP.user.id,
+    first_name: APP.profile.first || '',
+    last_name: APP.profile.last || '',
+    position: APP.profile.position || 'Point Guard',
+    skill_level: APP.profile.skill || 'Intermediate',
+    goal: APP.profile.goal || 'All-Around Improvement',
+    plan: APP.plan,
+    updated_at: new Date().toISOString(),
+  });
+}
+
+function populateProfileForm() {
+  const p = APP.profile;
+  if (document.getElementById('settings-first')) document.getElementById('settings-first').value = p.first || '';
+  if (document.getElementById('settings-last'))  document.getElementById('settings-last').value  = p.last  || '';
+  const posSel = document.getElementById('settings-position');
+  if (posSel && p.position) {
+    for (let opt of posSel.options) { if (opt.text === p.position) { posSel.value = opt.value; break; } }
+  }
+  const skillSel = document.getElementById('settings-skill');
+  if (skillSel && p.skill) {
+    for (let opt of skillSel.options) { if (opt.text === p.skill) { opt.selected = true; break; } }
+  }
+}
+
 /* ════════════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
-  // Load saved data
-  if (localStorage.getItem('ciq_plan')) APP.plan = localStorage.getItem('ciq_plan');
-  if (localStorage.getItem('ciq_api_key')) APP.apiKey = localStorage.getItem('ciq_api_key');
-  if (localStorage.getItem('ciq_profile')) {
-    try { APP.profile = JSON.parse(localStorage.getItem('ciq_profile')); } catch(e) {}
+async function initApp() {
+  // Check auth
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    // No session → redirect to landing page
+    window.location.href = 'index.html';
+    return;
   }
+  APP.user = session.user;
 
-  // Populate form values from profile
-  if (APP.profile.first) document.getElementById('settings-first').value = APP.profile.first;
-  if (APP.profile.last) document.getElementById('settings-last').value = APP.profile.last;
-  if (APP.profile.position) {
-    const sel = document.getElementById('settings-position');
-    for (let opt of sel.options) { if (opt.value === APP.profile.position || opt.text === APP.profile.position) { sel.value = opt.value; break; } }
-  }
-  if (APP.profile.skill) {
-    const sel = document.getElementById('settings-skill');
-    for (let opt of sel.options) { if (opt.text === APP.profile.skill) { sel.value = opt.value; break; } }
-  }
+  // Load profile + weeks from DB
+  await dbLoadProfile();
+  await dbLoadWeeks();
 
-  // API key
-  if (APP.apiKey) {
-    document.getElementById('api-key-input').value = APP.apiKey;
-    const status = document.getElementById('api-key-status');
-    status.textContent = '✓ API key saved';
-    status.className = 'api-status saved';
-    status.style.display = 'inline-flex';
-  }
-
-  // Plan
-  selectPlan(APP.plan);
-  // Update profile UI
-  updateProfileUI();
-  // Render today
+  // Render static panels
   renderToday();
-  // Render drill library
   renderDrillLibrary();
-  // Render history
-  renderHistory();
-  // Calendar stats
-  document.getElementById('cal-weeks-tracked').textContent = allWeeks.length;
-  document.getElementById('cal-total-sessions').textContent = allWeeks.reduce((s,w) => s + w.days.length, 0);
-  // Today date
   document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long',month:'long',day:'numeric'});
-});
+
+  // Listen for auth changes
+  supabase.auth.onAuthStateChange((_event, session) => {
+    if (!session) window.location.href = 'index.html';
+    else APP.user = session.user;
+  });
+}
+
+document.addEventListener('DOMContentLoaded', () => initApp());
 
 /* Keyboard: Escape closes modals */
 document.addEventListener('keydown', e => {
