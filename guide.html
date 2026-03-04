@@ -1,0 +1,1032 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CourtIQ — חוברת מקצועית מלאה</title>
+<style>
+  :root {
+    --bg: #0c0d0f;
+    --surface: #17191d;
+    --surface2: #1e2128;
+    --accent: #f5a623;
+    --accent2: #e8942a;
+    --text: #f0ede6;
+    --muted: #8a8fa8;
+    --border: #2a2d35;
+    --green: #22c55e;
+    --red: #ef4444;
+    --orange: #f97316;
+    --yellow: #eab308;
+    --blue: #3b82f6;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', 'Arial', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.75;
+    font-size: 15px;
+  }
+
+  /* ---- HEADER ---- */
+  .hero {
+    background: linear-gradient(135deg, #111318 0%, #1a1d24 50%, #111318 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 56px 32px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -80px; left: 50%; transform: translateX(-50%);
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, rgba(245,166,35,0.08) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-logo {
+    font-size: 48px;
+    font-weight: 900;
+    letter-spacing: -1px;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(245,166,35,0.3);
+  }
+  .hero-sub {
+    margin-top: 12px;
+    color: var(--muted);
+    font-size: 15px;
+    letter-spacing: 0.5px;
+  }
+  .hero-badge {
+    display: inline-block;
+    margin-top: 20px;
+    background: rgba(245,166,35,0.12);
+    border: 1px solid rgba(245,166,35,0.3);
+    color: var(--accent);
+    padding: 6px 18px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  /* ---- LAYOUT ---- */
+  .layout { display: flex; min-height: 100vh; }
+
+  /* ---- SIDEBAR ---- */
+  .sidebar {
+    width: 260px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    padding: 28px 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+  }
+  .sidebar-title {
+    padding: 0 20px 14px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+  .sidebar a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 20px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 13.5px;
+    transition: all 0.15s;
+    border-right: 3px solid transparent;
+  }
+  .sidebar a:hover {
+    color: var(--text);
+    background: rgba(255,255,255,0.04);
+    border-right-color: var(--accent);
+  }
+  .sidebar a .num {
+    background: var(--surface2);
+    color: var(--accent);
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* ---- CONTENT ---- */
+  .content {
+    flex: 1;
+    padding: 48px 52px;
+    max-width: 900px;
+  }
+
+  /* ---- SECTIONS ---- */
+  .section {
+    margin-bottom: 72px;
+    scroll-margin-top: 24px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 28px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section-num {
+    background: var(--accent);
+    color: #000;
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--accent);
+    margin: 28px 0 12px;
+  }
+  h4 {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text);
+    margin: 20px 0 8px;
+  }
+  p { margin-bottom: 12px; color: #ccc9c0; }
+  strong { color: var(--text); }
+
+  /* ---- CARDS ---- */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px 24px;
+    margin-bottom: 16px;
+  }
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .card-sm {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 18px;
+  }
+  .card-sm-title { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .card-sm-body { font-size: 13px; color: #aaa; line-height: 1.6; }
+
+  /* ---- TABLES ---- */
+  .table-wrap { overflow-x: auto; margin-bottom: 20px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  thead th {
+    background: var(--surface2);
+    color: var(--muted);
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 0.8px;
+    padding: 10px 14px;
+    text-align: right;
+    border: 1px solid var(--border);
+  }
+  tbody td {
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    color: #ccc;
+    vertical-align: top;
+  }
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ---- CODE ---- */
+  pre {
+    background: #0a0b0d;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 20px;
+    overflow-x: auto;
+    margin: 14px 0 20px;
+    font-size: 12.5px;
+    line-height: 1.7;
+  }
+  code {
+    font-family: 'Consolas', 'Courier New', monospace;
+    color: #e2c99a;
+  }
+  pre code { color: #d4c5a9; }
+  .kw { color: #c792ea; }
+  .str { color: #c3e88d; }
+  .cm { color: #546e7a; font-style: italic; }
+  .fn { color: #82aaff; }
+  .num2 { color: #f78c6c; }
+
+  /* ---- BADGES ---- */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .badge-red { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+  .badge-orange { background: rgba(249,115,22,0.15); color: #fb923c; border: 1px solid rgba(249,115,22,0.3); }
+  .badge-yellow { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.3); }
+  .badge-green { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+  .badge-accent { background: rgba(245,166,35,0.15); color: var(--accent); border: 1px solid rgba(245,166,35,0.3); }
+
+  /* ---- FLOW DIAGRAM ---- */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    margin: 14px 0 20px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    font-size: 13px;
+  }
+  .flow-step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 7px 14px;
+    color: var(--text);
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+  .flow-arrow {
+    color: var(--accent);
+    margin: 0 8px;
+    font-size: 16px;
+  }
+
+  /* ---- PHASE CARDS ---- */
+  .phase {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-bottom: 20px;
+  }
+  .phase-header {
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .phase-num {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .phase-body { padding: 16px 20px; }
+  .phase-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 13.5px;
+    color: #ccc;
+  }
+  .phase-item:last-child { border-bottom: none; }
+  .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-top: 7px;
+    flex-shrink: 0;
+  }
+
+  /* ---- GLOSSARY ---- */
+  .glossary-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .glossary-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .g-term { font-size: 13px; font-weight: 700; color: var(--accent); margin-bottom: 4px; }
+  .g-def { font-size: 12.5px; color: #999; line-height: 1.5; }
+
+  /* ---- PLAN COMPARE ---- */
+  .plan-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; margin-bottom: 20px; }
+  .plan-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 18px 16px;
+    text-align: center;
+  }
+  .plan-card.featured { border-color: var(--accent); }
+  .plan-price { font-size: 26px; font-weight: 800; color: var(--accent); }
+  .plan-name { font-size: 12px; color: var(--muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 1px; }
+  .plan-feat { font-size: 12px; color: #aaa; padding: 4px 0; border-bottom: 1px solid var(--border); }
+  .plan-feat:last-child { border-bottom: none; }
+  .yes { color: var(--green); }
+  .no { color: #444; }
+
+  /* ---- TOC summary ---- */
+  .toc-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 40px; }
+  .toc-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 16px;
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+  .toc-card:hover { border-color: var(--accent); background: var(--surface2); }
+  .toc-card-num { font-size: 11px; color: var(--accent); font-weight: 700; margin-bottom: 5px; }
+  .toc-card-title { font-size: 13px; color: var(--text); font-weight: 600; }
+
+  /* ---- MISC ---- */
+  .divider { height: 1px; background: var(--border); margin: 32px 0; }
+  .info-box {
+    background: rgba(59,130,246,0.08);
+    border: 1px solid rgba(59,130,246,0.25);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13.5px;
+    color: #90b4f5;
+  }
+  .warn-box {
+    background: rgba(239,68,68,0.08);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius);
+    padding: 14px 18px;
+    margin: 14px 0;
+    font-size: 13.5px;
+    color: #f87171;
+  }
+
+  /* ---- PRINT BUTTON ---- */
+  .print-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 999px;
+    padding: 11px 22px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(245,166,35,0.35);
+    transition: all 0.2s;
+    z-index: 100;
+  }
+  .print-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(245,166,35,0.45); }
+
+  /* ---- SCROLLBAR ---- */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  @media (max-width: 900px) {
+    .sidebar { display: none; }
+    .content { padding: 28px 20px; }
+    .card-grid { grid-template-columns: 1fr; }
+    .plan-grid { grid-template-columns: 1fr; }
+    .glossary-grid { grid-template-columns: 1fr; }
+    .toc-grid { grid-template-columns: 1fr 1fr; }
+  }
+  @media print {
+    .sidebar, .print-btn { display: none; }
+    .content { padding: 0; }
+    body { font-size: 13px; background: #fff; color: #000; }
+    pre { border: 1px solid #ddd; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hero">
+  <div class="hero-logo">CourtIQ</div>
+  <div class="hero-sub">חוברת מקצועית מלאה · סיכום הפרויקט · מפת דרכים לאפליקציה המושלמת</div>
+  <span class="hero-badge">נוצר 03/03/2026</span>
+</div>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-title">תוכן עניינים</div>
+    <a href="#s1"><span class="num">1</span>מה בנינו</a>
+    <a href="#s2"><span class="num">2</span>הסטאק הטכנולוגי</a>
+    <a href="#s3"><span class="num">3</span>מבנה הפרויקט</a>
+    <a href="#s4"><span class="num">4</span>מסד הנתונים</a>
+    <a href="#s5"><span class="num">5</span>אינטגרציית AI</a>
+    <a href="#s6"><span class="num">6</span>תכונות האפליקציה</a>
+    <a href="#s7"><span class="num">7</span>מה חסר</a>
+    <a href="#s8"><span class="num">8</span>מפת דרכים</a>
+    <a href="#s9"><span class="num">9</span>מילון מונחים</a>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="content">
+
+    <!-- TOC cards -->
+    <div class="toc-grid">
+      <a href="#s1" class="toc-card"><div class="toc-card-num">01</div><div class="toc-card-title">מה בנינו</div></a>
+      <a href="#s2" class="toc-card"><div class="toc-card-num">02</div><div class="toc-card-title">הסטאק הטכנולוגי</div></a>
+      <a href="#s3" class="toc-card"><div class="toc-card-num">03</div><div class="toc-card-title">מבנה הפרויקט</div></a>
+      <a href="#s4" class="toc-card"><div class="toc-card-num">04</div><div class="toc-card-title">מסד הנתונים</div></a>
+      <a href="#s5" class="toc-card"><div class="toc-card-num">05</div><div class="toc-card-title">אינטגרציית AI</div></a>
+      <a href="#s6" class="toc-card"><div class="toc-card-num">06</div><div class="toc-card-title">תכונות האפליקציה</div></a>
+      <a href="#s7" class="toc-card"><div class="toc-card-num">07</div><div class="toc-card-title">מה חסר</div></a>
+      <a href="#s8" class="toc-card"><div class="toc-card-num">08</div><div class="toc-card-title">מפת דרכים</div></a>
+      <a href="#s9" class="toc-card"><div class="toc-card-num">09</div><div class="toc-card-title">מילון מונחים</div></a>
+    </div>
+
+    <!-- ===== SECTION 1 ===== -->
+    <section class="section" id="s1">
+      <div class="section-header">
+        <div class="section-num">1</div>
+        <h2>מה בנינו</h2>
+      </div>
+      <p><strong>CourtIQ</strong> היא פלטפורמת אימון כדורסל מבוססת בינה מלאכותית. המטרה: לתת לשחקנים בכל הרמות תוכנית אימון אישית, מעקב אחר התקדמות, וניתוח ביצועים — הכל דרך AI.</p>
+
+      <div class="card-grid">
+        <div class="card-sm">
+          <div class="card-sm-title">דף נחיתה שיווקי</div>
+          <div class="card-sm-body"><code>index.html</code> — מוכר את המוצר, כולל תמחור, תכונות, ו-CTA</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">דשבורד ראשי</div>
+          <div class="card-sm-body"><code>app.html</code> — האפליקציה עצמה, 10 פאנלים שונים</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">Backend ב-Supabase</div>
+          <div class="card-sm-body">מסד נתונים, אימות משתמשים, Edge Function</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">AI Coach</div>
+          <div class="card-sm-body">Claude API מחובר דרך Edge Function מאובטחת</div>
+        </div>
+      </div>
+
+      <h3>שלבי הפיתוח לפי Git</h3>
+      <div class="card">
+        <div class="phase-item"><div class="phase-dot" style="background:var(--blue)"></div><div><strong>שלב 1</strong> — Initial release · CourtIQ גרסה ראשונה</div></div>
+        <div class="phase-item"><div class="phase-dot" style="background:var(--green)"></div><div><strong>שלב 2</strong> — UX redesign · פיצול ל-index/app, עיצוב מלא, תמחור</div></div>
+        <div class="phase-item"><div class="phase-dot" style="background:var(--accent)"></div><div><strong>שלב 3</strong> — Supabase integration · DB, Auth, Edge Function</div></div>
+        <div class="phase-item"><div class="phase-dot" style="background:var(--orange)"></div><div><strong>שלב 4</strong> — SQL helpers · כלי עזר להקמת מסד הנתונים</div></div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 2 ===== -->
+    <section class="section" id="s2">
+      <div class="section-header">
+        <div class="section-num">2</div>
+        <h2>הסטאק הטכנולוגי</h2>
+      </div>
+
+      <h3>Frontend — צד הלקוח</h3>
+      <div class="card-grid">
+        <div class="card-sm">
+          <div class="card-sm-title">HTML5</div>
+          <div class="card-sm-body">שפת המבנה של כל דף ווב. כל האפליקציה בשני קבצי HTML גדולים — index.html ו-app.html. בחרנו Vanilla JS ללא React/Vue לפתיחה מהירה ללא כלי build.</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">CSS3</div>
+          <div class="card-sm-body">CSS Variables לניהול צבעים, Flexbox ו-Grid לפריסה, Animations לחוויה חלקה. Breakpoints: Desktop 1024px+ / Tablet 768px / Mobile &lt;768px.</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">JavaScript (Vanilla)</div>
+          <div class="card-sm-body">State management דרך Object גלובלי <code>APP</code>, Event listeners, Async/Await לקריאות API, DOM Manipulation לשינוי תצוגה.</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">Chart.js</div>
+          <div class="card-sm-body">ספריית גרפים מוכנה. 4 גרפים בפאנל Analytics: קו (אחוז זריקה), עמודות (השוואה שבועית), קו (קפיצה אנכית), קו (ספרינט).</div>
+        </div>
+      </div>
+
+      <h3>CSS Variables — צבעי הפרויקט</h3>
+      <pre><code><span class="kw">:root</span> {
+  --c-bg:      <span class="str">#0c0d0f</span>   <span class="cm">/* רקע כהה */</span>
+  --c-accent:  <span class="str">#f5a623</span>   <span class="cm">/* כתום-ענבר */</span>
+  --c-text:    <span class="str">#f0ede6</span>   <span class="cm">/* טקסט בהיר */</span>
+  --c-surface: <span class="str">#17191d</span>   <span class="cm">/* משטח כרטיסים */</span>
+}</code></pre>
+
+      <h3>Backend — צד השרת</h3>
+      <div class="info-box">
+        <strong>Supabase</strong> — Backend-as-a-Service שנותן מסד נתונים, אימות, ו-API תוך דקות, ללא צורך לכתוב שרת. בחרנו בו על פני Firebase בגלל PostgreSQL אמיתי, Row Level Security מובנה, ו-Edge Functions מבוסס Deno.
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>שירות</th><th>מה זה</th><th>מה עשינו</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Supabase Auth</strong></td><td>ניהול משתמשים</td><td>הרשמה, כניסה, session</td></tr>
+            <tr><td><strong>Supabase Database</strong></td><td>PostgreSQL בענן</td><td>שמירת פרופילים, אימונים, שבועות</td></tr>
+            <tr><td><strong>Supabase Edge Functions</strong></td><td>שרת קוד בענן</td><td>Proxy ל-Claude API</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>זרימת Auth</h3>
+      <div class="flow">
+        <div class="flow-step">משתמש</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step">email + password</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step">Supabase Auth</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step">JWT Token</div>
+        <div class="flow-arrow">←</div>
+        <div class="flow-step">נשמר ב-Browser</div>
+      </div>
+
+      <h3>Row Level Security (RLS)</h3>
+      <p>מדיניות אבטחה ישירות במסד הנתונים. בלי RLS, אם יש bug בקוד, משתמש יכול לראות נתוני משתמשים אחרים.</p>
+      <pre><code><span class="cm">-- המדיניות שכתבנו:</span>
+<span class="kw">create policy</span> <span class="str">"sessions: select own"</span>
+  <span class="kw">on</span> training_sessions
+  <span class="kw">for select</span>
+  <span class="kw">using</span> (auth.<span class="fn">uid</span>() = user_id);
+<span class="cm">-- = "משתמש יכול לראות רק שורות שה-user_id שלהן שווה ל-ID שלו"</span></code></pre>
+
+      <h3>GitHub Pages — Hosting</h3>
+      <p>שירות חינמי שמגיש קבצי HTML/CSS/JS ישירות מה-Repository. מגבלה: רק קבצים סטטיים, אין שרת אמיתי.</p>
+    </section>
+
+    <!-- ===== SECTION 3 ===== -->
+    <section class="section" id="s3">
+      <div class="section-header">
+        <div class="section-num">3</div>
+        <h2>מבנה הפרויקט</h2>
+      </div>
+      <pre><code>courtIQ/
+│
+├── <span class="fn">index.html</span>              ← דף נחיתה שיווקי
+│   ├── Navbar + Hero
+│   ├── Stats, How It Works
+│   ├── Pricing (3 תוכניות)
+│   ├── Features showcase
+│   └── Footer
+│
+├── <span class="fn">app.html</span>                ← האפליקציה הראשית
+│   ├── Sidebar (ניווט)
+│   ├── Topbar (מידע עליון)
+│   └── 10 פאנלים (ראה סעיף 6)
+│
+├── <span class="fn">sql.html</span>                ← כלי עזר ל-Establishment
+│   └── עמוד ל-review SQL queries
+│
+└── supabase/
+    ├── migrations/
+    │   └── <span class="fn">001_initial_schema.sql</span>    ← יצירת הטבלאות
+    ├── functions/
+    │   └── claude-proxy/
+    │       └── <span class="fn">index.ts</span>              ← Edge Function
+    └── <span class="fn">trigger_only.sql</span>              ← Trigger להרשמה</code></pre>
+    </section>
+
+    <!-- ===== SECTION 4 ===== -->
+    <section class="section" id="s4">
+      <div class="section-header">
+        <div class="section-num">4</div>
+        <h2>מסד הנתונים</h2>
+      </div>
+
+      <h3>טבלה 1: profiles</h3>
+      <p>מי הוא המשתמש.</p>
+      <pre><code>profiles
+├── id           (UUID)     ← מזהה ייחודי = זהה למזהה ב-auth.users
+├── first_name   (text)     ← שם פרטי
+├── last_name    (text)     ← שם משפחה
+├── position     (text)     ← PG / SG / SF / PF / C
+├── skill_level  (text)     ← Beginner / Intermediate / Advanced
+├── goal         (text)     ← מטרת האימון
+├── plan         (text)     ← starter / pro / elite
+├── streak       (int)      ← כמה ימים ברצף אימן
+├── created_at   (timestamp)
+└── updated_at   (timestamp)</code></pre>
+
+      <h3>טבלה 2: training_weeks</h3>
+      <p>שבוע אימון שהסתיים וקיבל סיכום AI.</p>
+      <pre><code>training_weeks
+├── id           (UUID)     ← מזהה ייחודי לשבוע
+├── user_id      (UUID)     ← מפנה ל-auth.users (Foreign Key)
+├── week_number  (int)      ← מספר השבוע (1, 2, 3...)
+├── label        (text)     ← תווית מוצגת "W4"
+├── summary_json (jsonb)    ← כל ניתוח ה-AI שמור כ-JSON
+└── created_at   (timestamp)</code></pre>
+
+      <h4>מה summary_json מכיל:</h4>
+      <pre><code>{
+  <span class="str">"averages"</span>: {
+    <span class="str">"shootingPct"</span>: <span class="num2">67.3</span>,
+    <span class="str">"verticalIn"</span>:  <span class="num2">28.5</span>,
+    <span class="str">"sprintSec"</span>:   <span class="num2">4.2</span>
+  },
+  <span class="str">"strengths"</span>:   [<span class="str">"Shooting consistency"</span>, <span class="str">"Sprint speed"</span>],
+  <span class="str">"focusAreas"</span>:  [<span class="str">"Vertical jump needs work"</span>],
+  <span class="str">"feedback"</span>:    <span class="str">"טקסט AI מפורט על השבוע..."</span>,
+  <span class="str">"generatedAt"</span>: <span class="str">"2025-03-01T10:00:00Z"</span>
+}</code></pre>
+
+      <h3>טבלה 3: training_sessions</h3>
+      <p>אימון יומי בודד.</p>
+      <pre><code>training_sessions
+├── id               (UUID)
+├── user_id          (UUID)    ← Foreign Key ל-auth.users
+├── week_id          (UUID)    ← Foreign Key ל-training_weeks (אופציונלי)
+├── day              (text)    ← "Mon", "Tue", "Wed"...
+├── shots_made       (numeric) ← זריקות שנכנסו
+├── shots_attempted  (numeric) ← זריקות שנזרקו
+├── dribbling_min    (numeric) ← דקות דריבלינג
+├── vertical_in      (numeric) ← קפיצה אנכית באינצ'ים
+├── sprint_sec       (numeric) ← זמן ספרינט בשניות
+├── intensity        (text)    ← Low / Medium / High
+├── notes            (text)    ← הערות חופשיות
+└── created_at       (timestamp)</code></pre>
+
+      <h3>Foreign Keys ו-Trigger</h3>
+      <div class="card-grid">
+        <div class="card-sm">
+          <div class="card-sm-title">Foreign Key — CASCADE</div>
+          <div class="card-sm-body">
+            <code>training_sessions.user_id → auth.users.id</code><br><br>
+            אם מוחקים משתמש → כל הסשנים שלו נמחקים אוטומטית.
+          </div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">Trigger — יצירת פרופיל</div>
+          <div class="card-sm-body">
+            כשמשתמש נרשם ל-<code>auth.users</code>, Trigger יוצר שורה ב-<code>profiles</code> אוטומטית — גשר בין טבלאות Supabase הפנימיות לטבלאות שלנו.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 5 ===== -->
+    <section class="section" id="s5">
+      <div class="section-header">
+        <div class="section-num">5</div>
+        <h2>אינטגרציית ה-AI</h2>
+      </div>
+
+      <h3>למה צריך Edge Function?</h3>
+      <div class="warn-box">
+        <strong>בעיה:</strong> Claude API Key חייב להיות סודי. אם נשים אותו ב-HTML — כל אחד יכול לגנוב אותו.<br><br>
+        <strong>פתרון:</strong> הקוד שרץ בשרת (Edge Function) שומר את ה-key סודי. הפרונטאנד שולח בקשה לEdge Function → זו שולחת לClaude.
+      </div>
+
+      <h3>זרימת יצירת הסיכום השבועי</h3>
+      <div class="flow" style="flex-direction:column; align-items:flex-start; gap:8px;">
+        <div style="display:flex;align-items:center;gap:8px;"><div class="flow-step" style="background:#1a2535;border-color:#3b82f6;color:#60a5fa;">שלב 1</div><span style="color:#ccc;font-size:13px;">איסוף סשנים מ-Supabase DB עבור שבוע זה</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div class="flow-step" style="background:#1a2535;border-color:#3b82f6;color:#60a5fa;">שלב 2</div><span style="color:#ccc;font-size:13px;">בניית System Prompt + User Message עם הנתונים</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div class="flow-step" style="background:#1a2535;border-color:#3b82f6;color:#60a5fa;">שלב 3</div><span style="color:#ccc;font-size:13px;">קריאה ל-Edge Function עם Authorization header</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div class="flow-step" style="background:#1a2535;border-color:#3b82f6;color:#60a5fa;">שלב 4</div><span style="color:#ccc;font-size:13px;">Edge Function שולחת ל-Claude API (API Key נסתר)</span></div>
+        <div style="display:flex;align-items:center;gap:8px;"><div class="flow-step" style="background:#1a2535;border-color:#3b82f6;color:#60a5fa;">שלב 5</div><span style="color:#ccc;font-size:13px;">שמירת summary_json בטבלת training_weeks</span></div>
+      </div>
+
+      <h3>קוד הקריאה לEdge Function</h3>
+      <pre><code><span class="kw">const</span> response = <span class="kw">await</span> <span class="fn">fetch</span>(
+  <span class="str">'https://[project].supabase.co/functions/v1/claude-proxy'</span>,
+  {
+    method: <span class="str">'POST'</span>,
+    headers: {
+      <span class="str">'Authorization'</span>: <span class="str">`Bearer ${session.access_token}`</span>,
+      <span class="str">'Content-Type'</span>: <span class="str">'application/json'</span>
+    },
+    body: <span class="fn">JSON.stringify</span>({ messages, system: systemPrompt })
+  }
+)</code></pre>
+
+      <h3>System vs User Messages</h3>
+      <div class="card-grid">
+        <div class="card-sm">
+          <div class="card-sm-title">System Message</div>
+          <div class="card-sm-body">הוראות קבועות לAI — מי הוא, מה התפקיד שלו, הקשר המשתמש (פוזיציה, רמה).</div>
+        </div>
+        <div class="card-sm">
+          <div class="card-sm-title">User Message</div>
+          <div class="card-sm-body">הבקשה הספציפית — הנתונים של השבוע שהוא צריך לנתח.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 6 ===== -->
+    <section class="section" id="s6">
+      <div class="section-header">
+        <div class="section-num">6</div>
+        <h2>תכונות האפליקציה</h2>
+      </div>
+
+      <h3>תוכניות המנוי</h3>
+      <div class="plan-grid">
+        <div class="plan-card">
+          <div class="plan-price">$9</div>
+          <div class="plan-name">Starter</div>
+          <div class="plan-feat yes">AI תוכנית שבועית</div>
+          <div class="plan-feat">50+ תרגילים</div>
+          <div class="plan-feat">מעקב בסיסי</div>
+          <div class="plan-feat no">Video Drills</div>
+          <div class="plan-feat no">AI Coach Chat</div>
+          <div class="plan-feat no">Game Film</div>
+        </div>
+        <div class="plan-card featured">
+          <div class="plan-price">$24</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-feat yes">AI תוכנית שבועית</div>
+          <div class="plan-feat">500+ תרגילים</div>
+          <div class="plan-feat">מעקב מלא</div>
+          <div class="plan-feat yes">Video Drills</div>
+          <div class="plan-feat">50 הודעות AI Chat</div>
+          <div class="plan-feat no">Game Film</div>
+        </div>
+        <div class="plan-card">
+          <div class="plan-price">$59</div>
+          <div class="plan-name">Elite</div>
+          <div class="plan-feat yes">AI תוכנית שבועית</div>
+          <div class="plan-feat">500+ תרגילים</div>
+          <div class="plan-feat">מעקב מלא</div>
+          <div class="plan-feat yes">Video Drills</div>
+          <div class="plan-feat yes">AI Chat ללא הגבלה</div>
+          <div class="plan-feat yes">Game Film Analysis</div>
+        </div>
+      </div>
+
+      <h3>10 הפאנלים</h3>
+      <div class="card">
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--accent)"></div>
+          <div><strong>פאנל 1 — Today's Program</strong><br><span style="color:#999;font-size:13px;">תוכנית האימון היומית לפי פוזיציה. KPIs: streak, שבוע, % זריקה, קפיצה.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--accent)"></div>
+          <div><strong>פאנל 2 — Log Session</strong><br><span style="color:#999;font-size:13px;">טופס לרישום אימון. שדות: יום, זריקות, דריבלינג, קפיצה, ספרינט, עוצמה, הערות. → INSERT לDB.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--blue)"></div>
+          <div><strong>פאנל 3 — Drill Library</strong><br><span style="color:#999;font-size:13px;">50+ תרגילים עם פילטר קטגוריה/קושי. נתוני התרגילים hardcoded ב-JS.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--blue)"></div>
+          <div><strong>פאנל 4 — Video Drills</strong> <span class="badge badge-accent">PRO</span><br><span style="color:#999;font-size:13px;">UI קיים, אין תוכן אמיתי. Feature gated.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--green)"></div>
+          <div><strong>פאנל 5 — Analytics</strong><br><span style="color:#999;font-size:13px;">4 גרפים + AI Summary שנוצר על ידי Claude + Strengths & Focus Areas.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--green)"></div>
+          <div><strong>פאנל 6 — History</strong><br><span style="color:#999;font-size:13px;">ארכיון שבועות אימון עם תאריכים ו-KPIs בסיסיים.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--orange)"></div>
+          <div><strong>פאנל 7 — Game Film</strong> <span class="badge badge-red">ELITE</span><br><span style="color:#999;font-size:13px;">Upload UI קיים, אין backend. Feature gated.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--accent)"></div>
+          <div><strong>פאנל 8 — AI Coach Chat</strong> <span class="badge badge-accent">PRO</span><br><span style="color:#999;font-size:13px;">צ'אט עם Claude בזמן אמת. היסטוריה נמחקת ברענון — לא שמורה בDB.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--muted)"></div>
+          <div><strong>פאנל 9 — Weekly Calendar</strong><br><span style="color:#999;font-size:13px;">UI בסיסי, אין לוגיקה.</span></div>
+        </div>
+        <div class="phase-item">
+          <div class="phase-dot" style="background:var(--muted)"></div>
+          <div><strong>פאנל 10 — Settings</strong><br><span style="color:#999;font-size:13px;">עריכת פרופיל — שם, פוזיציה, רמה, מטרה, תוכנית. → UPDATE בDB.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 7 ===== -->
+    <section class="section" id="s7">
+      <div class="section-header">
+        <div class="section-num">7</div>
+        <h2>מה חסר</h2>
+      </div>
+
+      <h3>A. בעיות אבטחה</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>בעיה</th><th>חומרה</th><th>הסבר</th></tr></thead>
+          <tbody>
+            <tr><td>אין auth guard ב-app.html</td><td><span class="badge badge-red">קריטי</span></td><td>כל אחד יכול להיכנס ללא התחברות</td></tr>
+            <tr><td>innerHTML ללא sanitization</td><td><span class="badge badge-orange">גבוהה</span></td><td>סיכון XSS — הזרקת קוד זדוני</td></tr>
+            <tr><td>Supabase anon key נגלה</td><td><span class="badge badge-yellow">בינונית</span></td><td>מקובל בחלקו אבל חשוב להיות מודע</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="warn-box">
+        <strong>XSS מוסבר:</strong> תוקף שולח הודעת צ'אט: <code>&lt;script&gt;sendAllData(hackerSite)&lt;/script&gt;</code>. אם משתמשים ב-innerHTML ישירות — הסקריפט מופעל. <strong>פתרון:</strong> textContent במקום innerHTML, או ספריית DOMPurify.
+      </div>
+
+      <h3>B. תכונות שמופיעות אבל לא פועלות</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>תכונה</th><th>מה קיים</th><th>מה חסר</th></tr></thead>
+          <tbody>
+            <tr><td>Video Drills</td><td>ממשק יפה</td><td>וידאו אמיתי, storage</td></tr>
+            <tr><td>Game Film Analysis</td><td>Upload UI</td><td>backend, AI analysis</td></tr>
+            <tr><td>Nutrition &amp; Recovery</td><td>mock data</td><td>AI generation, persistence</td></tr>
+            <tr><td>Calendar</td><td>UI בסיסי</td><td>לוגיקת לוח שנה, scheduling</td></tr>
+            <tr><td>Notifications</td><td>פאנל ריק</td><td>כל המערכת</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>C. בעיות טכניות</h3>
+      <div class="card-grid">
+        <div class="card-sm"><div class="card-sm-title">אין error handling</div><div class="card-sm-body">המשתמש לא יודע כשמשהו נכשל</div></div>
+        <div class="card-sm"><div class="card-sm-title">Chat history ב-memory בלבד</div><div class="card-sm-body">נאבד ברענון הדף</div></div>
+        <div class="card-sm"><div class="card-sm-title">אין validation בטפסים</div><div class="card-sm-body">ניתן לשלוח נתונים ריקים לDB</div></div>
+        <div class="card-sm"><div class="card-sm-title">הכל בקובץ HTML אחד</div><div class="card-sm-body">קשה לתחזוקה ועדכונים</div></div>
+      </div>
+    </section>
+
+    <!-- ===== SECTION 8 ===== -->
+    <section class="section" id="s8">
+      <div class="section-header">
+        <div class="section-num">8</div>
+        <h2>מפת דרכים לאפליקציה המושלמת</h2>
+      </div>
+
+      <!-- Phase 1 -->
+      <div class="phase">
+        <div class="phase-header" style="background: rgba(59,130,246,0.08);">
+          <div class="phase-num" style="background:rgba(59,130,246,0.2);color:#60a5fa;">1</div>
+          <div>
+            <div style="font-weight:700;color:#60a5fa;">Phase 1 — יסודות</div>
+            <div style="font-size:12px;color:var(--muted);">2–3 שבועות · לוודא שמה שקיים עובד כמו שצריך</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-item"><div class="phase-dot" style="background:#60a5fa"></div><div><strong>Auth Guard</strong> — בדיקת session בכניסה ל-app.html, redirect לLogin אם לא מחובר</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#60a5fa"></div><div><strong>Error Handling</strong> — toast notifications לכל שגיאה, console.error לדיבאג</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#60a5fa"></div><div><strong>Chat History Persistence</strong> — טבלת chat_messages בDB, שמירת כל שיחה</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#60a5fa"></div><div><strong>Input Sanitization</strong> — DOMPurify לכל innerHTML, validation בטפסים</div></div>
+        </div>
+      </div>
+
+      <!-- Phase 2 -->
+      <div class="phase">
+        <div class="phase-header" style="background: rgba(245,166,35,0.08);">
+          <div class="phase-num" style="background:rgba(245,166,35,0.2);color:var(--accent);">2</div>
+          <div>
+            <div style="font-weight:700;color:var(--accent);">Phase 2 — תכונות ליבה</div>
+            <div style="font-size:12px;color:var(--muted);">3–5 שבועות · להגיש מה שמובטח ב-PRO ו-ELITE</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-item"><div class="phase-dot" style="background:var(--accent)"></div><div><strong>Video Drill Library</strong> — Supabase Storage, טבלת drills, HTML5 video player</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:var(--accent)"></div><div><strong>Game Film Analysis</strong> — Upload לStorage, ניתוח עם Claude, דוח PDF</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:var(--accent)"></div><div><strong>Nutrition &amp; Recovery</strong> — שאלון, Edge Function ליצירת תפריט שבועי עם AI</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:var(--accent)"></div><div><strong>Calendar עם AI</strong> — ספריית Flatpickr, lוגיקת scheduling, המלצות AI</div></div>
+        </div>
+      </div>
+
+      <!-- Phase 3 -->
+      <div class="phase">
+        <div class="phase-header" style="background: rgba(34,197,94,0.08);">
+          <div class="phase-num" style="background:rgba(34,197,94,0.2);color:#4ade80;">3</div>
+          <div>
+            <div style="font-weight:700;color:#4ade80;">Phase 3 — פולישינג</div>
+            <div style="font-size:12px;color:var(--muted);">2–3 שבועות · חוויית משתמש מלאה ומלוטשת</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-item"><div class="phase-dot" style="background:#4ade80"></div><div><strong>Push Notifications</strong> — Web Push API + Service Worker, תזכורות אימון</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#4ade80"></div><div><strong>Data Export</strong> — CSV ו-PDF מכל ה-sessions, גרפים להורדה</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#4ade80"></div><div><strong>PWA</strong> — manifest.json + service-worker.js, "התקנה" כאפליקציה בטלפון</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#4ade80"></div><div><strong>Accessibility</strong> — ARIA labels, contrast ratio, ניווט מקלדת</div></div>
+        </div>
+      </div>
+
+      <!-- Phase 4 -->
+      <div class="phase">
+        <div class="phase-header" style="background: rgba(249,115,22,0.08);">
+          <div class="phase-num" style="background:rgba(249,115,22,0.2);color:#fb923c;">4</div>
+          <div>
+            <div style="font-weight:700;color:#fb923c;">Phase 4 — Scale</div>
+            <div style="font-size:12px;color:var(--muted);">חודש+ · להפוך לעסק אמיתי</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-item"><div class="phase-dot" style="background:#fb923c"></div><div><strong>Payment — Stripe</strong> — Checkout, Webhooks, עדכון plan אוטומטי בDB</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#fb923c"></div><div><strong>Admin Panel</strong> — ניהול משתמשים, תוכן, analytics ו-revenue</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#fb923c"></div><div><strong>Social Features</strong> — Leaderboard, Training Challenges, Coach Assignment</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#fb923c"></div><div><strong>Native Mobile</strong> — Capacitor (מומלץ) עוטף את האתר הנוכחי כApp</div></div>
+        </div>
+      </div>
+
+      <!-- Phase 5 -->
+      <div class="phase">
+        <div class="phase-header" style="background: rgba(168,85,247,0.08);">
+          <div class="phase-num" style="background:rgba(168,85,247,0.2);color:#c084fc;">5</div>
+          <div>
+            <div style="font-weight:700;color:#c084fc;">Phase 5 — AI Upgrade</div>
+            <div style="font-size:12px;color:var(--muted);">שנה+ · AI ברמה הבאה</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <div class="phase-item"><div class="phase-dot" style="background:#c084fc"></div><div><strong>Pose Estimation</strong> — Google MediaPipe, ניתוח פורמת יריה דרך מצלמה</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#c084fc"></div><div><strong>Personalized AI</strong> — Prompt דינמי בנוי על היסטוריה אישית, זיהוי דפוסים</div></div>
+          <div class="phase-item"><div class="phase-dot" style="background:#c084fc"></div><div><strong>Streaming Responses</strong> — הצגת תשובת AI מילה-מילה במקום להמתין לכל התשובה</div></div>
+        </div>
+      </div>
+
+      <h3>סיכום מצומצם</h3>
+      <pre><code>עכשיו:        auth guard + error handling + chat persistence
+1-2 חודשים:   video drills + nutrition + calendar
+3-4 חודשים:   payment (Stripe) + PWA + notifications
+5-6 חודשים:   mobile app + social features + admin panel
+שנה+:         pose estimation + AI personalization + coaching platform</code></pre>
+    </section>
+
+    <!-- ===== SECTION 9 ===== -->
+    <section class="section" id="s9">
+      <div class="section-header">
+        <div class="section-num">9</div>
+        <h2>מילון מונחים</h2>
+      </div>
+      <div class="glossary-grid">
+        <div class="glossary-item"><div class="g-term">API</div><div class="g-def">Application Programming Interface — ממשק לתקשורת בין מערכות</div></div>
+        <div class="glossary-item"><div class="g-term">Auth</div><div class="g-def">Authentication — תהליך זיהוי משתמש (כניסה)</div></div>
+        <div class="glossary-item"><div class="g-term">Backend</div><div class="g-def">צד השרת — הקוד שרץ בענן, לא בדפדפן</div></div>
+        <div class="glossary-item"><div class="g-term">CDN</div><div class="g-def">Content Delivery Network — רשת שרתים לטעינה מהירה של קבצים</div></div>
+        <div class="glossary-item"><div class="g-term">CORS</div><div class="g-def">Cross-Origin Resource Sharing — מדיניות אבטחה בין דומיינים</div></div>
+        <div class="glossary-item"><div class="g-term">CRUD</div><div class="g-def">Create, Read, Update, Delete — 4 פעולות בסיסיות על DB</div></div>
+        <div class="glossary-item"><div class="g-term">DOM</div><div class="g-def">Document Object Model — ייצוג ה-HTML כעצים, ניתן לשינוי ב-JS</div></div>
+        <div class="glossary-item"><div class="g-term">Edge Function</div><div class="g-def">קוד שרץ "קרוב" למשתמש, על שרתים מבוזרים</div></div>
+        <div class="glossary-item"><div class="g-term">Foreign Key</div><div class="g-def">עמודה בטבלה שמפנה לשורה בטבלה אחרת</div></div>
+        <div class="glossary-item"><div class="g-term">Frontend</div><div class="g-def">צד הלקוח — HTML/CSS/JS שרץ בדפדפן</div></div>
+        <div class="glossary-item"><div class="g-term">Git</div><div class="g-def">מערכת ניהול גרסאות — מאפשרת tracking של שינויים</div></div>
+        <div class="glossary-item"><div class="g-term">GitHub Pages</div><div class="g-def">שירות הגשת אתרים סטטיים חינמי של GitHub</div></div>
+        <div class="glossary-item"><div class="g-term">Hardcoded</div><div class="g-def">ערכים שקבועים ישירות בקוד, לא מ-DB</div></div>
+        <div class="glossary-item"><div class="g-term">JWT</div><div class="g-def">JSON Web Token — תעודת זהות דיגיטלית מוצפנת</div></div>
+        <div class="glossary-item"><div class="g-term">JSONB</div><div class="g-def">סוג עמודה ב-PostgreSQL לאחסון JSON עם אינדוקס</div></div>
+        <div class="glossary-item"><div class="g-term">Migration</div><div class="g-def">קובץ SQL שמגדיר שינויים למבנה ה-DB</div></div>
+        <div class="glossary-item"><div class="g-term">Mock Data</div><div class="g-def">נתונים מדומים לצורכי פיתוח ו-UI</div></div>
+        <div class="glossary-item"><div class="g-term">PostgreSQL</div><div class="g-def">מסד נתונים רלציוני מתקדם ופתוח-קוד</div></div>
+        <div class="glossary-item"><div class="g-term">Prompt</div><div class="g-def">ההוראות שנשלחות ל-model AI</div></div>
+        <div class="glossary-item"><div class="g-term">PWA</div><div class="g-def">Progressive Web App — אתר שמתנהג כApp לנייד</div></div>
+        <div class="glossary-item"><div class="g-term">RLS</div><div class="g-def">Row Level Security — אבטחה ברמת שורה ב-DB</div></div>
+        <div class="glossary-item"><div class="g-term">Session</div><div class="g-def">מצב כניסה פעיל של משתמש</div></div>
+        <div class="glossary-item"><div class="g-term">State</div><div class="g-def">המצב הנוכחי של האפליקציה בזיכרון</div></div>
+        <div class="glossary-item"><div class="g-term">Static Site</div><div class="g-def">אתר שמורכב רק מקבצים סטטיים, ללא שרת</div></div>
+        <div class="glossary-item"><div class="g-term">Supabase</div><div class="g-def">Backend-as-a-Service — DB + Auth + Edge Functions</div></div>
+        <div class="glossary-item"><div class="g-term">Token</div><div class="g-def">מחרוזת מוצפנת שמשמשת לאימות</div></div>
+        <div class="glossary-item"><div class="g-term">Trigger</div><div class="g-def">קוד שמופעל אוטומטית כתגובה לאירוע ב-DB</div></div>
+        <div class="glossary-item"><div class="g-term">TypeScript</div><div class="g-def">JavaScript עם type checking — מונע שגיאות</div></div>
+        <div class="glossary-item"><div class="g-term">UUID</div><div class="g-def">מזהה ייחודי אוניברסלי (כמו: 550e8400-e29b...)</div></div>
+        <div class="glossary-item"><div class="g-term">Vanilla JS</div><div class="g-def">JavaScript ללא frameworks</div></div>
+        <div class="glossary-item"><div class="g-term">XSS</div><div class="g-def">Cross-Site Scripting — התקפת הזרקת קוד זדוני</div></div>
+      </div>
+    </section>
+
+    <div style="text-align:center;padding:32px 0;color:var(--muted);font-size:12px;border-top:1px solid var(--border);">
+      CourtIQ Guide · נוצר 03/03/2026 · כל הנתונים מבוססים על בדיקה מלאה של הקוד
+    </div>
+
+  </main>
+</div>
+
+<button class="print-btn" onclick="window.print()">הדפס / שמור PDF</button>
+
+</body>
+</html>
