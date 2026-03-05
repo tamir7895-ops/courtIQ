@@ -2,10 +2,12 @@
      FEATURE TABS — switch panels on click / auto-rotate
   ══════════════════════════════════════════════════════════════ */
   const panelLabels = {
-    'pane-drills':   'Today\'s Drills — Marcus R. | Point Guard',
-    'pane-progress': 'Monthly Progress — Marcus R. | Point Guard',
-    'pane-ai':       'AI Coach Activity — Marcus R. | Point Guard',
-    'pane-position': 'Position Programs — Select Your Role',
+    'pane-drills':    'Today\'s Drills — Marcus R. | Point Guard',
+    'pane-progress':  'Monthly Progress — Marcus R. | Point Guard',
+    'pane-ai':        'AI Coach Activity — Marcus R. | Point Guard',
+    'pane-position':  'Position Programs — Select Your Role',
+    'pane-library':   'Drill Library — 122 Drills Available',
+    'pane-workouts':  'Pre-Built Workouts — Select &amp; Start',
   };
 
   const featureTabs  = document.querySelectorAll('.feature-item[data-pane]');
@@ -335,3 +337,24 @@
     initPosition(pos);
   }
 
+
+  /* ══════════════════════════════════════════════════════════════
+     PANE 6: Pre-Built Workouts — expand/collapse drill selection
+  ══════════════════════════════════════════════════════════════ */
+  function togglePaneWorkout(id) {
+    const panel = document.getElementById(id);
+    const arrow = document.getElementById(id + '-arrow');
+    if (!panel) return;
+    const isOpen = panel.style.display !== 'none';
+    // close all others first
+    ['pw1','pw2','pw3'].forEach(pid => {
+      const p = document.getElementById(pid);
+      const a = document.getElementById(pid + '-arrow');
+      if (p) p.style.display = 'none';
+      if (a) a.textContent = '▾';
+    });
+    if (!isOpen) {
+      panel.style.display = 'block';
+      if (arrow) arrow.textContent = '▴';
+    }
+  }

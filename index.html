@@ -16,10 +16,22 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/workouts.css" />
+  <link rel="stylesheet" href="styles/animations.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<!-- PAGE LOADER -->
+<div id="page-loader" role="status" aria-label="Loading CourtIQ">
+  <div class="loader-wordmark">Court<span>IQ</span></div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- CUSTOM CURSOR (desktop only) -->
+<div id="cursor" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
 
 <!-- ══════════════════════════════════════════
      NAVIGATION
@@ -79,41 +91,46 @@
      HERO SECTION
 ══════════════════════════════════════════ -->
 <section class="hero" aria-labelledby="hero-title">
-  <div class="hero-bg" aria-hidden="true"></div>
+  <div class="hero-bg" aria-hidden="true">
+    <div class="hero-orb hero-orb-1"></div>
+    <div class="hero-orb hero-orb-2"></div>
+    <div class="hero-orb hero-orb-3"></div>
+  </div>
   <div class="hero-lines" aria-hidden="true"></div>
   <div class="court-arc" aria-hidden="true"></div>
 
-  <div class="container">
-    <div class="hero-content">
+  <!-- Floating particle canvas -->
+  <canvas id="hero-particles" aria-hidden="true"></canvas>
 
-      <!-- Left: Text -->
-      <div class="hero-left">
+  <div class="container">
+    <div class="hero-content hero-content--centered">
+
+      <div class="hero-center">
         <div>
           <span class="label-tag">AI-Powered Training</span>
         </div>
 
-        <h1 class="hero-title" id="hero-title">
-          Train<br>
-          <em>Smarter.</em>
-          <span class="hero-title-outline">Dominate.</span>
+        <h1 class="hero-title hero-title--centered" id="hero-title">
+          Your AI<br>
+          <em>Basketball Coach</em>
         </h1>
 
-        <p class="hero-subtitle">
-          CourtIQ generates personalized basketball training programs tailored to your position, skill level, and goals — adapting in real-time as you improve.
+        <p class="hero-subtitle hero-subtitle--centered">
+          Generate personalized drills, track your progress, and train like a pro.
         </p>
 
-        <div class="hero-cta-group">
-          <button class="btn-primary" onclick="openAuth('signup')" aria-label="Start your free trial">
-            Start Free Trial
+        <div class="hero-cta-group hero-cta-group--centered">
+          <button class="btn-primary" onclick="openAuth('signup')" aria-label="Start training free">
+            Start Training Free
             <span class="btn-arrow" aria-hidden="true">→</span>
           </button>
-          <button class="btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})" aria-label="Watch demo">
-            ▶ &nbsp;Watch Demo
+          <button class="btn-secondary" onclick="document.getElementById('features').scrollIntoView({behavior:'smooth'})" aria-label="Try AI Coach">
+            🤖 &nbsp;Try AI Coach
           </button>
         </div>
 
         <!-- Social proof -->
-        <div class="hero-social-proof">
+        <div class="hero-social-proof hero-social-proof--centered">
           <div class="hero-avatars" aria-hidden="true">
             <div class="hero-avatar">KJ</div>
             <div class="hero-avatar">DM</div>
@@ -122,85 +139,22 @@
           </div>
           <div class="hero-social-text">
             <strong>12,400+ athletes training</strong>
-            ⭐ 4.9/5 from 2,800+ reviews
-          </div>
-        </div>
-      </div>
-
-      <!-- Right: App preview card -->
-      <div class="hero-right" aria-hidden="true">
-        <div class="hero-visual">
-
-          <!-- Floating stat: left -->
-          <div class="hero-stat-card hero-stat-left">
-            <div class="stat-number">↑ 34%</div>
-            <div class="stat-label">Shot accuracy</div>
-          </div>
-
-          <!-- Main app card -->
-          <div class="hero-card-main">
-            <div class="hero-card-header">
-              <div class="hero-card-title">Today's Training</div>
-              <span class="hero-card-badge">✓ Personalized</span>
-            </div>
-            <div class="hero-card-body">
-              <!-- Drill 1 -->
-              <div class="hero-drill-item">
-                <div class="drill-icon" style="background:rgba(245,166,35,0.12);">🎯</div>
-                <div class="drill-info">
-                  <div class="drill-name">3-Point Shooting Circuit</div>
-                  <div class="drill-meta">3 sets · 15 reps · 60s rest</div>
-                </div>
-                <div class="drill-progress-bar">
-                  <div class="drill-progress-fill" style="width:72%"></div>
-                </div>
-              </div>
-              <!-- Drill 2 -->
-              <div class="hero-drill-item">
-                <div class="drill-icon" style="background:rgba(58,134,255,0.12);">⚡</div>
-                <div class="drill-info">
-                  <div class="drill-name">Crossover Dribble Drill</div>
-                  <div class="drill-meta">4 sets · 8 reps · 45s rest</div>
-                </div>
-                <div class="drill-progress-bar">
-                  <div class="drill-progress-fill" style="width:55%;background:#3a86ff"></div>
-                </div>
-              </div>
-              <!-- Drill 3 -->
-              <div class="hero-drill-item">
-                <div class="drill-icon" style="background:rgba(168,224,99,0.12);">💪</div>
-                <div class="drill-info">
-                  <div class="drill-name">Box Jump Conditioning</div>
-                  <div class="drill-meta">3 sets · 10 reps · 90s rest</div>
-                </div>
-                <div class="drill-progress-bar">
-                  <div class="drill-progress-fill" style="width:88%;background:#a8e063"></div>
-                </div>
-              </div>
-              <!-- Drill 4 -->
-              <div class="hero-drill-item">
-                <div class="drill-icon" style="background:rgba(199,125,255,0.12);">🛡️</div>
-                <div class="drill-info">
-                  <div class="drill-name">Defensive Slide Drill</div>
-                  <div class="drill-meta">4 sets · 12 reps · 30s rest</div>
-                </div>
-                <div class="drill-progress-bar">
-                  <div class="drill-progress-fill" style="width:40%;background:#c77dff"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Floating stat: right -->
-          <div class="hero-stat-card hero-stat-right">
-            <div class="stat-number">Day 14</div>
-            <div class="stat-label">Training streak 🔥</div>
+            4.9/5 from 2,800+ reviews
           </div>
         </div>
       </div>
 
     </div>
   </div>
+
+  <!-- Scroll indicator -->
+  <div class="scroll-indicator" aria-hidden="true">
+    <span class="scroll-indicator-label">Scroll</span>
+    <div class="scroll-indicator-mouse">
+      <div class="scroll-indicator-dot"></div>
+    </div>
+  </div>
+
 </section>
 
 
@@ -215,8 +169,8 @@
         <div class="stats-bar-label">Active athletes</div>
       </div>
       <div class="stats-bar-item reveal reveal-delay-1">
-        <div class="stats-bar-number">500+</div>
-        <div class="stats-bar-label">Unique drills</div>
+        <div class="stats-bar-number">225+</div>
+        <div class="stats-bar-label">Unique drills & workouts</div>
       </div>
       <div class="stats-bar-item reveal reveal-delay-2">
         <div class="stats-bar-number">94%</div>
@@ -357,6 +311,28 @@
             <div class="feature-content">
               <h3 class="feature-title">Position-Specific Coaching</h3>
               <p class="feature-desc">Distinct programs for Point Guards, Shooting Guards, Forwards, and Centers — built for your role.</p>
+            </div>
+            <div class="feature-item-progress"><div class="feature-item-progress-fill"></div></div>
+          </div>
+
+          <!-- Tab 5 — Drill Library & Workouts -->
+          <div class="feature-item reveal reveal-delay-3" role="tab" tabindex="0"
+               aria-selected="false" aria-controls="pane-library" data-pane="pane-library">
+            <div class="feature-icon-wrap" aria-hidden="true">📚</div>
+            <div class="feature-content">
+              <h3 class="feature-title">200+ Drill Library</h3>
+              <p class="feature-desc">Browse, filter, and start workouts from our massive drill library — covering shooting, handles, defense, finishing, conditioning, and strength.</p>
+            </div>
+            <div class="feature-item-progress"><div class="feature-item-progress-fill"></div></div>
+          </div>
+
+          <!-- Tab 6 — Pre-Built Workouts -->
+          <div class="feature-item reveal reveal-delay-3" role="tab" tabindex="0"
+               aria-selected="false" aria-controls="pane-workouts" data-pane="pane-workouts">
+            <div class="feature-icon-wrap" aria-hidden="true">🏀</div>
+            <div class="feature-content">
+              <h3 class="feature-title">Pre-Built Workouts</h3>
+              <p class="feature-desc">Choose from 25 curated training sessions — select your drills and start your workout in one tap, directly from the app.</p>
             </div>
             <div class="feature-item-progress"><div class="feature-item-progress-fill"></div></div>
           </div>
@@ -585,6 +561,280 @@
             </div>
 
           </div><!-- /pane-position -->
+
+          <!-- ════ PANE 5: Drill Library & Workouts ════ -->
+          <div id="pane-library" class="feature-pane" aria-label="Drill Library & Workouts demo">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+              <div style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-amber);">
+                Drill Library
+              </div>
+              <div style="font-size:12px;color:var(--c-muted);">200+ drills available</div>
+            </div>
+
+            <!-- Filter pills -->
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;">
+              <span style="display:inline-block;padding:4px 10px;background:rgba(245,166,35,0.12);border:1px solid rgba(245,166,35,0.3);border-radius:100px;font-size:11px;font-weight:600;color:var(--c-amber);">All</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(76,163,255,0.08);border:1px solid rgba(76,163,255,0.15);border-radius:100px;font-size:11px;color:#4ca3ff;">🎯 Shooting</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.15);border-radius:100px;font-size:11px;color:var(--c-amber);">⚡ Handles</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(232,64,64,0.08);border:1px solid rgba(232,64,64,0.15);border-radius:100px;font-size:11px;color:#e84040;">🛡️ Defense</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(168,100,255,0.08);border:1px solid rgba(168,100,255,0.15);border-radius:100px;font-size:11px;color:#a864ff;">🏀 Finishing</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(86,211,100,0.08);border:1px solid rgba(86,211,100,0.15);border-radius:100px;font-size:11px;color:#56d364;">💪 Conditioning</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(255,107,107,0.08);border:1px solid rgba(255,107,107,0.15);border-radius:100px;font-size:11px;color:#ff6b6b;">🏋️ Strength</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.15);border-radius:100px;font-size:11px;color:#00e5ff;">🎯 Passing</span>
+              <span style="display:inline-block;padding:4px 10px;background:rgba(168,100,255,0.08);border:1px solid rgba(168,100,255,0.15);border-radius:100px;font-size:11px;color:#a864ff;">👟 Footwork</span>
+            </div>
+
+            <!-- Sample drill cards — horizontal layout matching dashboard redesign -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(76,163,255,0.12);flex-shrink:0;">🎯</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Step-Back Three</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">16 min · 4 sets × 6 reps · Advanced</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(245,166,35,0.12);flex-shrink:0;">⚡</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Full-Speed Crossover Series</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">18 min · 5 sets × 4 moves · Advanced</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(255,107,107,0.12);flex-shrink:0;">🏋️</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Squat Jump Explosions</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">12 min · 5 sets × 10 reps · Intermediate</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(232,64,64,0.12);flex-shrink:0;">🛡️</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Pick-and-Roll Defense</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">18 min · 4 sets × 6 reps · Advanced</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(0,229,255,0.12);flex-shrink:0;">🎯</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">No-Look Bounce Pass</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">14 min · 4 sets × 8 reps · Advanced</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(168,100,255,0.12);flex-shrink:0;">👟</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Euro Step Footwork</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">12 min · 5 sets × 6 reps · Intermediate</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(168,100,255,0.12);flex-shrink:0;">🏀</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Contact Finish Through Traffic</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">14 min · 4 sets × 6 reps · Advanced</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+              <div style="display:flex;align-items:center;gap:14px;padding:12px 14px;background:var(--c-surface2);border:1px solid var(--c-border);border-radius:var(--r-sm);transition:var(--transition);">
+                <div style="width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(86,211,100,0.12);flex-shrink:0;">💪</div>
+                <div style="flex:1;min-width:0;">
+                  <div style="font-size:14px;font-weight:600;color:var(--c-white);">Continuous Layup Sprints</div>
+                  <div style="font-size:11px;color:var(--c-muted);margin-top:2px;">15 min · 10 rounds · Intermediate</div>
+                </div>
+                <div style="padding:6px 14px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:#0c0d0f;">Start →</div>
+              </div>
+
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:flex;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border);">
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:var(--c-amber);">200+</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Total Drills</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:#56d364;">8</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Categories</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:#4ca3ff;">3</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Difficulty Levels</div>
+              </div>
+            </div>
+          </div><!-- /pane-library -->
+
+          <!-- ════ PANE 6: Pre-Built Workouts ════ -->
+          <div id="pane-workouts" class="feature-pane" aria-label="Pre-Built Workouts demo">
+            <div style="font-family:var(--font-display);font-size:13px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-amber);margin-bottom:14px;">
+              Pre-Built Workouts — Select &amp; Start
+            </div>
+
+            <!-- Workout Session Cards -->
+            <div style="display:flex;flex-direction:column;gap:10px;">
+
+              <!-- Workout 1 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw1')">
+                <div class="pane-wkt-icon" style="background:rgba(76,163,255,0.12);">🎯</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">PG Morning Grind</div>
+                  <div class="pane-wkt-meta">Shooting &amp; Handles · 6 drills · ~55 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(76,163,255,0.15);color:#4ca3ff;">Intermediate</span>
+                <span class="pane-wkt-arrow" id="pw1-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw1" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Catch &amp; Shoot Corner 3s</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>One-Dribble Pull-Up</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Free Throw Pressure Routine</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Full-Speed Crossover Series</span> <span style="color:var(--c-muted);font-size:11px;">· 18 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Behind-the-Back Series</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Hesitation Move Drill</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 2 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw2')">
+                <div class="pane-wkt-icon" style="background:rgba(232,64,64,0.12);">🛡️</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Defensive Lockdown</div>
+                  <div class="pane-wkt-meta">Defense · 6 drills · ~50 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(232,64,64,0.15);color:#e84040;">Advanced</span>
+                <span class="pane-wkt-arrow" id="pw2-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw2" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Defensive Slide Series</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Closeout &amp; Contest</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Pick-and-Roll Defense</span> <span style="color:var(--c-muted);font-size:11px;">· 20 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Perimeter Lock-Up Series</span> <span style="color:var(--c-muted);font-size:11px;">· 18 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>1-on-1 Full Court Defense</span> <span style="color:var(--c-muted);font-size:11px;">· 20 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 3 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw3')">
+                <div class="pane-wkt-icon" style="background:rgba(86,211,100,0.12);">💪</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Explosive Conditioning</div>
+                  <div class="pane-wkt-meta">Conditioning · 6 drills · ~45 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(86,211,100,0.15);color:#56d364;">Advanced</span>
+                <span class="pane-wkt-arrow" id="pw3-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw3" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>17s Running Drill</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Box Jump Series</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Burpee to Sprint</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Lateral Bound Series</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Wind Sprint Intervals</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 4 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw4')">
+                <div class="pane-wkt-icon" style="background:rgba(0,229,255,0.12);">🎯</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Passing Playmaker</div>
+                  <div class="pane-wkt-meta">Passing &amp; Vision · 6 drills · ~50 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(0,229,255,0.15);color:#00e5ff;">Intermediate</span>
+                <span class="pane-wkt-arrow" id="pw4-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw4" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Chest Pass Accuracy</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>No-Look Bounce Pass</span> <span style="color:var(--c-muted);font-size:11px;">· 14 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Skip Pass Precision</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Outlet Pass Sprint</span> <span style="color:var(--c-muted);font-size:11px;">· 14 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 5 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw5')">
+                <div class="pane-wkt-icon" style="background:rgba(168,100,255,0.12);">👟</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Footwork Foundation</div>
+                  <div class="pane-wkt-meta">Footwork &amp; Agility · 6 drills · ~45 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(168,100,255,0.15);color:#a864ff;">Beginner</span>
+                <span class="pane-wkt-arrow" id="pw5-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw5" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Jab Step Series</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Pivot Fundamentals</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Euro Step Footwork</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Ladder Speed Drills</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 6 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw6')">
+                <div class="pane-wkt-icon" style="background:rgba(168,100,255,0.12);">🏀</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Finishing School</div>
+                  <div class="pane-wkt-meta">Finishing &amp; Layups · 6 drills · ~50 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(168,100,255,0.15);color:#a864ff;">Intermediate</span>
+                <span class="pane-wkt-arrow" id="pw6-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw6" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Euro Step Finish</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Reverse Layup Mastery</span> <span style="color:var(--c-muted);font-size:11px;">· 15 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Contact Finish Through Traffic</span> <span style="color:var(--c-muted);font-size:11px;">· 14 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Off-Hand Layup Mastery</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+              <!-- Workout 7 -->
+              <div class="pane-workout-card" onclick="togglePaneWorkout('pw7')">
+                <div class="pane-wkt-icon" style="background:rgba(255,107,107,0.12);">🏋️</div>
+                <div class="pane-wkt-info">
+                  <div class="pane-wkt-name">Strength & Power</div>
+                  <div class="pane-wkt-meta">Strength · 6 drills · ~40 min</div>
+                </div>
+                <span class="pane-wkt-badge" style="background:rgba(255,107,107,0.15);color:#ff6b6b;">Advanced</span>
+                <span class="pane-wkt-arrow" id="pw7-arrow">▾</span>
+              </div>
+              <div class="pane-wkt-drills" id="pw7" style="display:none;">
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Explosive Split Squat</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Romanian Deadlift</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox" checked> <span>Battle Rope Slams</span> <span style="color:var(--c-muted);font-size:11px;">· 10 min</span></div>
+                <div class="pane-wkt-drill-item"><input type="checkbox"> <span>Overhead Press</span> <span style="color:var(--c-muted);font-size:11px;">· 12 min</span></div>
+                <button onclick="openAuth('signup')" style="width:100%;margin-top:10px;padding:10px;background:linear-gradient(135deg,var(--c-amber),#e09020);border:none;border-radius:8px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:#0c0d0f;cursor:pointer;">🏀 Start Selected Drills →</button>
+              </div>
+
+            </div>
+
+            <!-- Stats row -->
+            <div style="display:flex;gap:14px;margin-top:16px;padding-top:14px;border-top:1px solid var(--c-border);">
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:var(--c-amber);">25</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Workouts</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:#56d364;">200+</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Drills</div>
+              </div>
+              <div style="flex:1;text-align:center;">
+                <div style="font-family:var(--font-display);font-size:20px;font-weight:900;color:#4ca3ff;">5</div>
+                <div style="font-size:10px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:var(--c-dimmer);">Positions</div>
+              </div>
+            </div>
+          </div><!-- /pane-workouts -->
 
         </div><!-- /feature-panel -->
       </div><!-- /features-visual -->
@@ -985,6 +1235,7 @@
 <script src="js/auth.js"></script>
 <script src="js/feature-modals.js"></script>
 <script src="js/sidebar.js"></script>
+<script src="js/animations.js"></script>
 
 <!-- ══════════════════════════════════════════
      FEATURE MODALS

@@ -1,0 +1,77 @@
+/* ══════════════════════════════════════════════════════════
+   PROGRESS CHARTS — Shooting progress line chart
+   ══════════════════════════════════════════════════════════ */
+
+.pc-chart-wrap {
+  margin: 24px 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--c-border);
+}
+
+.pc-chart-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+  margin-bottom: 12px;
+}
+
+/* Legend */
+.pc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.pc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+
+.pc-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Canvas */
+#pc-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--r-sm);
+}
+
+/* Empty state */
+.pc-empty {
+  text-align: center;
+  padding: 28px 0;
+  font-size: 13px;
+  color: var(--c-dimmer);
+  font-weight: 500;
+}
+
+.pc-empty.hidden {
+  display: none;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 580px) {
+  .pc-legend {
+    gap: 10px;
+  }
+  .pc-legend-item {
+    font-size: 10px;
+  }
+}

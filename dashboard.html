@@ -14,10 +14,29 @@
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles/main.css" />
+  <link rel="stylesheet" href="styles/drills.css" />
+  <link rel="stylesheet" href="styles/workouts.css" />
+  <link rel="stylesheet" href="styles/animations.css" />
+  <link rel="stylesheet" href="styles/profile.css" />
+  <link rel="stylesheet" href="styles/daily-workout.css" />
+  <link rel="stylesheet" href="styles/gamification.css" />
+  <link rel="stylesheet" href="styles/shot-tracker.css" />
+  <link rel="stylesheet" href="styles/charts.css" />
+  <link rel="stylesheet" href="styles/move-library.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
 <body>
+
+<!-- PAGE LOADER -->
+<div id="page-loader" role="status" aria-label="Loading CourtIQ">
+  <div class="loader-wordmark">Court<span>IQ</span></div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+</div>
+
+<!-- CUSTOM CURSOR (desktop only) -->
+<div id="cursor" aria-hidden="true"></div>
+<div id="cursor-ring" aria-hidden="true"></div>
 
 <div id="scroll-progress" aria-hidden="true"></div>
 <button id="back-to-top" aria-label="Back to top" onclick="window.scrollTo({top:0,behavior:'smooth'})">↑</button>
@@ -80,6 +99,32 @@
       </p>
     </header>
 
+    <!-- Player Profile Summary -->
+    <div class="profile-summary reveal">
+      <div id="profile-summary-content"></div>
+      <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
+    </div>
+
+    <!-- XP / Level Widget -->
+    <div class="xp-widget reveal" id="xp-widget">
+      <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
+      <div class="xp-info">
+        <div class="xp-info-top">
+          <div>
+            <span class="xp-rank" id="xp-rank">Rookie</span>
+            <span class="xp-rank-label">Level</span>
+          </div>
+          <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
+        </div>
+        <div class="xp-bar">
+          <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- XP gain toast -->
+    <div class="xp-gain-toast" id="xp-gain-toast"></div>
+
     <!-- Player context row -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;" class="reveal">
       <div class="db-field">
@@ -107,6 +152,10 @@
       <button class="db-tab" onclick="dbSwitchTab('notifications',this)">🔔 Notifications</button>
       <button class="db-tab" onclick="dbSwitchTab('coach',this)">🏋️ AI Coach</button>
       <button class="db-tab" onclick="dbSwitchTab('calendar',this)">📆 Weekly Calendar</button>
+      <button class="db-tab" onclick="dbSwitchTab('drills',this);drillsInit()">🎯 Personalized Drills</button>
+      <button class="db-tab" onclick="dbSwitchTab('workouts',this);workoutsInit()">🏀 Workouts</button>
+      <button class="db-tab" onclick="dbSwitchTab('shots',this)">🎯 Shot Tracker</button>
+      <button class="db-tab" onclick="dbSwitchTab('moves',this);movesInit()">🏀 Pro Moves</button>
     </div>
 
     <!-- ── TAB: LOG ── -->
@@ -558,6 +607,453 @@
 
     </div><!-- /calendar panel -->
 
+    <!-- ── TAB: PERSONALIZED DRILLS ── -->
+    <div class="db-panel" id="db-panel-drills">
+
+      <!-- Today's Workout -->
+      <div class="daily-workout">
+        <div class="daily-workout-header">
+          <div>
+            <div class="daily-workout-title">🏀 Today's Workout</div>
+            <div class="daily-workout-date" id="daily-workout-date"></div>
+          </div>
+          <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+        </div>
+        <div class="daily-workout-grid" id="daily-workout-grid"></div>
+        <div class="daily-workout-totals" id="daily-workout-totals"></div>
+      </div>
+
+      <!-- Panel Header -->
+      <div class="drills-header">
+        <div class="drills-header-text">
+          <h2>Personalized Drills</h2>
+          <p>Generate custom drills, browse the full library, or use AI Coach suggestions — all tailored to your position, skill level, and goals.</p>
+        </div>
+      </div>
+
+      <!-- Mode Toggle Bar -->
+      <div class="drills-mode-bar">
+        <button class="drills-mode-btn active" id="drills-mode-generator" onclick="drillsShowMode('generator')">🎯 Generator</button>
+        <button class="drills-mode-btn" id="drills-mode-library" onclick="drillsShowMode('library')">📚 Drill Library</button>
+        <button class="drills-mode-btn" id="drills-mode-plan" onclick="drillsShowMode('plan')">📌 My Plan</button>
+      </div>
+
+      <!-- ====== GENERATOR MODE ====== -->
+      <div id="drills-view-generator">
+
+        <!-- Coach Suggestions Banner (shown when AI Coach has results) -->
+        <div id="drills-coach-banner" class="drills-coach-banner" style="display:none;">
+          <div class="drills-coach-banner-icon">🏋️</div>
+          <div class="drills-coach-banner-body">
+            <div class="drills-coach-banner-title">AI Coach Suggestions Available</div>
+            <div class="drills-coach-banner-sub" id="drills-coach-banner-text">Your AI Coach identified areas to work on. Load suggested drills?</div>
+          </div>
+          <button class="drills-coach-banner-btn" onclick="drillsLoadCoachSuggestions()">Load Suggestions</button>
+        </div>
+
+        <!-- Selector Card -->
+        <div class="drills-selector">
+          <div class="drills-selector-title">Your Training Profile</div>
+          <div class="drills-selector-sub">All three fields are used to match drills to your position and current level.</div>
+          <div class="drills-selector-fields">
+            <div class="db-field">
+              <label class="db-label">🏀 Player Position</label>
+              <select class="db-input" id="drill-position">
+                <option value="PG">Point Guard (PG)</option>
+                <option value="SG">Shooting Guard (SG)</option>
+                <option value="SF">Small Forward (SF)</option>
+                <option value="PF">Power Forward (PF)</option>
+                <option value="C">Center (C)</option>
+              </select>
+            </div>
+            <div class="db-field">
+              <label class="db-label">📈 Skill Level</label>
+              <select class="db-input" id="drill-skill">
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate" selected>Intermediate</option>
+                <option value="Advanced">Advanced</option>
+              </select>
+            </div>
+            <div class="db-field">
+              <label class="db-label">🎯 Primary Goal</label>
+              <select class="db-input" id="drill-goal">
+                <option value="Shooting">Shooting</option>
+                <option value="Ball Handling">Ball Handling</option>
+                <option value="Defense">Defense</option>
+                <option value="Finishing">Finishing</option>
+                <option value="Conditioning">Conditioning</option>
+                <option value="Strength">Strength</option>
+              </select>
+            </div>
+          </div>
+          <button class="drills-gen-btn" onclick="drillsGenerate()">🎯 Generate My Drills →</button>
+        </div>
+
+        <!-- Loading State -->
+        <div id="drills-loading" style="display:none;">
+          <div class="drills-loading-icon">🎯</div>
+          <div class="drills-loading-title">Building Your Drill Set…</div>
+          <div class="drills-loading-sub">Matching drills to your position, skill level, and focus area.</div>
+        </div>
+
+        <!-- Empty State -->
+        <div id="drills-empty">
+          <div class="drills-empty-icon">🏀</div>
+          <div class="drills-empty-title">No Drills Generated Yet</div>
+          <p class="drills-empty-desc">Select your preferences above and hit <strong style="color:var(--c-amber)">Generate Drills</strong> to get a personalized drill set with animated court previews.</p>
+        </div>
+
+        <!-- Results -->
+        <div id="drills-results">
+          <div class="drills-results-header">
+            <div class="drills-results-title" id="drills-results-title">Your Drill Set</div>
+            <div class="drills-results-meta" id="drills-results-meta"></div>
+          </div>
+
+          <!-- Drill Cards Grid (populated by JS) -->
+          <div class="drills-grid" id="drills-grid"></div>
+
+          <!-- Saved Drills Section -->
+          <div class="saved-drills-section" id="drills-saved-section">
+            <div class="saved-drills-header">
+              <div>
+                <div class="saved-drills-title">📌 My Drill Plan</div>
+                <div class="saved-drills-count" id="drills-saved-count">0 drills saved</div>
+              </div>
+              <button class="saved-drills-clear-btn" onclick="drillsClearAll()">Clear All</button>
+            </div>
+            <div class="saved-drills-list" id="drills-saved-list">
+              <div class="saved-drills-empty">No drills saved yet. Hit <strong>+ Save to Plan</strong> on any drill above.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Saved Drills (visible even before generation) -->
+        <div id="drills-preload-saved" style="display:none;">
+          <div class="saved-drills-section">
+            <div class="saved-drills-header">
+              <div>
+                <div class="saved-drills-title">📌 My Drill Plan</div>
+                <div class="saved-drills-count" id="drills-preload-count">0 drills saved</div>
+              </div>
+              <button class="saved-drills-clear-btn" onclick="drillsClearAll()">Clear All</button>
+            </div>
+            <div class="saved-drills-list" id="drills-preload-list"></div>
+          </div>
+        </div>
+
+      </div><!-- /generator view -->
+
+      <!-- ====== LIBRARY MODE ====== -->
+      <div id="drills-view-library" style="display:none;">
+
+        <!-- Library Filter Bar -->
+        <div class="drills-library-filters">
+          <div class="drills-library-search-wrap">
+            <input class="db-input drills-library-search" id="drills-lib-search" type="text" placeholder="Search drills by name or description..." oninput="drillsFilterLibrary()" />
+          </div>
+          <div class="drills-library-filter-row">
+            <div class="drills-filter-group">
+              <span class="drills-filter-label">Focus:</span>
+              <button class="drills-filter-pill active" onclick="drillsSetFocusFilter('All',this)">All</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Shooting',this)">🎯 Shooting</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Ball Handling',this)">⚡ Handles</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Defense',this)">🛡️ Defense</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Finishing',this)">🏀 Finishing</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Conditioning',this)">💪 Conditioning</button>
+              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Strength',this)">🏋️ Strength</button>
+            </div>
+            <div class="drills-filter-group">
+              <span class="drills-filter-label">Level:</span>
+              <button class="drills-filter-pill active" onclick="drillsSetDiffFilter('All',this)">All</button>
+              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Beginner',this)">Beginner</button>
+              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Intermediate',this)">Intermediate</button>
+              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Advanced',this)">Advanced</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Library Stats -->
+        <div class="drills-library-stats">
+          <span id="drills-lib-count">81 drills</span>
+          <span class="drills-lib-separator">·</span>
+          <span id="drills-lib-filter-info">Showing all</span>
+        </div>
+
+        <!-- Library Grid (populated by JS) -->
+        <div class="drills-grid drills-library-grid" id="drills-library-grid"></div>
+
+      </div><!-- /library view -->
+
+      <!-- ====== MY PLAN MODE ====== -->
+      <div id="drills-view-plan" style="display:none;">
+
+        <div class="drills-plan-header">
+          <div>
+            <div class="drills-plan-title">📌 My Drill Plan</div>
+            <div class="drills-plan-sub" id="drills-plan-count">0 drills saved</div>
+          </div>
+          <div class="drills-plan-actions">
+            <button class="drills-plan-action-btn calendar-btn" onclick="drillsSendToCalendar()">📆 Send to Calendar</button>
+            <button class="drills-plan-action-btn export-btn" onclick="drillsExportPlan()">📋 Copy as JSON</button>
+            <button class="saved-drills-clear-btn" onclick="drillsClearAll()">Clear All</button>
+          </div>
+        </div>
+
+        <!-- Plan Total Stats -->
+        <div class="drills-plan-stats" id="drills-plan-stats"></div>
+
+        <!-- Saved Drills List -->
+        <div class="saved-drills-list" id="drills-plan-list">
+          <div class="saved-drills-empty">No drills saved yet. Generate drills or browse the library to add drills to your plan.</div>
+        </div>
+
+      </div><!-- /plan view -->
+
+      <!-- ====== WORKOUT EXECUTION OVERLAY ====== -->
+      <div id="drill-workout-overlay" class="drill-workout-overlay" style="display:none;">
+        <div class="drill-workout-panel">
+
+          <!-- Workout Header -->
+          <div class="drill-workout-header">
+            <button class="drill-workout-back-btn" onclick="drillWorkoutClose()" aria-label="Close workout">←</button>
+            <div class="drill-workout-icon" id="workout-icon">🎯</div>
+            <div class="drill-workout-title-wrap">
+              <div class="drill-workout-name" id="workout-name">Drill Name</div>
+              <div class="drill-workout-focus" id="workout-focus">Focus Area · Difficulty</div>
+            </div>
+          </div>
+
+          <!-- Timer Section -->
+          <div class="drill-workout-timer" id="workout-timer-section">
+            <div class="drill-workout-timer-display" id="workout-timer">00:00</div>
+            <div class="drill-workout-timer-label" id="workout-timer-label">Elapsed Time</div>
+            <div class="drill-workout-timer-controls">
+              <button class="drill-workout-timer-btn" onclick="drillWorkoutResetTimer()" aria-label="Reset timer">↺</button>
+              <button class="drill-workout-timer-btn primary" id="workout-timer-toggle" onclick="drillWorkoutToggleTimer()" aria-label="Start timer">▶</button>
+              <button class="drill-workout-timer-btn" onclick="drillWorkoutResetTimer()" aria-label="Reset">⟳</button>
+            </div>
+          </div>
+
+          <!-- Progress Bar -->
+          <div class="drill-workout-progress">
+            <div class="drill-workout-progress-header">
+              <div class="drill-workout-progress-label">Progress</div>
+              <div class="drill-workout-progress-pct" id="workout-progress-text">0%</div>
+            </div>
+            <div class="drill-workout-progress-bar">
+              <div class="drill-workout-progress-fill" id="workout-progress-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <!-- Sets Tracker -->
+          <div class="drill-workout-sets" id="workout-sets-section">
+            <div class="drill-workout-sets-title">Sets & Reps</div>
+            <div style="font-size:13px;color:var(--c-muted);margin-bottom:14px;" id="workout-sets-info">4 sets × 10 reps</div>
+            <div class="drill-workout-set-list" id="workout-sets-list">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Instructions -->
+          <div class="drill-workout-instructions" id="workout-instructions-section">
+            <div class="drill-workout-instructions-title">Instructions</div>
+            <div class="drill-workout-step-list" id="workout-instructions">
+              <!-- Populated by JS -->
+            </div>
+          </div>
+
+          <!-- Equipment -->
+          <div class="drill-workout-instructions" id="workout-equipment-section">
+            <div class="drill-workout-instructions-title">Equipment Needed</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;" id="workout-equipment"></div>
+          </div>
+
+          <!-- Action Buttons -->
+          <div class="drill-workout-actions" id="workout-actions-section">
+            <button class="drill-workout-complete-btn" id="workout-complete-btn" onclick="drillWorkoutComplete()">✓ Complete Drill</button>
+            <button class="drill-workout-skip-btn" onclick="drillWorkoutClose()">Skip</button>
+          </div>
+
+          <!-- Completion Screen (hidden by default) -->
+          <div class="drill-workout-done" id="workout-done-screen" style="display:none;">
+            <div class="drill-workout-done-icon">🏆</div>
+            <div class="drill-workout-done-title">Drill Complete!</div>
+            <div class="drill-workout-done-stats" id="workout-done-stats"></div>
+            <button class="drill-workout-done-btn" onclick="drillWorkoutClose()">Back to Library →</button>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /drills panel -->
+
+    <!-- ── TAB: WORKOUTS ── -->
+    <div class="db-panel" id="db-panel-workouts">
+
+      <!-- Header -->
+      <div class="workouts-header">
+        <div>
+          <div class="workouts-header-title">Pre-Built Workouts</div>
+          <div class="workouts-header-sub">15 curated training sessions — click a workout to see the drills inside and select which ones to do.</div>
+        </div>
+        <div class="workouts-header-stats">
+          <div class="workouts-stat">
+            <div class="workouts-stat-num">15</div>
+            <div class="workouts-stat-label">Workouts</div>
+          </div>
+          <div class="workouts-stat">
+            <div class="workouts-stat-num">120+</div>
+            <div class="workouts-stat-label">Total Drills</div>
+          </div>
+          <div class="workouts-stat">
+            <div class="workouts-stat-num">6</div>
+            <div class="workouts-stat-label">Categories</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="workouts-filter-bar">
+        <button class="workouts-filter-btn active" onclick="workoutsSetFilter('All',this)">All</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Shooting',this)">🎯 Shooting</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Scoring',this)">⚡ Scoring</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Ball Handling',this)">🔄 Handles</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Defense',this)">🛡️ Defense</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Conditioning',this)">💪 Conditioning</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Strength',this)">🏋️ Strength</button>
+        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Fundamentals',this)">⭐ Beginner</button>
+      </div>
+
+      <!-- Workout Cards Grid -->
+      <div id="workouts-grid"></div>
+
+    </div><!-- /workouts panel -->
+
+    <!-- ── TAB: SHOT TRACKER ── -->
+    <div class="db-panel" id="db-panel-shots">
+      <div class="st-layout">
+
+        <!-- Input form -->
+        <div class="st-card">
+          <div class="st-card-title">Log Shooting Session</div>
+          <div class="st-card-sub">Track your field goals, three-pointers, and free throws.</div>
+
+          <div class="st-error" id="st-error"></div>
+
+          <div class="st-fields">
+            <!-- Field Goals -->
+            <div class="st-section-title">Field Goals</div>
+            <div class="st-row-2">
+              <div class="st-field">
+                <label class="st-label">Made</label>
+                <input class="st-input" id="st-fg-made" type="number" min="0" placeholder="0" />
+              </div>
+              <div class="st-field">
+                <label class="st-label">Missed</label>
+                <input class="st-input" id="st-fg-missed" type="number" min="0" placeholder="0" />
+              </div>
+            </div>
+
+            <!-- 3-Pointers -->
+            <div class="st-section-title">3-Pointers</div>
+            <div class="st-row-2">
+              <div class="st-field">
+                <label class="st-label">Made</label>
+                <input class="st-input" id="st-3pt-made" type="number" min="0" placeholder="0" />
+              </div>
+              <div class="st-field">
+                <label class="st-label">Missed</label>
+                <input class="st-input" id="st-3pt-missed" type="number" min="0" placeholder="0" />
+              </div>
+            </div>
+
+            <!-- Free Throws -->
+            <div class="st-section-title">Free Throws</div>
+            <div class="st-row-2">
+              <div class="st-field">
+                <label class="st-label">Made</label>
+                <input class="st-input" id="st-ft-made" type="number" min="0" placeholder="0" />
+              </div>
+              <div class="st-field">
+                <label class="st-label">Missed</label>
+                <input class="st-input" id="st-ft-missed" type="number" min="0" placeholder="0" />
+              </div>
+            </div>
+
+            <button class="st-submit-btn" id="st-submit-btn">Log Session</button>
+          </div>
+        </div>
+
+        <!-- Results + History -->
+        <div class="st-card">
+          <!-- Results (hidden until first submission) -->
+          <div class="st-results" id="st-results">
+            <div class="st-results-title">Session Results</div>
+
+            <div class="st-pct-hero">
+              <div class="st-pct-ring" id="st-pct-ring" style="background: conic-gradient(var(--c-surface2) 0deg, var(--c-surface2) 360deg);">
+                <div class="st-pct-ring-inner">
+                  <span class="st-pct-value" id="st-pct-value">0%</span>
+                </div>
+              </div>
+              <span class="st-pct-label">Overall Shooting %</span>
+            </div>
+
+            <div class="st-stat-grid">
+              <div class="st-stat-item">
+                <div class="st-stat-pct" id="st-fg-pct">0%</div>
+                <div class="st-stat-detail" id="st-fg-detail">0/0</div>
+                <div class="st-stat-label">Field Goals</div>
+              </div>
+              <div class="st-stat-item">
+                <div class="st-stat-pct" id="st-3pt-pct">0%</div>
+                <div class="st-stat-detail" id="st-3pt-detail">0/0</div>
+                <div class="st-stat-label">3-Pointers</div>
+              </div>
+              <div class="st-stat-item">
+                <div class="st-stat-pct" id="st-ft-pct">0%</div>
+                <div class="st-stat-detail" id="st-ft-detail">0/0</div>
+                <div class="st-stat-label">Free Throws</div>
+              </div>
+            </div>
+
+            <div class="st-summary-row" id="st-summary">
+              <span>Total: <strong>0 shots</strong></span>
+              <span>Made: <strong>0</strong></span>
+              <span>Missed: <strong>0</strong></span>
+            </div>
+          </div>
+
+          <!-- Progress chart -->
+          <div class="pc-chart-wrap" id="pc-chart-wrap">
+            <div class="pc-chart-title">Shooting Progress</div>
+            <div class="pc-legend" id="pc-legend"></div>
+            <canvas id="pc-canvas" width="600" height="260"></canvas>
+            <div class="pc-empty" id="pc-empty">Log 2+ sessions to see your progress chart.</div>
+          </div>
+
+          <!-- Session history -->
+          <div class="st-history-title">Session History</div>
+          <div class="st-empty" id="st-history-empty">
+            <div class="st-empty-icon">🎯</div>
+            <div>No sessions yet. Log your first shooting session!</div>
+          </div>
+          <div class="st-history-list" id="st-history-list"></div>
+        </div>
+
+      </div>
+    </div><!-- /shots panel -->
+
+    <!-- ── TAB: PRO MOVES ── -->
+    <div class="db-panel" id="db-panel-moves">
+      <div class="mv-header">
+        <div class="mv-header-title">Pro Moves Library</div>
+        <div class="mv-header-sub">Master signature moves from the game's greatest players. Each move includes an animated breakdown and a practice drill.</div>
+      </div>
+      <div class="mv-grid" id="moves-grid"></div>
+    </div><!-- /moves panel -->
+
   </div>
 </section>
 
@@ -716,12 +1212,104 @@
   </div>
 </div>
 
+<!-- Player Profile Editor Modal -->
+<div class="profile-modal-overlay" id="profile-modal-overlay">
+  <div class="profile-modal">
+    <div class="profile-modal-header">
+      <div class="profile-modal-title">Player Profile</div>
+      <button class="profile-modal-close" id="profile-modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="profile-modal-body">
+      <div class="profile-form-row">
+        <div class="profile-form-field">
+          <label class="profile-form-label" for="pp-position">Position</label>
+          <select class="profile-form-select" id="pp-position">
+            <option value="" disabled selected>Select position</option>
+            <option value="PG">PG — Point Guard</option>
+            <option value="SG">SG — Shooting Guard</option>
+            <option value="SF">SF — Small Forward</option>
+            <option value="PF">PF — Power Forward</option>
+            <option value="C">C — Center</option>
+          </select>
+        </div>
+        <div class="profile-form-field">
+          <label class="profile-form-label" for="pp-skill">Skill Level</label>
+          <select class="profile-form-select" id="pp-skill">
+            <option value="" disabled selected>Select level</option>
+            <option value="Beginner">Beginner</option>
+            <option value="Intermediate">Intermediate</option>
+            <option value="Advanced">Advanced</option>
+          </select>
+        </div>
+      </div>
+      <div class="profile-form-row">
+        <div class="profile-form-field">
+          <label class="profile-form-label" for="pp-height">Height (inches)</label>
+          <input class="profile-form-input" id="pp-height" type="number" min="48" max="96" placeholder="e.g. 72" />
+        </div>
+        <div class="profile-form-field">
+          <label class="profile-form-label" for="pp-age">Age</label>
+          <input class="profile-form-input" id="pp-age" type="number" min="8" max="99" placeholder="e.g. 22" />
+        </div>
+      </div>
+      <div class="profile-form-field">
+        <label class="profile-form-label" for="pp-goal">Primary Goal</label>
+        <select class="profile-form-select" id="pp-goal">
+          <option value="" disabled selected>Select goal</option>
+          <option value="Shooting">Shooting</option>
+          <option value="Ball Handling">Ball Handling</option>
+          <option value="Defense">Defense</option>
+          <option value="Finishing">Finishing</option>
+          <option value="Conditioning">Conditioning</option>
+        </select>
+      </div>
+    </div>
+    <div class="profile-modal-footer">
+      <button class="profile-cancel-btn" id="profile-cancel-btn">Cancel</button>
+      <button class="profile-save-btn" id="profile-save-btn">Save Profile</button>
+    </div>
+  </div>
+</div>
+
+<!-- Pro Moves Detail Modal -->
+<div class="mv-modal-overlay" id="mv-modal-overlay">
+  <div class="mv-modal">
+    <div class="mv-modal-header">
+      <div class="mv-modal-title" id="mv-modal-title"></div>
+      <button class="mv-modal-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="mv-modal-body">
+      <div class="mv-modal-canvas-wrap">
+        <canvas id="mv-modal-canvas" width="280" height="176"></canvas>
+      </div>
+      <div class="mv-modal-inspired" id="mv-modal-inspired"></div>
+      <div>
+        <div class="mv-modal-drill-title">Training Drill</div>
+        <div class="mv-modal-drill-text" id="mv-modal-drill-text"></div>
+      </div>
+    </div>
+    <div class="mv-modal-footer">
+      <button class="mv-modal-close-btn">Close</button>
+    </div>
+  </div>
+</div>
+
 <script src="js/supabase-client.js"></script>
 <script src="js/data-service.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/dashboard.js"></script>
 <script src="js/ai-coach.js"></script>
+<script src="js/drill-animations.js"></script>
+<script src="js/drill-engine.js"></script>
+<script src="js/animations.js"></script>
+<script src="js/player-profile.js"></script>
+<script src="js/daily-workout.js"></script>
+<script src="js/shot-tracker.js"></script>
+<script src="js/progress-charts.js"></script>
+<script src="js/move-animations.js"></script>
+<script src="js/move-library.js"></script>
+<script src="js/gamification.js"></script>
 
 </body>
 </html>
