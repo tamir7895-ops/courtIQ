@@ -977,7 +977,7 @@
 
     else if (style === 'waves') {
       ctx.fillStyle = color;
-      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY + 6);
+      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY - 4);
       // Wave arcs
       ctx.strokeStyle = withAlpha(bright > 100 ? sh : hi, 0.2);
       ctx.lineWidth = 1.2;
@@ -998,7 +998,7 @@
       // Base volume
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(CX, HEAD_CY - 2, HEAD_RX + 3, HEAD_RY*0.55, 0, Math.PI*1.02, Math.PI*1.98, true);
+      ctx.ellipse(CX, HEAD_CY - 6, HEAD_RX + 3, HEAD_RY*0.45, 0, Math.PI*1.02, Math.PI*1.98, true);
       ctx.fill();
       ctx.restore();
 
