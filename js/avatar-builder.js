@@ -1640,53 +1640,42 @@
       ctx.stroke();
     }
 
-    // Eyes (Memoji style even at mini)
+    // Eyes (clean simple style for mini — avoids mask effect at small scale)
     var meY = cy + 0.5;
     var mBright = hexBrightness(cfg.skinTone);
     var mDark = mBright < 120;
     [-1, 1].forEach(function(side) {
       var ex = cx + side * 5;
-      // Sclera
-      ctx.fillStyle = '#f0ece4';
+      // Small sclera
+      ctx.fillStyle = mDark ? '#e8e4dc' : '#f0ece4';
       ctx.beginPath();
-      ctx.ellipse(ex, meY, 3, 2.2, 0, 0, Math.PI*2);
+      ctx.ellipse(ex, meY, 2.5, 1.8, 0, 0, Math.PI*2);
       ctx.fill();
-      // Iris
-      ctx.fillStyle = '#2a1f14';
+      // Dark iris (fills most of the eye)
+      ctx.fillStyle = '#1a1408';
       ctx.beginPath();
-      ctx.arc(ex + side*0.3, meY + 0.2, 1.6, 0, Math.PI*2);
+      ctx.arc(ex + side*0.2, meY + 0.1, 1.4, 0, Math.PI*2);
       ctx.fill();
-      // Pupil
-      ctx.fillStyle = '#050505';
+      // Catchlight dot
+      ctx.fillStyle = rgba(255,255,255,0.8);
       ctx.beginPath();
-      ctx.arc(ex + side*0.3, meY + 0.2, 0.8, 0, Math.PI*2);
+      ctx.arc(ex - 0.4, meY - 0.4, 0.45, 0, Math.PI*2);
       ctx.fill();
-      // Catchlight
-      ctx.fillStyle = rgba(255,255,255,0.85);
-      ctx.beginPath();
-      ctx.arc(ex - 0.5, meY - 0.6, 0.55, 0, Math.PI*2);
-      ctx.fill();
-      // Upper lid (very subtle at mini scale)
-      ctx.strokeStyle = mDark ? rgba(15,10,5,0.15) : rgba(30,20,10,0.2);
-      ctx.lineWidth = 0.4;
-      ctx.beginPath();
-      ctx.ellipse(ex, meY, 3, 2.2, 0, Math.PI, 0, true);
-      ctx.stroke();
     });
 
-    // Eyebrows (subtle at mini scale to avoid band effect)
-    ctx.strokeStyle = mDark ? rgba(20,12,6,0.2) : rgba(40,25,15,0.28);
-    ctx.lineWidth = mDark ? 0.7 : 0.8;
+    // Eyebrows (thin, subtle — no heavy band)
+    ctx.strokeStyle = mDark ? rgba(20,12,6,0.18) : rgba(40,25,15,0.25);
+    ctx.lineWidth = 0.6;
     ctx.lineCap = 'round';
     [-1, 1].forEach(function(side) {
       ctx.beginPath();
-      ctx.moveTo(cx + side*2.5, meY - 4);
-      ctx.quadraticCurveTo(cx + side*5, meY - 5.5, cx + side*7.5, meY - 3.8);
+      ctx.moveTo(cx + side*3, meY - 3.5);
+      ctx.quadraticCurveTo(cx + side*5, meY - 4.5, cx + side*7, meY - 3.2);
       ctx.stroke();
     });
 
     // Nose
-    ctx.fillStyle = withAlpha(warmShadow(cfg.skinTone, 12), mDark ? 0.1 : 0.15);
+    ctx.fillStyle = withAlpha(warmShadow(cfg.skinTone, 12), mDark ? 0.08 : 0.12);
     ctx.beginPath();
     ctx.ellipse(cx, meY + 4.5, 2, 1.2, 0, 0, Math.PI*2);
     ctx.fill();
