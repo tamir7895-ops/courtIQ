@@ -608,35 +608,42 @@
   /* ── Head (Memoji-quality with 5-stop skin gradient) ──────── */
   function drawHead(ctx, cfg) {
     var skin = cfg.skinTone;
-    var hi = warmHighlight(skin, 14);
-    var mid = skin;
-    var sh = warmShadow(skin, 10);
+    var bright = hexBrightness(skin);
 
-    // Ambient occlusion halo (very subtle dark edge)
+    // Ambient occlusion halo (very subtle dark edge around head)
     ctx.save();
     headShape(ctx, CX, HEAD_CY, HEAD_RX + 1, HEAD_RY + 1);
-    ctx.fillStyle = withAlpha(warmShadow(skin, 18), 0.08);
+    ctx.fillStyle = withAlpha(warmShadow(skin, 14), 0.06);
     ctx.fill();
     ctx.restore();
 
-    // Main head with gentle radial gradient (light from upper-center)
+    // FLAT base fill — eliminates raccoon mask caused by gradient brightness variation
     headShape(ctx, CX, HEAD_CY, HEAD_RX, HEAD_RY);
-    var fG = ctx.createRadialGradient(
-      CX - 3, HEAD_CY - 6, HEAD_RX * 0.15,
-      CX, HEAD_CY + 2, HEAD_RX * 1.2
-    );
-    fG.addColorStop(0, hi);
-    fG.addColorStop(0.45, mid);
-    fG.addColorStop(0.8, sh);
-    fG.addColorStop(1.0, warmShadow(skin, 14));
-    ctx.fillStyle = fG;
+    ctx.fillStyle = skin;
     ctx.fill();
 
-    // Cheek blush (subtle warm tint)
+    // 3D shading as subtle OVERLAY on top of flat base (clipped to head)
     ctx.save();
     headShape(ctx, CX, HEAD_CY, HEAD_RX, HEAD_RY);
     ctx.clip();
-    var blushC = hexBrightness(skin) > 140 ? rgba(220,140,120,0.1) : rgba(180,100,80,0.08);
+
+    // Bottom/jaw shadow (concentric, fades from bottom edge)
+    var jawG = ctx.createRadialGradient(CX, HEAD_CY - 4, HEAD_RX * 0.5, CX, HEAD_CY - 4, HEAD_RY * 1.3);
+    jawG.addColorStop(0, rgba(0,0,0,0));
+    jawG.addColorStop(0.7, rgba(0,0,0,0));
+    jawG.addColorStop(1, withAlpha(warmShadow(skin, 12), bright < 120 ? 0.12 : 0.18));
+    ctx.fillStyle = jawG;
+    ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY*2);
+
+    // Top highlight (forehead glow, very gentle)
+    var hiG = ctx.createRadialGradient(CX, HEAD_CY - HEAD_RY * 0.45, 4, CX, HEAD_CY - HEAD_RY * 0.3, HEAD_RX * 0.8);
+    hiG.addColorStop(0, withAlpha(warmHighlight(skin, 10), bright < 120 ? 0.08 : 0.14));
+    hiG.addColorStop(1, rgba(0,0,0,0));
+    ctx.fillStyle = hiG;
+    ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY);
+
+    // Cheek blush (subtle warm tint)
+    var blushC = bright > 140 ? rgba(220,140,120,0.1) : rgba(180,100,80,0.06);
     [-1, 1].forEach(function(side) {
       ctx.fillStyle = blushC;
       ctx.beginPath();
@@ -644,19 +651,12 @@
       ctx.fill();
     });
 
-    // Gentle forehead highlight (covers forehead through eye area for even lighting)
-    var fhG = ctx.createRadialGradient(CX - 2, HEAD_CY - 4, 4, CX, HEAD_CY, HEAD_RX * 0.9);
-    fhG.addColorStop(0, withAlpha(hi, 0.12));
-    fhG.addColorStop(1, rgba(0,0,0,0));
-    ctx.fillStyle = fhG;
-    ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY*1.2);
-
-    // Rim light (cool blue on left edge, subtle)
-    var rimG = ctx.createLinearGradient(CX - HEAD_RX - 2, HEAD_CY, CX - HEAD_RX + 6, HEAD_CY);
-    rimG.addColorStop(0, rgba(150,190,255,0.08));
+    // Rim light (cool blue on left edge, very subtle)
+    var rimG = ctx.createLinearGradient(CX - HEAD_RX - 2, HEAD_CY, CX - HEAD_RX + 5, HEAD_CY);
+    rimG.addColorStop(0, rgba(150,190,255,0.06));
     rimG.addColorStop(1, rgba(0,0,0,0));
     ctx.fillStyle = rimG;
-    ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY + 4, 8, HEAD_RY*2 - 8);
+    ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY + 4, 7, HEAD_RY*2 - 8);
 
     ctx.restore();
 
