@@ -1642,6 +1642,8 @@
 
     // Eyes (Memoji style even at mini)
     var meY = cy + 0.5;
+    var mBright = hexBrightness(cfg.skinTone);
+    var mDark = mBright < 120;
     [-1, 1].forEach(function(side) {
       var ex = cx + side * 5;
       // Sclera
@@ -1664,17 +1666,17 @@
       ctx.beginPath();
       ctx.arc(ex - 0.5, meY - 0.6, 0.55, 0, Math.PI*2);
       ctx.fill();
-      // Upper lid
-      ctx.strokeStyle = rgba(30,20,10,0.4);
-      ctx.lineWidth = 0.7;
+      // Upper lid (lighter on dark skin)
+      ctx.strokeStyle = mDark ? rgba(15,10,5,0.2) : rgba(30,20,10,0.35);
+      ctx.lineWidth = mDark ? 0.5 : 0.7;
       ctx.beginPath();
       ctx.ellipse(ex, meY, 3, 2.2, 0, Math.PI, 0, true);
       ctx.stroke();
     });
 
-    // Eyebrows
-    ctx.strokeStyle = rgba(40,25,15,0.45);
-    ctx.lineWidth = 1.2;
+    // Eyebrows (lighter on dark skin)
+    ctx.strokeStyle = mDark ? rgba(20,12,6,0.25) : rgba(40,25,15,0.4);
+    ctx.lineWidth = mDark ? 0.9 : 1.1;
     ctx.lineCap = 'round';
     [-1, 1].forEach(function(side) {
       ctx.beginPath();
@@ -1684,7 +1686,7 @@
     });
 
     // Nose
-    ctx.fillStyle = withAlpha(warmShadow(cfg.skinTone, 15), 0.18);
+    ctx.fillStyle = withAlpha(warmShadow(cfg.skinTone, 12), mDark ? 0.1 : 0.15);
     ctx.beginPath();
     ctx.ellipse(cx, meY + 4.5, 2, 1.2, 0, 0, Math.PI*2);
     ctx.fill();
