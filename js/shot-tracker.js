@@ -77,6 +77,37 @@
       return;
     }
 
+    // Made cannot exceed attempted for each category
+    if (fgMade > fgMade + fgMissed && fgMade + fgMissed > 0) {
+      showError(errEl, 'FG made can\u2019t exceed total FG attempts.');
+      return;
+    }
+    if (threeMade > threeMade + threeMissed && threeMade + threeMissed > 0) {
+      showError(errEl, '3PT made can\u2019t exceed total 3PT attempts.');
+      return;
+    }
+    if (ftMade > ftMade + ftMissed && ftMade + ftMissed > 0) {
+      showError(errEl, 'FT made can\u2019t exceed total FT attempts.');
+      return;
+    }
+
+    // Total shots cap
+    if (totalAttempts > 500) {
+      showError(errEl, 'Max 500 total shots per session. You entered ' + totalAttempts + '.');
+      return;
+    }
+
+    // Warn on unrealistic but still allow
+    if (totalAttempts > 300) {
+      if (!window._shotWarningConfirmed) {
+        showError(errEl, 'That\u2019s ' + totalAttempts + ' total shots \u2014 are you sure? Click again to confirm.');
+        window._shotWarningConfirmed = true;
+        setTimeout(function () { window._shotWarningConfirmed = false; }, 10000);
+        return;
+      }
+      window._shotWarningConfirmed = false;
+    }
+
     hideError(errEl);
 
     var session = {

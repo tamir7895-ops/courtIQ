@@ -46,12 +46,19 @@
     if (dot && ring) {
       let mx = -200, my = -200; // start offscreen
       let rx = -200, ry = -200;
+      let cursorVisible = false;
 
       document.addEventListener('mousemove', (e) => {
         mx = e.clientX;
         my = e.clientY;
         dot.style.left = mx + 'px';
         dot.style.top  = my + 'px';
+        // Always ensure cursor is visible on any mouse movement
+        if (!cursorVisible) {
+          dot.style.opacity  = '1';
+          ring.style.opacity = '1';
+          cursorVisible = true;
+        }
       });
 
       // Spring-physics ring loop
@@ -63,28 +70,30 @@
         raf(animRing);
       })();
 
-      // Hover state: expand cursor
+      // Hover state: use event delegation so dynamically-added elements work
       const interactiveSelector =
-        'a, button, [role="tab"], [role="button"], label, .pos-btn, .nav-btn';
-      document.querySelectorAll(interactiveSelector).forEach((el) => {
-        el.addEventListener('mouseenter', () => {
+        'a, button, [role="tab"], [role="button"], label, .pos-btn, .nav-btn, select, .db-sidebar-item, .ob-swatch, .ob-style-btn, .ob-choice, .ob-goal-chip, .ob-position-card';
+      document.addEventListener('mouseover', (e) => {
+        if (e.target.closest(interactiveSelector)) {
           dot.classList.add('cursor-hover');
           ring.classList.add('cursor-hover');
-        });
-        el.addEventListener('mouseleave', () => {
+        }
+      });
+      document.addEventListener('mouseout', (e) => {
+        if (e.target.closest(interactiveSelector)) {
           dot.classList.remove('cursor-hover');
           ring.classList.remove('cursor-hover');
-        });
+        }
       });
 
-      // Hide when mouse leaves window
-      document.addEventListener('mouseleave', () => {
-        dot.style.opacity  = '0';
-        ring.style.opacity = '0';
-      });
-      document.addEventListener('mouseenter', () => {
-        dot.style.opacity  = '1';
-        ring.style.opacity = '1';
+      // Hide only when mouse truly leaves the viewport
+      document.documentElement.addEventListener('mouseleave', (e) => {
+        // Only hide if mouse actually left the page (not entering a child element)
+        if (e.clientY <= 0 || e.clientX <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight) {
+          dot.style.opacity  = '0';
+          ring.style.opacity = '0';
+          cursorVisible = false;
+        }
       });
     }
   }

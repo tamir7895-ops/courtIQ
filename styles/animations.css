@@ -24,6 +24,11 @@
   visibility: hidden;
   pointer-events: none;
 }
+.loader-icon {
+  width: 64px; height: 64px;
+  animation: loader-breathe 1.4s ease-in-out infinite;
+  margin-bottom: -12px;
+}
 .loader-wordmark {
   font-family: 'Barlow Condensed', sans-serif;
   font-size: 56px;

@@ -23,13 +23,24 @@
     window.currentUser = session.user;
     window.currentSession = session;
 
-    // Update nav: show user greeting + sign out, hide sign in / free trial
+    // Update sidebar user info
+    const sidebarName = document.getElementById('db-sidebar-name');
+    const sidebarAvatar = document.getElementById('db-sidebar-avatar');
+    if (sidebarName) {
+      const name = session.user.user_metadata?.first_name || session.user.email;
+      sidebarName.textContent = name;
+      if (sidebarAvatar && typeof name === 'string') {
+        const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+        sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
+      }
+    }
+
+    // Also update old nav elements (backwards compat)
     const greeting = document.getElementById('nav-user-greeting');
     const signoutBtn = document.getElementById('nav-signout-btn');
     const signinLink = document.getElementById('nav-signin-link');
     const trialBtn = document.getElementById('nav-trial-btn');
     const drawerSignout = document.getElementById('drawer-signout');
-
     if (greeting) {
       const name = session.user.user_metadata?.first_name || session.user.email;
       greeting.textContent = name;
@@ -56,13 +67,33 @@
   ══════════════════════════════════════════════════════════════ */
   async function initDashboard() {
     try {
+      // ── Onboarding check ─────────────────────────────────
+      const onboardingDone = localStorage.getItem('courtiq-onboarding-complete');
+      if (!onboardingDone && typeof Onboarding !== 'undefined') {
+        Onboarding.launch();
+        return;
+      }
+      // ── End onboarding check ─────────────────────────────
+
       // Load profile → populate player name & position
       const profile = await DataService.getProfile();
+      const positionMap = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward', PF: 'Power Forward', C: 'Center' };
       if (profile) {
         const playerEl = document.getElementById('db-player');
         const posEl    = document.getElementById('db-position');
         if (playerEl && profile.first_name) playerEl.value = profile.first_name;
-        if (posEl && profile.position)      posEl.value = profile.position;
+        if (posEl && profile.position) {
+          const posKey = profile.position.toUpperCase();
+          posEl.value = positionMap[posKey] || profile.position;
+        }
+
+        // Pre-fill notification name with actual player name
+        const notifNameEl = document.getElementById('notif-name');
+        if (notifNameEl) {
+          const onboarding = (() => { try { return JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch(e) { return null; } })();
+          const playerName = profile.first_name || (onboarding && onboarding.name) || '';
+          if (playerName) notifNameEl.value = playerName;
+        }
       }
 
       // Load all weeks with sessions
@@ -160,25 +191,65 @@
 
   /* ── tab switching ── */
   function dbSwitchTab(id, btn) {
+    // Update sidebar active state
+    document.querySelectorAll('.db-sidebar-item').forEach(i => i.classList.remove('active'));
+    // Also clear old tab buttons if any exist
     document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
+
+    if (btn) {
+      btn.classList.add('active');
+    } else {
+      const sidebarBtn = document.querySelector('.db-sidebar-item[data-tab="' + id + '"]');
+      if (sidebarBtn) sidebarBtn.classList.add('active');
+    }
+
+    // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
+    const panel = document.getElementById('db-panel-' + id);
+    if (panel) panel.classList.add('active');
+
+    // Panel-specific init calls
     if (id === 'history') dbRenderHistory();
+    if (id === 'calendar' && typeof calSetSource === 'function') {
+      calSetSource(typeof calSource !== 'undefined' ? calSource : 'coach',
+        document.getElementById('cal-src-' + (typeof calSource !== 'undefined' ? calSource : 'coach')));
+    }
+    if (id === 'moves' && typeof movesInit === 'function' && !window._movesInitialized) {
+      window._movesInitialized = true; movesInit();
+    }
+    if (id === 'workouts' && typeof workoutsInit === 'function' && !window._workoutsInitialized) {
+      window._workoutsInitialized = true; workoutsInit();
+    }
+    if (id === 'drills' && typeof drillsInit === 'function') drillsInit();
+    if (id === 'archetype' && typeof archetypeInit === 'function') archetypeInit();
+    if (id === 'shop') {
+      if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
+      try {
+        var shopCanvas = document.getElementById('shop-avatar-preview');
+        var obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+        if (shopCanvas && typeof AvatarBuilder !== 'undefined' && obData.avatar) {
+          AvatarBuilder.draw(shopCanvas, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }));
+        }
+      } catch (e) {}
+    }
+
+    // Close mobile sidebar if open
+    const sidebar = document.getElementById('db-sidebar');
+    const overlay = document.getElementById('db-sidebar-overlay');
+    if (sidebar) sidebar.classList.remove('mobile-open');
+    if (overlay) overlay.classList.remove('visible');
   }
   function dbSwitchTabById(id) {
-    const tabs = document.querySelectorAll('.db-tab');
-    const ids = ['log','summary','history'];
-    tabs.forEach((t,i) => t.classList.toggle('active', ids[i] === id));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    document.getElementById('db-panel-' + id).classList.add('active');
+    dbSwitchTab(id, null);
   }
 
   /* ── update header labels ── */
   function dbUpdateLabels() {
     const wn = dbWeekNum();
-    document.getElementById('db-week-label').textContent = 'Week ' + wn;
-    document.getElementById('db-week-num').textContent = wn;
+    const weekLabel = document.getElementById('db-week-label');
+    const weekNum = document.getElementById('db-week-num');
+    if (weekLabel) weekLabel.textContent = 'Week ' + wn;
+    if (weekNum) weekNum.textContent = wn;
     document.getElementById('db-session-count').textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
     const dayLabel = DB_DAYS[dbSessions.length] || 'Extra Day';
     document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
@@ -186,6 +257,15 @@
     document.getElementById('db-remaining-label').textContent = dbSessions.length === 0
       ? 'Add your first session \u2192'
       : (rem > 0 ? rem + ' session' + (rem > 1 ? 's' : '') + ' left this week' : 'Week complete!');
+
+    // Update week progress bar
+    const progressText = document.getElementById('db-progress-text');
+    const progressFill = document.getElementById('db-progress-fill');
+    if (progressText) {
+      const pct = Math.min(100, Math.round((dbSessions.length / 5) * 100));
+      progressText.textContent = 'Sessions this week: ' + dbSessions.length + ' / 5' + (rem > 0 ? ' \u2014 ' + rem + ' more to unlock your weekly summary' : ' \u2014 Ready to generate!');
+      if (progressFill) progressFill.style.width = pct + '%';
+    }
   }
 
   /* ── render session list ── */
@@ -447,19 +527,35 @@
   /* ── render history ── */
   function dbRenderHistory() {
     const list = document.getElementById('db-history-list');
-    document.getElementById('db-history-count').textContent = dbWeeks.length + ' week' + (dbWeeks.length !== 1 ? 's' : '') + ' tracked';
-    if (dbWeeks.length === 0) {
-      list.innerHTML = '<div class="db-empty"><div class="db-empty-icon">\ud83d\udcc5</div><div class="db-empty-text">No history yet. Complete a week to see it here.</div></div>';
+
+    // Build display list: completed weeks + current in-progress week
+    const allWeeks = [...dbWeeks];
+    if (dbSessions.length > 0) {
+      allWeeks.push({
+        id: currentWeekId,
+        week: 'Week ' + currentWeekNum,
+        label: 'W' + currentWeekNum,
+        days: dbSessions,
+        summary_json: null,
+        _inProgress: true,
+      });
+    }
+
+    const totalCount = allWeeks.length;
+    document.getElementById('db-history-count').textContent = totalCount + ' week' + (totalCount !== 1 ? 's' : '') + ' tracked';
+    if (totalCount === 0) {
+      list.innerHTML = '<div class="db-empty"><div class="db-empty-icon">\ud83d\udcc5</div><div class="db-empty-text">No history yet.<br><button class="db-generate-btn" style="width:auto;padding:10px 24px;margin-top:12px;font-size:13px;" onclick="dbSwitchTabById(\'log\')">Log Your First Session \u2192</button></div></div>';
       return;
     }
-    list.innerHTML = [...dbWeeks].reverse().map((w, i) => {
+    list.innerHTML = [...allWeeks].reverse().map((w, i) => {
       const s = dbWeekStats(w);
       const isLatest = i === 0 && dbResult;
+      const isInProgress = w._inProgress;
       return `
-        <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : ''}">
-          <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : ''}">
-            <div class="db-history-week" style="color:${isLatest ? '#f5a623' : 'var(--c-white)'}">${sanitize(w.week)}${isLatest ? ' <span style="font-size:13px;font-weight:400;">\u00b7 Latest</span>' : ''}</div>
-            <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} sessions</div>
+        <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : isInProgress ? 'border-color:rgba(76,163,255,0.28)' : ''}">
+          <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : isInProgress ? 'background:linear-gradient(135deg,rgba(76,163,255,0.07) 0%,transparent 60%)' : ''}">
+            <div class="db-history-week" style="color:${isLatest ? '#f5a623' : isInProgress ? '#4ca3ff' : 'var(--c-white)'}">${sanitize(w.week)}${isLatest ? ' <span style="font-size:13px;font-weight:400;">\u00b7 Latest</span>' : isInProgress ? ' <span style="font-size:13px;font-weight:400;">\u00b7 In Progress</span>' : ''}</div>
+            <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} session${w.days.length !== 1 ? 's' : ''}</div>
           </div>
           <div class="db-history-body">
             <div class="db-history-stats">
@@ -888,5 +984,49 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
     document.getElementById('sb-success').style.display = 'block';
     showToast('You\'re on the list! Check your inbox for a welcome email.');
   }
+
+  /* ══════════════════════════════════════════════════════════════
+     SIDEBAR NAVIGATION
+  ══════════════════════════════════════════════════════════════ */
+  (function initSidebar() {
+    // Sidebar nav click handlers
+    document.querySelectorAll('.db-sidebar-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tab = btn.dataset.tab;
+        dbSwitchTab(tab, btn);
+      });
+    });
+
+    // Collapse toggle (desktop)
+    const collapseBtn = document.getElementById('db-sidebar-toggle');
+    const sidebar = document.getElementById('db-sidebar');
+    if (collapseBtn && sidebar) {
+      collapseBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('collapsed');
+        // Store preference
+        localStorage.setItem('courtiq-sidebar-collapsed', sidebar.classList.contains('collapsed'));
+      });
+      // Restore preference
+      if (localStorage.getItem('courtiq-sidebar-collapsed') === 'true') {
+        sidebar.classList.add('collapsed');
+      }
+    }
+
+    // Mobile toggle
+    const mobileToggle = document.getElementById('db-sidebar-mobile-toggle');
+    const overlay = document.getElementById('db-sidebar-overlay');
+    if (mobileToggle && sidebar) {
+      mobileToggle.addEventListener('click', () => {
+        sidebar.classList.toggle('mobile-open');
+        if (overlay) overlay.classList.toggle('visible');
+      });
+    }
+    if (overlay) {
+      overlay.addEventListener('click', () => {
+        if (sidebar) sidebar.classList.remove('mobile-open');
+        overlay.classList.remove('visible');
+      });
+    }
+  })();
 
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */

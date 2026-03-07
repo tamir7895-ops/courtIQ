@@ -5,10 +5,10 @@
 
 /* ─── CSS VARIABLES ────────────────────────────────────────── */
 :root {
-  --c-bg:        #0c0d0f;
-  --c-surface:   #141518;
-  --c-surface2:  #1c1e23;
-  --c-border:    rgba(255,255,255,0.07);
+  --c-bg:        #0e1014;
+  --c-surface:   #161921;
+  --c-surface2:  #1e2129;
+  --c-border:    rgba(255,255,255,0.06);
   --c-amber:     #f5a623;
   --c-amber-dim: rgba(245,166,35,0.12);
   --c-amber-glow:rgba(245,166,35,0.25);
@@ -16,11 +16,21 @@
   --c-muted:     rgba(240,237,230,0.45);
   --c-dimmer:    rgba(240,237,230,0.22);
   --c-red:       #e84040;
-  --r-sm:        8px;
-  --r-md:        14px;
+  --c-teal:      #2dd4bf;
+  --c-teal-dim:  rgba(45,212,191,0.10);
+  --c-blue:      #4ca3ff;
+  --c-blue-dim:  rgba(76,163,255,0.10);
+  --r-sm:        10px;
+  --r-md:        16px;
   --r-lg:        24px;
-  --shadow-card: 0 2px 40px rgba(0,0,0,0.5);
+  --r-xl:        32px;
+  --shadow-card:    0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-card-lg: 0 4px 12px rgba(0,0,0,0.3), 0 24px 64px rgba(0,0,0,0.35);
   --shadow-btn:  0 8px 32px rgba(245,166,35,0.35);
+  --shadow-glow: 0 0 40px rgba(245,166,35,0.08);
+  --glass-bg:     rgba(22,25,33,0.7);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-blur:   20px;
   --font-display:'Barlow Condensed', sans-serif;
   --font-body:   'Barlow', sans-serif;
   --transition:  0.25s cubic-bezier(0.4,0,0.2,1);
@@ -30,12 +40,12 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html {
   scroll-behavior: smooth;
-  background: #0c0d0f;           /* prevent white flash on iOS/Safari */
+  background: #0e1014;           /* prevent white flash on iOS/Safari */
 }
 
 body {
-  background: #0c0d0f;
-  background-color: #0c0d0f;     /* belt-and-suspenders — no white ever */
+  background: #0e1014;
+  background-color: #0e1014;     /* belt-and-suspenders — no white ever */
   color: var(--c-white);
   font-family: var(--font-body);
   font-size: 16px;
@@ -204,12 +214,7 @@ a.label-tag:hover {
 }
 .nav-logo-icon {
   width: 36px; height: 36px;
-  background: var(--c-amber);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 18px;
+  flex-shrink: 0;
 }
 .nav-logo span { color: var(--c-amber); }
 
@@ -398,12 +403,16 @@ footer {
 .footer-brand-logo span { color: var(--c-amber); }
 .footer-brand-icon {
   width: 32px; height: 32px;
-  background: var(--c-amber);
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
+  flex-shrink: 0;
+}
+.footer-brand-sub {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+  margin-top: -8px;
 }
 .footer-tagline {
   font-size: 14px;
@@ -561,10 +570,7 @@ footer {
 .sidebar-header-left { display: flex; align-items: center; gap: 10px; }
 .sidebar-logo-icon {
   width: 30px; height: 30px;
-  background: var(--c-amber);
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 15px; flex-shrink: 0;
+  flex-shrink: 0;
 }
 .sidebar-title {
   font-family: var(--font-display);
@@ -785,10 +791,7 @@ footer {
 }
 .auth-modal-logo-icon {
   width: 28px; height: 28px;
-  background: var(--c-amber);
-  border-radius: 7px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px;
+  flex-shrink: 0;
 }
 .auth-modal-brand {
   font-family: var(--font-display);

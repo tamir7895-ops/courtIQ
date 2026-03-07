@@ -611,14 +611,5 @@ Rules:
     setTimeout(() => { btn.textContent = 'Copy JSON'; btn.style.color = ''; }, 2000);
   }
 
-  /* Refresh source status when switching to calendar tab */
-  const _origSwitchCal = dbSwitchTab;
-  function dbSwitchTab(id, btn) {
-    document.querySelectorAll('.db-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
-    if (btn) btn.classList.add('active');
-    document.getElementById('db-panel-' + id).classList.add('active');
-    if (id === 'history') dbRenderHistory();
-    if (id === 'calendar') calSetSource(calSource, document.getElementById('cal-src-' + calSource));
-  }
+  /* Calendar tab init is handled by dbSwitchTab in dashboard.js */
 

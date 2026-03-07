@@ -64,8 +64,10 @@
 
 /* Card */
 .dw-card {
-  background: var(--c-surface2);
-  border: 1px solid var(--c-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
   padding: 20px;
   display: flex;

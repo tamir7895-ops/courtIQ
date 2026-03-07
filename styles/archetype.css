@@ -1,0 +1,336 @@
+/* ══════════════════════════════════════════════════════════
+   BASKETBALL ARCHETYPE ENGINE — Form, result card, drills
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Layout ───────────────────────────────────────────────── */
+.at-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* ── Form Card ────────────────────────────────────────────── */
+.at-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: 28px;
+  box-shadow: var(--shadow-card);
+}
+
+.at-card-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  margin-bottom: 4px;
+}
+
+.at-card-sub {
+  font-size: 13px;
+  color: var(--c-muted);
+  line-height: 1.6;
+  margin-bottom: 22px;
+}
+
+/* Fields */
+.at-field {
+  margin-bottom: 16px;
+}
+
+.at-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--c-muted);
+  margin-bottom: 6px;
+}
+
+.at-input,
+.at-select {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color 0.2s ease;
+  box-sizing: border-box;
+}
+
+.at-input:focus,
+.at-select:focus {
+  outline: none;
+  border-color: var(--c-amber);
+}
+
+.at-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23666' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+.at-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.at-error {
+  font-size: 12px;
+  color: #f85149;
+  margin-bottom: 12px;
+  min-height: 18px;
+}
+
+.at-submit-btn {
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, rgba(245,166,35,0.15), rgba(245,166,35,0.05));
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: var(--r-sm);
+  color: var(--c-amber);
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
+}
+
+.at-submit-btn:hover {
+  background: linear-gradient(135deg, rgba(245,166,35,0.22), rgba(245,166,35,0.1));
+  box-shadow: 0 4px 20px rgba(245,166,35,0.15);
+  transform: translateY(-1px);
+}
+
+.at-submit-btn:active {
+  transform: translateY(0);
+}
+
+/* ── Result Card ──────────────────────────────────────────── */
+.at-result {
+  display: none;
+}
+
+.at-result.active {
+  display: block;
+}
+
+.at-result-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.at-result-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.15);
+}
+
+.at-result-name {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-amber);
+  line-height: 1.1;
+}
+
+.at-result-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--c-muted);
+  margin-bottom: 2px;
+}
+
+/* Description */
+.at-result-desc {
+  font-size: 14px;
+  color: var(--c-muted);
+  line-height: 1.7;
+  margin-bottom: 22px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+/* Training Focus */
+.at-section-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-amber);
+  margin-bottom: 10px;
+}
+
+.at-focus-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.at-focus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(76,163,255,0.08);
+  color: #4ca3ff;
+  border: 1px solid rgba(76,163,255,0.15);
+}
+
+/* Recommended Drills */
+.at-drills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+
+.at-drill-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  font-size: 13px;
+  color: var(--c-white);
+}
+
+.at-drill-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.at-drill-name {
+  flex: 1;
+}
+
+/* Player Inspirations */
+.at-inspirations {
+  margin-bottom: 18px;
+}
+
+.at-insp-label {
+  font-size: 11px;
+  font-weight: 600;
+  font-style: italic;
+  color: var(--c-dimmer);
+  margin-bottom: 10px;
+}
+
+.at-insp-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.at-insp-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(188,140,255,0.08);
+  color: #bc8cff;
+  border: 1px solid rgba(188,140,255,0.15);
+}
+
+/* Disclaimer */
+.at-disclaimer {
+  font-size: 10px;
+  color: var(--c-dimmer);
+  line-height: 1.6;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+  font-style: italic;
+}
+
+/* Empty state */
+.at-empty {
+  text-align: center;
+  padding: 48px 20px;
+}
+
+.at-empty-icon {
+  font-size: 48px;
+  margin-bottom: 14px;
+}
+
+.at-empty-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin-bottom: 6px;
+}
+
+.at-empty-text {
+  font-size: 13px;
+  color: var(--c-muted);
+  max-width: 320px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .at-layout {
+    grid-template-columns: 1fr;
+  }
+  .at-row-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 580px) {
+  .at-card {
+    padding: 20px;
+  }
+  .at-result-name {
+    font-size: 22px;
+  }
+  .at-result-icon {
+    width: 46px;
+    height: 46px;
+    font-size: 22px;
+  }
+}

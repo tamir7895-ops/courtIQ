@@ -10,10 +10,13 @@
 
 /* ── Card ─────────────────────────────────────────────────── */
 .st-card {
-  background: var(--c-surface);
-  border: 1px solid var(--c-border);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
   padding: 28px;
+  box-shadow: var(--shadow-card);
 }
 
 .st-card-title {

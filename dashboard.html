@@ -1,13 +1,15 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#0c0d0f;">
+<html lang="en" style="background:#0e1014;">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0c0d0f" />
+  <meta name="theme-color" content="#0e1014" />
+  <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
+  <link rel="apple-touch-icon" href="assets/favicon.svg" />
   <title>CourtIQ — AI Performance Dashboard</title>
   <meta name="description" content="CourtIQ AI Performance Dashboard — log sessions, track progress, and get AI-powered coaching feedback." />
 
-  <style>html,body{background:#0c0d0f!important;color:#f0ede6;}</style>
+  <style>html,body{background:#0e1014!important;color:#f0ede6;}</style>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -20,16 +22,22 @@
   <link rel="stylesheet" href="styles/profile.css" />
   <link rel="stylesheet" href="styles/daily-workout.css" />
   <link rel="stylesheet" href="styles/gamification.css" />
+  <link rel="stylesheet" href="styles/shop.css" />
+  <link rel="stylesheet" href="styles/avatar-customizer.css" />
   <link rel="stylesheet" href="styles/shot-tracker.css" />
   <link rel="stylesheet" href="styles/charts.css" />
   <link rel="stylesheet" href="styles/move-library.css" />
+  <link rel="stylesheet" href="styles/challenge.css" />
+  <link rel="stylesheet" href="styles/archetype.css" />
+  <link rel="stylesheet" href="styles/onboarding.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
-<body>
+<body class="is-dashboard">
 
 <!-- PAGE LOADER -->
 <div id="page-loader" role="status" aria-label="Loading CourtIQ">
+  <img src="assets/logo-icon.svg" alt="" class="loader-icon" width="64" height="64">
   <div class="loader-wordmark">Court<span>IQ</span></div>
   <div class="loader-bar"><div class="loader-bar-fill"></div></div>
 </div>
@@ -46,7 +54,7 @@
   <div class="container">
     <div class="nav-inner">
       <a href="index.html" class="nav-logo" aria-label="CourtIQ - Home">
-        <div class="nav-logo-icon" aria-hidden="true">🏀</div>
+        <img src="assets/logo-icon.svg" alt="" class="nav-logo-icon" aria-hidden="true" width="36" height="36">
         Court<span>IQ</span>
       </a>
 
@@ -84,40 +92,152 @@
 <!-- ══════════════════════════════════════════
      AI PERFORMANCE DASHBOARD
 ══════════════════════════════════════════ -->
-<section id="dashboard" class="section dashboard-section" aria-labelledby="dashboard-title">
-  <div class="container" style="position:relative;z-index:2;">
+<div class="db-layout-root">
 
-    <header class="section-header reveal" style="margin-bottom:36px;">
-      <a href="#dashboard" class="label-tag" style="text-decoration:none;cursor:pointer;">Live Dashboard</a>
-      <h2 class="section-title" id="dashboard-title">
-        Track Your<br>
-        <span>Progress</span><br>
-        <span class="outline">With AI</span>
-      </h2>
-      <p class="section-desc" style="margin:0 auto;">
-        Log your daily training sessions and get instant AI-generated weekly summaries, progress graphs, and personalized coaching feedback.
-      </p>
-    </header>
-
-    <!-- Player Profile Summary -->
-    <div class="profile-summary reveal">
-      <div id="profile-summary-content"></div>
-      <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
+  <!-- SIDEBAR NAVIGATION -->
+  <aside class="db-sidebar" id="db-sidebar">
+    <div class="db-sidebar-header">
+      <a href="index.html" class="db-sidebar-logo">
+        <img src="assets/logo-icon.svg" alt="" width="28" height="28">
+        <span class="db-sidebar-logo-text">Court<em>IQ</em></span>
+      </a>
+      <button class="db-sidebar-collapse-btn" id="db-sidebar-toggle" aria-label="Toggle sidebar">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M10 12L6 8l4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
     </div>
 
-    <!-- XP / Level Widget -->
-    <div class="xp-widget reveal" id="xp-widget">
-      <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
-      <div class="xp-info">
-        <div class="xp-info-top">
-          <div>
-            <span class="xp-rank" id="xp-rank">Rookie</span>
-            <span class="xp-rank-label">Level</span>
-          </div>
-          <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
+    <nav class="db-sidebar-nav" role="navigation" aria-label="Dashboard navigation">
+      <div class="db-sidebar-group">
+        <div class="db-sidebar-group-label">Training</div>
+        <button class="db-sidebar-item active" data-tab="log">
+          <span class="db-sidebar-icon">📋</span>
+          <span class="db-sidebar-text">Log Session</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="drills">
+          <span class="db-sidebar-icon">🎯</span>
+          <span class="db-sidebar-text">Drills</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="workouts">
+          <span class="db-sidebar-icon">🏀</span>
+          <span class="db-sidebar-text">Workouts</span>
+        </button>
+      </div>
+
+      <div class="db-sidebar-group">
+        <div class="db-sidebar-group-label">Analytics</div>
+        <button class="db-sidebar-item" data-tab="summary">
+          <span class="db-sidebar-icon">📊</span>
+          <span class="db-sidebar-text">Weekly Summary</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="history">
+          <span class="db-sidebar-icon">📅</span>
+          <span class="db-sidebar-text">History</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="shots">
+          <span class="db-sidebar-icon">🏹</span>
+          <span class="db-sidebar-text">Shot Tracker</span>
+        </button>
+      </div>
+
+      <div class="db-sidebar-group">
+        <div class="db-sidebar-group-label">AI Coach</div>
+        <button class="db-sidebar-item" data-tab="coach">
+          <span class="db-sidebar-icon">🏋️</span>
+          <span class="db-sidebar-text">AI Coach</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="calendar">
+          <span class="db-sidebar-icon">📆</span>
+          <span class="db-sidebar-text">Calendar</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="notifications">
+          <span class="db-sidebar-icon">🔔</span>
+          <span class="db-sidebar-text">Notifications</span>
+        </button>
+      </div>
+
+      <div class="db-sidebar-group">
+        <div class="db-sidebar-group-label">Profile</div>
+        <button class="db-sidebar-item" data-tab="archetype">
+          <span class="db-sidebar-icon">🧬</span>
+          <span class="db-sidebar-text">Archetype</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="shop">
+          <span class="db-sidebar-icon">🛍️</span>
+          <span class="db-sidebar-text">Shop</span>
+        </button>
+        <button class="db-sidebar-item" data-tab="moves">
+          <span class="db-sidebar-icon">🤸</span>
+          <span class="db-sidebar-text">Pro Moves</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="db-sidebar-footer">
+      <div class="db-sidebar-user" id="db-sidebar-user">
+        <div class="db-sidebar-avatar" id="db-sidebar-avatar">MR</div>
+        <div class="db-sidebar-user-info">
+          <span class="db-sidebar-user-name" id="db-sidebar-name">Player</span>
+          <span class="db-sidebar-user-role" id="db-sidebar-role">Point Guard</span>
         </div>
-        <div class="xp-bar">
-          <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+      </div>
+      <button class="db-sidebar-signout" onclick="signOut()">Sign Out</button>
+    </div>
+  </aside>
+
+  <!-- Mobile sidebar toggle -->
+  <button class="db-sidebar-mobile-toggle" id="db-sidebar-mobile-toggle" aria-label="Open navigation">
+    <span></span><span></span><span></span>
+  </button>
+
+  <!-- Mobile sidebar overlay -->
+  <div class="db-sidebar-overlay" id="db-sidebar-overlay"></div>
+
+  <!-- MAIN CONTENT AREA -->
+  <main class="db-main" id="db-main">
+    <div class="db-main-inner">
+
+    <!-- Dashboard header -->
+    <div class="db-main-header">
+      <div>
+        <h1 class="db-main-title">Dashboard</h1>
+        <p class="db-main-subtitle">Track your progress and train smarter with AI</p>
+      </div>
+      <div class="db-main-header-right">
+        <div class="db-week-pill">
+          <span id="db-week-label">Week 1</span>
+          <span id="db-session-count">0 sessions logged</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top widgets row -->
+    <div class="db-top-widgets">
+      <!-- Player Profile Summary -->
+      <div class="profile-summary">
+        <div id="profile-summary-content"></div>
+        <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
+          <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
+        </div>
+      </div>
+
+      <!-- XP / Level Widget -->
+      <div class="xp-widget" id="xp-widget">
+        <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
+        <div class="xp-info">
+          <div class="xp-info-top">
+            <div>
+              <span class="xp-rank" id="xp-rank">Rookie</span>
+              <span class="xp-rank-label">Level</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
+              <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;"></div>
+            </div>
+          </div>
+          <div class="xp-bar">
+            <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -125,8 +245,11 @@
     <!-- XP gain toast -->
     <div class="xp-gain-toast" id="xp-gain-toast"></div>
 
+    <!-- Daily Challenge Card -->
+    <div class="dc-card" id="dc-card"></div>
+
     <!-- Player context row -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;" class="reveal">
+    <div class="db-context-row">
       <div class="db-field">
         <label class="db-label">👤 Player Name</label>
         <input class="db-input" id="db-player" type="text" value="Marcus R." />
@@ -138,24 +261,6 @@
           <option>Small Forward</option><option>Power Forward</option><option>Center</option>
         </select>
       </div>
-      <div class="db-week-pill">
-        <span id="db-week-label">Week 4</span>
-        <span id="db-session-count">0 sessions logged</span>
-      </div>
-    </div>
-
-    <!-- Tab nav -->
-    <div class="db-tabs reveal">
-      <button class="db-tab active" onclick="dbSwitchTab('log',this)">📋 Log Session</button>
-      <button class="db-tab" onclick="dbSwitchTab('summary',this)">📊 Weekly Summary</button>
-      <button class="db-tab" onclick="dbSwitchTab('history',this)">📅 History</button>
-      <button class="db-tab" onclick="dbSwitchTab('notifications',this)">🔔 Notifications</button>
-      <button class="db-tab" onclick="dbSwitchTab('coach',this)">🏋️ AI Coach</button>
-      <button class="db-tab" onclick="dbSwitchTab('calendar',this)">📆 Weekly Calendar</button>
-      <button class="db-tab" onclick="dbSwitchTab('drills',this);drillsInit()">🎯 Personalized Drills</button>
-      <button class="db-tab" onclick="dbSwitchTab('workouts',this);workoutsInit()">🏀 Workouts</button>
-      <button class="db-tab" onclick="dbSwitchTab('shots',this)">🎯 Shot Tracker</button>
-      <button class="db-tab" onclick="dbSwitchTab('moves',this);movesInit()">🏀 Pro Moves</button>
     </div>
 
     <!-- ── TAB: LOG ── -->
@@ -206,8 +311,16 @@
 
         <!-- Session log list -->
         <div class="db-card" style="display:flex;flex-direction:column;">
-          <div class="db-card-title">Week <span id="db-week-num">4</span> Log</div>
+          <div class="db-card-title">Week <span id="db-week-num">1</span> Log</div>
           <div class="db-card-sub" id="db-remaining-label">Add your first session →</div>
+          <div id="db-week-progress" style="margin:10px 0 6px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+              <span style="font-size:11px;color:var(--c-muted);" id="db-progress-text">Sessions this week: 0 / 5</span>
+            </div>
+            <div style="height:5px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden;">
+              <div id="db-progress-fill" style="height:100%;background:linear-gradient(90deg,var(--c-amber),#56d364);border-radius:3px;width:0%;transition:width 0.4s ease;"></div>
+            </div>
+          </div>
           <div id="db-session-list" style="flex:1;">
             <div class="db-empty">
               <div class="db-empty-icon">📋</div>
@@ -233,7 +346,7 @@
             <div class="db-ai-icon">🤖</div>
             <div style="flex:1;">
               <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                <span class="label-tag" id="db-fb-tag">AI Coach · Week 4</span>
+                <span class="label-tag" id="db-fb-tag">AI Coach</span>
                 <span class="db-trend-badge" id="db-trend-badge"></span>
               </div>
               <div class="db-headline" id="db-headline">—</div>
@@ -258,7 +371,7 @@
         </div>
 
         <!-- KPI row -->
-        <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.02em;" id="db-kpi-title">Week 4 — Averages</div>
+        <div style="font-family:var(--font-display);font-size:18px;font-weight:900;margin-bottom:14px;text-transform:uppercase;letter-spacing:0.02em;" id="db-kpi-title">Averages</div>
         <div class="db-kpi-row" id="db-kpi-row">
           <div class="db-kpi"><div class="db-kpi-label">Shooting %</div><div class="db-kpi-val" id="kpi-shot">—<span class="db-kpi-unit">%</span></div><div class="db-kpi-delta" id="kpi-shot-d"></div></div>
           <div class="db-kpi"><div class="db-kpi-label">Dribbling</div><div class="db-kpi-val" id="kpi-drib">—<span class="db-kpi-unit"> min</span></div><div class="db-kpi-delta" id="kpi-drib-d"></div></div>
@@ -300,7 +413,7 @@
             <div class="db-json-dot" style="background:#f85149;"></div>
             <div class="db-json-dot" style="background:#f5a623;"></div>
             <div class="db-json-dot" style="background:#56d364;"></div>
-            <span class="db-json-filename" id="db-json-filename">week_4_performance.json</span>
+            <span class="db-json-filename" id="db-json-filename">performance.json</span>
             <button class="db-copy-btn" onclick="dbCopyJSON()">Copy JSON</button>
           </div>
           <div class="db-json-body" id="db-json-body">{ }</div>
@@ -331,7 +444,7 @@
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:24px;">
         <div class="db-field">
           <label class="db-label">👤 Athlete Name</label>
-          <input class="db-input" id="notif-name" type="text" placeholder="e.g. Marcus" value="Marcus" />
+          <input class="db-input" id="notif-name" type="text" placeholder="e.g. Marcus" value="" />
         </div>
         <div class="db-field">
           <label class="db-label">🏀 Focus Goal</label>
@@ -376,7 +489,7 @@
           </button>
           <div id="notif-prompt-box" style="display:none;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-top:none;border-radius:0 0 8px 8px;padding:16px;font-family:'Fira Code',monospace;font-size:11.5px;color:rgba(240,237,230,0.45);line-height:1.7;white-space:pre-wrap;"></div>
         </div>
-        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="notif-week-label">Week 4 — Notification Schedule</div>
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;margin-bottom:16px;" id="notif-week-label">Notification Schedule</div>
         <div id="notif-cards" style="display:flex;flex-direction:column;gap:14px;margin-bottom:28px;"></div>
         <div class="db-json-pane">
           <div class="db-json-header">
@@ -575,8 +688,8 @@
       <div id="cal-empty" style="text-align:center;padding:20px 0 44px;">
         <div style="font-size:52px;margin-bottom:14px;">📆</div>
         <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Calendar Yet</div>
-        <p style="font-size:13px;color:var(--c-muted);max-width:420px;margin:0 auto 24px;">Select a data source above and hit <strong style="color:var(--c-amber)">Build Calendar</strong>. The AI converts it into a live interactive week view — collapsible days, exercise checkboxes, and React-compatible JSON export.</p>
-        <button class="db-generate-btn" onclick="calGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">📆 Build Now</button>
+        <p style="font-size:13px;color:var(--c-muted);max-width:420px;margin:0 auto 24px;">Select a data source above and hit <strong style="color:var(--c-amber)">Build Calendar</strong>. The AI converts it into a live interactive week view.</p>
+        <button class="db-generate-btn" onclick="calGenerate()" style="width:auto;padding:12px 28px;margin:0 auto;display:inline-block;">📆 Build Calendar</button>
       </div>
 
       <div id="cal-results" style="display:none;">
@@ -701,6 +814,7 @@
           <div class="drills-empty-icon">🏀</div>
           <div class="drills-empty-title">No Drills Generated Yet</div>
           <p class="drills-empty-desc">Select your preferences above and hit <strong style="color:var(--c-amber)">Generate Drills</strong> to get a personalized drill set with animated court previews.</p>
+          <button class="db-generate-btn" onclick="if(typeof drillsGenerate==='function')drillsGenerate()" style="width:auto;padding:12px 28px;margin:12px auto 0;display:inline-block;font-size:13px;">🎯 Generate Drills</button>
         </div>
 
         <!-- Results -->
@@ -895,15 +1009,15 @@
       <div class="workouts-header">
         <div>
           <div class="workouts-header-title">Pre-Built Workouts</div>
-          <div class="workouts-header-sub">15 curated training sessions — click a workout to see the drills inside and select which ones to do.</div>
+          <div class="workouts-header-sub">25 curated training sessions — click a workout to see the drills inside and select which ones to do.</div>
         </div>
         <div class="workouts-header-stats">
           <div class="workouts-stat">
-            <div class="workouts-stat-num">15</div>
+            <div class="workouts-stat-num">25</div>
             <div class="workouts-stat-label">Workouts</div>
           </div>
           <div class="workouts-stat">
-            <div class="workouts-stat-num">120+</div>
+            <div class="workouts-stat-num">200+</div>
             <div class="workouts-stat-label">Total Drills</div>
           </div>
           <div class="workouts-stat">
@@ -1054,8 +1168,98 @@
       <div class="mv-grid" id="moves-grid"></div>
     </div><!-- /moves panel -->
 
-  </div>
-</section>
+    <!-- ── TAB: ARCHETYPE ── -->
+    <div class="db-panel" id="db-panel-archetype">
+      <div class="at-layout">
+
+        <!-- Input Form -->
+        <div class="at-card">
+          <div class="at-card-title">Discover Your Basketball Archetype</div>
+          <div class="at-card-sub">Enter your physical profile and playstyle — the engine analyzes your inputs and assigns your basketball archetype with personalized training.</div>
+
+          <div class="at-error" id="at-error"></div>
+
+          <div class="at-field">
+            <label class="at-label">Height (inches)</label>
+            <input class="at-input" id="at-height" type="number" min="48" max="96" placeholder="e.g. 74" />
+          </div>
+
+          <div class="at-row-2">
+            <div class="at-field">
+              <label class="at-label">Position</label>
+              <select class="at-select" id="at-position">
+                <option value="" disabled selected>Select position</option>
+                <option value="PG">PG — Point Guard</option>
+                <option value="SG">SG — Shooting Guard</option>
+                <option value="SF">SF — Small Forward</option>
+                <option value="PF">PF — Power Forward</option>
+                <option value="C">C — Center</option>
+              </select>
+            </div>
+            <div class="at-field">
+              <label class="at-label">Playstyle</label>
+              <select class="at-select" id="at-playstyle">
+                <option value="" disabled selected>Select playstyle</option>
+                <option value="shooter">Shooter</option>
+                <option value="playmaker">Playmaker</option>
+                <option value="slasher">Slasher</option>
+                <option value="defender">Defender</option>
+                <option value="all-around">All-Around</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="at-submit-btn" id="at-submit-btn">🧬 Analyze My Archetype</button>
+        </div>
+
+        <!-- Result -->
+        <div class="at-card">
+          <div class="at-result" id="at-result"></div>
+          <div class="at-empty" id="at-empty">
+            <div class="at-empty-icon">🧬</div>
+            <div class="at-empty-title">No Archetype Yet</div>
+            <div class="at-empty-text">Fill out the form and hit <strong style="color:var(--c-amber)">Analyze</strong> to discover your basketball archetype with tailored drills.</div>
+            <button class="db-generate-btn" onclick="document.getElementById('at-submit-btn').click()" style="width:auto;padding:10px 24px;margin:12px auto 0;display:inline-block;font-size:13px;">🧬 Analyze My Archetype</button>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /archetype panel -->
+
+    <!-- ── TAB: SHOP ── -->
+    <div class="db-panel" id="db-panel-shop">
+      <div class="shop-header">
+        <div>
+          <h2 class="shop-title">🛍️ Avatar Shop</h2>
+          <p class="shop-subtitle">Spend your earned coins to unlock accessories, hairstyles, and more</p>
+        </div>
+        <div class="shop-wallet">
+          <span class="shop-wallet-icon">🪙</span>
+          <span class="shop-wallet-amount" id="shop-coin-count">0</span>
+          <span class="shop-wallet-label">Coins</span>
+        </div>
+      </div>
+
+      <!-- Avatar Preview -->
+      <div class="shop-preview">
+        <canvas id="shop-avatar-preview" width="200" height="280"></canvas>
+        <div class="shop-preview-label">Current Look</div>
+        <button class="shop-equip-btn" style="margin-top:8px;width:100%" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize</button>
+      </div>
+
+      <!-- Shop Grid -->
+      <div id="shop-grid"></div>
+
+      <div class="shop-info">
+        <p>💡 <strong>Earn coins by training!</strong> Every XP you earn also gives you 1 coin to spend here.</p>
+        <p>🔒 Some items require reaching a certain rank to unlock.</p>
+      </div>
+    </div><!-- /shop panel -->
+
+    </div><!-- /db-main-inner -->
+  </main><!-- /db-main -->
+
+</div><!-- /db-layout-root -->
 
 
 <footer role="contentinfo">
@@ -1063,9 +1267,10 @@
     <div class="footer-top">
       <div class="footer-brand">
         <div class="footer-brand-logo">
-          <div class="footer-brand-icon" aria-hidden="true">🏀</div>
+          <img src="assets/logo-icon.svg" alt="" class="footer-brand-icon" aria-hidden="true" width="32" height="32">
           Court<span>IQ</span>
         </div>
+        <div class="footer-brand-sub">BASKETBALL INTELLIGENCE</div>
         <p class="footer-tagline">
           AI-powered basketball training personalized to your position, skill level, and goals. Train smarter. Dominate the court.
         </p>
@@ -1132,7 +1337,7 @@
     <div class="auth-modal-header">
       <div>
         <div class="auth-modal-logo">
-          <div class="auth-modal-logo-icon" aria-hidden="true">🏀</div>
+          <img src="assets/logo-icon.svg" alt="" class="auth-modal-logo-icon" aria-hidden="true" width="28" height="28">
           <div class="auth-modal-brand">Court<span>IQ</span></div>
         </div>
         <div class="auth-modal-title" id="auth-modal-title">Welcome Back</div>
@@ -1220,6 +1425,10 @@
       <button class="profile-modal-close" id="profile-modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="profile-modal-body">
+      <div class="profile-form-field" style="margin-bottom:16px;">
+        <label class="profile-form-label" for="pp-name">Player Name</label>
+        <input class="profile-form-input" id="pp-name" type="text" placeholder="e.g. Marcus R." maxlength="50" />
+      </div>
       <div class="profile-form-row">
         <div class="profile-form-field">
           <label class="profile-form-label" for="pp-position">Position</label>
@@ -1265,11 +1474,479 @@
       </div>
     </div>
     <div class="profile-modal-footer">
-      <button class="profile-cancel-btn" id="profile-cancel-btn">Cancel</button>
-      <button class="profile-save-btn" id="profile-save-btn">Save Profile</button>
+      <div class="profile-modal-footer-left" style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="profile-restart-btn" onclick="if(typeof PlayerProfile!=='undefined')PlayerProfile.closeEditor();if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
+        <button class="profile-restart-btn" id="profile-restart-btn">Redo Full Setup</button>
+      </div>
+      <div class="profile-modal-footer-right">
+        <button class="profile-cancel-btn" id="profile-cancel-btn">Cancel</button>
+        <button class="profile-save-btn" id="profile-save-btn">Save Profile</button>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════════════════════════
+     AVATAR CUSTOMIZER MODAL
+══════════════════════════════════════════ -->
+<div class="ac-overlay" id="ac-overlay">
+  <div class="ac-modal">
+    <div class="ac-header">
+      <div class="ac-title">✏️ Customize Avatar</div>
+      <button class="ac-close" id="ac-close" aria-label="Close">&times;</button>
+    </div>
+    <div class="ac-body">
+      <div class="ac-layout">
+        <!-- Live Preview -->
+        <div class="ac-preview">
+          <div class="ac-canvas-wrap">
+            <canvas id="ac-avatar-canvas" width="200" height="280"></canvas>
+          </div>
+        </div>
+        <!-- Picker Controls (rendered dynamically by JS) -->
+        <div class="ac-controls" id="ac-controls"></div>
+      </div>
+    </div>
+    <div class="ac-footer">
+      <button class="ac-cancel-btn" id="ac-cancel">Cancel</button>
+      <button class="ac-save-btn" id="ac-save">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     ONBOARDING OVERLAY
+══════════════════════════════════════════ -->
+<div class="ob-overlay" id="ob-overlay">
+  <div class="ob-container">
+
+    <!-- Progress -->
+    <div class="ob-progress-wrap">
+      <div class="ob-progress"><div class="ob-progress-fill" id="ob-progress-fill"></div></div>
+      <div class="ob-step-indicators">
+        <div class="ob-dot active"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+        <div class="ob-dot"></div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 1 — BASIC INFO ═══ -->
+    <div class="ob-step active" id="ob-step-1">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Step 01</div>
+        <div class="ob-step-title">Basic Information</div>
+        <div class="ob-step-sub">Tell us about yourself so we can personalize your training</div>
+      </div>
+
+      <div class="ob-form-grid">
+        <div class="ob-field">
+          <label class="ob-label">Your Name</label>
+          <input class="ob-input" id="ob-name" type="text" placeholder="Marcus" autocomplete="given-name">
+          <div class="ob-error">Name is required</div>
+        </div>
+        <div class="ob-field">
+          <label class="ob-label">Age</label>
+          <input class="ob-input" id="ob-age" type="number" min="8" max="99" placeholder="22">
+          <div class="ob-error">Enter a valid age</div>
+        </div>
+        <div class="ob-field">
+          <label class="ob-label">Height (inches)</label>
+          <input class="ob-input" id="ob-height" type="number" min="48" max="96" placeholder="74">
+        </div>
+        <div class="ob-field">
+          <label class="ob-label">Weight (lbs)</label>
+          <input class="ob-input" id="ob-weight" type="number" min="60" max="400" placeholder="185">
+        </div>
+      </div>
+
+      <div class="ob-field" style="margin-bottom:24px">
+        <label class="ob-label">Dominant Hand</label>
+        <div class="ob-hand-toggle">
+          <button class="ob-hand-btn selected" data-hand="right" type="button">Right</button>
+          <button class="ob-hand-btn" data-hand="left" type="button">Left</button>
+        </div>
+      </div>
+
+      <div class="ob-field">
+        <label class="ob-label">Position</label>
+        <div class="ob-position-grid">
+          <div class="ob-position-card" data-pos="PG">
+            <div class="ob-position-abbr">PG</div>
+            <div class="ob-position-name">Point Guard</div>
+          </div>
+          <div class="ob-position-card" data-pos="SG">
+            <div class="ob-position-abbr">SG</div>
+            <div class="ob-position-name">Shooting Guard</div>
+          </div>
+          <div class="ob-position-card" data-pos="SF">
+            <div class="ob-position-abbr">SF</div>
+            <div class="ob-position-name">Small Forward</div>
+          </div>
+          <div class="ob-position-card" data-pos="PF">
+            <div class="ob-position-abbr">PF</div>
+            <div class="ob-position-name">Power Forward</div>
+          </div>
+          <div class="ob-position-card" data-pos="C">
+            <div class="ob-position-abbr">C</div>
+            <div class="ob-position-name">Center</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 2 — PLAYSTYLE ═══ -->
+    <div class="ob-step" id="ob-step-2">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Step 02</div>
+        <div class="ob-step-title">Playstyle Analysis</div>
+        <div class="ob-step-sub">How do you play the game?</div>
+      </div>
+
+      <div class="ob-question" data-key="scoring">
+        <div class="ob-question-title">How do you usually score?</div>
+        <div class="ob-choices">
+          <div class="ob-choice" data-value="spotup">
+            <div class="ob-choice-icon">🎯</div>
+            <div class="ob-choice-label">Spot-up Shooter</div>
+            <div class="ob-choice-desc">Catch and shoot from the perimeter</div>
+          </div>
+          <div class="ob-choice" data-value="pullup">
+            <div class="ob-choice-icon">🔥</div>
+            <div class="ob-choice-label">Pull-up Shooter</div>
+            <div class="ob-choice-desc">Create your own shot off the dribble</div>
+          </div>
+          <div class="ob-choice" data-value="attack">
+            <div class="ob-choice-icon">💥</div>
+            <div class="ob-choice-label">Attack the Rim</div>
+            <div class="ob-choice-desc">Drive hard and finish at the basket</div>
+          </div>
+          <div class="ob-choice" data-value="midrange">
+            <div class="ob-choice-icon">🏀</div>
+            <div class="ob-choice-label">Midrange Scorer</div>
+            <div class="ob-choice-desc">Dominate the mid-range with footwork</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-question" data-key="handling">
+        <div class="ob-question-title">Ball handling confidence?</div>
+        <div class="ob-choices">
+          <div class="ob-choice" data-value="beginner">
+            <div class="ob-choice-icon">📗</div>
+            <div class="ob-choice-label">Beginner</div>
+            <div class="ob-choice-desc">Still developing basic dribbling</div>
+          </div>
+          <div class="ob-choice" data-value="intermediate">
+            <div class="ob-choice-icon">📘</div>
+            <div class="ob-choice-label">Intermediate</div>
+            <div class="ob-choice-desc">Comfortable with crossovers and moves</div>
+          </div>
+          <div class="ob-choice" data-value="advanced">
+            <div class="ob-choice-icon">📙</div>
+            <div class="ob-choice-label">Advanced</div>
+            <div class="ob-choice-desc">Can break down defenders consistently</div>
+          </div>
+          <div class="ob-choice" data-value="elite">
+            <div class="ob-choice-icon">👑</div>
+            <div class="ob-choice-label">Elite</div>
+            <div class="ob-choice-desc">Handles are a primary weapon</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-question" data-key="passing">
+        <div class="ob-question-title">Passing style?</div>
+        <div class="ob-choices">
+          <div class="ob-choice" data-value="safe">
+            <div class="ob-choice-icon">✅</div>
+            <div class="ob-choice-label">Safe Passer</div>
+            <div class="ob-choice-desc">Minimize turnovers, simple reads</div>
+          </div>
+          <div class="ob-choice" data-value="playmaker">
+            <div class="ob-choice-icon">🧠</div>
+            <div class="ob-choice-label">Playmaker</div>
+            <div class="ob-choice-desc">Create opportunities for teammates</div>
+          </div>
+          <div class="ob-choice" data-value="creative">
+            <div class="ob-choice-icon">✨</div>
+            <div class="ob-choice-label">Creative Passer</div>
+            <div class="ob-choice-desc">No-looks, behind-the-back, flashy</div>
+          </div>
+          <div class="ob-choice" data-value="outlet">
+            <div class="ob-choice-icon">🚀</div>
+            <div class="ob-choice-label">Outlet Specialist</div>
+            <div class="ob-choice-desc">Push the pace with long passes</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ob-question" data-key="defense">
+        <div class="ob-question-title">Defensive strength?</div>
+        <div class="ob-choices">
+          <div class="ob-choice" data-value="perimeter">
+            <div class="ob-choice-icon">🛡️</div>
+            <div class="ob-choice-label">Perimeter</div>
+            <div class="ob-choice-desc">Lock up ball handlers on-ball</div>
+          </div>
+          <div class="ob-choice" data-value="help">
+            <div class="ob-choice-icon">👁️</div>
+            <div class="ob-choice-label">Help Defense</div>
+            <div class="ob-choice-desc">Read the floor and rotate</div>
+          </div>
+          <div class="ob-choice" data-value="rim">
+            <div class="ob-choice-icon">🏰</div>
+            <div class="ob-choice-label">Rim Protection</div>
+            <div class="ob-choice-desc">Block shots and protect the paint</div>
+          </div>
+          <div class="ob-choice" data-value="switchable">
+            <div class="ob-choice-icon">🔄</div>
+            <div class="ob-choice-label">Switchable</div>
+            <div class="ob-choice-desc">Guard multiple positions</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 3 — SKILL RATING ═══ -->
+    <div class="ob-step" id="ob-step-3">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Step 03</div>
+        <div class="ob-step-title">Rate Your Skills</div>
+        <div class="ob-step-sub">Be honest — this helps us personalize your training</div>
+      </div>
+
+      <div class="ob-skills-layout">
+        <div class="ob-sliders-col">
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">🎯 Shooting</span>
+              <span class="ob-slider-value" id="ob-val-shooting">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-shooting" data-skill="shooting" type="range" min="1" max="10" value="5">
+          </div>
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">⚡ Ball Handling</span>
+              <span class="ob-slider-value" id="ob-val-ballhandling">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-ballhandling" data-skill="ballhandling" type="range" min="1" max="10" value="5">
+          </div>
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">🏀 Passing</span>
+              <span class="ob-slider-value" id="ob-val-passing">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-passing" data-skill="passing" type="range" min="1" max="10" value="5">
+          </div>
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">🛡️ Defense</span>
+              <span class="ob-slider-value" id="ob-val-defense">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-defense" data-skill="defense" type="range" min="1" max="10" value="5">
+          </div>
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">💪 Athleticism</span>
+              <span class="ob-slider-value" id="ob-val-athleticism">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-athleticism" data-skill="athleticism" type="range" min="1" max="10" value="5">
+          </div>
+          <div class="ob-slider-group">
+            <div class="ob-slider-header">
+              <span class="ob-slider-label">🧠 Basketball IQ</span>
+              <span class="ob-slider-value" id="ob-val-bbiq">5</span>
+            </div>
+            <input class="ob-slider" id="ob-skill-bbiq" data-skill="bbiq" type="range" min="1" max="10" value="5">
+          </div>
+        </div>
+
+        <div class="ob-radar-col">
+          <div class="ob-radar-wrap">
+            <canvas id="ob-radar-canvas"></canvas>
+          </div>
+          <div class="ob-radar-label">Skill Profile</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 4 — GOALS ═══ -->
+    <div class="ob-step" id="ob-step-4">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Step 04</div>
+        <div class="ob-step-title">What Are Your Goals?</div>
+        <div class="ob-step-sub">Select up to 3 areas you want to improve</div>
+      </div>
+
+      <div class="ob-goals-grid">
+        <div class="ob-goal-chip" data-goal="Shooting">
+          <div class="ob-goal-icon">🎯</div>
+          <div class="ob-goal-label">Shooting</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Handles">
+          <div class="ob-goal-icon">⚡</div>
+          <div class="ob-goal-label">Handles</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Game IQ">
+          <div class="ob-goal-icon">🧠</div>
+          <div class="ob-goal-label">Game IQ</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Finishing">
+          <div class="ob-goal-icon">💥</div>
+          <div class="ob-goal-label">Finishing</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Defense">
+          <div class="ob-goal-icon">🛡️</div>
+          <div class="ob-goal-label">Defense</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Conditioning">
+          <div class="ob-goal-icon">🏃</div>
+          <div class="ob-goal-label">Conditioning</div>
+        </div>
+      </div>
+      <div class="ob-goals-hint">Select 1-3 goals to focus your training plan</div>
+    </div>
+
+    <!-- ═══ STEP 5 — AVATAR ═══ -->
+    <div class="ob-step" id="ob-step-5">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Step 05</div>
+        <div class="ob-step-title">Create Your Avatar</div>
+        <div class="ob-step-sub">Build your player identity</div>
+      </div>
+
+      <div class="ob-avatar-layout">
+        <div class="ob-avatar-preview">
+          <div class="ob-avatar-canvas-wrap">
+            <canvas id="ob-avatar-canvas" width="200" height="280"></canvas>
+          </div>
+        </div>
+
+        <div class="ob-avatar-controls">
+          <!-- Skin Tone -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Skin Tone</div>
+            <div class="ob-picker-row">
+              <div class="ob-swatch" data-picker="skinTone" data-value="#FDDBB4" style="background:#FDDBB4"></div>
+              <div class="ob-swatch" data-picker="skinTone" data-value="#E8B98D" style="background:#E8B98D"></div>
+              <div class="ob-swatch selected" data-picker="skinTone" data-value="#C68642" style="background:#C68642"></div>
+              <div class="ob-swatch" data-picker="skinTone" data-value="#8D5524" style="background:#8D5524"></div>
+              <div class="ob-swatch" data-picker="skinTone" data-value="#5C3317" style="background:#5C3317"></div>
+              <div class="ob-swatch" data-picker="skinTone" data-value="#3B1E0E" style="background:#3B1E0E"></div>
+            </div>
+          </div>
+
+          <!-- Hair Style -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Hair Style</div>
+            <div class="ob-picker-row">
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="buzz" type="button">Buzz</button>
+              <button class="ob-style-btn selected" data-picker="hairStyle" data-value="short" type="button">Short</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="fade" type="button">Fade</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="afro" type="button">Afro</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="dreads" type="button">Dreads</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="mohawk" type="button">Mohawk</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="waves" type="button">Waves</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="cornrows" type="button">Cornrows</button>
+              <button class="ob-style-btn" data-picker="hairStyle" data-value="bald" type="button">Bald</button>
+            </div>
+          </div>
+
+          <!-- Hair Color -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Hair Color</div>
+            <div class="ob-picker-row">
+              <div class="ob-swatch selected" data-picker="hairColor" data-value="#1a1a1a" style="background:#1a1a1a"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#4a2912" style="background:#4a2912"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#c4a35a" style="background:#c4a35a"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#8b3a2f" style="background:#8b3a2f"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#e8e0d0" style="background:#e8e0d0"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#8a8a8a" style="background:#8a8a8a"></div>
+              <div class="ob-swatch" data-picker="hairColor" data-value="#1a2d5a" style="background:#1a2d5a"></div>
+            </div>
+          </div>
+
+          <!-- Beard -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Beard</div>
+            <div class="ob-picker-row">
+              <button class="ob-style-btn selected" data-picker="beardStyle" data-value="none" type="button">None</button>
+              <button class="ob-style-btn" data-picker="beardStyle" data-value="stubble" type="button">Stubble</button>
+              <button class="ob-style-btn" data-picker="beardStyle" data-value="short" type="button">Short</button>
+              <button class="ob-style-btn" data-picker="beardStyle" data-value="full" type="button">Full</button>
+              <button class="ob-style-btn" data-picker="beardStyle" data-value="goatee" type="button">Goatee</button>
+              <button class="ob-style-btn" data-picker="beardStyle" data-value="chinstrap" type="button">Chinstrap</button>
+            </div>
+          </div>
+
+          <!-- Body Type -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Body Type</div>
+            <div class="ob-picker-row">
+              <button class="ob-style-btn" data-picker="bodyType" data-value="lean" type="button">Lean</button>
+              <button class="ob-style-btn selected" data-picker="bodyType" data-value="athletic" type="button">Athletic</button>
+              <button class="ob-style-btn" data-picker="bodyType" data-value="heavy" type="button">Heavy</button>
+            </div>
+          </div>
+
+          <!-- Accessories -->
+          <div class="ob-picker-group">
+            <div class="ob-picker-label">Accessories</div>
+            <div class="ob-picker-row">
+              <button class="ob-style-btn selected" data-picker="accessory" data-value="none" type="button">None</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="headband" type="button">Headband</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="sweatband" type="button">Sweatband</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="glasses" type="button">Glasses</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="chain" type="button">Chain</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="durag" type="button">Durag</button>
+              <button class="ob-style-btn" data-picker="accessory" data-value="armband" type="button">Armband</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 6 — AI ANALYSIS LOADING ═══ -->
+    <div class="ob-step" id="ob-step-6">
+      <div class="ob-analysis-loading">
+        <div>
+          <div class="ob-ball-bounce"></div>
+          <div class="ob-ball-shadow"></div>
+        </div>
+        <div>
+          <div class="ob-loading-text" id="ob-loading-text">Analyzing your game&hellip;</div>
+          <div class="ob-loading-sub">Our AI is building your personalized scouting report</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ STEP 7 — SCOUTING REPORT ═══ -->
+    <div class="ob-step" id="ob-step-7">
+      <div class="ob-step-header">
+        <div class="ob-step-number">Scouting Report</div>
+        <div class="ob-step-title">Your Player Profile</div>
+        <div class="ob-step-sub">Here's what our scouts found</div>
+      </div>
+      <div class="ob-report" id="ob-report-content">
+        <!-- Rendered dynamically by onboarding.js -->
+      </div>
+    </div>
+
+  </div><!-- .ob-container -->
+
+  <!-- Navigation -->
+  <div class="ob-nav">
+    <div class="ob-nav-inner">
+      <button class="ob-btn-back" id="ob-btn-back" type="button" style="display:none">BACK</button>
+      <button class="ob-btn-next" id="ob-btn-next" type="button">NEXT &rarr;</button>
+    </div>
+  </div>
+</div>
+<!-- END ONBOARDING OVERLAY -->
 
 <!-- Pro Moves Detail Modal -->
 <div class="mv-modal-overlay" id="mv-modal-overlay">
@@ -1309,7 +1986,14 @@
 <script src="js/progress-charts.js"></script>
 <script src="js/move-animations.js"></script>
 <script src="js/move-library.js"></script>
+<script src="js/daily-challenge.js"></script>
+<script src="js/archetype-engine.js"></script>
+<script src="js/avatar-builder.js"></script>
+<script src="js/player-analysis.js"></script>
+<script src="js/onboarding.js"></script>
 <script src="js/gamification.js"></script>
+<script src="js/avatar-shop.js"></script>
+<script src="js/avatar-customizer.js"></script>
 
 </body>
 </html>

@@ -14,7 +14,7 @@ const fs   = require('fs');
 const path = require('path');
 
 const ROOT = __dirname;
-const PORT = 8080;
+const PORT = parseInt(process.env.PORT, 10) || 8080;
 
 /* ── MIME types ─────────────────────────────────────────────── */
 const MIME = {
@@ -133,38 +133,52 @@ server.listen(PORT, '127.0.0.1', () => {
 
 /* ── File watcher ────────────────────────────────────────────── */
 const IGNORE = new Set(['.git', 'node_modules', '.DS_Store', 'Thumbs.db']);
-const DEBOUNCE_MS = 80; // collapse rapid saves into one reload
+const DEBOUNCE_MS = 150; // collapse rapid saves into one reload
 
 let debounceTimer = null;
-let lastFile = '';
+let pendingChanges = new Map(); // path → ext, collapse multiple edits
+const watched = new Set();      // prevent duplicate watchers
+
+function flushChanges() {
+  const changes = new Map(pendingChanges);
+  pendingChanges.clear();
+
+  let hasCSS  = false;
+  let hasOther = false;
+  const cssFiles = [];
+
+  for (const [fullPath, ext] of changes) {
+    const rel = path.relative(ROOT, fullPath);
+    console.log('  ↺  Changed: ' + rel);
+    if (ext === '.css') { hasCSS = true; cssFiles.push(path.basename(fullPath)); }
+    else                { hasOther = true; }
+  }
+
+  if (hasOther) {
+    // Any non-CSS change → single full reload
+    broadcast('reload', { file: 'multiple' });
+  } else if (hasCSS) {
+    // CSS-only → hot-swap each file
+    cssFiles.forEach(f => broadcast('css', { file: f }));
+  }
+}
 
 function handleChange(eventType, fullPath) {
-  const rel  = path.relative(ROOT, fullPath);
   const ext  = path.extname(fullPath).toLowerCase();
   const base = path.basename(fullPath);
 
   // Ignore hidden files, temp files, and common noise
   if (base.startsWith('.') || base.startsWith('~') || base.endsWith('~')) return;
 
+  pendingChanges.set(fullPath, ext);
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
-    if (fullPath === lastFile) return;
-    lastFile = fullPath;
-    setTimeout(() => { lastFile = ''; }, 500);
-
-    console.log('  ↺  Changed: ' + rel);
-
-    if (ext === '.css') {
-      // CSS-only change → hot-swap stylesheet, no full reload
-      broadcast('css', { file: base });
-    } else {
-      // HTML / JS / JSON / anything else → full reload
-      broadcast('reload', { file: rel });
-    }
-  }, DEBOUNCE_MS);
+  debounceTimer = setTimeout(flushChanges, DEBOUNCE_MS);
 }
 
 function watchDir(dir) {
+  if (watched.has(dir)) return;  // prevent duplicate directory watchers
+  watched.add(dir);
+
   fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
     if (err) return;
     entries.forEach(entry => {
@@ -172,14 +186,33 @@ function watchDir(dir) {
       const full = path.join(dir, entry.name);
       if (entry.isDirectory()) {
         watchDir(full); // recurse
-      } else {
+      } else if (!watched.has(full)) {
+        watched.add(full);
         fs.watch(full, { persistent: true }, (evt) => handleChange(evt, full));
       }
     });
   });
 
-  // Also watch the directory itself for new files added
-  fs.watch(dir, { persistent: true }, () => watchDir(dir));
+  // Watch directory for new files only (debounced re-scan)
+  let dirTimer = null;
+  fs.watch(dir, { persistent: true }, () => {
+    clearTimeout(dirTimer);
+    dirTimer = setTimeout(() => {
+      fs.readdir(dir, { withFileTypes: true }, (err, entries) => {
+        if (err) return;
+        entries.forEach(entry => {
+          if (IGNORE.has(entry.name)) return;
+          const full = path.join(dir, entry.name);
+          if (entry.isDirectory()) {
+            watchDir(full);
+          } else if (!watched.has(full)) {
+            watched.add(full);
+            fs.watch(full, { persistent: true }, (evt) => handleChange(evt, full));
+          }
+        });
+      });
+    }, 300);
+  });
 }
 
 watchDir(ROOT);

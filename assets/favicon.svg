@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- CourtIQ App Icon - Dark rounded square with compass-basketball icon -->
+  <rect width="512" height="512" rx="102" fill="#1A1B1E"/>
+  <!-- Outer circle -->
+  <circle cx="256" cy="256" r="155" fill="none" stroke="#F5A623" stroke-width="12"/>
+  <!-- Four compass petals -->
+  <!-- Top petal -->
+  <path d="M256 101 Q220 180, 256 256 Q292 180, 256 101 Z" fill="#F5A623"/>
+  <!-- Right petal -->
+  <path d="M411 256 Q332 220, 256 256 Q332 292, 411 256 Z" fill="#F5A623"/>
+  <!-- Bottom petal -->
+  <path d="M256 411 Q292 332, 256 256 Q220 332, 256 411 Z" fill="#F5A623"/>
+  <!-- Left petal -->
+  <path d="M101 256 Q180 292, 256 256 Q180 220, 101 256 Z" fill="#F5A623"/>
+</svg>

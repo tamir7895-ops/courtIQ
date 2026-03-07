@@ -64,11 +64,38 @@
         pills += '<span class="profile-pill"><span class="profile-pill-label">Goal</span> ' + data.primaryGoal + '</span>';
       }
 
+      // Check for onboarding avatar
+      var onboarding = null;
+      try { onboarding = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch (e) {}
+      var avatarHtml = '';
+      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+        avatarHtml = '<canvas id="profile-mini-avatar" width="48" height="48" style="border-radius:50%;flex-shrink:0;cursor:pointer" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar"></canvas>';
+      } else {
+        avatarHtml = '<div class="profile-summary-avatar">' + data.position + '</div>';
+      }
+
+      // Add archetype badge if available
+      var archetypePill = '';
+      if (onboarding && onboarding.archetype && typeof ArchetypeEngine !== 'undefined' && ArchetypeEngine.ARCHETYPES) {
+        var arch = ArchetypeEngine.ARCHETYPES[onboarding.archetype];
+        if (arch) {
+          archetypePill = '<span class="profile-pill profile-pill--accent">' + arch.icon + ' ' + arch.name + '</span>';
+        }
+      }
+
       container.innerHTML =
         '<div class="profile-summary-info">' +
-          '<div class="profile-summary-avatar">' + data.position + '</div>' +
-          '<div class="profile-summary-pills">' + pills + '</div>' +
+          avatarHtml +
+          '<div class="profile-summary-pills">' + archetypePill + pills + '</div>' +
         '</div>';
+
+      // Draw mini avatar after DOM insert
+      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+        setTimeout(function () {
+          var c = document.getElementById('profile-mini-avatar');
+          if (c) AvatarBuilder.drawMini(c, onboarding.avatar);
+        }, 0);
+      }
     },
 
     openEditor: function () {
@@ -92,12 +119,14 @@
       var data = this.load();
       if (!data) data = {};
 
+      var nameEl = document.getElementById('pp-name');
       var pos = document.getElementById('pp-position');
       var height = document.getElementById('pp-height');
       var age = document.getElementById('pp-age');
       var skill = document.getElementById('pp-skill');
       var goal = document.getElementById('pp-goal');
 
+      if (nameEl) nameEl.value = data.name || '';
       if (pos) pos.value = data.position || '';
       if (height) height.value = data.height || '';
       if (age) age.value = data.age || '';
@@ -106,6 +135,7 @@
     },
 
     handleSubmit: function () {
+      var nameEl = document.getElementById('pp-name');
       var pos = document.getElementById('pp-position');
       var height = document.getElementById('pp-height');
       var age = document.getElementById('pp-age');
@@ -113,6 +143,7 @@
       var goal = document.getElementById('pp-goal');
 
       var data = {
+        name: nameEl ? nameEl.value.trim() : '',
         position: pos ? pos.value : '',
         height: height ? height.value : '',
         age: age ? age.value : '',
@@ -128,6 +159,16 @@
       this.save(data);
       this.renderSummary();
       this.closeEditor();
+
+      // Sync name to dashboard fields if present
+      if (data.name) {
+        var dbPlayer = document.getElementById('db-player');
+        if (dbPlayer) dbPlayer.value = data.name;
+        var notifName = document.getElementById('notif-name');
+        if (notifName) notifName.value = data.name;
+        var sidebarName = document.getElementById('db-sidebar-name');
+        if (sidebarName) sidebarName.textContent = data.name;
+      }
 
       // Sync position to dashboard select if present
       var dbPos = document.getElementById('db-position');
@@ -201,6 +242,16 @@
       var cancelBtn = document.getElementById('profile-cancel-btn');
       if (cancelBtn) {
         cancelBtn.addEventListener('click', function () { self.closeEditor(); });
+      }
+
+      // Restart full setup button
+      var restartBtn = document.getElementById('profile-restart-btn');
+      if (restartBtn) {
+        restartBtn.addEventListener('click', function () {
+          if (typeof Onboarding !== 'undefined' && Onboarding.restart) {
+            Onboarding.restart();
+          }
+        });
       }
 
       // Escape key
