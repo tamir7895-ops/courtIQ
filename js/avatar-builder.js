@@ -644,28 +644,19 @@
       ctx.fill();
     });
 
-    // Forehead highlight (Fresnel-style)
-    var fhG = ctx.createRadialGradient(CX - 4, HEAD_CY - HEAD_RY*0.55, 2, CX - 4, HEAD_CY - HEAD_RY*0.55, 14);
-    fhG.addColorStop(0, withAlpha(hi, 0.25));
+    // Gentle forehead highlight (covers forehead through eye area for even lighting)
+    var fhG = ctx.createRadialGradient(CX - 2, HEAD_CY - 4, 4, CX, HEAD_CY, HEAD_RX * 0.9);
+    fhG.addColorStop(0, withAlpha(hi, 0.12));
     fhG.addColorStop(1, rgba(0,0,0,0));
     ctx.fillStyle = fhG;
-    ctx.fillRect(CX - 18, HEAD_CY - HEAD_RY, 32, HEAD_RY*0.6);
+    ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY*1.2);
 
-    // Nose bridge highlight
-    var nbG = ctx.createLinearGradient(CX - 3, HEAD_CY - 4, CX + 3, HEAD_CY - 4);
-    nbG.addColorStop(0, rgba(0,0,0,0));
-    nbG.addColorStop(0.3, withAlpha(hi, 0.18));
-    nbG.addColorStop(0.7, withAlpha(hi, 0.18));
-    nbG.addColorStop(1, rgba(0,0,0,0));
-    ctx.fillStyle = nbG;
-    ctx.fillRect(CX - 3, HEAD_CY - 6, 6, 14);
-
-    // Rim light (cool blue on left edge)
-    var rimG = ctx.createLinearGradient(CX - HEAD_RX - 2, HEAD_CY, CX - HEAD_RX + 8, HEAD_CY);
-    rimG.addColorStop(0, rgba(150,190,255,0.18));
+    // Rim light (cool blue on left edge, subtle)
+    var rimG = ctx.createLinearGradient(CX - HEAD_RX - 2, HEAD_CY, CX - HEAD_RX + 6, HEAD_CY);
+    rimG.addColorStop(0, rgba(150,190,255,0.08));
     rimG.addColorStop(1, rgba(0,0,0,0));
     ctx.fillStyle = rimG;
-    ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY + 4, 10, HEAD_RY*2 - 8);
+    ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY + 4, 8, HEAD_RY*2 - 8);
 
     ctx.restore();
 
