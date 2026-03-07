@@ -627,9 +627,9 @@
       CX + HEAD_RX*0.05, HEAD_CY + HEAD_RY*0.08, HEAD_RX*1.15
     );
     fG.addColorStop(0, hi);
-    fG.addColorStop(0.35, mid);
-    fG.addColorStop(0.7, sh);
-    fG.addColorStop(1.0, deep);
+    fG.addColorStop(0.4, mid);
+    fG.addColorStop(0.75, sh);
+    fG.addColorStop(1.0, warmShadow(skin, 22));
     ctx.fillStyle = fG;
     ctx.fill();
 
