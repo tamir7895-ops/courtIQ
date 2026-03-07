@@ -1496,26 +1496,31 @@
       ctx.fill();
     }
 
-    // Head with gradient
+    // Head — flat base fill (prevents raccoon mask)
     ctx.beginPath();
     ctx.ellipse(cx, cy, hw, hh, 0, 0, Math.PI*2);
-    var hgM = ctx.createRadialGradient(cx - 3, cy - 5, 1, cx + 1, cy + 2, hh);
-    hgM.addColorStop(0, warmHighlight(cfg.skinTone, 15));
-    hgM.addColorStop(0.5, cfg.skinTone);
-    hgM.addColorStop(1, warmShadow(cfg.skinTone, 12));
-    ctx.fillStyle = hgM;
+    ctx.fillStyle = cfg.skinTone;
     ctx.fill();
 
-    // Rim light
+    // Subtle 3D overlay (clipped to head)
     ctx.save();
     ctx.beginPath();
     ctx.ellipse(cx, cy, hw, hh, 0, 0, Math.PI*2);
     ctx.clip();
-    var rimM = ctx.createLinearGradient(cx - hw - 2, cy, cx - hw + 6, cy);
-    rimM.addColorStop(0, rgba(150,190,255,0.16));
-    rimM.addColorStop(1, rgba(0,0,0,0));
-    ctx.fillStyle = rimM;
-    ctx.fillRect(cx - hw - 2, cy - hh, 8, hh*2);
+    var bright = hexBrightness(cfg.skinTone);
+    // Bottom jaw shadow
+    var jwM = ctx.createRadialGradient(cx, cy - 3, hw*0.4, cx, cy - 3, hh*1.2);
+    jwM.addColorStop(0, rgba(0,0,0,0));
+    jwM.addColorStop(0.7, rgba(0,0,0,0));
+    jwM.addColorStop(1, withAlpha(warmShadow(cfg.skinTone, 10), bright < 120 ? 0.1 : 0.15));
+    ctx.fillStyle = jwM;
+    ctx.fillRect(cx - hw, cy - hh, hw*2, hh*2);
+    // Top highlight
+    var hiM = ctx.createRadialGradient(cx, cy - hh*0.5, 2, cx, cy - hh*0.3, hw*0.7);
+    hiM.addColorStop(0, withAlpha(warmHighlight(cfg.skinTone, 8), bright < 120 ? 0.06 : 0.1));
+    hiM.addColorStop(1, rgba(0,0,0,0));
+    ctx.fillStyle = hiM;
+    ctx.fillRect(cx - hw, cy - hh, hw*2, hh);
     ctx.restore();
 
     // Mini hair
