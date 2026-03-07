@@ -936,16 +936,16 @@
     }
 
     else if (style === 'short') {
-      // Short hair with volume
+      // Short hair with volume — raised hairline
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(CX, HEAD_CY - 4, HEAD_RX + 3, HEAD_RY*0.6, 0, Math.PI*1.02, Math.PI*1.98, true);
+      ctx.ellipse(CX, HEAD_CY - 8, HEAD_RX + 3, HEAD_RY*0.48, 0, Math.PI*1.02, Math.PI*1.98, true);
       ctx.fill();
       // Volume highlight arc
       ctx.strokeStyle = withAlpha(hi, 0.2);
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(CX, HEAD_CY - 4, HEAD_RX - 2, Math.PI*1.2, Math.PI*1.8, true);
+      ctx.arc(CX, HEAD_CY - 8, HEAD_RX - 2, Math.PI*1.2, Math.PI*1.8, true);
       ctx.stroke();
     }
 
