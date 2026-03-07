@@ -1666,17 +1666,17 @@
       ctx.beginPath();
       ctx.arc(ex - 0.5, meY - 0.6, 0.55, 0, Math.PI*2);
       ctx.fill();
-      // Upper lid (lighter on dark skin)
-      ctx.strokeStyle = mDark ? rgba(15,10,5,0.2) : rgba(30,20,10,0.35);
-      ctx.lineWidth = mDark ? 0.5 : 0.7;
+      // Upper lid (very subtle at mini scale)
+      ctx.strokeStyle = mDark ? rgba(15,10,5,0.15) : rgba(30,20,10,0.2);
+      ctx.lineWidth = 0.4;
       ctx.beginPath();
       ctx.ellipse(ex, meY, 3, 2.2, 0, Math.PI, 0, true);
       ctx.stroke();
     });
 
-    // Eyebrows (lighter on dark skin)
-    ctx.strokeStyle = mDark ? rgba(20,12,6,0.25) : rgba(40,25,15,0.4);
-    ctx.lineWidth = mDark ? 0.9 : 1.1;
+    // Eyebrows (subtle at mini scale to avoid band effect)
+    ctx.strokeStyle = mDark ? rgba(20,12,6,0.2) : rgba(40,25,15,0.28);
+    ctx.lineWidth = mDark ? 0.7 : 0.8;
     ctx.lineCap = 'round';
     [-1, 1].forEach(function(side) {
       ctx.beginPath();
