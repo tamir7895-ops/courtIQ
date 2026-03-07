@@ -674,7 +674,7 @@
       var ex = CX + side * (HEAD_RX - 1);
       var ey = HEAD_CY + 2;
       // Ear AO (dark behind ear)
-      ctx.fillStyle = withAlpha(deep, 0.3);
+      ctx.fillStyle = withAlpha(warmShadow(skin, 20), 0.2);
       ctx.beginPath();
       ctx.ellipse(ex + side*1.5, ey, 5, 7.5, 0, 0, Math.PI*2);
       ctx.fill();
