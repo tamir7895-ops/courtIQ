@@ -815,18 +815,18 @@
       ctx.bezierCurveTo(ex - ew*0.5, eyeY + eh*0.7, ex + ew*0.5, eyeY + eh*0.7, ex + ew - 1, eyeY + 0.5);
       ctx.stroke();
 
-      // Eyelash clusters (upper)
-      ctx.strokeStyle = isDark ? rgba(5,2,0,0.4) : rgba(30,18,8,0.5);
-      ctx.lineWidth = 0.8;
+      // Eyelash clusters (upper, subtle)
+      ctx.strokeStyle = isDark ? rgba(5,2,0,0.25) : rgba(30,18,8,0.3);
+      ctx.lineWidth = 0.5;
       ctx.lineCap = 'round';
-      for (var li = 0; li < 5; li++) {
-        var t = (li + 0.5) / 5;
-        var lx = ex - ew + t * ew * 2;
+      for (var li = 0; li < 3; li++) {
+        var t = (li + 0.5) / 3;
+        var lx = ex - ew*0.7 + t * ew * 1.4;
         var ly = eyeY - eh * Math.sin(t * Math.PI) * 0.85 + 0.5;
-        var angle = -Math.PI/2 - (t - 0.5) * 0.6;
+        var angle = -Math.PI/2 - (t - 0.5) * 0.5;
         ctx.beginPath();
         ctx.moveTo(lx, ly);
-        ctx.lineTo(lx + Math.cos(angle)*2.5, ly + Math.sin(angle)*2.5);
+        ctx.lineTo(lx + Math.cos(angle)*1.8, ly + Math.sin(angle)*1.8);
         ctx.stroke();
       }
     });
