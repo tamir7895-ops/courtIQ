@@ -1544,9 +1544,12 @@
         }
         ctx.restore();
       } else if (cfg.hairStyle === 'short') {
+        ctx.save();
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 7, hw + 2, hh*0.45, 0, Math.PI*1.05, Math.PI*1.95, true);
-        ctx.fill();
+        ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI*2);
+        ctx.clip();
+        ctx.fillRect(cx - hw - 2, cy - hh - 2, hw*2 + 4, hh - 4);
+        ctx.restore();
       } else if (cfg.hairStyle === 'fade') {
         ctx.beginPath();
         ctx.ellipse(cx, cy - 8, hw, hh*0.4, 0, Math.PI*1.1, Math.PI*1.9, true);
