@@ -673,7 +673,7 @@
       var eG = ctx.createRadialGradient(ex - side*1, ey - 2, 1, ex, ey, 6);
       eG.addColorStop(0, warmHighlight(skin, 8));
       eG.addColorStop(0.6, skin);
-      eG.addColorStop(1, sh);
+      eG.addColorStop(1, warmShadow(skin, 10));
       ctx.fillStyle = eG;
       ctx.beginPath();
       ctx.ellipse(ex, ey, 4, 6.5, 0, 0, Math.PI*2);
