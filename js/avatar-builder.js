@@ -800,8 +800,8 @@
       ctx.restore();
 
       // Upper eyelid line (defines eye shape)
-      ctx.strokeStyle = isDark ? rgba(10,5,0,0.5) : rgba(40,25,15,0.55);
-      ctx.lineWidth = 1.4;
+      ctx.strokeStyle = isDark ? rgba(10,5,0,0.35) : rgba(40,25,15,0.4);
+      ctx.lineWidth = 0.9;
       ctx.beginPath();
       ctx.moveTo(ex - ew, eyeY + 0.5);
       ctx.bezierCurveTo(ex - ew*0.6, eyeY - eh, ex + ew*0.6, eyeY - eh, ex + ew, eyeY + 0.5);
