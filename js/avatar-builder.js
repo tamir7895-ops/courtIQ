@@ -924,15 +924,15 @@
     ctx.clip();
 
     if (style === 'buzz') {
-      // Flat cropped hair
+      // Flat cropped hair — hairline well above brow
       ctx.fillStyle = color;
-      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY + 2);
+      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY - 5);
       // Gradient for volume
-      var bzG = ctx.createLinearGradient(CX, HEAD_CY - HEAD_RY, CX, HEAD_CY - HEAD_RY*0.3);
+      var bzG = ctx.createLinearGradient(CX, HEAD_CY - HEAD_RY, CX, HEAD_CY - HEAD_RY*0.5);
       bzG.addColorStop(0, withAlpha(hi, 0.2));
       bzG.addColorStop(1, rgba(0,0,0,0));
       ctx.fillStyle = bzG;
-      ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY*0.7);
+      ctx.fillRect(CX - HEAD_RX, HEAD_CY - HEAD_RY, HEAD_RX*2, HEAD_RY*0.5);
     }
 
     else if (style === 'short') {
