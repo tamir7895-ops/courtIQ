@@ -1065,14 +1065,14 @@
 
     else if (style === 'cornrows') {
       ctx.fillStyle = color;
-      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY + 4);
+      ctx.fillRect(CX - HEAD_RX - 2, HEAD_CY - HEAD_RY - 2, HEAD_RX*2 + 4, HEAD_RY - 4);
       // Cornrow lines
       ctx.strokeStyle = withAlpha(bright > 80 ? darker(color, 25) : lighter(color, 15), 0.5);
       ctx.lineWidth = 0.8;
       for (var c = -4; c <= 4; c++) {
         ctx.beginPath();
         ctx.moveTo(CX + c * 5, HEAD_CY - HEAD_RY + 2);
-        ctx.quadraticCurveTo(CX + c * 5.5, HEAD_CY - HEAD_RY*0.2, CX + c * 6, HEAD_CY + 4);
+        ctx.quadraticCurveTo(CX + c * 5.5, HEAD_CY - HEAD_RY*0.2, CX + c * 6, HEAD_CY - 6);
         ctx.stroke();
       }
       // Row highlights
