@@ -700,19 +700,21 @@
     var skin = cfg.skinTone;
     var eyeY = HEAD_CY + 1;
     var eyeSpacing = 10;
-    var isDark = hexBrightness(skin) < 120;
+    var bright = hexBrightness(skin);
+    var isDark = bright < 120;
 
     /* ─── Eyebrows ─── */
-    var browColor = isDark ? rgba(20,15,10,0.45) : rgba(60,40,25,0.5);
-    ctx.lineWidth = 1.5;
+    var browAlpha = isDark ? 0.3 : 0.45;
+    var browColor = isDark ? rgba(30,20,12,browAlpha) : rgba(60,40,25,browAlpha);
+    ctx.lineWidth = isDark ? 1.2 : 1.4;
     ctx.lineCap = 'round';
     [-1, 1].forEach(function(side) {
       var bx = CX + side * eyeSpacing;
       var by = eyeY - 9;
       ctx.strokeStyle = browColor;
       ctx.beginPath();
-      ctx.moveTo(bx - side*6, by + 1.5);
-      ctx.quadraticCurveTo(bx, by - 2, bx + side*6, by + 0.5);
+      ctx.moveTo(bx - side*5.5, by + 1.5);
+      ctx.quadraticCurveTo(bx, by - 1.5, bx + side*5.5, by + 0.5);
       ctx.stroke();
     });
 
@@ -720,12 +722,6 @@
     [-1, 1].forEach(function(side) {
       var ex = CX + side * eyeSpacing;
       var ew = 7, eh = 5;
-
-      // Eye socket shadow (very subtle ambient occlusion)
-      ctx.fillStyle = withAlpha(warmShadow(skin, 12), 0.06);
-      ctx.beginPath();
-      ctx.ellipse(ex, eyeY, ew + 1.5, eh + 1, 0, 0, Math.PI*2);
-      ctx.fill();
 
       // Sclera (off-white with subtle shading)
       ctx.save();
