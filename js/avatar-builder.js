@@ -722,10 +722,10 @@
       var ex = CX + side * eyeSpacing;
       var ew = 7, eh = 5;
 
-      // Eye socket shadow (ambient occlusion)
-      ctx.fillStyle = withAlpha(deepShadow(skin, 25), 0.12);
+      // Eye socket shadow (very subtle ambient occlusion)
+      ctx.fillStyle = withAlpha(warmShadow(skin, 12), 0.06);
       ctx.beginPath();
-      ctx.ellipse(ex, eyeY, ew + 2, eh + 2, 0, 0, Math.PI*2);
+      ctx.ellipse(ex, eyeY, ew + 1.5, eh + 1, 0, 0, Math.PI*2);
       ctx.fill();
 
       // Sclera (off-white with subtle shading)
