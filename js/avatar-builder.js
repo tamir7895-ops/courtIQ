@@ -811,8 +811,8 @@
       ctx.stroke();
 
       // Eyelash clusters (upper, subtle)
-      ctx.strokeStyle = isDark ? rgba(5,2,0,0.25) : rgba(30,18,8,0.3);
-      ctx.lineWidth = 0.5;
+      ctx.strokeStyle = isDark ? rgba(8,4,0,0.15) : rgba(30,18,8,0.25);
+      ctx.lineWidth = 0.4;
       ctx.lineCap = 'round';
       for (var li = 0; li < 3; li++) {
         var t = (li + 0.5) / 3;
