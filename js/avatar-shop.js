@@ -75,7 +75,8 @@
   }
 
   function isFreeItem(type, itemId) {
-    return FREE_ITEMS[type] && FREE_ITEMS[type].indexOf(itemId) !== -1;
+    /* v3: all items are free — no shop locks */
+    return true;
   }
 
   function meetsLevelReq(levelName) {
