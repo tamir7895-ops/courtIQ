@@ -704,8 +704,8 @@
     var isDark = hexBrightness(skin) < 120;
 
     /* ─── Eyebrows ─── */
-    var browColor = isDark ? rgba(20,15,10,0.6) : rgba(60,40,25,0.65);
-    ctx.lineWidth = 2.2;
+    var browColor = isDark ? rgba(20,15,10,0.45) : rgba(60,40,25,0.5);
+    ctx.lineWidth = 1.5;
     ctx.lineCap = 'round';
     [-1, 1].forEach(function(side) {
       var bx = CX + side * eyeSpacing;
