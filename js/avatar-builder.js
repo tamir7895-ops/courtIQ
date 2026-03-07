@@ -833,35 +833,35 @@
 
     /* ─── Nose (subtle Memoji-style) ─── */
     var noseY = HEAD_CY + 9;
-    // Nose shadow
-    ctx.fillStyle = withAlpha(warmShadow(skin, 18), 0.18);
+    // Nose shadow (starts BELOW eyes)
+    ctx.fillStyle = withAlpha(warmShadow(skin, 14), 0.12);
     ctx.beginPath();
-    ctx.moveTo(CX - 1, HEAD_CY - 2);
-    ctx.quadraticCurveTo(CX - 4, noseY, CX - 5, noseY + 3);
-    ctx.quadraticCurveTo(CX, noseY + 5, CX + 5, noseY + 3);
-    ctx.quadraticCurveTo(CX + 4, noseY, CX + 1, HEAD_CY - 2);
+    ctx.moveTo(CX - 1, HEAD_CY + 4);
+    ctx.quadraticCurveTo(CX - 3, noseY, CX - 4, noseY + 3);
+    ctx.quadraticCurveTo(CX, noseY + 4.5, CX + 4, noseY + 3);
+    ctx.quadraticCurveTo(CX + 3, noseY, CX + 1, HEAD_CY + 4);
     ctx.closePath();
     ctx.fill();
 
     // Nose tip
-    ctx.fillStyle = withAlpha(warmShadow(skin, 14), 0.22);
+    ctx.fillStyle = withAlpha(warmShadow(skin, 12), 0.15);
     ctx.beginPath();
-    ctx.ellipse(CX, noseY + 2, 4, 2.5, 0, 0, Math.PI*2);
+    ctx.ellipse(CX, noseY + 2, 3.5, 2, 0, 0, Math.PI*2);
     ctx.fill();
 
     // Nostrils
-    ctx.fillStyle = withAlpha(deepShadow(skin, 35), 0.35);
+    ctx.fillStyle = withAlpha(deepShadow(skin, 30), 0.25);
     ctx.beginPath();
-    ctx.ellipse(CX - 3, noseY + 3, 1.5, 1, 0.2, 0, Math.PI*2);
+    ctx.ellipse(CX - 2.5, noseY + 3, 1.2, 0.8, 0.2, 0, Math.PI*2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(CX + 3, noseY + 3, 1.5, 1, -0.2, 0, Math.PI*2);
+    ctx.ellipse(CX + 2.5, noseY + 3, 1.2, 0.8, -0.2, 0, Math.PI*2);
     ctx.fill();
 
     // Nose highlight
-    ctx.fillStyle = withAlpha(warmHighlight(skin, 25), 0.15);
+    ctx.fillStyle = withAlpha(warmHighlight(skin, 20), 0.12);
     ctx.beginPath();
-    ctx.ellipse(CX - 1, noseY - 1, 1.5, 3, 0, 0, Math.PI*2);
+    ctx.ellipse(CX - 0.5, noseY - 1, 1.2, 2.5, 0, 0, Math.PI*2);
     ctx.fill();
 
     /* ─── Mouth (Memoji-style with lips) ─── */
