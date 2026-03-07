@@ -2422,6 +2422,10 @@
       .nav-links { display: none; }
       .nav-mobile-toggle { display: flex; }
       .nav-cta .nav-signin { display: none; }
+      .nav-logo-tagline { display: none; }
+      .nav-logo { font-size: 20px; gap: 8px; }
+      .nav-logo-icon { width: 30px; height: 30px; }
+      #nav-user-greeting { display: none !important; }
 
       /* Always show solid nav background on mobile so nothing bleeds through */
       #navbar {
@@ -2449,6 +2453,8 @@
     }
 
     @media (max-width: 580px) {
+      .nav-logo { font-size: 18px; gap: 7px; }
+      .nav-logo-icon { width: 28px; height: 28px; }
       .section { padding: 64px 0; }
       .steps-grid { grid-template-columns: 1fr; }
       .positions-grid { grid-template-columns: repeat(2, 1fr); }
