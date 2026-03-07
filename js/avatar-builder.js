@@ -608,28 +608,27 @@
   /* ── Head (Memoji-quality with 5-stop skin gradient) ──────── */
   function drawHead(ctx, cfg) {
     var skin = cfg.skinTone;
-    var hi = warmHighlight(skin, 18);
+    var hi = warmHighlight(skin, 14);
     var mid = skin;
-    var sh = warmShadow(skin, 16);
-    var deep = deepShadow(skin, 30);
+    var sh = warmShadow(skin, 10);
 
-    // Ambient occlusion halo (subtle dark edge around entire head)
+    // Ambient occlusion halo (very subtle dark edge)
     ctx.save();
-    headShape(ctx, CX, HEAD_CY, HEAD_RX + 1.5, HEAD_RY + 1.5);
-    ctx.fillStyle = withAlpha(deep, 0.1);
+    headShape(ctx, CX, HEAD_CY, HEAD_RX + 1, HEAD_RY + 1);
+    ctx.fillStyle = withAlpha(warmShadow(skin, 18), 0.08);
     ctx.fill();
     ctx.restore();
 
-    // Main head with offset radial gradient (light from upper-left)
+    // Main head with gentle radial gradient (light from upper-center)
     headShape(ctx, CX, HEAD_CY, HEAD_RX, HEAD_RY);
     var fG = ctx.createRadialGradient(
-      CX - HEAD_RX*0.2, HEAD_CY - HEAD_RY*0.2, HEAD_RX*0.1,
-      CX + HEAD_RX*0.05, HEAD_CY + HEAD_RY*0.08, HEAD_RX*1.15
+      CX - 3, HEAD_CY - 6, HEAD_RX * 0.15,
+      CX, HEAD_CY + 2, HEAD_RX * 1.2
     );
     fG.addColorStop(0, hi);
-    fG.addColorStop(0.4, mid);
-    fG.addColorStop(0.75, sh);
-    fG.addColorStop(1.0, warmShadow(skin, 22));
+    fG.addColorStop(0.45, mid);
+    fG.addColorStop(0.8, sh);
+    fG.addColorStop(1.0, warmShadow(skin, 14));
     ctx.fillStyle = fG;
     ctx.fill();
 
