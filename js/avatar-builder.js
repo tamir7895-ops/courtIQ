@@ -616,7 +616,7 @@
     // Ambient occlusion halo (subtle dark edge around entire head)
     ctx.save();
     headShape(ctx, CX, HEAD_CY, HEAD_RX + 1.5, HEAD_RY + 1.5);
-    ctx.fillStyle = withAlpha(deep, 0.18);
+    ctx.fillStyle = withAlpha(deep, 0.1);
     ctx.fill();
     ctx.restore();
 
