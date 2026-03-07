@@ -1,7 +1,7 @@
 /* ============================================================
-   AVATAR BUILDER v2 — /js/avatar-builder.js
-   Canvas-based avatar renderer — more realistic + fun style.
-   Egg-shaped head, textured hair, expressive face, detailed body.
+   AVATAR BUILDER v3 — /js/avatar-builder.js
+   Gaming-quality canvas avatar renderer.
+   Rim lighting, spotlight background, detailed skin/eyes/jersey.
    ============================================================ */
 (function () {
   'use strict';
@@ -9,9 +9,12 @@
   var AW = 200, AH = 280;
 
   /* ── Constants ─────────────────────────────────────────────── */
-  var HEAD_CX = 100, HEAD_CY = 106;
-  var HEAD_W = 36, HEAD_H = 40;
-  var BODY_Y = 158, BODY_H = 90;
+  var HEAD_CX = 100, HEAD_CY = 100;
+  var HEAD_W = 38, HEAD_H = 42;
+  var BODY_Y = 152, BODY_H = 94;
+
+  /* ── Light direction (top-left) ──────────────────────────── */
+  var LIGHT_X = -0.6, LIGHT_Y = -0.8;
 
   /* ── Config ──────────────────────────────────────────────── */
   var CONFIG = {
@@ -79,6 +82,15 @@
     return (r * 299 + g * 587 + b * 114) / 1000;
   }
 
+  function lerpColor(hex1, hex2, t) {
+    var r1 = parseInt(hex1.slice(1, 3), 16), g1 = parseInt(hex1.slice(3, 5), 16), b1 = parseInt(hex1.slice(5, 7), 16);
+    var r2 = parseInt(hex2.slice(1, 3), 16), g2 = parseInt(hex2.slice(3, 5), 16), b2 = parseInt(hex2.slice(5, 7), 16);
+    var r = Math.round(r1 + (r2 - r1) * t);
+    var g = Math.round(g1 + (g2 - g1) * t);
+    var b = Math.round(b1 + (b2 - b1) * t);
+    return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+  }
+
   /* ── Seeded PRNG (deterministic textures) ──────────────────── */
   function hashStr(s) {
     var h = 0;
@@ -115,105 +127,274 @@
   function eggShape(ctx, cx, cy, w, h) {
     ctx.beginPath();
     ctx.moveTo(cx, cy - h);
-    // Right side
     ctx.bezierCurveTo(cx + w * 0.9, cy - h, cx + w, cy - h * 0.15, cx + w * 0.6, cy + h);
-    // Chin
     ctx.quadraticCurveTo(cx, cy + h * 1.12, cx - w * 0.6, cy + h);
-    // Left side
     ctx.bezierCurveTo(cx - w, cy - h * 0.15, cx - w * 0.9, cy - h, cx, cy - h);
     ctx.closePath();
   }
 
+  /* ── Rim Light Helper ───────────────────────────────────────── */
+  function rimHighlight(ctx, x, y, w, h, intensity) {
+    var grad = ctx.createLinearGradient(x - w, y, x - w * 0.5, y);
+    grad.addColorStop(0, 'rgba(180,210,255,' + (intensity * 0.35) + ')');
+    grad.addColorStop(1, 'rgba(180,210,255,0)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(x - w - 2, y - h, 12, h * 2);
+  }
+
+  /* ── Drawing: Background ────────────────────────────────────── */
+  function drawBackground(ctx) {
+    // Deep dark base
+    roundRect(ctx, 0, 0, AW, AH, 12);
+    ctx.fillStyle = '#0a0b0e';
+    ctx.fill();
+
+    // Warm spotlight from bottom-right
+    var spot = ctx.createRadialGradient(AW * 0.62, AH * 0.78, 15, AW * 0.5, AH * 0.55, AH * 0.65);
+    spot.addColorStop(0, 'rgba(245, 166, 35, 0.10)');
+    spot.addColorStop(0.4, 'rgba(245, 166, 35, 0.04)');
+    spot.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = spot;
+    ctx.fillRect(0, 0, AW, AH);
+
+    // Cool rim light from top-left
+    var cool = ctx.createRadialGradient(AW * 0.15, AH * 0.12, 8, AW * 0.3, AH * 0.3, AH * 0.55);
+    cool.addColorStop(0, 'rgba(120, 160, 255, 0.07)');
+    cool.addColorStop(0.5, 'rgba(120, 160, 255, 0.02)');
+    cool.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = cool;
+    ctx.fillRect(0, 0, AW, AH);
+
+    // Floor glow / reflection
+    var floor = ctx.createLinearGradient(0, AH - 50, 0, AH);
+    floor.addColorStop(0, 'rgba(245, 166, 35, 0)');
+    floor.addColorStop(0.6, 'rgba(245, 166, 35, 0.03)');
+    floor.addColorStop(1, 'rgba(245, 166, 35, 0.07)');
+    ctx.fillStyle = floor;
+    ctx.fillRect(0, AH - 50, AW, 50);
+
+    // Subtle vignette
+    var vig = ctx.createRadialGradient(AW / 2, AH / 2, AW * 0.3, AW / 2, AH / 2, AW * 0.8);
+    vig.addColorStop(0, 'rgba(0,0,0,0)');
+    vig.addColorStop(1, 'rgba(0,0,0,0.25)');
+    ctx.fillStyle = vig;
+    ctx.fillRect(0, 0, AW, AH);
+  }
+
   /* ── Drawing: Body ─────────────────────────────────────────── */
   function drawBody(ctx, cx, cfg) {
-    var bw = cfg.bodyType === 'heavy' ? 86 : cfg.bodyType === 'athletic' ? 74 : 60;
+    var bw = cfg.bodyType === 'heavy' ? 88 : cfg.bodyType === 'athletic' ? 76 : 62;
     var bh = BODY_H;
     var by = BODY_Y;
     var skin = cfg.skinTone;
 
-    // Ground shadow
+    // Ground shadow (larger, softer)
     ctx.save();
     ctx.beginPath();
-    ctx.ellipse(cx, AH - 18, 45, 6, 0, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.ellipse(cx, AH - 14, 52, 8, 0, 0, Math.PI * 2);
+    var gshGrad = ctx.createRadialGradient(cx, AH - 14, 2, cx, AH - 14, 52);
+    gshGrad.addColorStop(0, 'rgba(0,0,0,0.25)');
+    gshGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = gshGrad;
     ctx.fill();
     ctx.restore();
 
-    // Arms (behind jersey)
-    var armW = cfg.bodyType === 'heavy' ? 17 : cfg.bodyType === 'athletic' ? 15 : 13;
+    // --- Shorts ---
+    var shortsY = by + bh - 6;
+    var shortsH = 32;
+    var shortsW = bw + 4;
+    ctx.save();
+    var shortsGrad = ctx.createLinearGradient(0, shortsY, 0, shortsY + shortsH);
+    shortsGrad.addColorStop(0, '#1a1c22');
+    shortsGrad.addColorStop(1, '#101214');
+    roundRect(ctx, cx - shortsW / 2, shortsY, shortsW, shortsH, 6);
+    ctx.fillStyle = shortsGrad;
+    ctx.fill();
+    // Shorts side stripes
+    var ssGrad = ctx.createLinearGradient(0, shortsY, 0, shortsY + shortsH);
+    ssGrad.addColorStop(0, 'rgba(245,166,35,0.25)');
+    ssGrad.addColorStop(1, 'rgba(245,166,35,0.05)');
+    ctx.fillStyle = ssGrad;
+    ctx.fillRect(cx - shortsW / 2 + 3, shortsY + 2, 4, shortsH - 6);
+    ctx.fillRect(cx + shortsW / 2 - 7, shortsY + 2, 4, shortsH - 6);
+    // Shorts rim light (left edge)
+    ctx.fillStyle = 'rgba(140,180,255,0.06)';
+    ctx.fillRect(cx - shortsW / 2, shortsY, 3, shortsH);
+    ctx.restore();
+
+    // --- Legs hint (skin below shorts) ---
+    var legW = cfg.bodyType === 'heavy' ? 14 : cfg.bodyType === 'athletic' ? 12 : 10;
+    var legH = 20;
+    var legY = shortsY + shortsH - 4;
+    // Left leg
+    var legGradL = ctx.createLinearGradient(0, legY, 0, legY + legH);
+    legGradL.addColorStop(0, skin);
+    legGradL.addColorStop(1, darker(skin, 20));
+    ctx.fillStyle = legGradL;
+    roundRect(ctx, cx - 18 - legW / 2, legY, legW, legH, 4);
+    ctx.fill();
+    // Right leg
+    ctx.fillStyle = legGradL;
+    roundRect(ctx, cx + 18 - legW / 2, legY, legW, legH, 4);
+    ctx.fill();
+
+    // --- Shoes ---
+    var shoeY = legY + legH - 4;
+    var shoeW = legW + 6;
+    var shoeH = 10;
+    // Left shoe
+    ctx.save();
+    var shoeGrad = ctx.createLinearGradient(0, shoeY, 0, shoeY + shoeH);
+    shoeGrad.addColorStop(0, '#2a2a2a');
+    shoeGrad.addColorStop(1, '#1a1a1a');
+    roundRect(ctx, cx - 18 - shoeW / 2, shoeY, shoeW, shoeH, 3);
+    ctx.fillStyle = shoeGrad;
+    ctx.fill();
+    // Shoe swoosh
+    ctx.strokeStyle = '#f5a623';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx - 18 - shoeW / 2 + 3, shoeY + shoeH - 3);
+    ctx.quadraticCurveTo(cx - 18, shoeY + 2, cx - 18 + shoeW / 2 - 2, shoeY + shoeH - 4);
+    ctx.stroke();
+    // Right shoe
+    roundRect(ctx, cx + 18 - shoeW / 2, shoeY, shoeW, shoeH, 3);
+    ctx.fillStyle = shoeGrad;
+    ctx.fill();
+    ctx.strokeStyle = '#f5a623';
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(cx + 18 + shoeW / 2 - 3, shoeY + shoeH - 3);
+    ctx.quadraticCurveTo(cx + 18, shoeY + 2, cx + 18 - shoeW / 2 + 2, shoeY + shoeH - 4);
+    ctx.stroke();
+    ctx.restore();
+
+    // --- Arms ---
+    var armW = cfg.bodyType === 'heavy' ? 18 : cfg.bodyType === 'athletic' ? 16 : 14;
     var shoulderY = by + 4;
-    var armH = 58;
+    var armH = 60;
+
     // Left arm
     ctx.save();
-    var armGradL = ctx.createLinearGradient(0, shoulderY, 0, shoulderY + armH);
-    armGradL.addColorStop(0, skin);
-    armGradL.addColorStop(1, darker(skin, 15));
+    var armGradL = ctx.createLinearGradient(cx - bw / 2 - armW, shoulderY, cx - bw / 2, shoulderY);
+    armGradL.addColorStop(0, darker(skin, 12));
+    armGradL.addColorStop(0.4, skin);
+    armGradL.addColorStop(1, darker(skin, 8));
     ctx.fillStyle = armGradL;
-    roundRect(ctx, cx - bw / 2 - armW + 3, shoulderY, armW, armH, 7);
+    roundRect(ctx, cx - bw / 2 - armW + 3, shoulderY, armW, armH, 8);
     ctx.fill();
-    // Muscle highlight (athletic/heavy)
+    // Arm rim light (left edge — facing the light)
+    ctx.fillStyle = 'rgba(180,210,255,0.08)';
+    ctx.fillRect(cx - bw / 2 - armW + 2, shoulderY + 4, 3, armH - 8);
+    // Muscle definition (athletic/heavy)
     if (cfg.bodyType !== 'lean') {
-      ctx.strokeStyle = withAlpha(lighter(skin, 20), 0.15);
+      ctx.strokeStyle = withAlpha(lighter(skin, 25), 0.12);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(cx - bw / 2 - armW + 5, shoulderY + 10);
-      ctx.quadraticCurveTo(cx - bw / 2 - armW + 4, shoulderY + 30, cx - bw / 2 - armW + 6, shoulderY + 45);
-      ctx.stroke();
-    }
-    ctx.restore();
-    // Right arm
-    ctx.save();
-    var armGradR = ctx.createLinearGradient(0, shoulderY, 0, shoulderY + armH);
-    armGradR.addColorStop(0, skin);
-    armGradR.addColorStop(1, darker(skin, 15));
-    ctx.fillStyle = armGradR;
-    roundRect(ctx, cx + bw / 2 - 3, shoulderY, armW, armH, 7);
-    ctx.fill();
-    if (cfg.bodyType !== 'lean') {
-      ctx.strokeStyle = withAlpha(lighter(skin, 20), 0.15);
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      ctx.moveTo(cx + bw / 2 + armW - 5, shoulderY + 10);
-      ctx.quadraticCurveTo(cx + bw / 2 + armW - 4, shoulderY + 30, cx + bw / 2 + armW - 6, shoulderY + 45);
+      ctx.moveTo(cx - bw / 2 - armW + 5, shoulderY + 12);
+      ctx.quadraticCurveTo(cx - bw / 2 - armW + 4, shoulderY + 32, cx - bw / 2 - armW + 6, shoulderY + 48);
       ctx.stroke();
     }
     ctx.restore();
 
-    // Jersey body with gradient
-    var jerseyGrad = ctx.createLinearGradient(0, by, 0, by + bh);
-    jerseyGrad.addColorStop(0, '#22252b');
-    jerseyGrad.addColorStop(1, '#16181c');
+    // Right arm
+    ctx.save();
+    var armGradR = ctx.createLinearGradient(cx + bw / 2, shoulderY, cx + bw / 2 + armW, shoulderY);
+    armGradR.addColorStop(0, darker(skin, 8));
+    armGradR.addColorStop(0.6, skin);
+    armGradR.addColorStop(1, darker(skin, 15));
+    ctx.fillStyle = armGradR;
+    roundRect(ctx, cx + bw / 2 - 3, shoulderY, armW, armH, 8);
+    ctx.fill();
+    if (cfg.bodyType !== 'lean') {
+      ctx.strokeStyle = withAlpha(lighter(skin, 25), 0.12);
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(cx + bw / 2 + armW - 5, shoulderY + 12);
+      ctx.quadraticCurveTo(cx + bw / 2 + armW - 4, shoulderY + 32, cx + bw / 2 + armW - 6, shoulderY + 48);
+      ctx.stroke();
+    }
+    ctx.restore();
+
+    // --- Hands ---
+    var handR = armW * 0.42;
+    // Left hand
+    ctx.beginPath();
+    ctx.arc(cx - bw / 2 - armW / 2 + 3, shoulderY + armH + 2, handR, 0, Math.PI * 2);
+    ctx.fillStyle = skin;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx - bw / 2 - armW / 2 + 3, shoulderY + armH + 2, handR, 0, Math.PI * 2);
+    var handHl = ctx.createRadialGradient(cx - bw / 2 - armW / 2 + 1, shoulderY + armH, 1, cx - bw / 2 - armW / 2 + 3, shoulderY + armH + 2, handR);
+    handHl.addColorStop(0, withAlpha(lighter(skin, 20), 0.3));
+    handHl.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = handHl;
+    ctx.fill();
+    // Right hand (holding ball area — drawn later with ball)
+
+    // --- Jersey body ---
+    ctx.save();
+    var jerseyGrad = ctx.createLinearGradient(cx - bw / 2, by, cx + bw / 2, by + bh);
+    jerseyGrad.addColorStop(0, '#252830');
+    jerseyGrad.addColorStop(0.3, '#1e2028');
+    jerseyGrad.addColorStop(0.7, '#181a20');
+    jerseyGrad.addColorStop(1, '#14161a');
     roundRect(ctx, cx - bw / 2, by, bw, bh, 10);
     ctx.fillStyle = jerseyGrad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+
+    // Jersey rim light (left edge)
+    var jrimGrad = ctx.createLinearGradient(cx - bw / 2 - 2, by, cx - bw / 2 + 10, by);
+    jrimGrad.addColorStop(0, 'rgba(140,180,255,0.10)');
+    jrimGrad.addColorStop(1, 'rgba(140,180,255,0)');
+    ctx.fillStyle = jrimGrad;
+    ctx.fillRect(cx - bw / 2, by + 4, 12, bh - 8);
+
+    // Jersey fabric grain (subtle)
+    var rng = seededRand(hashStr('jersey'));
+    ctx.fillStyle = 'rgba(255,255,255,0.012)';
+    for (var fi = 0; fi < 60; fi++) {
+      var fx = cx - bw / 2 + rng() * bw;
+      var fy = by + rng() * bh;
+      ctx.fillRect(fx, fy, 1, 2);
+    }
+
+    // Jersey outline
+    ctx.strokeStyle = 'rgba(255,255,255,0.05)';
     ctx.lineWidth = 1;
+    roundRect(ctx, cx - bw / 2, by, bw, bh, 10);
     ctx.stroke();
+    ctx.restore();
 
     // V-neck collar
     ctx.save();
     ctx.beginPath();
-    ctx.moveTo(cx - 12, by);
-    ctx.lineTo(cx, by + 16);
-    ctx.lineTo(cx + 12, by);
+    ctx.moveTo(cx - 14, by);
+    ctx.lineTo(cx, by + 18);
+    ctx.lineTo(cx + 14, by);
     ctx.closePath();
-    ctx.fillStyle = skin;
+    // Collar skin fill with gradient
+    var collarGrad = ctx.createLinearGradient(0, by, 0, by + 18);
+    collarGrad.addColorStop(0, skin);
+    collarGrad.addColorStop(1, darker(skin, 15));
+    ctx.fillStyle = collarGrad;
     ctx.fill();
-    // Collar edge
-    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-    ctx.lineWidth = 1;
+    // Collar edge trim
+    ctx.strokeStyle = 'rgba(245,166,35,0.3)';
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
-    ctx.moveTo(cx - 13, by);
-    ctx.lineTo(cx, by + 17);
-    ctx.lineTo(cx + 13, by);
+    ctx.moveTo(cx - 15, by);
+    ctx.lineTo(cx, by + 19);
+    ctx.lineTo(cx + 15, by);
     ctx.stroke();
     ctx.restore();
 
-    // Side stripes with gradient
+    // Side stripes (amber gradient)
     ctx.save();
     var stripeGrad = ctx.createLinearGradient(0, by + 6, 0, by + bh - 12);
-    stripeGrad.addColorStop(0, 'rgba(245,166,35,0.3)');
-    stripeGrad.addColorStop(1, 'rgba(245,166,35,0.08)');
+    stripeGrad.addColorStop(0, 'rgba(245,166,35,0.35)');
+    stripeGrad.addColorStop(0.5, 'rgba(245,166,35,0.2)');
+    stripeGrad.addColorStop(1, 'rgba(245,166,35,0.06)');
     ctx.fillStyle = stripeGrad;
     ctx.fillRect(cx - bw / 2 + 3, by + 6, 5, bh - 16);
     ctx.fillRect(cx + bw / 2 - 8, by + 6, 5, bh - 16);
@@ -232,45 +413,67 @@
     ctx.stroke();
 
     // Sleeve caps
-    ctx.fillStyle = '#1c1e23';
-    roundRect(ctx, cx - bw / 2 - armW + 3, shoulderY, armW, 10, 5);
+    var sleeveGrad = ctx.createLinearGradient(0, shoulderY, 0, shoulderY + 12);
+    sleeveGrad.addColorStop(0, '#22252c');
+    sleeveGrad.addColorStop(1, '#1a1c22');
+    ctx.fillStyle = sleeveGrad;
+    roundRect(ctx, cx - bw / 2 - armW + 3, shoulderY, armW, 12, 5);
     ctx.fill();
-    roundRect(ctx, cx + bw / 2 - 3, shoulderY, armW, 10, 5);
+    roundRect(ctx, cx + bw / 2 - 3, shoulderY, armW, 12, 5);
     ctx.fill();
 
-    // Position number
+    // Position number (with shadow + outline for depth)
     ctx.save();
-    ctx.fillStyle = 'rgba(0,0,0,0.3)';
-    ctx.font = "900 28px 'Barlow Condensed', sans-serif";
+    ctx.font = "900 30px 'Barlow Condensed', sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(cfg.position || 'SG', cx + 1, by + bh / 2);
+    var numY = by + bh / 2 - 2;
+    // Number shadow
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillText(cfg.position || 'SG', cx + 1, numY + 2);
+    // Number outline
+    ctx.strokeStyle = 'rgba(245,166,35,0.3)';
+    ctx.lineWidth = 2;
+    ctx.strokeText(cfg.position || 'SG', cx, numY);
+    // Number fill
     ctx.fillStyle = '#f5a623';
-    ctx.fillText(cfg.position || 'SG', cx, by + bh / 2 - 1);
+    ctx.fillText(cfg.position || 'SG', cx, numY);
     ctx.restore();
   }
 
   /* ── Drawing: Neck ─────────────────────────────────────────── */
   function drawNeck(ctx, cx, skin) {
-    var neckGrad = ctx.createLinearGradient(0, 136, 0, 160);
+    var neckGrad = ctx.createLinearGradient(0, 132, 0, 158);
     neckGrad.addColorStop(0, skin);
-    neckGrad.addColorStop(1, darker(skin, 15));
+    neckGrad.addColorStop(0.5, darker(skin, 8));
+    neckGrad.addColorStop(1, darker(skin, 20));
     ctx.fillStyle = neckGrad;
     ctx.beginPath();
-    ctx.moveTo(cx - 14, 140);
-    ctx.lineTo(cx - 11, 162);
-    ctx.lineTo(cx + 11, 162);
-    ctx.lineTo(cx + 14, 140);
+    ctx.moveTo(cx - 15, 136);
+    ctx.lineTo(cx - 12, 158);
+    ctx.lineTo(cx + 12, 158);
+    ctx.lineTo(cx + 15, 136);
     ctx.closePath();
     ctx.fill();
+
+    // Neck shadow (ambient occlusion under chin)
+    var neckAO = ctx.createLinearGradient(0, 130, 0, 144);
+    neckAO.addColorStop(0, 'rgba(0,0,0,0.15)');
+    neckAO.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = neckAO;
+    ctx.fillRect(cx - 16, 130, 32, 14);
+
+    // Neck rim light (left edge)
+    ctx.fillStyle = 'rgba(140,180,255,0.06)';
+    ctx.fillRect(cx - 16, 136, 3, 22);
   }
 
   /* ── Drawing: Head ─────────────────────────────────────────── */
   function drawHead(ctx, cx, cy, skin) {
-    // Shadow
+    // Drop shadow
     ctx.save();
-    eggShape(ctx, cx, cy + 3, HEAD_W + 1, HEAD_H + 1);
-    ctx.fillStyle = 'rgba(0,0,0,0.18)';
+    eggShape(ctx, cx + 2, cy + 4, HEAD_W + 2, HEAD_H + 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.22)';
     ctx.fill();
     ctx.restore();
 
@@ -279,182 +482,314 @@
     ctx.fillStyle = skin;
     ctx.fill();
 
-    // 3D highlight gradient
+    // Primary light gradient (top-left highlight)
     ctx.save();
     eggShape(ctx, cx, cy, HEAD_W, HEAD_H);
     ctx.clip();
-    var hlGrad = ctx.createRadialGradient(cx - 6, cy - 14, 4, cx, cy, HEAD_H + 5);
-    hlGrad.addColorStop(0, withAlpha(lighter(skin, 30), 0.45));
-    hlGrad.addColorStop(0.5, withAlpha(lighter(skin, 10), 0.1));
-    hlGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    var hlGrad = ctx.createRadialGradient(cx - 10, cy - 18, 4, cx, cy, HEAD_H + 8);
+    hlGrad.addColorStop(0, withAlpha(lighter(skin, 40), 0.5));
+    hlGrad.addColorStop(0.3, withAlpha(lighter(skin, 15), 0.15));
+    hlGrad.addColorStop(0.7, 'rgba(0,0,0,0)');
+    hlGrad.addColorStop(1, 'rgba(0,0,0,0.05)');
     ctx.fillStyle = hlGrad;
     ctx.fillRect(cx - HEAD_W - 5, cy - HEAD_H - 5, HEAD_W * 2 + 10, HEAD_H * 2 + 10);
+
+    // Cheek blush (subtle warmth)
+    var blushGrad = ctx.createRadialGradient(cx - 18, cy + 8, 2, cx - 18, cy + 8, 14);
+    blushGrad.addColorStop(0, withAlpha(lighter(skin, 20), 0.15));
+    blushGrad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = blushGrad;
+    ctx.fillRect(cx - 35, cy - 5, 30, 25);
+    var blushGrad2 = ctx.createRadialGradient(cx + 18, cy + 8, 2, cx + 18, cy + 8, 14);
+    blushGrad2.addColorStop(0, withAlpha(lighter(skin, 20), 0.12));
+    blushGrad2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = blushGrad2;
+    ctx.fillRect(cx + 5, cy - 5, 30, 25);
+
+    // Nose bridge highlight
+    var noseHL = ctx.createLinearGradient(cx - 3, cy - 10, cx + 3, cy + 5);
+    noseHL.addColorStop(0, withAlpha(lighter(skin, 25), 0.15));
+    noseHL.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = noseHL;
+    ctx.fillRect(cx - 3, cy - 10, 6, 15);
+
+    // Right side shadow (opposite light)
+    var shadowGrad = ctx.createLinearGradient(cx + HEAD_W * 0.3, cy, cx + HEAD_W + 2, cy);
+    shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    shadowGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+    ctx.fillStyle = shadowGrad;
+    ctx.fillRect(cx, cy - HEAD_H, HEAD_W + 5, HEAD_H * 2 + 5);
     ctx.restore();
 
-    // Ear hints
+    // Ears (enhanced with inner detail)
     ctx.save();
-    ctx.fillStyle = darker(skin, 12);
+    ctx.fillStyle = darker(skin, 10);
     // Left ear
     ctx.beginPath();
-    ctx.ellipse(cx - HEAD_W + 2, cy + 2, 5, 8, -0.15, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.ellipse(cx - HEAD_W + 2, cy + 2, 6, 9, -0.15, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.fill();
+    // Left ear inner
+    ctx.beginPath();
+    ctx.ellipse(cx - HEAD_W + 4, cy + 2, 3, 5, -0.15, -Math.PI * 0.4, Math.PI * 0.4);
+    ctx.fillStyle = darker(skin, 22);
     ctx.fill();
     // Right ear
+    ctx.fillStyle = darker(skin, 14);
     ctx.beginPath();
-    ctx.ellipse(cx + HEAD_W - 2, cy + 2, 5, 8, 0.15, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.ellipse(cx + HEAD_W - 2, cy + 2, 6, 9, 0.15, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + HEAD_W - 4, cy + 2, 3, 5, 0.15, Math.PI * 0.6, Math.PI * 1.4);
+    ctx.fillStyle = darker(skin, 26);
     ctx.fill();
     ctx.restore();
 
-    // Jaw shadow
+    // Jaw shadow (enhanced)
     ctx.save();
     eggShape(ctx, cx, cy, HEAD_W, HEAD_H);
     ctx.clip();
-    var jawGrad = ctx.createLinearGradient(0, cy + HEAD_H - 16, 0, cy + HEAD_H + 2);
+    var jawGrad = ctx.createLinearGradient(0, cy + HEAD_H - 18, 0, cy + HEAD_H + 2);
     jawGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    jawGrad.addColorStop(1, 'rgba(0,0,0,0.08)');
+    jawGrad.addColorStop(1, 'rgba(0,0,0,0.10)');
     ctx.fillStyle = jawGrad;
-    ctx.fillRect(cx - HEAD_W - 2, cy + HEAD_H - 16, HEAD_W * 2 + 4, 20);
+    ctx.fillRect(cx - HEAD_W - 2, cy + HEAD_H - 18, HEAD_W * 2 + 4, 22);
+    ctx.restore();
+
+    // HEAD RIM LIGHT (key gaming effect — cool blue edge on left)
+    ctx.save();
+    eggShape(ctx, cx, cy, HEAD_W, HEAD_H);
+    ctx.clip();
+    var rimGrad = ctx.createLinearGradient(cx - HEAD_W - 4, cy, cx - HEAD_W + 14, cy);
+    rimGrad.addColorStop(0, 'rgba(150,190,255,0.22)');
+    rimGrad.addColorStop(0.5, 'rgba(150,190,255,0.06)');
+    rimGrad.addColorStop(1, 'rgba(150,190,255,0)');
+    ctx.fillStyle = rimGrad;
+    ctx.fillRect(cx - HEAD_W - 4, cy - HEAD_H - 2, 20, HEAD_H * 2 + 4);
     ctx.restore();
   }
 
   /* ── Drawing: Face ─────────────────────────────────────────── */
   function drawFace(ctx, cx, cy, skin) {
-    var browCol = hexBrightness(skin) > 120 ? darker(skin, 70) : withAlpha('#000000', 0.55);
+    var browCol = hexBrightness(skin) > 120 ? darker(skin, 75) : withAlpha('#000000', 0.6);
 
-    // Eyebrows (filled tapered shapes)
+    // Eyebrows (thicker, more expressive)
     ctx.fillStyle = browCol;
     // Left brow
     ctx.beginPath();
-    ctx.moveTo(cx - 20, cy - 13);
-    ctx.quadraticCurveTo(cx - 14, cy - 17, cx - 6, cy - 14);
+    ctx.moveTo(cx - 22, cy - 14);
+    ctx.quadraticCurveTo(cx - 15, cy - 19, cx - 6, cy - 15);
     ctx.lineTo(cx - 7, cy - 12);
-    ctx.quadraticCurveTo(cx - 14, cy - 13.5, cx - 20, cy - 11);
+    ctx.quadraticCurveTo(cx - 15, cy - 14.5, cx - 22, cy - 11);
     ctx.closePath();
     ctx.fill();
     // Right brow
     ctx.beginPath();
-    ctx.moveTo(cx + 20, cy - 13);
-    ctx.quadraticCurveTo(cx + 14, cy - 17, cx + 6, cy - 14);
+    ctx.moveTo(cx + 22, cy - 14);
+    ctx.quadraticCurveTo(cx + 15, cy - 19, cx + 6, cy - 15);
     ctx.lineTo(cx + 7, cy - 12);
-    ctx.quadraticCurveTo(cx + 14, cy - 13.5, cx + 20, cy - 11);
+    ctx.quadraticCurveTo(cx + 15, cy - 14.5, cx + 22, cy - 11);
     ctx.closePath();
     ctx.fill();
 
-    // Eye whites
-    ctx.fillStyle = '#f5f2ec';
+    // Eye socket shadows
+    ctx.save();
+    var socketGrad = ctx.createRadialGradient(cx - 13, cy - 3, 3, cx - 13, cy - 3, 12);
+    socketGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    socketGrad.addColorStop(1, withAlpha(darker(skin, 25), 0.12));
+    ctx.fillStyle = socketGrad;
+    ctx.fillRect(cx - 25, cy - 12, 24, 18);
+    var socketGrad2 = ctx.createRadialGradient(cx + 13, cy - 3, 3, cx + 13, cy - 3, 12);
+    socketGrad2.addColorStop(0, 'rgba(0,0,0,0)');
+    socketGrad2.addColorStop(1, withAlpha(darker(skin, 25), 0.10));
+    ctx.fillStyle = socketGrad2;
+    ctx.fillRect(cx + 1, cy - 12, 24, 18);
+    ctx.restore();
+
+    // Eye whites (larger, more expressive)
+    ctx.fillStyle = '#f8f5ef';
     ctx.beginPath();
-    ctx.ellipse(cx - 13, cy - 3, 7, 5.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx - 13, cy - 3, 8, 6, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + 13, cy - 3, 7, 5.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + 13, cy - 3, 8, 6, 0, 0, Math.PI * 2);
     ctx.fill();
 
-    // Upper eyelid lines
-    ctx.strokeStyle = withAlpha(darker(skin, 45), 0.5);
-    ctx.lineWidth = 1.5;
+    // Upper eyelid lines (thicker, more defined)
+    ctx.strokeStyle = withAlpha(darker(skin, 50), 0.6);
+    ctx.lineWidth = 1.8;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.ellipse(cx - 13, cy - 3, 7.5, 6, 0, Math.PI * 1.05, Math.PI * 1.95, true);
+    ctx.ellipse(cx - 13, cy - 3, 8.5, 6.5, 0, Math.PI * 1.03, Math.PI * 1.97, true);
     ctx.stroke();
     ctx.beginPath();
-    ctx.ellipse(cx + 13, cy - 3, 7.5, 6, 0, Math.PI * 1.05, Math.PI * 1.95, true);
+    ctx.ellipse(cx + 13, cy - 3, 8.5, 6.5, 0, Math.PI * 1.03, Math.PI * 1.97, true);
     ctx.stroke();
 
-    // Iris
-    ctx.fillStyle = '#2a1f14';
-    ctx.beginPath();
-    ctx.arc(cx - 12, cy - 3, 4, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 14, cy - 3, 4, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Pupils
-    ctx.fillStyle = '#0a0a0a';
-    ctx.beginPath();
-    ctx.arc(cx - 12, cy - 3, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 14, cy - 3, 2.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Eye highlights (makes them alive!)
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.beginPath();
-    ctx.arc(cx - 13.5, cy - 4.5, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 12.5, cy - 4.5, 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    // Secondary highlights
-    ctx.fillStyle = 'rgba(255,255,255,0.4)';
-    ctx.beginPath();
-    ctx.arc(cx - 10.5, cy - 1.5, 0.8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.arc(cx + 15.5, cy - 1.5, 0.8, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Nose hint
+    // Lower eyelid hint
     ctx.strokeStyle = withAlpha(darker(skin, 30), 0.2);
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.ellipse(cx - 13, cy - 3, 7.5, 5.5, 0, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(cx + 13, cy - 3, 7.5, 5.5, 0, 0.15, Math.PI - 0.15);
+    ctx.stroke();
+
+    // Iris (with gradient — dark brown with ring pattern)
+    var irisR = 4.5;
+    // Left iris
+    var irisGrad = ctx.createRadialGradient(cx - 12, cy - 3, 0.5, cx - 12, cy - 3, irisR);
+    irisGrad.addColorStop(0, '#1a1208');
+    irisGrad.addColorStop(0.3, '#2e1f10');
+    irisGrad.addColorStop(0.7, '#3a2515');
+    irisGrad.addColorStop(0.9, '#1a1208');
+    irisGrad.addColorStop(1, '#0a0a0a');
+    ctx.beginPath();
+    ctx.arc(cx - 12, cy - 3, irisR, 0, Math.PI * 2);
+    ctx.fillStyle = irisGrad;
+    ctx.fill();
+    // Right iris
+    var irisGrad2 = ctx.createRadialGradient(cx + 14, cy - 3, 0.5, cx + 14, cy - 3, irisR);
+    irisGrad2.addColorStop(0, '#1a1208');
+    irisGrad2.addColorStop(0.3, '#2e1f10');
+    irisGrad2.addColorStop(0.7, '#3a2515');
+    irisGrad2.addColorStop(0.9, '#1a1208');
+    irisGrad2.addColorStop(1, '#0a0a0a');
+    ctx.beginPath();
+    ctx.arc(cx + 14, cy - 3, irisR, 0, Math.PI * 2);
+    ctx.fillStyle = irisGrad2;
+    ctx.fill();
+
+    // Pupils (deep black)
+    ctx.fillStyle = '#050505';
+    ctx.beginPath();
+    ctx.arc(cx - 12, cy - 3, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 14, cy - 3, 2.4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Eye highlights — PRIMARY (large, bright — the "life" of the avatar)
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.beginPath();
+    ctx.arc(cx - 14, cy - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 12, cy - 5, 2, 0, Math.PI * 2);
+    ctx.fill();
+    // Secondary highlights (smaller, lower)
+    ctx.fillStyle = 'rgba(255,255,255,0.45)';
+    ctx.beginPath();
+    ctx.arc(cx - 10, cy - 1, 1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 16, cy - 1, 1, 0, Math.PI * 2);
+    ctx.fill();
+    // Iris ring highlights (gaming sparkle)
+    ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+    ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    ctx.arc(cx - 12, cy - 3, 3.2, -0.5, 0.8);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx + 14, cy - 3, 3.2, -0.5, 0.8);
+    ctx.stroke();
+
+    // Nose (enhanced with bridge and tip)
+    ctx.save();
+    // Nose bridge shadow
+    ctx.strokeStyle = withAlpha(darker(skin, 20), 0.12);
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(cx - 1, cy - 2);
+    ctx.lineTo(cx - 2, cy + 6);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(cx + 1, cy - 2);
+    ctx.lineTo(cx + 2, cy + 6);
+    ctx.stroke();
+    // Nose tip highlight
+    var noseTip = ctx.createRadialGradient(cx, cy + 6, 0.5, cx, cy + 6, 4);
+    noseTip.addColorStop(0, withAlpha(lighter(skin, 20), 0.2));
+    noseTip.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = noseTip;
+    ctx.fillRect(cx - 4, cy + 3, 8, 6);
+    // Nostril hints
+    ctx.strokeStyle = withAlpha(darker(skin, 35), 0.25);
     ctx.lineWidth = 1;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(cx - 2, cy + 5);
-    ctx.quadraticCurveTo(cx, cy + 8, cx + 2, cy + 5);
+    ctx.moveTo(cx - 3, cy + 7);
+    ctx.quadraticCurveTo(cx, cy + 9.5, cx + 3, cy + 7);
     ctx.stroke();
+    ctx.restore();
 
-    // Mouth (smile with lip fill)
-    var lipCol = withAlpha(darker(skin, 15), 0.7);
-    var mouthW = 9;
-    var mouthY = cy + 14;
+    // Mouth (enhanced with better lips)
+    var lipCol = withAlpha(darker(skin, 12), 0.75);
+    var mouthW = 10;
+    var mouthY = cy + 16;
 
     ctx.save();
-    // Teeth hint
+    // Teeth hint (subtle)
     ctx.beginPath();
     ctx.moveTo(cx - mouthW, mouthY);
     ctx.quadraticCurveTo(cx, mouthY + 7, cx + mouthW, mouthY);
     ctx.quadraticCurveTo(cx, mouthY + 2, cx - mouthW, mouthY);
     ctx.closePath();
-    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
     ctx.fill();
 
-    // Lips
+    // Lip outline (top)
     ctx.beginPath();
     ctx.moveTo(cx - mouthW, mouthY);
-    ctx.quadraticCurveTo(cx, mouthY + 7, cx + mouthW, mouthY);
-    ctx.quadraticCurveTo(cx, mouthY + 2, cx - mouthW, mouthY);
-    ctx.closePath();
+    ctx.quadraticCurveTo(cx - mouthW * 0.3, mouthY - 3, cx, mouthY - 1);
+    ctx.quadraticCurveTo(cx + mouthW * 0.3, mouthY - 3, cx + mouthW, mouthY);
     ctx.strokeStyle = lipCol;
     ctx.lineWidth = 1.5;
     ctx.stroke();
 
+    // Lip outline (bottom)
+    ctx.beginPath();
+    ctx.moveTo(cx - mouthW, mouthY);
+    ctx.quadraticCurveTo(cx, mouthY + 7, cx + mouthW, mouthY);
+    ctx.strokeStyle = lipCol;
+    ctx.lineWidth = 1.2;
+    ctx.stroke();
+
     // Lip line
     ctx.beginPath();
-    ctx.moveTo(cx - mouthW + 1, mouthY + 1);
-    ctx.quadraticCurveTo(cx, mouthY + 3.5, cx + mouthW - 1, mouthY + 1);
-    ctx.strokeStyle = withAlpha(darker(skin, 40), 0.4);
+    ctx.moveTo(cx - mouthW + 2, mouthY + 1);
+    ctx.quadraticCurveTo(cx, mouthY + 3.5, cx + mouthW - 2, mouthY + 1);
+    ctx.strokeStyle = withAlpha(darker(skin, 40), 0.35);
     ctx.lineWidth = 0.8;
     ctx.stroke();
+
+    // Lower lip highlight
+    var lipHL = ctx.createRadialGradient(cx, mouthY + 4, 1, cx, mouthY + 4, 6);
+    lipHL.addColorStop(0, withAlpha(lighter(skin, 15), 0.15));
+    lipHL.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = lipHL;
+    ctx.fillRect(cx - 8, mouthY + 1, 16, 8);
     ctx.restore();
   }
 
   /* ── Drawing: Hair ─────────────────────────────────────────── */
   function drawHairBuzz(ctx, cx, cy, hw, hh, color) {
-    // Tight cap shape
     ctx.save();
     eggShape(ctx, cx, cy, hw + 2, hh + 2);
     ctx.clip();
-    // Fill top portion
     ctx.beginPath();
     ctx.rect(cx - hw - 5, cy - hh - 5, hw * 2 + 10, hh + 10);
-    ctx.fillStyle = color;
+    var buzzGrad = ctx.createLinearGradient(cx - hw, cy - hh, cx + hw, cy);
+    buzzGrad.addColorStop(0, lighter(color, 8));
+    buzzGrad.addColorStop(1, color);
+    ctx.fillStyle = buzzGrad;
     ctx.fill();
     ctx.restore();
 
-    // Stubble dot texture
     var rng = seededRand(hashStr(color + 'buzz'));
     ctx.fillStyle = withAlpha(lighter(color, 25), 0.12);
-    for (var i = 0; i < 45; i++) {
+    for (var i = 0; i < 55; i++) {
       var ang = rng() * Math.PI;
       var dist = rng() * (hw - 4);
       var dx = Math.cos(ang) * dist;
@@ -464,7 +799,6 @@
       ctx.fill();
     }
 
-    // Hairline edge
     ctx.strokeStyle = withAlpha(darker(color, 20), 0.3);
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -473,95 +807,86 @@
   }
 
   function drawHairShort(ctx, cx, cy, hw, hh, color) {
-    // Hair shape — extends above head
     ctx.beginPath();
     ctx.moveTo(cx - hw - 2, cy - 2);
-    ctx.bezierCurveTo(cx - hw - 3, cy - hh + 2, cx - hw * 0.6, cy - hh - 10, cx, cy - hh - 13);
-    ctx.bezierCurveTo(cx + hw * 0.6, cy - hh - 10, cx + hw + 3, cy - hh + 2, cx + hw + 2, cy - 2);
+    ctx.bezierCurveTo(cx - hw - 3, cy - hh + 2, cx - hw * 0.6, cy - hh - 12, cx, cy - hh - 15);
+    ctx.bezierCurveTo(cx + hw * 0.6, cy - hh - 12, cx + hw + 3, cy - hh + 2, cx + hw + 2, cy - 2);
     ctx.closePath();
 
-    // Gradient fill
-    var grad = ctx.createLinearGradient(0, cy - hh - 13, 0, cy);
-    grad.addColorStop(0, lighter(color, 10));
-    grad.addColorStop(1, darker(color, 15));
+    var grad = ctx.createRadialGradient(cx - 8, cy - hh - 10, 3, cx, cy - hh * 0.3, hw + 10);
+    grad.addColorStop(0, lighter(color, 18));
+    grad.addColorStop(0.4, lighter(color, 6));
+    grad.addColorStop(1, darker(color, 12));
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Comb-line highlights
-    ctx.strokeStyle = withAlpha(lighter(color, 30), 0.12);
+    ctx.strokeStyle = withAlpha(lighter(color, 30), 0.14);
     ctx.lineWidth = 0.8;
-    for (var i = -2; i <= 2; i++) {
+    for (var i = -3; i <= 3; i++) {
       ctx.beginPath();
-      ctx.moveTo(cx + i * 7, cy - hh - 10);
-      ctx.quadraticCurveTo(cx + i * 8, cy - hh * 0.3, cx + i * 6, cy - 5);
+      ctx.moveTo(cx + i * 6, cy - hh - 12);
+      ctx.quadraticCurveTo(cx + i * 7, cy - hh * 0.3, cx + i * 5, cy - 5);
       ctx.stroke();
     }
 
-    // Subtle outline
-    ctx.strokeStyle = withAlpha(darker(color, 25), 0.2);
+    ctx.strokeStyle = withAlpha(darker(color, 25), 0.22);
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(cx - hw - 2, cy - 2);
-    ctx.bezierCurveTo(cx - hw - 3, cy - hh + 2, cx - hw * 0.6, cy - hh - 10, cx, cy - hh - 13);
-    ctx.bezierCurveTo(cx + hw * 0.6, cy - hh - 10, cx + hw + 3, cy - hh + 2, cx + hw + 2, cy - 2);
+    ctx.bezierCurveTo(cx - hw - 3, cy - hh + 2, cx - hw * 0.6, cy - hh - 12, cx, cy - hh - 15);
+    ctx.bezierCurveTo(cx + hw * 0.6, cy - hh - 12, cx + hw + 3, cy - hh + 2, cx + hw + 2, cy - 2);
     ctx.stroke();
   }
 
   function drawHairFade(ctx, cx, cy, hw, hh, color) {
-    // Top volume (tall)
     ctx.beginPath();
     ctx.moveTo(cx - hw + 4, cy - hh * 0.3);
-    ctx.bezierCurveTo(cx - hw, cy - hh + 2, cx - hw * 0.5, cy - hh - 14, cx, cy - hh - 16);
-    ctx.bezierCurveTo(cx + hw * 0.5, cy - hh - 14, cx + hw, cy - hh + 2, cx + hw - 4, cy - hh * 0.3);
+    ctx.bezierCurveTo(cx - hw, cy - hh + 2, cx - hw * 0.5, cy - hh - 16, cx, cy - hh - 18);
+    ctx.bezierCurveTo(cx + hw * 0.5, cy - hh - 16, cx + hw, cy - hh + 2, cx + hw - 4, cy - hh * 0.3);
     ctx.closePath();
-    var topGrad = ctx.createLinearGradient(0, cy - hh - 16, 0, cy - hh * 0.3);
-    topGrad.addColorStop(0, lighter(color, 8));
-    topGrad.addColorStop(1, color);
+    var topGrad = ctx.createRadialGradient(cx - 6, cy - hh - 14, 3, cx, cy - hh * 0.3, hw + 5);
+    topGrad.addColorStop(0, lighter(color, 15));
+    topGrad.addColorStop(0.5, color);
+    topGrad.addColorStop(1, darker(color, 8));
     ctx.fillStyle = topGrad;
     ctx.fill();
 
-    // Comb lines on top
     ctx.strokeStyle = withAlpha(lighter(color, 25), 0.1);
     ctx.lineWidth = 0.7;
     for (var i = -2; i <= 2; i++) {
       ctx.beginPath();
-      ctx.moveTo(cx + i * 6, cy - hh - 12);
+      ctx.moveTo(cx + i * 6, cy - hh - 14);
       ctx.quadraticCurveTo(cx + i * 7, cy - hh * 0.5, cx + i * 5, cy - hh * 0.3);
       ctx.stroke();
     }
 
-    // Fade bands — 3 graduated layers on sides
     var fadeAlphas = [0.6, 0.3, 0.12];
     var fadeOffsets = [4, 2.5, 1.2];
     for (var b = 0; b < 3; b++) {
       ctx.save();
       ctx.globalAlpha = fadeAlphas[b];
       ctx.fillStyle = color;
-      // Left side band
       ctx.beginPath();
       ctx.ellipse(cx, cy, hw + fadeOffsets[b], hh * (0.6 - b * 0.12), 0, Math.PI * 0.55 + b * 0.05, Math.PI * 0.95 - b * 0.02);
       ctx.fill();
-      // Right side band
       ctx.beginPath();
       ctx.ellipse(cx, cy, hw + fadeOffsets[b], hh * (0.6 - b * 0.12), 0, Math.PI * 0.05 + b * 0.02, Math.PI * 0.45 - b * 0.05);
       ctx.fill();
       ctx.restore();
     }
 
-    // Line-up edge
     ctx.strokeStyle = withAlpha(darker(color, 20), 0.5);
     ctx.lineWidth = 1.2;
     ctx.beginPath();
     ctx.moveTo(cx - hw + 4, cy - hh * 0.3);
-    ctx.bezierCurveTo(cx - hw, cy - hh + 2, cx - hw * 0.5, cy - hh - 14, cx, cy - hh - 16);
-    ctx.bezierCurveTo(cx + hw * 0.5, cy - hh - 14, cx + hw, cy - hh + 2, cx + hw - 4, cy - hh * 0.3);
+    ctx.bezierCurveTo(cx - hw, cy - hh + 2, cx - hw * 0.5, cy - hh - 16, cx, cy - hh - 18);
+    ctx.bezierCurveTo(cx + hw * 0.5, cy - hh - 16, cx + hw, cy - hh + 2, cx + hw - 4, cy - hh * 0.3);
     ctx.stroke();
   }
 
   function drawHairAfro(ctx, cx, cy, hw, hh, color) {
-    var afroW = 54, afroH = 50;
+    var afroW = 56, afroH = 52;
 
-    // Outer irregular edge (fluffy)
     ctx.beginPath();
     ctx.moveTo(cx, cy - afroH);
     ctx.bezierCurveTo(cx + afroW * 0.5, cy - afroH - 2, cx + afroW, cy - afroH * 0.5, cx + afroW + 2, cy);
@@ -571,17 +896,15 @@
     ctx.bezierCurveTo(cx - afroW, cy - afroH * 0.5, cx - afroW * 0.5, cy - afroH - 2, cx, cy - afroH);
     ctx.closePath();
 
-    // Radial gradient dome highlight
-    var afroGrad = ctx.createRadialGradient(cx - 5, cy - afroH * 0.4, 5, cx, cy, afroW + 5);
-    afroGrad.addColorStop(0, lighter(color, 18));
-    afroGrad.addColorStop(1, color);
+    var afroGrad = ctx.createRadialGradient(cx - 8, cy - afroH * 0.45, 5, cx, cy, afroW + 5);
+    afroGrad.addColorStop(0, lighter(color, 22));
+    afroGrad.addColorStop(0.5, color);
+    afroGrad.addColorStop(1, darker(color, 8));
     ctx.fillStyle = afroGrad;
     ctx.fill();
 
-    // Curl texture (many tiny arcs)
     var rng = seededRand(hashStr(color + 'afro'));
     ctx.save();
-    // Clip to afro shape
     ctx.beginPath();
     ctx.moveTo(cx, cy - afroH);
     ctx.bezierCurveTo(cx + afroW * 0.5, cy - afroH - 2, cx + afroW, cy - afroH * 0.5, cx + afroW + 2, cy);
@@ -591,7 +914,7 @@
     ctx.bezierCurveTo(cx - afroW, cy - afroH * 0.5, cx - afroW * 0.5, cy - afroH - 2, cx, cy - afroH);
     ctx.clip();
 
-    for (var i = 0; i < 90; i++) {
+    for (var i = 0; i < 100; i++) {
       var tx = cx + (rng() - 0.5) * afroW * 2;
       var ty = cy + (rng() - 0.5) * afroH * 1.6 - 5;
       var tr = 2 + rng() * 3;
@@ -602,9 +925,14 @@
       ctx.lineWidth = 1 + rng() * 0.5;
       ctx.stroke();
     }
+    // Rim light on left edge of afro
+    var afroRim = ctx.createLinearGradient(cx - afroW - 4, cy, cx - afroW + 12, cy);
+    afroRim.addColorStop(0, 'rgba(150,190,255,0.12)');
+    afroRim.addColorStop(1, 'rgba(150,190,255,0)');
+    ctx.fillStyle = afroRim;
+    ctx.fillRect(cx - afroW - 4, cy - afroH, 18, afroH * 2);
     ctx.restore();
 
-    // Soft outline
     ctx.strokeStyle = withAlpha(darker(color, 25), 0.25);
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -618,17 +946,18 @@
   }
 
   function drawHairDreads(ctx, cx, cy, hw, hh, color) {
-    // Cap on top — tight to scalp
     ctx.save();
     eggShape(ctx, cx, cy, hw + 2, hh + 2);
     ctx.clip();
     ctx.beginPath();
     ctx.rect(cx - hw - 4, cy - hh - 4, hw * 2 + 8, hh + 6);
-    ctx.fillStyle = color;
+    var capGrad = ctx.createLinearGradient(cx - hw, cy - hh, cx + hw, cy);
+    capGrad.addColorStop(0, lighter(color, 6));
+    capGrad.addColorStop(1, color);
+    ctx.fillStyle = capGrad;
     ctx.fill();
     ctx.restore();
 
-    // Individual dreads — 12 strands, thinner & shorter
     var numDreads = 12;
     var rng = seededRand(hashStr(color + 'dreads'));
 
@@ -639,38 +968,35 @@
       var startX = cx + ox;
       var startY = cy + oy;
 
-      // Vary length — shorter overall, sides slightly longer
       var centerDist = Math.abs(i - numDreads / 2) / (numDreads / 2);
-      var len = 18 + (1 - centerDist) * 14 + rng() * 6;
+      var len = 20 + (1 - centerDist) * 16 + rng() * 6;
       var sway = (rng() - 0.5) * 10;
-      var lw = 3 + rng() * 1.2;
+      var lw = 3.2 + rng() * 1.2;
 
-      // Main dread strand
+      // Dread shadow
+      ctx.beginPath();
+      ctx.moveTo(startX + 1, startY + 1);
+      ctx.bezierCurveTo(startX + sway * 0.4 + 1, startY + len * 0.35 + 1, startX + sway + 1, startY + len * 0.65 + 1, startX + sway * 0.7 + 1, startY + len + 1);
+      ctx.lineWidth = lw + 1;
+      ctx.strokeStyle = 'rgba(0,0,0,0.12)';
+      ctx.lineCap = 'round';
+      ctx.stroke();
+
       ctx.beginPath();
       ctx.moveTo(startX, startY);
-      ctx.bezierCurveTo(
-        startX + sway * 0.4, startY + len * 0.35,
-        startX + sway, startY + len * 0.65,
-        startX + sway * 0.7, startY + len
-      );
+      ctx.bezierCurveTo(startX + sway * 0.4, startY + len * 0.35, startX + sway, startY + len * 0.65, startX + sway * 0.7, startY + len);
       ctx.lineWidth = lw;
       ctx.strokeStyle = color;
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      // Highlight edge
       ctx.beginPath();
       ctx.moveTo(startX + 0.8, startY + 2);
-      ctx.bezierCurveTo(
-        startX + sway * 0.4 + 0.8, startY + len * 0.35,
-        startX + sway + 0.8, startY + len * 0.65,
-        startX + sway * 0.7 + 0.8, startY + len
-      );
+      ctx.bezierCurveTo(startX + sway * 0.4 + 0.8, startY + len * 0.35, startX + sway + 0.8, startY + len * 0.65, startX + sway * 0.7 + 0.8, startY + len);
       ctx.lineWidth = lw * 0.35;
-      ctx.strokeStyle = withAlpha(lighter(color, 25), 0.18);
+      ctx.strokeStyle = withAlpha(lighter(color, 25), 0.2);
       ctx.stroke();
 
-      // Band wraps (2 per dread)
       var bands = 2;
       for (var b = 0; b < bands; b++) {
         var t = 0.3 + b * 0.3;
@@ -684,53 +1010,48 @@
         ctx.stroke();
       }
 
-      // Tip blob
       ctx.beginPath();
-      ctx.arc(startX + sway * 0.7, startY + len, lw * 0.3, 0, Math.PI * 2);
-      ctx.fillStyle = darker(color, 8);
+      ctx.arc(startX + sway * 0.7, startY + len, lw * 0.35, 0, Math.PI * 2);
+      ctx.fillStyle = darker(color, 10);
       ctx.fill();
     }
   }
 
   function drawHairMohawk(ctx, cx, cy, hw, hh, color) {
-    /* Shaved sides — visible stubble (draw first, behind crest) */
     var rng = seededRand(hashStr(color + 'mohawk'));
     ctx.save();
     eggShape(ctx, cx, cy, hw + 1, hh + 1);
     ctx.clip();
-    /* Stubble wash on sides */
     ctx.fillStyle = withAlpha(color, 0.18);
     ctx.beginPath();
     ctx.rect(cx - hw - 2, cy - hh - 2, hw * 2 + 4, hh + 4);
     ctx.fill();
-    /* Individual stubble dots */
     ctx.fillStyle = withAlpha(color, 0.25);
     for (var s = 0; s < 70; s++) {
       var sx = cx + (rng() - 0.5) * hw * 2;
       var sy = cy - hh * 0.7 + rng() * hh * 1.0;
-      if (Math.abs(sx - cx) < 10) continue; /* leave center for crest */
+      if (Math.abs(sx - cx) < 10) continue;
       ctx.beginPath();
       ctx.arc(sx, sy, 0.5 + rng() * 0.3, 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.restore();
 
-    /* Central crest — proportionate height */
-    var crestW = 14, crestH = 14;
+    var crestW = 14, crestH = 16;
     ctx.beginPath();
     ctx.moveTo(cx - crestW, cy - hh * 0.15);
     ctx.bezierCurveTo(cx - crestW - 1, cy - hh + 4, cx - crestW * 0.5, cy - hh - crestH + 2, cx, cy - hh - crestH);
     ctx.bezierCurveTo(cx + crestW * 0.5, cy - hh - crestH + 2, cx + crestW + 1, cy - hh + 4, cx + crestW, cy - hh * 0.15);
     ctx.closePath();
 
-    var grad = ctx.createLinearGradient(0, cy - hh - crestH, 0, cy);
-    grad.addColorStop(0, lighter(color, 12));
+    var grad = ctx.createRadialGradient(cx - 4, cy - hh - crestH + 4, 2, cx, cy - hh * 0.15, crestH + 10);
+    grad.addColorStop(0, lighter(color, 16));
+    grad.addColorStop(0.5, color);
     grad.addColorStop(1, darker(color, 10));
     ctx.fillStyle = grad;
     ctx.fill();
 
-    /* Strand highlights */
-    ctx.strokeStyle = withAlpha(lighter(color, 25), 0.18);
+    ctx.strokeStyle = withAlpha(lighter(color, 25), 0.2);
     ctx.lineWidth = 0.8;
     for (var i = -3; i <= 3; i++) {
       ctx.beginPath();
@@ -739,7 +1060,6 @@
       ctx.stroke();
     }
 
-    /* Outline */
     ctx.strokeStyle = withAlpha(darker(color, 25), 0.3);
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -750,16 +1070,17 @@
   }
 
   function drawHairWaves(ctx, cx, cy, hw, hh, color) {
-    /* Cap shape — tight to scalp, only upper half of head */
     ctx.save();
     eggShape(ctx, cx, cy, hw + 2, hh + 2);
     ctx.clip();
     ctx.beginPath();
     ctx.rect(cx - hw - 4, cy - hh - 4, hw * 2 + 8, hh + 8);
-    ctx.fillStyle = color;
+    var wavesGrad = ctx.createRadialGradient(cx - 6, cy - hh * 0.5, 3, cx, cy, hw + 5);
+    wavesGrad.addColorStop(0, lighter(color, 10));
+    wavesGrad.addColorStop(1, color);
+    ctx.fillStyle = wavesGrad;
     ctx.fill();
 
-    /* Wave lines — concentric curves radiating from crown */
     var crownX = cx, crownY = cy - hh * 0.55;
     for (var ring = 0; ring < 9; ring++) {
       var r = 4 + ring * 4.5;
@@ -771,7 +1092,6 @@
     }
     ctx.restore();
 
-    /* Hairline edge — clean line-up */
     ctx.strokeStyle = withAlpha(darker(color, 20), 0.4);
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -780,10 +1100,8 @@
   }
 
   function drawHairCornrows(ctx, cx, cy, hw, hh, color) {
-    /* Tight braided rows running front-to-back over egg-shaped head */
     var numRows = 7;
 
-    /* Base cap — dark scalp beneath rows */
     ctx.save();
     eggShape(ctx, cx, cy, hw + 2, hh + 2);
     ctx.clip();
@@ -793,12 +1111,10 @@
     ctx.fill();
     ctx.restore();
 
-    /* Row positions — evenly spaced across the top of the head */
     var totalW = hw * 1.5;
     var rowSpacing = totalW / (numRows - 1);
     var firstX = cx - totalW * 0.5;
 
-    /* Clip rows to head shape */
     ctx.save();
     eggShape(ctx, cx, cy, hw + 2, hh + 2);
     ctx.clip();
@@ -806,25 +1122,18 @@
     for (var i = 0; i < numRows; i++) {
       var baseX = firstX + i * rowSpacing;
       var distFromCenter = (baseX - cx) / hw;
-
-      /* Row line — arcs from forehead toward back of head */
       var rowStartY = cy - hh + 2;
       var rowEndY = cy + 2;
       var curveBend = distFromCenter * 6;
 
       ctx.beginPath();
       ctx.moveTo(baseX, rowStartY);
-      ctx.bezierCurveTo(
-        baseX + curveBend * 0.3, rowStartY + (rowEndY - rowStartY) * 0.33,
-        baseX + curveBend * 0.7, rowStartY + (rowEndY - rowStartY) * 0.66,
-        baseX + curveBend, rowEndY
-      );
+      ctx.bezierCurveTo(baseX + curveBend * 0.3, rowStartY + (rowEndY - rowStartY) * 0.33, baseX + curveBend * 0.7, rowStartY + (rowEndY - rowStartY) * 0.66, baseX + curveBend, rowEndY);
       ctx.strokeStyle = color;
       ctx.lineWidth = 3;
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      /* Braid cross-hatch pattern along each row */
       ctx.strokeStyle = withAlpha(lighter(color, 25), 0.18);
       ctx.lineWidth = 0.8;
       var segments = 7;
@@ -842,17 +1151,12 @@
         ctx.stroke();
       }
 
-      /* Part line (scalp visible between rows) */
       if (i < numRows - 1) {
         var partX = baseX + rowSpacing * 0.5;
         var partBend = ((partX - cx) / hw) * 5;
         ctx.beginPath();
         ctx.moveTo(partX, rowStartY + 2);
-        ctx.bezierCurveTo(
-          partX + partBend * 0.3, rowStartY + (rowEndY - rowStartY) * 0.33,
-          partX + partBend * 0.7, rowStartY + (rowEndY - rowStartY) * 0.66,
-          partX + partBend, rowEndY - 2
-        );
+        ctx.bezierCurveTo(partX + partBend * 0.3, rowStartY + (rowEndY - rowStartY) * 0.33, partX + partBend * 0.7, rowStartY + (rowEndY - rowStartY) * 0.66, partX + partBend, rowEndY - 2);
         ctx.strokeStyle = withAlpha(darker(color, 35), 0.35);
         ctx.lineWidth = 0.5;
         ctx.stroke();
@@ -862,18 +1166,17 @@
   }
 
   function drawHairBald(ctx, cx, cy, hw, hh) {
-    // Specular highlights for shiny dome
-    var hlGrad1 = ctx.createRadialGradient(cx - 8, cy - hh + 8, 2, cx - 8, cy - hh + 8, 14);
-    hlGrad1.addColorStop(0, 'rgba(255,255,255,0.12)');
+    var hlGrad1 = ctx.createRadialGradient(cx - 10, cy - hh + 6, 2, cx - 10, cy - hh + 6, 16);
+    hlGrad1.addColorStop(0, 'rgba(255,255,255,0.15)');
     hlGrad1.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = hlGrad1;
-    ctx.fillRect(cx - 22, cy - hh - 4, 28, 24);
+    ctx.fillRect(cx - 26, cy - hh - 4, 32, 24);
 
-    var hlGrad2 = ctx.createRadialGradient(cx + 6, cy - hh + 6, 1, cx + 6, cy - hh + 6, 8);
-    hlGrad2.addColorStop(0, 'rgba(255,255,255,0.07)');
+    var hlGrad2 = ctx.createRadialGradient(cx + 6, cy - hh + 4, 1, cx + 6, cy - hh + 4, 10);
+    hlGrad2.addColorStop(0, 'rgba(255,255,255,0.08)');
     hlGrad2.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = hlGrad2;
-    ctx.fillRect(cx - 2, cy - hh - 2, 16, 16);
+    ctx.fillRect(cx - 4, cy - hh - 2, 20, 16);
   }
 
   function drawHair(ctx, cx, cy, hw, hh, style, color) {
@@ -891,22 +1194,19 @@
   }
 
   /* ── Drawing: Beard ────────────────────────────────────────── */
-  /* Mouth is at cy+14, chin ~cy+hh. Beards anchor below the mouth. */
   function drawBeard(ctx, cx, cy, hw, hh, style, color) {
     if (style === 'none') return;
 
-    /* Anchor points relative to face */
-    var mouthY   = cy + 14;   /* mouth center */
-    var jawTop   = cy + hh * 0.55;  /* where jaw widens */
-    var chinBot  = cy + hh * 1.1;   /* bottom of chin */
+    var mouthY = cy + 16;
+    var jawTop = cy + hh * 0.55;
+    var chinBot = cy + hh * 1.1;
 
     if (style === 'stubble') {
       var rng = seededRand(hashStr(color + 'stubble'));
-      ctx.fillStyle = withAlpha(color, 0.35);
-      for (var i = 0; i < 80; i++) {
+      ctx.fillStyle = withAlpha(color, 0.38);
+      for (var i = 0; i < 90; i++) {
         var sx = cx + (rng() - 0.5) * hw * 1.1;
         var sy = mouthY - 2 + rng() * (chinBot - mouthY + 6);
-        /* Only within the lower face area — below mouth, inside jaw width */
         var distFromCenter = Math.abs(sx - cx) / hw;
         if (distFromCenter > 0.75 || sy < mouthY - 3) continue;
         ctx.beginPath();
@@ -917,8 +1217,7 @@
     }
 
     if (style === 'short') {
-      /* Shaped short beard — covers chin area only, below mouth */
-      var shortTop = mouthY + 5;  /* start well below the mouth */
+      var shortTop = mouthY + 5;
       ctx.beginPath();
       ctx.moveTo(cx - hw * 0.4, shortTop);
       ctx.quadraticCurveTo(cx - hw * 0.45, jawTop + 6, cx - hw * 0.3, chinBot + 2);
@@ -928,7 +1227,6 @@
       ctx.fillStyle = withAlpha(color, 0.65);
       ctx.fill();
 
-      /* Curl texture */
       var rng2 = seededRand(hashStr(color + 'shortbeard'));
       ctx.save();
       ctx.beginPath();
@@ -948,7 +1246,6 @@
       }
       ctx.restore();
 
-      /* Mustache */
       ctx.beginPath();
       ctx.moveTo(cx - 7, mouthY - 1);
       ctx.quadraticCurveTo(cx, mouthY - 4, cx + 7, mouthY - 1);
@@ -959,12 +1256,8 @@
     }
 
     if (style === 'full') {
-      /* Full beard — three separate layers: sideburns, chin, mustache */
-
-      /* 1) Sideburns — narrow strips starting at mid-cheek, not ear level */
-      var sbW = 5;  /* sideburn width */
-      var sbTopY = mouthY - 4; /* start near mouth level, not ear level */
-      /* Left sideburn */
+      var sbW = 5;
+      var sbTopY = mouthY - 4;
       ctx.beginPath();
       ctx.moveTo(cx - hw + 5, sbTopY);
       ctx.quadraticCurveTo(cx - hw + 3, jawTop + 2, cx - hw * 0.38, chinBot);
@@ -973,7 +1266,6 @@
       ctx.closePath();
       ctx.fillStyle = withAlpha(color, 0.75);
       ctx.fill();
-      /* Right sideburn */
       ctx.beginPath();
       ctx.moveTo(cx + hw - 5, sbTopY);
       ctx.quadraticCurveTo(cx + hw - 3, jawTop + 2, cx + hw * 0.38, chinBot);
@@ -983,8 +1275,7 @@
       ctx.fillStyle = withAlpha(color, 0.75);
       ctx.fill();
 
-      /* 2) Chin/jaw beard — below mouth to past chin */
-      var beardTop = mouthY + 4; /* start just below the mouth */
+      var beardTop = mouthY + 4;
       ctx.beginPath();
       ctx.moveTo(cx - hw * 0.45, beardTop);
       ctx.quadraticCurveTo(cx - hw * 0.5, jawTop + 4, cx - hw * 0.32, chinBot + 4);
@@ -994,7 +1285,6 @@
       ctx.fillStyle = color;
       ctx.fill();
 
-      /* Chin highlight */
       ctx.save();
       ctx.beginPath();
       ctx.moveTo(cx - hw * 0.45, beardTop);
@@ -1008,7 +1298,6 @@
       ctx.fillStyle = beardGrad;
       ctx.fillRect(cx - hw, beardTop, hw * 2, chinBot - beardTop + 14);
 
-      /* Curl textures */
       var rng3 = seededRand(hashStr(color + 'fullbeard'));
       for (var k = 0; k < 30; k++) {
         var fbx = cx + (rng3() - 0.5) * hw * 0.8;
@@ -1021,7 +1310,6 @@
       }
       ctx.restore();
 
-      /* 3) Mustache — small shape above the mouth */
       ctx.beginPath();
       ctx.moveTo(cx - 9, mouthY - 1);
       ctx.quadraticCurveTo(cx, mouthY - 5, cx + 9, mouthY - 1);
@@ -1031,7 +1319,6 @@
     }
 
     if (style === 'goatee') {
-      /* Goatee — chin patch + mustache, no sides */
       ctx.beginPath();
       ctx.moveTo(cx - hw * 0.25, mouthY + 3);
       ctx.quadraticCurveTo(cx - hw * 0.3, jawTop + 6, cx - hw * 0.2, chinBot + 6);
@@ -1041,7 +1328,6 @@
       ctx.fillStyle = withAlpha(color, 0.75);
       ctx.fill();
 
-      /* Curl texture */
       var rng4 = seededRand(hashStr(color + 'goatee'));
       ctx.save();
       ctx.beginPath();
@@ -1061,7 +1347,6 @@
       }
       ctx.restore();
 
-      /* Mustache */
       ctx.beginPath();
       ctx.moveTo(cx - 7, mouthY - 2);
       ctx.quadraticCurveTo(cx, mouthY - 4, cx + 7, mouthY - 2);
@@ -1071,7 +1356,6 @@
     }
 
     if (style === 'chinstrap') {
-      /* Chinstrap — thin line tracing the jawline, tight to face */
       ctx.beginPath();
       ctx.moveTo(cx - hw * 0.52, mouthY + 2);
       ctx.quadraticCurveTo(cx - hw * 0.58, jawTop + 8, cx - hw * 0.35, chinBot + 1);
@@ -1082,7 +1366,6 @@
       ctx.lineCap = 'round';
       ctx.stroke();
 
-      /* Texture dots along strap */
       var rng5 = seededRand(hashStr(color + 'chinstrap'));
       ctx.fillStyle = withAlpha(lighter(color, 20), 0.15);
       for (var cs = 0; cs < 20; cs++) {
@@ -1100,17 +1383,25 @@
 
   /* ── Drawing: Basketball ───────────────────────────────────── */
   function drawBall(ctx, x, y, r, skin) {
-    // Ball with gradient
-    var ballGrad = ctx.createRadialGradient(x - 3, y - 3, 1, x, y, r);
-    ballGrad.addColorStop(0, '#f7b840');
-    ballGrad.addColorStop(1, '#d48a15');
+    // Ball shadow
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(x + 2, y + r + 4, r * 0.8, 3, 0, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.15)';
+    ctx.fill();
+    ctx.restore();
+
+    var ballGrad = ctx.createRadialGradient(x - 3, y - 4, 1, x, y, r);
+    ballGrad.addColorStop(0, '#fcc549');
+    ballGrad.addColorStop(0.5, '#f5a623');
+    ballGrad.addColorStop(1, '#c47a10');
     ctx.beginPath();
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = ballGrad;
     ctx.fill();
 
-    // Seams
-    ctx.strokeStyle = darker('#f5a623', 45);
+    // Ball seams
+    ctx.strokeStyle = darker('#f5a623', 40);
     ctx.lineWidth = 0.8;
     ctx.beginPath();
     ctx.arc(x, y, r * 0.85, 0, Math.PI * 2);
@@ -1124,10 +1415,10 @@
     ctx.lineTo(x, y + r);
     ctx.stroke();
 
-    // Pebble texture dots
+    // Pebble texture
     var rng = seededRand(42);
     ctx.fillStyle = 'rgba(255,255,255,0.06)';
-    for (var i = 0; i < 8; i++) {
+    for (var i = 0; i < 10; i++) {
       var dx = (rng() - 0.5) * r * 1.4;
       var dy = (rng() - 0.5) * r * 1.4;
       if (dx * dx + dy * dy < r * r * 0.7) {
@@ -1137,7 +1428,14 @@
       }
     }
 
-    // Finger hints wrapping ball
+    // Ball specular highlight
+    var specGrad = ctx.createRadialGradient(x - 4, y - 5, 0.5, x - 4, y - 5, 6);
+    specGrad.addColorStop(0, 'rgba(255,255,255,0.35)');
+    specGrad.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = specGrad;
+    ctx.fillRect(x - 10, y - 11, 12, 12);
+
+    // Finger hints
     if (skin) {
       ctx.strokeStyle = skin;
       ctx.lineWidth = 2.5;
@@ -1156,27 +1454,29 @@
     if (!accessory || accessory === 'none') return;
 
     if (accessory === 'headband') {
-      /* Sporty headband across forehead */
       ctx.save();
       var hbY = cy - hh * 0.55;
-      var hbH = 7;
+      var hbH = 8;
       eggShape(ctx, cx, cy, hw + 1, hh + 1);
       ctx.clip();
-      ctx.fillStyle = '#f5a623';
+      // Headband gradient
+      var hbGrad = ctx.createLinearGradient(cx - hw, hbY, cx + hw, hbY);
+      hbGrad.addColorStop(0, '#e8941a');
+      hbGrad.addColorStop(0.5, '#f5a623');
+      hbGrad.addColorStop(1, '#d4891a');
+      ctx.fillStyle = hbGrad;
       ctx.fillRect(cx - hw - 3, hbY, hw * 2 + 6, hbH);
-      /* Brand stripe */
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.fillRect(cx - hw - 3, hbY + hbH * 0.4, hw * 2 + 6, 1.5);
-      /* Logo dot */
+      // Logo
       ctx.fillStyle = '#fff';
       ctx.beginPath();
-      ctx.arc(cx, hbY + hbH / 2, 2, 0, Math.PI * 2);
+      ctx.arc(cx, hbY + hbH / 2, 2.5, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
 
     if (accessory === 'sweatband') {
-      /* Wristband-style band — thicker, textured */
       ctx.save();
       var swY = cy - hh * 0.5;
       var swH = 9;
@@ -1184,7 +1484,6 @@
       ctx.clip();
       ctx.fillStyle = '#e0e0e0';
       ctx.fillRect(cx - hw - 3, swY, hw * 2 + 6, swH);
-      /* Ribbed texture lines */
       ctx.strokeStyle = 'rgba(0,0,0,0.08)';
       ctx.lineWidth = 0.5;
       for (var sl = 0; sl < 14; sl++) {
@@ -1198,52 +1497,58 @@
     }
 
     if (accessory === 'glasses') {
-      /* Sporty wraparound glasses */
       var glY = cy - 4;
       ctx.strokeStyle = '#222';
-      ctx.lineWidth = 2;
-      /* Bridge */
+      ctx.lineWidth = 2.2;
       ctx.beginPath();
       ctx.moveTo(cx - 5, glY);
       ctx.quadraticCurveTo(cx, glY - 2, cx + 5, glY);
       ctx.stroke();
-      /* Left lens */
       ctx.beginPath();
-      ctx.ellipse(cx - 13, glY, 9, 5, -0.05, 0, Math.PI * 2);
+      ctx.ellipse(cx - 13, glY, 10, 5.5, -0.05, 0, Math.PI * 2);
       ctx.strokeStyle = '#222';
-      ctx.lineWidth = 2;
+      ctx.lineWidth = 2.2;
       ctx.stroke();
-      ctx.fillStyle = 'rgba(40,40,50,0.35)';
+      ctx.fillStyle = 'rgba(30,30,45,0.3)';
       ctx.fill();
-      /* Right lens */
+      // Lens reflection
+      var lensRef = ctx.createLinearGradient(cx - 22, glY - 4, cx - 8, glY + 2);
+      lensRef.addColorStop(0, 'rgba(255,255,255,0.12)');
+      lensRef.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = lensRef;
+      ctx.fill();
       ctx.beginPath();
-      ctx.ellipse(cx + 13, glY, 9, 5, 0.05, 0, Math.PI * 2);
+      ctx.ellipse(cx + 13, glY, 10, 5.5, 0.05, 0, Math.PI * 2);
+      ctx.strokeStyle = '#222';
       ctx.stroke();
-      ctx.fillStyle = 'rgba(40,40,50,0.35)';
+      ctx.fillStyle = 'rgba(30,30,45,0.3)';
       ctx.fill();
-      /* Temple arms */
       ctx.strokeStyle = '#222';
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.moveTo(cx - 22, glY);
+      ctx.moveTo(cx - 23, glY);
       ctx.lineTo(cx - hw + 1, glY + 2);
       ctx.stroke();
       ctx.beginPath();
-      ctx.moveTo(cx + 22, glY);
+      ctx.moveTo(cx + 23, glY);
       ctx.lineTo(cx + hw - 1, glY + 2);
       ctx.stroke();
     }
 
     if (accessory === 'chain') {
-      /* Gold chain necklace — visible on neck/collar */
-      var chainY = 148;
+      var chainY = 144;
+      // Chain glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(245,166,35,0.3)';
+      ctx.shadowBlur = 6;
       ctx.strokeStyle = '#f5a623';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(cx - 16, chainY);
       ctx.quadraticCurveTo(cx, chainY + 14, cx + 16, chainY);
       ctx.stroke();
-      /* Chain links */
+      ctx.restore();
+
       ctx.strokeStyle = '#d4941e';
       ctx.lineWidth = 1;
       var links = 7;
@@ -1255,11 +1560,15 @@
         ctx.ellipse(clx, cly, 1.8, 1.2, 0, 0, Math.PI * 2);
         ctx.stroke();
       }
-      /* Pendant */
+      // Pendant with glow
+      ctx.save();
+      ctx.shadowColor = 'rgba(245,166,35,0.4)';
+      ctx.shadowBlur = 8;
       ctx.fillStyle = '#f5a623';
       ctx.beginPath();
-      ctx.arc(cx, chainY + 14, 4, 0, Math.PI * 2);
+      ctx.arc(cx, chainY + 14, 4.5, 0, Math.PI * 2);
       ctx.fill();
+      ctx.restore();
       ctx.fillStyle = '#0c0d0f';
       ctx.font = "bold 5px 'Barlow Condensed', sans-serif";
       ctx.textAlign = 'center';
@@ -1268,22 +1577,28 @@
     }
 
     if (accessory === 'durag') {
-      /* Durag wrapping the head */
       ctx.save();
-      /* Main cap part */
       eggShape(ctx, cx, cy, hw + 3, hh + 3);
       ctx.clip();
-      ctx.fillStyle = '#1a2d5a';
+      var duragGrad = ctx.createLinearGradient(cx - hw, cy - hh, cx + hw, cy);
+      duragGrad.addColorStop(0, '#243d6e');
+      duragGrad.addColorStop(1, '#1a2d5a');
+      ctx.fillStyle = duragGrad;
       ctx.fillRect(cx - hw - 5, cy - hh - 5, hw * 2 + 10, hh + 8);
-      /* Seam line */
       ctx.strokeStyle = 'rgba(255,255,255,0.1)';
       ctx.lineWidth = 0.8;
       ctx.beginPath();
       ctx.moveTo(cx, cy - hh - 2);
       ctx.lineTo(cx, cy - 2);
       ctx.stroke();
+      // Silky sheen
+      var sheenGrad = ctx.createLinearGradient(cx - hw, cy - hh, cx - hw + 15, cy);
+      sheenGrad.addColorStop(0, 'rgba(255,255,255,0.08)');
+      sheenGrad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = sheenGrad;
+      ctx.fillRect(cx - hw - 5, cy - hh - 5, 20, hh + 8);
       ctx.restore();
-      /* Tail flap */
+
       ctx.beginPath();
       ctx.moveTo(cx - 4, cy - hh + 4);
       ctx.quadraticCurveTo(cx + 10, cy - hh - 10, cx + 20, cy - hh + 8);
@@ -1292,7 +1607,7 @@
       ctx.strokeStyle = '#1a2d5a';
       ctx.lineCap = 'round';
       ctx.stroke();
-      /* Tie knot */
+
       ctx.fillStyle = '#1a2d5a';
       ctx.beginPath();
       ctx.ellipse(cx, cy - hh + 6, 5, 3, 0, 0, Math.PI * 2);
@@ -1300,15 +1615,33 @@
     }
 
     if (accessory === 'armband') {
-      /* Arm band on left bicep */
-      var bw = cfg.bodyType === 'heavy' ? 86 : cfg.bodyType === 'athletic' ? 74 : 60;
-      var armW = cfg.bodyType === 'heavy' ? 17 : cfg.bodyType === 'athletic' ? 15 : 13;
+      var bw = cfg.bodyType === 'heavy' ? 88 : cfg.bodyType === 'athletic' ? 76 : 62;
+      var armW = cfg.bodyType === 'heavy' ? 18 : cfg.bodyType === 'athletic' ? 16 : 14;
       var armX = cx - bw / 2 - armW + 3;
       var armBandY = BODY_Y + 20;
+      ctx.save();
+      ctx.shadowColor = 'rgba(245,166,35,0.2)';
+      ctx.shadowBlur = 4;
       ctx.fillStyle = '#f5a623';
       ctx.fillRect(armX - 1, armBandY, armW + 2, 5);
+      ctx.restore();
       ctx.fillStyle = 'rgba(0,0,0,0.2)';
       ctx.fillRect(armX - 1, armBandY + 2, armW + 2, 1);
+    }
+  }
+
+  /* ── Ambient Particles (floating light dots) ────────────────── */
+  function drawParticles(ctx) {
+    var rng = seededRand(777);
+    for (var i = 0; i < 12; i++) {
+      var px = 10 + rng() * (AW - 20);
+      var py = 10 + rng() * (AH - 20);
+      var pr = 0.5 + rng() * 1.2;
+      var pa = 0.04 + rng() * 0.08;
+      ctx.beginPath();
+      ctx.arc(px, py, pr, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(245,200,120,' + pa + ')';
+      ctx.fill();
     }
   }
 
@@ -1320,50 +1653,50 @@
 
     ctx.clearRect(0, 0, AW, AH);
 
-    // Background
-    ctx.fillStyle = '#141518';
-    roundRect(ctx, 0, 0, AW, AH, 12);
-    ctx.fill();
-
-    // Subtle gradient at bottom
-    var grad = ctx.createLinearGradient(0, AH - 60, 0, AH);
-    grad.addColorStop(0, 'rgba(245,166,35,0)');
-    grad.addColorStop(1, 'rgba(245,166,35,0.04)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, AH - 60, AW, 60);
+    // 1. Background with spotlight + vignette
+    drawBackground(ctx);
 
     var cx = HEAD_CX;
     var cy = HEAD_CY;
 
-    // Draw in order
+    // 2. Body (includes shorts, hands, jersey)
     drawBody(ctx, cx, cfg);
+
+    // 3. Neck
     drawNeck(ctx, cx, cfg.skinTone);
 
-    // Afro drawn behind head
+    // 4. Hair behind head (afro)
     if (cfg.hairStyle === 'afro') {
       drawHair(ctx, cx, cy, HEAD_W, HEAD_H, 'afro', cfg.hairColor);
     }
 
+    // 5. Head (with enhanced shading + rim light)
     drawHead(ctx, cx, cy, cfg.skinTone);
 
+    // 6. Hair (other styles)
     if (cfg.hairStyle !== 'afro') {
       drawHair(ctx, cx, cy, HEAD_W, HEAD_H, cfg.hairStyle, cfg.hairColor);
     }
 
+    // 7. Face (enhanced eyes)
     drawFace(ctx, cx, cy, cfg.skinTone);
 
+    // 8. Beard
     if (cfg.beardStyle !== 'none') {
       drawBeard(ctx, cx, cy, HEAD_W, HEAD_H, cfg.beardStyle, cfg.hairColor);
     }
 
-    // Accessories (drawn on top of everything)
+    // 9. Accessories
     drawAccessory(ctx, cx, cy, HEAD_W, HEAD_H, cfg.accessory, cfg);
 
-    // Basketball
-    drawBall(ctx, cx + 50, 218, 12, cfg.skinTone);
+    // 10. Basketball
+    drawBall(ctx, cx + 52, 216, 13, cfg.skinTone);
+
+    // 11. Ambient particles
+    drawParticles(ctx);
   }
 
-  /* ── Mini Avatar (48×48, head only) ────────────────────────── */
+  /* ── Mini Avatar (48x48, head only — enhanced) ──────────────── */
   function drawMini(canvas, cfg) {
     if (!canvas) return;
     var ctx = canvas.getContext('2d');
@@ -1372,11 +1705,21 @@
 
     ctx.clearRect(0, 0, s, s);
 
-    // Background circle
+    // Background circle with gradient
+    var bgGrad = ctx.createRadialGradient(s / 2, s / 2, 2, s / 2, s / 2, s / 2);
+    bgGrad.addColorStop(0, '#1e2028');
+    bgGrad.addColorStop(1, '#14161a');
     ctx.beginPath();
     ctx.arc(s / 2, s / 2, s / 2, 0, Math.PI * 2);
-    ctx.fillStyle = '#1c1e23';
+    ctx.fillStyle = bgGrad;
     ctx.fill();
+
+    // Subtle rim glow
+    ctx.beginPath();
+    ctx.arc(s / 2, s / 2, s / 2 - 0.5, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(245,166,35,0.15)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
 
     var cx = s / 2;
     var cy = s / 2 + 2;
@@ -1386,24 +1729,39 @@
     if (cfg.hairStyle === 'afro') {
       ctx.beginPath();
       ctx.arc(cx, cy - 3, 22, 0, Math.PI * 2);
-      ctx.fillStyle = cfg.hairColor;
+      var afroMiniGrad = ctx.createRadialGradient(cx - 4, cy - 8, 2, cx, cy - 3, 22);
+      afroMiniGrad.addColorStop(0, lighter(cfg.hairColor, 12));
+      afroMiniGrad.addColorStop(1, cfg.hairColor);
+      ctx.fillStyle = afroMiniGrad;
       ctx.fill();
     }
 
-    // Head (simplified egg)
+    // Head with gradient
     ctx.beginPath();
     ctx.ellipse(cx, cy, hw, hh, 0, 0, Math.PI * 2);
     ctx.fillStyle = cfg.skinTone;
     ctx.fill();
 
-    // Highlight
-    var hlGrad = ctx.createRadialGradient(cx - 2, cy - 6, 2, cx, cy, hh);
-    hlGrad.addColorStop(0, withAlpha(lighter(cfg.skinTone, 25), 0.35));
+    // Head highlight
+    var hlGrad = ctx.createRadialGradient(cx - 3, cy - 7, 2, cx, cy, hh);
+    hlGrad.addColorStop(0, withAlpha(lighter(cfg.skinTone, 30), 0.4));
     hlGrad.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = hlGrad;
     ctx.beginPath();
     ctx.ellipse(cx, cy, hw, hh, 0, 0, Math.PI * 2);
     ctx.fill();
+
+    // Mini rim light (left edge)
+    ctx.save();
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, hw, hh, 0, 0, Math.PI * 2);
+    ctx.clip();
+    var miniRim = ctx.createLinearGradient(cx - hw - 2, cy, cx - hw + 8, cy);
+    miniRim.addColorStop(0, 'rgba(150,190,255,0.2)');
+    miniRim.addColorStop(1, 'rgba(150,190,255,0)');
+    ctx.fillStyle = miniRim;
+    ctx.fillRect(cx - hw - 2, cy - hh, 10, hh * 2);
+    ctx.restore();
 
     // Hair (simplified per style)
     if (cfg.hairStyle !== 'bald' && cfg.hairStyle !== 'afro') {
@@ -1414,13 +1772,7 @@
         ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI * 2);
         ctx.clip();
         ctx.fillRect(cx - hw - 2, cy - hh - 2, hw * 2 + 4, hh);
-        ctx.restore();
-        /* Waves: add mini wave lines */
         if (cfg.hairStyle === 'waves') {
-          ctx.save();
-          ctx.beginPath();
-          ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI * 2);
-          ctx.clip();
           for (var wr = 0; wr < 4; wr++) {
             ctx.beginPath();
             ctx.arc(cx - 1, cy - hh * 0.2, 3 + wr * 3, Math.PI * 0.2, Math.PI * 0.8);
@@ -1428,8 +1780,8 @@
             ctx.lineWidth = 1.5;
             ctx.stroke();
           }
-          ctx.restore();
         }
+        ctx.restore();
       } else if (cfg.hairStyle === 'short') {
         ctx.beginPath();
         ctx.ellipse(cx, cy - 5, hw + 2, hh * 0.6, 0, Math.PI * 1.05, Math.PI * 1.95, true);
@@ -1463,7 +1815,6 @@
           ctx.stroke();
         }
       } else if (cfg.hairStyle === 'mohawk') {
-        /* Mini mohawk — narrow crest on top */
         ctx.beginPath();
         ctx.moveTo(cx - 4, cy - hh * 0.2);
         ctx.bezierCurveTo(cx - 5, cy - hh, cx - 3, cy - hh - 8, cx, cy - hh - 9);
@@ -1471,7 +1822,6 @@
         ctx.closePath();
         ctx.fill();
       } else if (cfg.hairStyle === 'cornrows') {
-        /* Mini cornrows — parallel lines on top */
         ctx.save();
         ctx.beginPath();
         ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI * 2);
@@ -1491,44 +1841,47 @@
 
     // Bald highlight
     if (cfg.hairStyle === 'bald') {
-      var bhGrad = ctx.createRadialGradient(cx - 3, cy - hh + 5, 1, cx - 3, cy - hh + 5, 8);
-      bhGrad.addColorStop(0, 'rgba(255,255,255,0.1)');
+      var bhGrad = ctx.createRadialGradient(cx - 3, cy - hh + 5, 1, cx - 3, cy - hh + 5, 10);
+      bhGrad.addColorStop(0, 'rgba(255,255,255,0.12)');
       bhGrad.addColorStop(1, 'rgba(255,255,255,0)');
       ctx.fillStyle = bhGrad;
-      ctx.fillRect(cx - 11, cy - hh, 16, 12);
+      ctx.fillRect(cx - 13, cy - hh, 20, 14);
     }
 
-    // Eyes with highlights
-    ctx.fillStyle = '#f5f2ec';
+    // Eyes (enhanced with larger highlights)
+    ctx.fillStyle = '#f8f5ef';
     ctx.beginPath();
-    ctx.ellipse(cx - 5, cy - 1, 3, 2.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx - 5, cy - 1, 3.2, 2.7, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + 5, cy - 1, 3, 2.5, 0, 0, Math.PI * 2);
+    ctx.ellipse(cx + 5, cy - 1, 3.2, 2.7, 0, 0, Math.PI * 2);
     ctx.fill();
-    // Iris + pupil
+
+    // Iris
     ctx.fillStyle = '#2a1f14';
     ctx.beginPath();
-    ctx.arc(cx - 4.5, cy - 1, 1.8, 0, Math.PI * 2);
+    ctx.arc(cx - 4.5, cy - 1, 2, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx + 5.5, cy - 1, 1.8, 0, Math.PI * 2);
+    ctx.arc(cx + 5.5, cy - 1, 2, 0, Math.PI * 2);
     ctx.fill();
+
     // Pupil
     ctx.fillStyle = '#0a0a0a';
     ctx.beginPath();
-    ctx.arc(cx - 4.5, cy - 1, 0.9, 0, Math.PI * 2);
+    ctx.arc(cx - 4.5, cy - 1, 1, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx + 5.5, cy - 1, 0.9, 0, Math.PI * 2);
+    ctx.arc(cx + 5.5, cy - 1, 1, 0, Math.PI * 2);
     ctx.fill();
-    // Highlight dots
-    ctx.fillStyle = 'rgba(255,255,255,0.85)';
+
+    // Eye highlights (bigger for more life)
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.beginPath();
-    ctx.arc(cx - 5.3, cy - 2, 0.7, 0, Math.PI * 2);
+    ctx.arc(cx - 5.5, cy - 2.2, 0.9, 0, Math.PI * 2);
     ctx.fill();
     ctx.beginPath();
-    ctx.arc(cx + 4.7, cy - 2, 0.7, 0, Math.PI * 2);
+    ctx.arc(cx + 4.5, cy - 2.2, 0.9, 0, Math.PI * 2);
     ctx.fill();
 
     // Mouth
@@ -1539,7 +1892,7 @@
     ctx.lineWidth = 0.8;
     ctx.stroke();
 
-    // Beard hint (positioned below mouth at cy+5)
+    // Beard hint
     if (cfg.beardStyle === 'full' || cfg.beardStyle === 'short') {
       ctx.fillStyle = withAlpha(cfg.hairColor, 0.5);
       ctx.beginPath();
