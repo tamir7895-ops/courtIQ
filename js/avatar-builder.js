@@ -1203,14 +1203,24 @@
 
     if (style === 'stubble') {
       var rng = seededRand(hashStr(color + 'stubble'));
-      ctx.fillStyle = withAlpha(color, 0.38);
-      for (var i = 0; i < 90; i++) {
-        var sx = cx + (rng() - 0.5) * hw * 1.1;
-        var sy = mouthY - 2 + rng() * (chinBot - mouthY + 6);
+      /* Subtle shadow under jaw for stubble area */
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(cx - hw * 0.5, mouthY + 2);
+      ctx.quadraticCurveTo(cx, chinBot + 4, cx + hw * 0.5, mouthY + 2);
+      ctx.closePath();
+      ctx.fillStyle = withAlpha(darker(color, 30), 0.12);
+      ctx.fill();
+      ctx.restore();
+      /* Fine dots — small, low alpha, fewer count */
+      ctx.fillStyle = withAlpha(color, 0.22);
+      for (var i = 0; i < 55; i++) {
+        var sx = cx + (rng() - 0.5) * hw * 0.9;
+        var sy = mouthY + 2 + rng() * (chinBot - mouthY);
         var distFromCenter = Math.abs(sx - cx) / hw;
-        if (distFromCenter > 0.75 || sy < mouthY - 3) continue;
+        if (distFromCenter > 0.6 || sy < mouthY) continue;
         ctx.beginPath();
-        ctx.arc(sx, sy, 0.5 + rng() * 0.5, 0, Math.PI * 2);
+        ctx.arc(sx, sy, 0.3 + rng() * 0.3, 0, Math.PI * 2);
         ctx.fill();
       }
       return;
