@@ -524,22 +524,22 @@
     // Ears (enhanced with inner detail)
     ctx.save();
     ctx.fillStyle = darker(skin, 10);
-    // Left ear
+    // Left ear (smaller, tucked in)
     ctx.beginPath();
-    ctx.ellipse(cx - HEAD_W + 2, cy + 2, 6, 9, -0.15, -Math.PI * 0.5, Math.PI * 0.5);
+    ctx.ellipse(cx - HEAD_W + 3, cy + 2, 4.5, 7, -0.1, -Math.PI * 0.5, Math.PI * 0.5);
     ctx.fill();
     // Left ear inner
     ctx.beginPath();
-    ctx.ellipse(cx - HEAD_W + 4, cy + 2, 3, 5, -0.15, -Math.PI * 0.4, Math.PI * 0.4);
+    ctx.ellipse(cx - HEAD_W + 5, cy + 2, 2.5, 4, -0.1, -Math.PI * 0.4, Math.PI * 0.4);
     ctx.fillStyle = darker(skin, 22);
     ctx.fill();
-    // Right ear
+    // Right ear (smaller, tucked in)
     ctx.fillStyle = darker(skin, 14);
     ctx.beginPath();
-    ctx.ellipse(cx + HEAD_W - 2, cy + 2, 6, 9, 0.15, Math.PI * 0.5, Math.PI * 1.5);
+    ctx.ellipse(cx + HEAD_W - 3, cy + 2, 4.5, 7, 0.1, Math.PI * 0.5, Math.PI * 1.5);
     ctx.fill();
     ctx.beginPath();
-    ctx.ellipse(cx + HEAD_W - 4, cy + 2, 3, 5, 0.15, Math.PI * 0.6, Math.PI * 1.4);
+    ctx.ellipse(cx + HEAD_W - 5, cy + 2, 2.5, 4, 0.1, Math.PI * 0.6, Math.PI * 1.4);
     ctx.fillStyle = darker(skin, 26);
     ctx.fill();
     ctx.restore();
