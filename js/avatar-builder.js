@@ -1523,7 +1523,8 @@
     ctx.fillRect(cx - hw, cy - hh, hw*2, hh);
     ctx.restore();
 
-    // Mini hair
+    // Mini hair (positioned higher to keep forehead visible and avoid mask effect)
+    var hairBottom = cy - 5; // hair must stop well above eye line (meY = cy+0.5)
     if (cfg.hairStyle !== 'bald' && cfg.hairStyle !== 'afro') {
       ctx.fillStyle = cfg.hairColor;
       if (cfg.hairStyle === 'buzz' || cfg.hairStyle === 'waves') {
@@ -1531,36 +1532,36 @@
         ctx.beginPath();
         ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI*2);
         ctx.clip();
-        ctx.fillRect(cx - hw - 2, cy - hh - 2, hw*2 + 4, hh);
+        ctx.fillRect(cx - hw - 2, cy - hh - 2, hw*2 + 4, hh - 3);
         if (cfg.hairStyle === 'waves') {
           ctx.strokeStyle = withAlpha(lighter(cfg.hairColor, 20), 0.2);
           ctx.lineWidth = 1;
           for (var wr = 0; wr < 3; wr++) {
             ctx.beginPath();
-            ctx.arc(cx, cy - hh*0.3, 3 + wr*3, Math.PI*0.2, Math.PI*0.8);
+            ctx.arc(cx, cy - hh*0.4, 3 + wr*3, Math.PI*0.2, Math.PI*0.8);
             ctx.stroke();
           }
         }
         ctx.restore();
       } else if (cfg.hairStyle === 'short') {
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 4, hw + 2, hh*0.55, 0, Math.PI*1.05, Math.PI*1.95, true);
+        ctx.ellipse(cx, cy - 7, hw + 2, hh*0.45, 0, Math.PI*1.05, Math.PI*1.95, true);
         ctx.fill();
       } else if (cfg.hairStyle === 'fade') {
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 5, hw, hh*0.5, 0, Math.PI*1.1, Math.PI*1.9, true);
+        ctx.ellipse(cx, cy - 8, hw, hh*0.4, 0, Math.PI*1.1, Math.PI*1.9, true);
         ctx.fill();
         ctx.globalAlpha = 0.3;
         ctx.beginPath();
-        ctx.ellipse(cx, cy, hw + 1, hh*0.35, 0, Math.PI*0.85, Math.PI*1.15);
+        ctx.ellipse(cx, cy - 2, hw + 1, hh*0.25, 0, Math.PI*0.85, Math.PI*1.15);
         ctx.fill();
         ctx.beginPath();
-        ctx.ellipse(cx, cy, hw + 1, hh*0.35, 0, Math.PI*1.85, Math.PI*0.15);
+        ctx.ellipse(cx, cy - 2, hw + 1, hh*0.25, 0, Math.PI*1.85, Math.PI*0.15);
         ctx.fill();
         ctx.globalAlpha = 1;
       } else if (cfg.hairStyle === 'dreads') {
         ctx.beginPath();
-        ctx.ellipse(cx, cy - 2, hw + 2, hh*0.5, 0, Math.PI*1.05, Math.PI*1.95, true);
+        ctx.ellipse(cx, cy - 5, hw + 2, hh*0.4, 0, Math.PI*1.05, Math.PI*1.95, true);
         ctx.fill();
         ctx.strokeStyle = cfg.hairColor;
         ctx.lineWidth = 2.5;
@@ -1586,13 +1587,13 @@
         ctx.beginPath();
         ctx.ellipse(cx, cy, hw + 1, hh + 1, 0, 0, Math.PI*2);
         ctx.clip();
-        ctx.fillRect(cx - hw - 2, cy - hh - 2, hw*2 + 4, hh);
+        ctx.fillRect(cx - hw - 2, cy - hh - 2, hw*2 + 4, hh - 3);
         ctx.strokeStyle = withAlpha(darker(cfg.hairColor, 20), 0.4);
         ctx.lineWidth = 0.5;
         for (var cr = -3; cr <= 3; cr++) {
           ctx.beginPath();
           ctx.moveTo(cx + cr*3, cy - hh + 2);
-          ctx.lineTo(cx + cr*3.5, cy - 2);
+          ctx.lineTo(cx + cr*3.5, cy - 5);
           ctx.stroke();
         }
         ctx.restore();
