@@ -950,28 +950,28 @@
     }
 
     else if (style === 'fade') {
-      // Top hair (full)
+      // Top hair — raised hairline
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(CX, HEAD_CY - 5, HEAD_RX + 1, HEAD_RY*0.5, 0, Math.PI*1.05, Math.PI*1.95, true);
+      ctx.ellipse(CX, HEAD_CY - 8, HEAD_RX + 1, HEAD_RY*0.42, 0, Math.PI*1.05, Math.PI*1.95, true);
       ctx.fill();
       // Fade sides (gradient opacity)
-      ctx.globalAlpha = 0.35;
+      ctx.globalAlpha = 0.3;
       ctx.fillStyle = color;
       // Left fade
       ctx.beginPath();
-      ctx.ellipse(CX, HEAD_CY, HEAD_RX + 1, HEAD_RY*0.35, 0, Math.PI*0.85, Math.PI*1.15);
+      ctx.ellipse(CX, HEAD_CY - 4, HEAD_RX + 1, HEAD_RY*0.28, 0, Math.PI*0.85, Math.PI*1.15);
       ctx.fill();
       // Right fade
       ctx.beginPath();
-      ctx.ellipse(CX, HEAD_CY, HEAD_RX + 1, HEAD_RY*0.35, 0, Math.PI*1.85, Math.PI*0.15);
+      ctx.ellipse(CX, HEAD_CY - 4, HEAD_RX + 1, HEAD_RY*0.28, 0, Math.PI*1.85, Math.PI*0.15);
       ctx.fill();
       ctx.globalAlpha = 1;
       // Volume highlight
       ctx.strokeStyle = withAlpha(hi, 0.18);
       ctx.lineWidth = 1.5;
       ctx.beginPath();
-      ctx.arc(CX, HEAD_CY - 5, HEAD_RX - 4, Math.PI*1.2, Math.PI*1.8, true);
+      ctx.arc(CX, HEAD_CY - 8, HEAD_RX - 4, Math.PI*1.2, Math.PI*1.8, true);
       ctx.stroke();
     }
 
