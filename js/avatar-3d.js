@@ -109,75 +109,93 @@
     root.add(head);
 
     /* ── FACE — eyes, brows, nose, mouth, jaw, ears ─── */
-    // Eye whites
-    var ewGeo = new THREE.SphereGeometry(0.032, 14, 14);
+    // Eye whites — BIG expressive eyes (Fortnite-style)
+    var ewGeo = new THREE.SphereGeometry(0.042, 16, 16);
     var eyeL = new THREE.Mesh(ewGeo, mEyeW);
-    eyeL.position.set(-0.065, 1.94, 0.15);
-    eyeL.scale.set(1.1, 0.7, 0.4);
+    eyeL.position.set(-0.068, 1.94, 0.145);
+    eyeL.scale.set(1.15, 0.75, 0.35);
     eyeL.name = 'eyeL';
     root.add(eyeL);
     var eyeR = eyeL.clone();
-    eyeR.position.set(0.065, 1.94, 0.15);
+    eyeR.position.set(0.068, 1.94, 0.145);
     eyeR.name = 'eyeR';
     root.add(eyeR);
 
-    // Irises
-    var irGeo = new THREE.SphereGeometry(0.019, 10, 10);
+    // Irises — larger, with subtle pupil
+    var irGeo = new THREE.SphereGeometry(0.024, 12, 12);
     var irisL = new THREE.Mesh(irGeo, mIris);
-    irisL.position.set(-0.065, 1.94, 0.178);
+    irisL.position.set(-0.065, 1.94, 0.175);
+    irisL.scale.set(1, 0.85, 0.5);
     irisL.name = 'irisL';
     root.add(irisL);
     var irisR = irisL.clone();
-    irisR.position.set(0.065, 1.94, 0.178);
+    irisR.position.set(0.065, 1.94, 0.175);
     irisR.name = 'irisR';
     root.add(irisR);
 
-    // Eyebrows
-    var brGeo = new THREE.BoxGeometry(0.055, 0.014, 0.016);
+    // Eyebrows — thicker, more defined
+    var brGeo = new THREE.BoxGeometry(0.06, 0.018, 0.02);
     var browL = new THREE.Mesh(brGeo, mBrow);
-    browL.position.set(-0.065, 1.988, 0.155);
-    browL.rotation.z = 0.08;
+    browL.position.set(-0.068, 1.995, 0.148);
+    browL.rotation.z = 0.1;
+    browL.rotation.x = -0.1;
     root.add(browL);
     var browR = browL.clone();
-    browR.position.set(0.065, 1.988, 0.155);
-    browR.rotation.z = -0.08;
+    browR.position.set(0.068, 1.995, 0.148);
+    browR.rotation.z = -0.1;
     root.add(browR);
 
-    // Nose
-    var noseGeo = new THREE.SphereGeometry(0.022, 10, 10);
+    // Nose — wider, more defined tip
+    var noseGeo = new THREE.SphereGeometry(0.028, 12, 12);
     var nose = new THREE.Mesh(noseGeo, mSkin);
-    nose.position.set(0, 1.905, 0.175);
-    nose.scale.set(0.8, 0.65, 0.55);
+    nose.position.set(0, 1.905, 0.17);
+    nose.scale.set(0.85, 0.6, 0.5);
     root.add(nose);
     // Nose bridge
-    var bridgeGeo = new THREE.BoxGeometry(0.02, 0.03, 0.01);
+    var bridgeGeo = new THREE.BoxGeometry(0.022, 0.035, 0.012);
     var bridge = new THREE.Mesh(bridgeGeo, mSkin);
-    bridge.position.set(0, 1.925, 0.17);
+    bridge.position.set(0, 1.928, 0.165);
     root.add(bridge);
+    // Nostrils (subtle dark dots)
+    var nostrilMat = mat(0x000000, 0.9); nostrilMat.transparent = true; nostrilMat.opacity = 0.2;
+    var nostGeo = new THREE.SphereGeometry(0.008, 6, 6);
+    var nostL = new THREE.Mesh(nostGeo, nostrilMat);
+    nostL.position.set(-0.012, 1.898, 0.185);
+    root.add(nostL);
+    var nostR = nostL.clone();
+    nostR.position.set(0.012, 1.898, 0.185);
+    root.add(nostR);
 
-    // Mouth / lips
-    var lipGeo = new THREE.CapsuleGeometry(0.018, 0.03, 4, 8);
+    // Mouth / lips — wider, fuller
+    var lipGeo = new THREE.CapsuleGeometry(0.022, 0.04, 4, 10);
     var lips = new THREE.Mesh(lipGeo, mLip);
-    lips.position.set(0, 1.865, 0.165);
+    lips.position.set(0, 1.865, 0.16);
     lips.rotation.z = Math.PI * 0.5;
-    lips.scale.set(0.6, 1, 0.4);
+    lips.scale.set(0.55, 1, 0.35);
     root.add(lips);
+    // Lower lip highlight
+    var llipGeo = new THREE.CapsuleGeometry(0.015, 0.028, 4, 8);
+    var lowerLip = new THREE.Mesh(llipGeo, mLip);
+    lowerLip.position.set(0, 1.856, 0.158);
+    lowerLip.rotation.z = Math.PI * 0.5;
+    lowerLip.scale.set(0.45, 1.0, 0.3);
+    root.add(lowerLip);
 
-    // Jaw / chin
-    var jawGeo = new THREE.SphereGeometry(0.15, 14, 14, 0, Math.PI * 2, Math.PI * 0.55, Math.PI * 0.45);
+    // Jaw / chin — more defined
+    var jawGeo = new THREE.SphereGeometry(0.155, 16, 16, 0, Math.PI * 2, Math.PI * 0.52, Math.PI * 0.48);
     var jaw = new THREE.Mesh(jawGeo, mSkin);
     jaw.position.set(0, 1.88, 0.01);
-    jaw.scale.set(1.0, 0.8, 0.9);
+    jaw.scale.set(1.0, 0.85, 0.92);
     root.add(jaw);
 
     // Ears
-    var earGeo = new THREE.SphereGeometry(0.03, 8, 8);
+    var earGeo = new THREE.SphereGeometry(0.032, 8, 8);
     var earL = new THREE.Mesh(earGeo, mSkin);
-    earL.position.set(-0.175, 1.92, 0);
-    earL.scale.set(0.35, 0.7, 0.5);
+    earL.position.set(-0.178, 1.92, 0.01);
+    earL.scale.set(0.3, 0.7, 0.5);
     root.add(earL);
     var earR = earL.clone();
-    earR.position.set(0.175, 1.92, 0);
+    earR.position.set(0.178, 1.92, 0.01);
     root.add(earR);
 
     /* ── ARMS (grouped at shoulder pivot) ─────────────── */
