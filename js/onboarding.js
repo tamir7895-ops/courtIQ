@@ -486,11 +486,21 @@
 
     container.innerHTML = html;
 
-    // Draw avatar on report canvas
+    // Draw avatar on report
     setTimeout(function () {
-      var c = document.getElementById('ob-report-avatar-canvas');
-      if (c && typeof AvatarBuilder !== 'undefined') {
-        AvatarBuilder.draw(c, Object.assign({}, data.avatar || {}, { position: data.position }));
+      var reportContainer = document.getElementById('ob-report-avatar-container');
+      if (reportContainer && typeof AvatarBridge !== 'undefined') {
+        AvatarBridge.render(reportContainer, Object.assign({}, data.avatar || {}, { position: data.position }), { width: 120, height: 168, interactive: false, animate: true });
+      } else {
+        // Fallback to 2D canvas
+        var c = document.getElementById('ob-report-avatar-container');
+        if (c && typeof AvatarBuilder !== 'undefined') {
+          var canvas = document.createElement('canvas');
+          canvas.width = 120; canvas.height = 168;
+          c.innerHTML = '';
+          c.appendChild(canvas);
+          AvatarBuilder.draw(canvas, Object.assign({}, data.avatar || {}, { position: data.position }));
+        }
       }
     }, 50);
   }
