@@ -32,18 +32,28 @@
   margin-bottom: 32px;
 }
 .ob-progress {
-  height: 3px;
-  background: rgba(255,255,255,0.06);
-  border-radius: 2px;
+  height: 5px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 3px;
   overflow: hidden;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 .ob-progress-fill {
   height: 100%;
   width: 0%;
   background: linear-gradient(90deg, #f5a623, #ffd060);
-  border-radius: 2px;
+  border-radius: 3px;
   transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: 0 0 8px rgba(245,166,35,0.5);
+  position: relative;
+}
+.ob-progress-fill::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 24px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25));
+  border-radius: 0 3px 3px 0;
 }
 .ob-step-indicators {
   display: flex;
