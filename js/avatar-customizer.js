@@ -168,11 +168,21 @@
 
   /* ── Live Preview ───────────────────────────────────────── */
   function redraw() {
-    if (!canvas || typeof AvatarBuilder === 'undefined') return;
     var ob = getOnboarding();
     var drawCfg = JSON.parse(JSON.stringify(tempCfg));
     drawCfg.position = ob.position || 'SG';
-    AvatarBuilder.draw(canvas, drawCfg);
+
+    // Use 3D bridge if available
+    if (container && typeof AvatarBridge !== 'undefined') {
+      AvatarBridge.update(container, drawCfg);
+      return;
+    }
+
+    // Fallback to direct 2D
+    var canvas = container ? container.querySelector('canvas') : null;
+    if (canvas && typeof AvatarBuilder !== 'undefined') {
+      AvatarBuilder.draw(canvas, drawCfg);
+    }
   }
 
   /* ── Save ───────────────────────────────────────────────── */
