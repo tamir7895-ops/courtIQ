@@ -359,29 +359,31 @@
       }
 
       case 'afro': {
-        // Big round afro sitting ABOVE the head — not wrapping face
+        // Big round afro — sits on TOP of skull, open at front so face shows
+        // Main dome: only top 80° (PI*0.44) so it never reaches the face
         var afro = new THREE.Mesh(
-          new THREE.SphereGeometry(H.r + 0.12, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.6),
+          new THREE.SphereGeometry(H.r + 0.14, 24, 24, 0, Math.PI * 2, 0, Math.PI * 0.44),
           m
         );
-        afro.position.set(H.cx, H.cy + 0.06, -0.02);
-        afro.scale.set(1.15, 1.0, 1.05);
+        afro.position.set(H.cx, H.cy + 0.06, -0.04);
+        afro.scale.set(1.3, 1.1, 1.2);
         g.add(afro);
-        // Side volume (back/sides only, not covering face)
-        var sideL = new THREE.Mesh(
-          new THREE.SphereGeometry(0.1, 12, 12), m
+        // Side puffs — pushed BEHIND the ear line (z negative)
+        var puffGeo = new THREE.SphereGeometry(0.1, 14, 14);
+        var puffL = new THREE.Mesh(puffGeo, m);
+        puffL.position.set(-0.2, H.cy + 0.02, -0.06);
+        puffL.scale.set(0.8, 1.0, 0.9);
+        g.add(puffL);
+        var puffR = puffL.clone();
+        puffR.position.set(0.2, H.cy + 0.02, -0.06);
+        g.add(puffR);
+        // Back volume — large, behind head
+        var afBack = new THREE.Mesh(
+          new THREE.SphereGeometry(0.16, 14, 14), m
         );
-        sideL.position.set(-0.16, H.cy + 0.02, -0.04);
-        g.add(sideL);
-        var sideR = sideL.clone();
-        sideR.position.set(0.16, H.cy + 0.02, -0.04);
-        g.add(sideR);
-        // Back volume
-        var back = new THREE.Mesh(
-          new THREE.SphereGeometry(0.12, 12, 12), m
-        );
-        back.position.set(0, H.cy, -0.12);
-        g.add(back);
+        afBack.position.set(0, H.cy + 0.02, -0.16);
+        afBack.scale.set(1.1, 1.0, 0.8);
+        g.add(afBack);
         break;
       }
 
