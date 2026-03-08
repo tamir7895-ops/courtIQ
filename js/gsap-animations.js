@@ -86,15 +86,17 @@ window.CourtIQAnimations = (function () {
     if (!hasGSAP()) return;
     var sidebar = document.getElementById('db-sidebar');
     if (!sidebar) return;
+    // Only animate on desktop (mobile hides sidebar via CSS transform)
+    if (window.innerWidth <= 1024) return;
     gsap.fromTo(sidebar,
       { x: -20, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.6, ease: 'expo.out' }
+      { x: 0, opacity: 1, duration: 0.6, ease: 'expo.out', clearProps: 'transform,opacity' }
     );
     var items = sidebar.querySelectorAll('.db-sidebar-item');
     if (items.length) {
       gsap.fromTo(items,
         { opacity: 0, x: -10 },
-        { opacity: 1, x: 0, duration: 0.35, stagger: 0.03, ease: 'power2.out', delay: 0.15 }
+        { opacity: 1, x: 0, duration: 0.35, stagger: 0.03, ease: 'power2.out', delay: 0.15, clearProps: 'transform,opacity' }
       );
     }
   }
