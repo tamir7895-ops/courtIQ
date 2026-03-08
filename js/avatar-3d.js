@@ -188,32 +188,55 @@
     root.add(buildArm('L'));
     root.add(buildArm('R'));
 
+    /* ── Hip / Pelvis bridge (connects torso to legs) ── */
+    var hipGeo = new THREE.CylinderGeometry(0.155 * B.waist * B.sx, 0.14 * B.sx, 0.12, 14);
+    var hip = new THREE.Mesh(hipGeo, mSkin);
+    hip.position.set(0, 1.06, 0);
+    hip.scale.set(1, 1, B.sz * 0.88);
+    root.add(hip);
+
     /* ── Skin Legs ───────────────────────────────────── */
-    var legX = 0.09;
+    var legX = 0.085;
 
     function buildSkinLeg(side) {
       var s = side === 'L' ? -1 : 1;
 
+      // Hip joint — smooth transition from pelvis
+      var hipJoint = new THREE.Mesh(
+        new THREE.SphereGeometry(0.06 * B.leg, 10, 10), mSkin
+      );
+      hipJoint.position.set(s * legX, 0.96, 0);
+      hipJoint.scale.set(1.0, 0.85, 0.9);
+      root.add(hipJoint);
+
       // Upper thigh (skin — shorts overlay this)
       var thigh = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.062 * B.leg, 0.26, 8, 12), mSkin
+        new THREE.CapsuleGeometry(0.065 * B.leg, 0.28, 8, 12), mSkin
       );
       thigh.position.set(s * legX, 0.72, 0);
       root.add(thigh);
 
-      // Knee joint — sphere to bridge thigh/calf
+      // Knee joint — smooth bridge
       var knee = new THREE.Mesh(
-        new THREE.SphereGeometry(0.052 * B.leg, 8, 8), mSkin
+        new THREE.SphereGeometry(0.055 * B.leg, 10, 10), mSkin
       );
-      knee.position.set(s * legX, 0.56, 0.02);
+      knee.position.set(s * legX, 0.55, 0.02);
       knee.scale.set(1.0, 0.7, 0.85);
       root.add(knee);
 
-      // Lower leg / calf (skin — tapered)
-      var calfGeo = new THREE.CylinderGeometry(0.052 * B.leg, 0.044 * B.leg, 0.36, 10);
+      // Lower leg / calf (skin — tapered, capsule for rounded ends)
+      var calfGeo = new THREE.CapsuleGeometry(0.05 * B.leg, 0.28, 8, 10);
       var calf = new THREE.Mesh(calfGeo, mSkin);
       calf.position.set(s * legX, 0.36, 0);
       root.add(calf);
+
+      // Calf muscle — subtle back bulge
+      var calfMuscle = new THREE.Mesh(
+        new THREE.SphereGeometry(0.035 * B.leg, 8, 8), mSkin
+      );
+      calfMuscle.position.set(s * legX, 0.42, -0.025);
+      calfMuscle.scale.set(0.9, 1.4, 0.7);
+      root.add(calfMuscle);
     }
 
     buildSkinLeg('L');
