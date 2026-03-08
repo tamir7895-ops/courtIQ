@@ -324,3 +324,165 @@
   align-items: center;
   gap: var(--sp-3);
 }
+
+/* ─────────────────────────────────────────────────────────────
+   SKELETON LOADER — shimmer placeholders while content loads
+   ───────────────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -600px 0; }
+  100% { background-position:  600px 0; }
+}
+
+.skel {
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.04) 25%,
+    rgba(255,255,255,0.09) 50%,
+    rgba(255,255,255,0.04) 75%
+  );
+  background-size: 600px 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+/* Preset sizes */
+.skel-line    { height: 12px; border-radius: 4px; }
+.skel-line-sm { height: 10px; border-radius: 4px; }
+.skel-line-lg { height: 18px; border-radius: 4px; }
+.skel-circle  { border-radius: 50%; }
+.skel-rect    { border-radius: 8px; }
+
+/* Profile summary skeleton */
+.skel-profile-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+.skel-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.skel-avatar {
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+}
+.skel-profile-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* Daily challenge card skeleton */
+.skel-dc-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px 22px;
+  border: 1px solid rgba(255,255,255,0.06);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.02);
+}
+.skel-dc-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* Hide skeleton when parent has .is-loaded */
+.is-loaded .skel,
+.is-loaded .skel-profile-wrap,
+.is-loaded .skel-dc-wrap {
+  display: none !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   STREAK MILESTONE TOAST
+   ───────────────────────────────────────────────────────────── */
+#streak-toast {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%) translateY(120px);
+  z-index: 7500;
+  background: var(--c-surface, #1a1c21);
+  border: 1px solid rgba(245,166,35,0.35);
+  border-radius: 16px;
+  padding: 18px 24px;
+  min-width: 280px;
+  max-width: 360px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 0 1px rgba(245,166,35,0.15);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+  pointer-events: none;
+}
+#streak-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+  pointer-events: auto;
+}
+.streak-toast-emoji {
+  font-size: 36px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.streak-toast-body {
+  flex: 1;
+  min-width: 0;
+}
+.streak-toast-title {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-amber, #f5a623);
+  margin-bottom: 2px;
+}
+.streak-toast-msg {
+  font-size: 13px;
+  color: rgba(240,237,230,0.65);
+  line-height: 1.4;
+}
+.streak-toast-xp {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 13px;
+  font-weight: 700;
+  color: #56d364;
+  margin-top: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   ONBOARDING PROGRESS — enhanced progress label
+   ───────────────────────────────────────────────────────────── */
+.ob-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.ob-progress-step-name {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-amber, #f5a623);
+}
+.ob-progress-counter {
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(240,237,230,0.35);
+  letter-spacing: 0.04em;
+}
+.ob-progress-pct {
+  font-size: 11px;
+  font-weight: 700;
+  color: rgba(240,237,230,0.5);
+}
