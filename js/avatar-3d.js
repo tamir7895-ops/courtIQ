@@ -168,28 +168,28 @@
     uaR.name = 'upperArmR';
     root.add(uaR);
 
-    // Forearms — continuing downward with slight bend
+    // Forearms — hanging naturally with slight forward bend
     var faGeo = new THREE.CapsuleGeometry(0.04 * bs.limbScale, 0.18, 6, 12);
     var faL = new THREE.Mesh(faGeo, skinMat);
-    faL.position.set(-shoulderOffset - 0.08, 0.68, 0.04);
-    faL.rotation.z = 0.25;
-    faL.rotation.x = -0.1;
+    faL.position.set(-shoulderOffset - 0.06, 0.68, 0.06);
+    faL.rotation.z = 0.12;
+    faL.rotation.x = -0.2;
     faL.name = 'forearmL';
     root.add(faL);
     var faR = new THREE.Mesh(faGeo, skinMat);
-    faR.position.set(shoulderOffset + 0.08, 0.68, 0.04);
-    faR.rotation.z = -0.25;
-    faR.rotation.x = -0.1;
+    faR.position.set(shoulderOffset + 0.06, 0.68, 0.06);
+    faR.rotation.z = -0.12;
+    faR.rotation.x = -0.2;
     faR.name = 'forearmR';
     root.add(faR);
 
     // Hands
     var handGeo = new THREE.SphereGeometry(0.04, 8, 8);
     var handL = new THREE.Mesh(handGeo, skinMat);
-    handL.position.set(-shoulderOffset - 0.1, 0.52, 0.05);
+    handL.position.set(-shoulderOffset - 0.07, 0.52, 0.1);
     root.add(handL);
     var handR = new THREE.Mesh(handGeo, skinMat);
-    handR.position.set(shoulderOffset + 0.1, 0.52, 0.05);
+    handR.position.set(shoulderOffset + 0.07, 0.52, 0.1);
     root.add(handR);
 
     /* ── Hips / Shorts ───────────────────────────────────── */
