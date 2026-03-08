@@ -236,7 +236,20 @@
     <!-- Top widgets row -->
     <div class="db-top-widgets">
       <!-- Player Profile Summary -->
-      <div class="profile-summary">
+      <div class="profile-summary" id="profile-summary-card">
+        <!-- Skeleton shown while content loads -->
+        <div class="skel-profile-wrap" id="skel-profile">
+          <div class="skel-profile-row">
+            <div class="skel skel-circle skel-avatar"></div>
+            <div class="skel-profile-text">
+              <div class="skel skel-line-lg" style="width:55%"></div>
+              <div class="skel skel-line"    style="width:40%"></div>
+              <div class="skel skel-line-sm" style="width:30%"></div>
+            </div>
+          </div>
+          <div class="skel skel-line" style="width:70%"></div>
+          <div class="skel skel-line-sm" style="width:50%"></div>
+        </div>
         <div id="profile-summary-content"></div>
         <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
           <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
@@ -255,7 +268,7 @@
             </div>
             <div style="display:flex;align-items:center;gap:12px;">
               <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
-              <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;"></div>
+              <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;cursor:default;"></div>
             </div>
           </div>
           <div class="xp-bar">
@@ -267,6 +280,16 @@
 
     <!-- XP gain toast -->
     <div class="xp-gain-toast" id="xp-gain-toast"></div>
+
+    <!-- Streak milestone toast (shown at bottom-center on milestones) -->
+    <div id="streak-toast">
+      <div class="streak-toast-emoji">🔥</div>
+      <div class="streak-toast-body">
+        <div class="streak-toast-title"></div>
+        <div class="streak-toast-msg"></div>
+        <div class="streak-toast-xp"></div>
+      </div>
+    </div>
 
     <!-- Daily Challenge Card -->
     <div class="dc-card" id="dc-card"></div>
