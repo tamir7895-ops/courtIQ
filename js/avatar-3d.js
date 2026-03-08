@@ -238,17 +238,17 @@
     // Sleeves — short tubes wrapping upper arms
     function buildSleeve(side) {
       var s = side === 'L' ? -1 : 1;
-      // Sleeve shell on the upper arm
-      var sleeveGeo = new THREE.CapsuleGeometry(0.054 * B.limb, 0.1, 6, 10);
+      // Sleeve shell on the upper arm — wider than skin arm
+      var sleeveGeo = new THREE.CapsuleGeometry(0.068 * B.limb, 0.12, 8, 10);
       var sleeve = new THREE.Mesh(sleeveGeo, mJersey);
       sleeve.position.set(s * shOff, 1.42, 0);
       sleeve.rotation.z = s * 0.12;
       root.add(sleeve);
 
       // Sleeve cuff — visible hem at sleeve end
-      var cuffGeo = new THREE.TorusGeometry(0.054 * B.limb, 0.005, 6, 12);
+      var cuffGeo = new THREE.TorusGeometry(0.065 * B.limb, 0.006, 6, 14);
       var cuff = new THREE.Mesh(cuffGeo, mCollar);
-      cuff.position.set(s * (shOff + s * 0.015), 1.34, 0.01);
+      cuff.position.set(s * (shOff + s * 0.018), 1.32, 0.01);
       cuff.rotation.x = Math.PI * 0.5;
       cuff.rotation.z = s * 0.12;
       root.add(cuff);
