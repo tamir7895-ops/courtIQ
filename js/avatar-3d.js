@@ -216,17 +216,17 @@
       ua.name = 'upperArm' + side;
       grp.add(ua);
 
-      // Forearm (skin)
-      var fa = new THREE.Mesh(new THREE.CapsuleGeometry(faR0, 0.22, 6, 12), mSkin);
-      fa.position.set(s * 0.015, -0.44, 0.04);
-      fa.rotation.x = -0.08;
+      // Forearm (skin) — slight forward bend for natural pose
+      var fa = new THREE.Mesh(new THREE.CapsuleGeometry(faR0, 0.2, 6, 12), mSkin);
+      fa.position.set(s * 0.01, -0.42, 0.08);
+      fa.rotation.x = -0.2;
       fa.name = 'forearm' + side;
       grp.add(fa);
 
-      // Hand (skin)
-      var hand = new THREE.Mesh(new THREE.SphereGeometry(0.035, 8, 8), mSkin);
-      hand.position.set(s * 0.02, -0.62, 0.06);
-      hand.scale.set(0.9, 1.1, 0.7);
+      // Hand (skin) — positioned at end of bent forearm
+      var hand = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), mSkin);
+      hand.position.set(s * 0.015, -0.58, 0.14);
+      hand.scale.set(0.85, 1.1, 0.7);
       grp.add(hand);
 
       return grp;
