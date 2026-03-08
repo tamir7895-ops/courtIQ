@@ -114,54 +114,62 @@
     root.add(shCapR);
 
     /* ── Skin Arms (grouped at shoulder pivot) ───────── */
-    var shOff = 0.22 * B.sh;
+    var shOff = 0.21 * B.sh;
 
     function buildArm(side) {
       var s = side === 'L' ? -1 : 1;
       var grp = new THREE.Group();
-      grp.position.set(s * shOff, 1.54, 0);
-      grp.rotation.z = s * 0.12;
+      grp.position.set(s * shOff, 1.53, 0);
+      grp.rotation.z = s * 0.08;
       grp.name = 'armGroup' + side;
 
-      // Upper arm — thicker, jersey sleeve overlays this
+      // Upper arm — substantial, jersey sleeve overlays this
       var ua = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.055 * B.limb, 0.22, 8, 12), mSkin
+        new THREE.CapsuleGeometry(0.065 * B.limb, 0.22, 8, 12), mSkin
       );
       ua.position.set(0, -0.14, 0);
       ua.name = 'upperArm' + side;
       grp.add(ua);
 
-      // Elbow joint — sphere to bridge upper/lower
-      var elbow = new THREE.Mesh(
-        new THREE.SphereGeometry(0.048 * B.limb, 8, 8), mSkin
+      // Bicep bulge — subtle muscle shape
+      var bicep = new THREE.Mesh(
+        new THREE.SphereGeometry(0.058 * B.limb, 8, 8), mSkin
       );
-      elbow.position.set(0, -0.28, 0.02);
-      elbow.scale.set(1.0, 0.85, 0.9);
+      bicep.position.set(0, -0.08, 0.02);
+      bicep.scale.set(1.0, 1.2, 0.85);
+      grp.add(bicep);
+
+      // Elbow joint — smooth bridge
+      var elbow = new THREE.Mesh(
+        new THREE.SphereGeometry(0.054 * B.limb, 10, 10), mSkin
+      );
+      elbow.position.set(0, -0.27, 0.015);
+      elbow.scale.set(1.0, 0.8, 0.9);
       grp.add(elbow);
 
-      // Forearm — tapered, exposed below sleeve
+      // Forearm — thicker, tapered with slight curve
       var fa = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.048 * B.limb, 0.038 * B.limb, 0.24, 8), mSkin
+        new THREE.CapsuleGeometry(0.05 * B.limb, 0.2, 8, 10), mSkin
       );
-      fa.position.set(0, -0.42, 0.04);
-      fa.rotation.x = -0.12;
+      fa.position.set(0, -0.40, 0.03);
+      fa.rotation.x = -0.1;
       fa.name = 'forearm' + side;
       grp.add(fa);
 
-      // Wrist
+      // Wrist joint
       var wrist = new THREE.Mesh(
-        new THREE.SphereGeometry(0.034, 8, 8), mSkin
+        new THREE.SphereGeometry(0.04 * B.limb, 8, 8), mSkin
       );
-      wrist.position.set(0, -0.55, 0.06);
-      wrist.scale.set(0.9, 0.7, 0.8);
+      wrist.position.set(0, -0.53, 0.05);
+      wrist.scale.set(0.85, 0.65, 0.8);
       grp.add(wrist);
 
-      // Hand — slightly bigger, flatter
+      // Hand — proportional
       var hand = new THREE.Mesh(
-        new THREE.SphereGeometry(0.04, 8, 8), mSkin
+        new THREE.SphereGeometry(0.044, 10, 10), mSkin
       );
-      hand.position.set(0, -0.6, 0.08);
-      hand.scale.set(0.75, 1.0, 0.55);
+      hand.position.set(0, -0.58, 0.06);
+      hand.scale.set(0.7, 0.95, 0.5);
       grp.add(hand);
 
       return grp;
