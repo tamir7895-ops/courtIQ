@@ -86,4 +86,61 @@ const DataService = {
     if (error) throw error;
     return data || [];
   },
+
+  /* ── User Data (JSONB blob — XP, archetype, onboarding) ── */
+  async getUserData() {
+    const { data, error } = await sb
+      .from('profiles')
+      .select('user_data')
+      .eq('id', window.currentUser.id)
+      .single();
+    if (error) throw error;
+    return data?.user_data || {};
+  },
+
+  async saveUserData(patch) {
+    const { data: current, error: fetchErr } = await sb
+      .from('profiles')
+      .select('user_data')
+      .eq('id', window.currentUser.id)
+      .single();
+    if (fetchErr) throw fetchErr;
+    const merged = Object.assign({}, current?.user_data || {}, patch);
+    const { error } = await sb
+      .from('profiles')
+      .update({ user_data: merged, updated_at: new Date().toISOString() })
+      .eq('id', window.currentUser.id);
+    if (error) throw error;
+  },
+
+  /* ── Shot Sessions ─────────────────────────────────────── */
+  async addShotSession(session) {
+    const { data, error } = await sb
+      .from('shot_sessions')
+      .insert({
+        user_id:      window.currentUser.id,
+        session_date: session.date || new Date().toISOString(),
+        fg_made:      session.fg_made      || 0,
+        fg_missed:    session.fg_missed    || 0,
+        three_made:   session.three_made   || 0,
+        three_missed: session.three_missed || 0,
+        ft_made:      session.ft_made      || 0,
+        ft_missed:    session.ft_missed    || 0,
+      })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async getShotSessions(limit) {
+    const { data, error } = await sb
+      .from('shot_sessions')
+      .select('*')
+      .eq('user_id', window.currentUser.id)
+      .order('session_date', { ascending: false })
+      .limit(limit || 50);
+    if (error) throw error;
+    return data || [];
+  },
 };
