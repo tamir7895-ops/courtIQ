@@ -90,27 +90,27 @@
     root.add(head);
 
     /* ── Eyes ────────────────────────────────────────────── */
-    var eyeLGeo = new THREE.SphereGeometry(0.032, 12, 12);
+    var eyeLGeo = new THREE.SphereGeometry(0.038, 12, 12);
     var eyeL = new THREE.Mesh(eyeLGeo, eyeWhiteMat);
-    eyeL.position.set(-0.07, 1.5, 0.17);
-    eyeL.scale.set(1, 0.8, 0.5);
+    eyeL.position.set(-0.072, 1.5, 0.16);
+    eyeL.scale.set(1, 0.75, 0.45);
     eyeL.name = 'eyeL';
     root.add(eyeL);
 
     var eyeR = new THREE.Mesh(eyeLGeo, eyeWhiteMat);
-    eyeR.position.set(0.07, 1.5, 0.17);
-    eyeR.scale.set(1, 0.8, 0.5);
+    eyeR.position.set(0.072, 1.5, 0.16);
+    eyeR.scale.set(1, 0.75, 0.45);
     eyeR.name = 'eyeR';
     root.add(eyeR);
 
-    var irisGeo = new THREE.SphereGeometry(0.018, 10, 10);
+    var irisGeo = new THREE.SphereGeometry(0.022, 10, 10);
     var irisL = new THREE.Mesh(irisGeo, eyeIrisMat);
-    irisL.position.set(-0.07, 1.5, 0.2);
+    irisL.position.set(-0.072, 1.5, 0.195);
     irisL.name = 'irisL';
     root.add(irisL);
 
     var irisR = new THREE.Mesh(irisGeo, eyeIrisMat);
-    irisR.position.set(0.07, 1.5, 0.2);
+    irisR.position.set(0.072, 1.5, 0.195);
     irisR.name = 'irisR';
     root.add(irisR);
 
