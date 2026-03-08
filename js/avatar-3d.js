@@ -152,42 +152,44 @@
     earR.scale.set(0.4, 0.7, 0.5);
     root.add(earR);
 
-    /* ── Arms ────────────────────────────────────────────── */
+    /* ── Arms (relaxed at sides) ────────────────────────── */
     var shoulderOffset = 0.28 * bs.shoulderW;
 
-    // Upper arms
+    // Upper arms — angled down ~55° from horizontal
     var uaGeo = new THREE.CapsuleGeometry(0.05 * bs.limbScale, 0.2, 6, 12);
     var uaL = new THREE.Mesh(uaGeo, skinMat);
-    uaL.position.set(-shoulderOffset, 1.05, 0);
-    uaL.rotation.z = 0.15;
+    uaL.position.set(-shoulderOffset - 0.03, 0.95, 0);
+    uaL.rotation.z = 0.65;
     uaL.name = 'upperArmL';
     root.add(uaL);
     var uaR = new THREE.Mesh(uaGeo, skinMat);
-    uaR.position.set(shoulderOffset, 1.05, 0);
-    uaR.rotation.z = -0.15;
+    uaR.position.set(shoulderOffset + 0.03, 0.95, 0);
+    uaR.rotation.z = -0.65;
     uaR.name = 'upperArmR';
     root.add(uaR);
 
-    // Forearms
+    // Forearms — continuing downward with slight bend
     var faGeo = new THREE.CapsuleGeometry(0.04 * bs.limbScale, 0.18, 6, 12);
     var faL = new THREE.Mesh(faGeo, skinMat);
-    faL.position.set(-shoulderOffset - 0.04, 0.8, 0.03);
-    faL.rotation.z = 0.08;
+    faL.position.set(-shoulderOffset - 0.08, 0.68, 0.04);
+    faL.rotation.z = 0.25;
+    faL.rotation.x = -0.1;
     faL.name = 'forearmL';
     root.add(faL);
     var faR = new THREE.Mesh(faGeo, skinMat);
-    faR.position.set(shoulderOffset + 0.04, 0.8, 0.03);
-    faR.rotation.z = -0.08;
+    faR.position.set(shoulderOffset + 0.08, 0.68, 0.04);
+    faR.rotation.z = -0.25;
+    faR.rotation.x = -0.1;
     faR.name = 'forearmR';
     root.add(faR);
 
     // Hands
     var handGeo = new THREE.SphereGeometry(0.04, 8, 8);
     var handL = new THREE.Mesh(handGeo, skinMat);
-    handL.position.set(-shoulderOffset - 0.06, 0.64, 0.04);
+    handL.position.set(-shoulderOffset - 0.1, 0.52, 0.05);
     root.add(handL);
     var handR = new THREE.Mesh(handGeo, skinMat);
-    handR.position.set(shoulderOffset + 0.06, 0.64, 0.04);
+    handR.position.set(shoulderOffset + 0.1, 0.52, 0.05);
     root.add(handR);
 
     /* ── Hips / Shorts ───────────────────────────────────── */
