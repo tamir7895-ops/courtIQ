@@ -243,22 +243,22 @@
     jerseyHem.rotation.x = Math.PI * 0.5;
     root.add(jerseyHem);
 
-    // Sleeves — short tubes wrapping upper arms
+    // Sleeves — wrapping upper arms, wider than skin for fabric look
     function buildSleeve(side) {
       var s = side === 'L' ? -1 : 1;
-      // Sleeve shell on the upper arm — wider than skin arm
-      var sleeveGeo = new THREE.CapsuleGeometry(0.068 * B.limb, 0.12, 8, 10);
+      // Sleeve shell — wider than upper arm, longer to cover more
+      var sleeveGeo = new THREE.CapsuleGeometry(0.078 * B.limb, 0.16, 8, 12);
       var sleeve = new THREE.Mesh(sleeveGeo, mJersey);
-      sleeve.position.set(s * shOff, 1.42, 0);
-      sleeve.rotation.z = s * 0.12;
+      sleeve.position.set(s * shOff, 1.40, 0);
+      sleeve.rotation.z = s * 0.08;
       root.add(sleeve);
 
-      // Sleeve cuff — visible hem at sleeve end
-      var cuffGeo = new THREE.TorusGeometry(0.065 * B.limb, 0.006, 6, 14);
+      // Sleeve cuff — visible hem ring at sleeve end
+      var cuffGeo = new THREE.TorusGeometry(0.074 * B.limb, 0.007, 8, 16);
       var cuff = new THREE.Mesh(cuffGeo, mCollar);
-      cuff.position.set(s * (shOff + s * 0.018), 1.32, 0.01);
+      cuff.position.set(s * (shOff + s * 0.01), 1.28, 0.01);
       cuff.rotation.x = Math.PI * 0.5;
-      cuff.rotation.z = s * 0.12;
+      cuff.rotation.z = s * 0.08;
       root.add(cuff);
     }
 
