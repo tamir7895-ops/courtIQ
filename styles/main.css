@@ -2668,6 +2668,17 @@
       border-color: rgba(245,166,35,0.2);
       color: var(--c-amber);
       font-weight: 600;
+      position: relative;
+    }
+    .db-sidebar-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 3px;
+      background: var(--c-amber);
+      border-radius: 0 3px 3px 0;
     }
     .db-sidebar-icon {
       width: 24px;
