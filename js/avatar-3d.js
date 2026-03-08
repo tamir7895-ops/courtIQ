@@ -103,14 +103,14 @@
     core.scale.set(B.sx, 1, B.sz * 0.92);
     root.add(core);
 
-    // Shoulder caps — rounded deltoids (bigger for arm connection)
-    var shCapGeo = new THREE.SphereGeometry(0.08 * B.limb, 12, 12);
+    // Shoulder caps — rounded deltoids (big for smooth arm connection)
+    var shCapGeo = new THREE.SphereGeometry(0.09 * B.limb, 14, 14);
     var shCapL = new THREE.Mesh(shCapGeo, mSkin);
-    shCapL.position.set(-0.22 * B.sh, 1.55, 0);
+    shCapL.position.set(-0.21 * B.sh, 1.54, 0);
     shCapL.scale.set(1.0, 0.85, 0.9);
     root.add(shCapL);
     var shCapR = shCapL.clone();
-    shCapR.position.set(0.22 * B.sh, 1.55, 0);
+    shCapR.position.set(0.21 * B.sh, 1.54, 0);
     root.add(shCapR);
 
     /* ── Skin Arms (grouped at shoulder pivot) ───────── */
