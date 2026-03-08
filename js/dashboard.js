@@ -365,6 +365,7 @@
 
     dbUpdateLabels();
     dbRenderSessions();
+    if (typeof SFX !== 'undefined') SFX.success();
     showToast('Session logged for ' + day + '!');
   }
 
