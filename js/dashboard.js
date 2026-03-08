@@ -247,10 +247,10 @@
     if (id === 'shop') {
       if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
       try {
-        var shopCanvas = document.getElementById('shop-avatar-preview');
+        var shopContainer = document.getElementById('shop-avatar-container');
         var obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-        if (shopCanvas && typeof AvatarBuilder !== 'undefined' && obData.avatar) {
-          AvatarBuilder.draw(shopCanvas, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }));
+        if (shopContainer && typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          AvatarBridge.render(shopContainer, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }), { width: 200, height: 280, interactive: true, animate: true });
         }
       } catch (e) {}
     }
