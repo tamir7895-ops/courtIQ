@@ -324,20 +324,42 @@
   }
 
   function redrawAvatar() {
-    var canvas = document.getElementById('ob-avatar-canvas');
-    if (!canvas || typeof AvatarBuilder === 'undefined') return;
+    var container = document.getElementById('ob-avatar-container');
+    if (!container) return;
+
+    var d = (typeof AvatarBuilder !== 'undefined') ? AvatarBuilder.defaults : {
+      skinTone: '#C68642', hairStyle: 'short', hairColor: '#1a1a1a',
+      beardStyle: 'none', bodyType: 'athletic'
+    };
 
     var cfg = {
-      skinTone: getPickerValue('skinTone') || AvatarBuilder.defaults.skinTone,
-      hairStyle: getPickerValue('hairStyle') || AvatarBuilder.defaults.hairStyle,
-      hairColor: getPickerValue('hairColor') || AvatarBuilder.defaults.hairColor,
-      beardStyle: getPickerValue('beardStyle') || AvatarBuilder.defaults.beardStyle,
-      bodyType: getPickerValue('bodyType') || AvatarBuilder.defaults.bodyType,
+      skinTone: getPickerValue('skinTone') || d.skinTone,
+      hairStyle: getPickerValue('hairStyle') || d.hairStyle,
+      hairColor: getPickerValue('hairColor') || d.hairColor,
+      beardStyle: getPickerValue('beardStyle') || d.beardStyle,
+      bodyType: getPickerValue('bodyType') || d.bodyType,
       accessory: getPickerValue('accessory') || 'none',
       position: data.position || 'SG'
     };
 
-    AvatarBuilder.draw(canvas, cfg);
+    // Use 3D bridge
+    if (typeof AvatarBridge !== 'undefined') {
+      // First render or update
+      if (container.querySelector('canvas')) {
+        AvatarBridge.update(container, cfg);
+      } else {
+        AvatarBridge.render(container, cfg, { width: 200, height: 280, interactive: true, animate: true });
+      }
+    } else if (typeof AvatarBuilder !== 'undefined') {
+      // Fallback: create canvas and draw 2D
+      if (!container.querySelector('canvas')) {
+        var canvas = document.createElement('canvas');
+        canvas.width = 200; canvas.height = 280;
+        container.innerHTML = '';
+        container.appendChild(canvas);
+      }
+      AvatarBuilder.draw(container.querySelector('canvas'), cfg);
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════
