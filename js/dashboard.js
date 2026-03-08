@@ -29,7 +29,27 @@
     if (sidebarName) {
       const name = session.user.user_metadata?.first_name || session.user.email;
       sidebarName.textContent = name;
-      if (sidebarAvatar && typeof name === 'string') {
+
+      // Render 3D mini avatar in sidebar
+      if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
+        try {
+          var obSidebar = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+          if (obSidebar.avatar) {
+            AvatarBridge.renderMini(sidebarAvatar, obSidebar.avatar);
+          } else {
+            // No avatar data yet — show initials
+            if (typeof name === 'string') {
+              const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+              sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
+            }
+          }
+        } catch (e) {
+          if (typeof name === 'string') {
+            const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
+            sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
+          }
+        }
+      } else if (sidebarAvatar && typeof name === 'string') {
         const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
         sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
       }
