@@ -359,16 +359,16 @@
 
     function buildSock(side) {
       var s = side === 'L' ? -1 : 1;
-      // Sock tube
-      var sockGeo = new THREE.CylinderGeometry(0.052 * B.leg, 0.050 * B.leg, 0.2, 10);
+      // Sock tube — capsule for rounded top/bottom
+      var sockGeo = new THREE.CapsuleGeometry(0.054 * B.leg, 0.16, 8, 12);
       var sock = new THREE.Mesh(sockGeo, mSock);
-      sock.position.set(s * legX, 0.24, 0);
+      sock.position.set(s * legX, 0.22, 0);
       root.add(sock);
 
       // Sock top band — ribbed edge
-      var bandGeo = new THREE.TorusGeometry(0.053 * B.leg, 0.005, 6, 12);
+      var bandGeo = new THREE.TorusGeometry(0.056 * B.leg, 0.006, 8, 14);
       var band = new THREE.Mesh(bandGeo, mSockBand);
-      band.position.set(s * legX, 0.34, 0);
+      band.position.set(s * legX, 0.31, 0);
       band.rotation.x = Math.PI * 0.5;
       root.add(band);
     }
