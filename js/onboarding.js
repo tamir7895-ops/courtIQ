@@ -553,6 +553,15 @@
       } catch (e) { /* ignore */ }
     }
 
+    // Async write-through to Supabase (non-blocking)
+    if (window.currentUser && typeof DataService !== 'undefined') {
+      DataService.saveUserData({
+        onboarding_data: data,
+        archetype: data.archetype || null,
+        avatar: data.avatar || null
+      }).catch(function (e) { console.warn('Supabase onboarding sync error:', e); });
+    }
+
     // Close overlay
     var overlay = document.getElementById('ob-overlay');
     if (overlay) {
