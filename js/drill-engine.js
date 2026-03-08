@@ -3486,6 +3486,9 @@ function drillWorkoutComplete() {
   _workoutRunning = false;
   if (_workoutTimerRef) { clearInterval(_workoutTimerRef); _workoutTimerRef = null; }
 
+  // Celebration sound
+  if (typeof SFX !== 'undefined') SFX.success();
+
   // Build stats
   const min = Math.floor(_workoutSeconds / 60);
   const sec = _workoutSeconds % 60;
