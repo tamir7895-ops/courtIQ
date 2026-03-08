@@ -900,24 +900,34 @@
      ═══════════════════════════════════════════════════════════ */
 
   function setupLighting(scene) {
-    var key = new THREE.DirectionalLight(0xFFF5E6, 1.3);
-    key.position.set(2, 3.5, 2.5);
+    // Key light — warm, strong from upper right
+    var key = new THREE.DirectionalLight(0xFFF0D9, 1.5);
+    key.position.set(2.5, 4, 3);
     scene.add(key);
 
-    var fill = new THREE.DirectionalLight(0xE6F0FF, 0.5);
-    fill.position.set(-2, 1.5, 1);
+    // Fill light — cool tone from left
+    var fill = new THREE.DirectionalLight(0xD4E4FF, 0.6);
+    fill.position.set(-2.5, 2, 1.5);
     scene.add(fill);
 
-    var rim = new THREE.DirectionalLight(0xFFB347, 0.7);
-    rim.position.set(0, 2.5, -2.5);
+    // Rim / back light — warm amber from behind for silhouette
+    var rim = new THREE.DirectionalLight(0xFFB347, 0.85);
+    rim.position.set(0, 2.5, -3);
     scene.add(rim);
 
-    var ambient = new THREE.AmbientLight(0x404050, 0.45);
+    // Ambient — gentle base to prevent harsh shadows
+    var ambient = new THREE.AmbientLight(0x404050, 0.5);
     scene.add(ambient);
 
-    var bounce = new THREE.DirectionalLight(0xFFE4C4, 0.2);
-    bounce.position.set(0, -1, 1);
+    // Bounce light — from below for shoe/leg detail
+    var bounce = new THREE.DirectionalLight(0xFFE4C4, 0.25);
+    bounce.position.set(0, -1, 1.5);
     scene.add(bounce);
+
+    // Secondary fill — subtle highlight from upper left for arm visibility
+    var armFill = new THREE.DirectionalLight(0xFFF5E6, 0.3);
+    armFill.position.set(-1.5, 3, 2);
+    scene.add(armFill);
   }
 
   /* ═══════════════════════════════════════════════════════════
