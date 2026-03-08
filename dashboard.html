@@ -292,7 +292,23 @@
     </div>
 
     <!-- Daily Challenge Card -->
-    <div class="dc-card" id="dc-card"></div>
+    <div class="dc-card" id="dc-card">
+      <!-- Skeleton shown until DailyWorkout renders content -->
+      <div class="skel-dc-wrap" id="skel-dc">
+        <div class="skel-dc-row">
+          <div class="skel skel-circle" style="width:40px;height:40px;flex-shrink:0;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <div class="skel skel-line-lg" style="width:50%"></div>
+            <div class="skel skel-line"    style="width:75%"></div>
+          </div>
+        </div>
+        <div class="skel skel-rect" style="height:48px;width:100%"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+        </div>
+      </div>
+    </div>
 
     <!-- Player context row -->
     <div class="db-context-row">
