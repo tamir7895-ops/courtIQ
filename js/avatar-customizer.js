@@ -226,6 +226,10 @@
     if (!overlay) return;
     overlay.classList.remove('active');
     document.body.style.overflow = '';
+    // Dispose 3D scene to free GPU memory
+    if (container && typeof AvatarBridge !== 'undefined') {
+      AvatarBridge.dispose(container);
+    }
   }
 
   /* ── Init ───────────────────────────────────────────────── */
