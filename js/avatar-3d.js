@@ -667,10 +667,10 @@
 
       case 'durag': {
         var dg = new THREE.Mesh(
-          new THREE.SphereGeometry(H.r + 0.02, 18, 18, 0, Math.PI * 2, 0, Math.PI * 0.52),
+          new THREE.SphereGeometry(H.r + 0.022, 18, 18, 0, Math.PI * 2, 0, Math.PI * 0.46),
           mDark
         );
-        dg.position.set(0, H.cy + 0.02, 0);
+        dg.position.set(0, H.cy + 0.035, -0.01);
         g.add(dg);
         // Tail flap
         var tl = new THREE.Mesh(
