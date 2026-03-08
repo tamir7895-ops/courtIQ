@@ -1332,6 +1332,150 @@
       </div>
     </div><!-- /shop panel -->
 
+    <!-- ═══════════════════════════════════════════════════════
+         SOCIAL HUB PANEL
+         ═══════════════════════════════════════════════════════ -->
+    <div class="db-panel" id="db-panel-social">
+
+      <div class="sh-header">
+        <h2 class="sh-title">🏆 Social Hub</h2>
+        <p class="sh-subtitle">Challenge friends, climb the leaderboard, and share your season recap</p>
+      </div>
+
+      <!-- Sub-tabs -->
+      <div class="sh-tabs">
+        <button class="sh-tab-btn active" data-tab="challenges" onclick="shSwitchTab('challenges')">⚔️ Challenges</button>
+        <button class="sh-tab-btn" data-tab="leaderboard" onclick="shSwitchTab('leaderboard')">🌍 Leaderboard</button>
+        <button class="sh-tab-btn" data-tab="share" onclick="shSwitchTab('share')">📤 Share Card</button>
+      </div>
+
+      <!-- ── CHALLENGES ─────────────────────────────────────── -->
+      <div class="sh-section sh-active" id="sh-challenges">
+
+        <!-- Create challenge -->
+        <div class="sh-create-card">
+          <div class="sh-card-title">⚔️ Create a Challenge</div>
+          <div class="sh-form-row">
+            <div class="sh-form-group">
+              <label class="sh-form-label">Shot Type</label>
+              <select class="sh-form-select" id="sh-ch-type">
+                <option value="fg">Field Goals 🏀</option>
+                <option value="3pt">3-Pointers 🎯</option>
+                <option value="ft">Free Throws 🎳</option>
+              </select>
+            </div>
+            <div class="sh-form-group">
+              <label class="sh-form-label">Target (shots)</label>
+              <input class="sh-form-input" id="sh-ch-target" type="number" min="5" max="500" value="50" />
+            </div>
+            <div class="sh-form-group">
+              <label class="sh-form-label">Time Limit (min)</label>
+              <input class="sh-form-input" id="sh-ch-time" type="number" min="1" max="60" value="10" />
+            </div>
+            <button class="sh-create-btn" onclick="shCreateChallenge()">Generate Link</button>
+          </div>
+          <!-- Generated link row -->
+          <div class="sh-link-box" id="sh-generated-link">
+            <span class="sh-link-text" id="sh-link-text"></span>
+            <button class="sh-copy-btn" onclick="shCopyLink()">Copy</button>
+          </div>
+        </div>
+
+        <!-- Accept a friend's challenge -->
+        <div class="sh-accept-card">
+          <div class="sh-card-title">🤝 Accept a Friend's Challenge</div>
+          <div class="sh-accept-row">
+            <input class="sh-accept-input" id="sh-accept-input" type="text" placeholder="Paste challenge link or code here…" />
+            <button class="sh-accept-btn" onclick="shAcceptCode()">Accept →</button>
+          </div>
+        </div>
+
+        <!-- Dynamic section: active banner + history -->
+        <div id="sh-challenges-dynamic"></div>
+      </div><!-- /sh-challenges -->
+
+      <!-- ── LEADERBOARD ────────────────────────────────────── -->
+      <div class="sh-section" id="sh-leaderboard">
+        <div class="sh-lb-filter-row">
+          <span class="sh-lb-filter-label">🌍 Filter by country:</span>
+          <select class="sh-lb-filter-select" id="sh-lb-country" onchange="shFilterLeaderboard()">
+            <option value="All">All Countries</option>
+            <option value="USA">USA</option>
+            <option value="Israel">Israel 🇮🇱</option>
+            <option value="Spain">Spain</option>
+            <option value="France">France</option>
+            <option value="Germany">Germany</option>
+            <option value="UK">UK</option>
+            <option value="Brazil">Brazil</option>
+            <option value="Canada">Canada</option>
+            <option value="Australia">Australia</option>
+            <option value="Greece">Greece</option>
+            <option value="Slovenia">Slovenia</option>
+            <option value="Serbia">Serbia</option>
+            <option value="Cameroon">Cameroon</option>
+            <option value="Japan">Japan</option>
+          </select>
+          <button class="sh-lb-refresh-btn" onclick="shRefreshLeaderboard()">↺ Refresh</button>
+        </div>
+        <div class="sh-lb-list" id="sh-lb-list">
+          <div class="sh-lb-loading">Click "Leaderboard" tab to load…</div>
+        </div>
+      </div><!-- /sh-leaderboard -->
+
+      <!-- ── SHARE CARD ─────────────────────────────────────── -->
+      <div class="sh-section" id="sh-share">
+        <div class="sh-share-layout">
+          <!-- Controls -->
+          <div class="sh-share-controls">
+            <div class="sh-control-block">
+              <div class="sh-control-title">🎨 Theme</div>
+              <div class="sh-theme-picker">
+                <div class="sh-theme-swatch sh-theme-dark selected"   data-theme="dark"   onclick="shSetTheme('dark')"   title="Dark"></div>
+                <div class="sh-theme-swatch sh-theme-amber"           data-theme="amber"  onclick="shSetTheme('amber')"  title="Amber Fire"></div>
+                <div class="sh-theme-swatch sh-theme-green"           data-theme="green"  onclick="shSetTheme('green')"  title="Court Green"></div>
+                <div class="sh-theme-swatch sh-theme-ocean"           data-theme="ocean"  onclick="shSetTheme('ocean')"  title="Ocean Blue"></div>
+                <div class="sh-theme-swatch sh-theme-purple"          data-theme="purple" onclick="shSetTheme('purple')" title="Purple Reign"></div>
+              </div>
+            </div>
+
+            <div class="sh-control-block">
+              <div class="sh-control-title">📤 Export</div>
+              <div class="sh-share-btn-row">
+                <button class="sh-download-btn" onclick="shDownloadCard()">⬇ Download PNG</button>
+                <button class="sh-share-native-btn" id="sh-share-native-btn" onclick="shShareNative()">🔗 Share</button>
+              </div>
+            </div>
+
+            <div class="sh-control-block" style="font-size:13px;color:var(--c-dimmer);line-height:1.6">
+              Your card shows your current stats (XP, sessions, drills, shot sessions).
+              <br>Share it on social media to flex your grind! 🏀
+            </div>
+          </div>
+
+          <!-- Canvas preview -->
+          <div class="sh-canvas-wrap">
+            <canvas id="sh-share-canvas"></canvas>
+            <div class="sh-canvas-label">1080×1080 · PNG</div>
+          </div>
+        </div>
+      </div><!-- /sh-share -->
+
+    </div><!-- /db-panel-social -->
+
+    <!-- Log attempt modal -->
+    <div class="sh-modal-overlay" id="sh-log-overlay" style="display:none" onclick="if(event.target===this)shCloseLogModal()">
+      <div class="sh-modal">
+        <div class="sh-modal-title">Log Attempt</div>
+        <div class="sh-modal-sub" id="sh-modal-sub">Enter your score:</div>
+        <input class="sh-modal-input" id="sh-attempt-input" type="number" min="0" max="999" placeholder="0"
+               onkeydown="if(event.key==='Enter')shSubmitAttempt()" />
+        <div class="sh-modal-actions">
+          <button class="sh-modal-submit" onclick="shSubmitAttempt()">Submit Score</button>
+          <button class="sh-modal-cancel" onclick="shCloseLogModal()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
     </div><!-- /db-main-inner -->
   </main><!-- /db-main -->
 
