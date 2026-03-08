@@ -178,24 +178,24 @@
 
       // Upper thigh (skin — shorts overlay this)
       var thigh = new THREE.Mesh(
-        new THREE.CapsuleGeometry(0.058 * B.leg, 0.24, 6, 12), mSkin
+        new THREE.CapsuleGeometry(0.062 * B.leg, 0.26, 8, 12), mSkin
       );
       thigh.position.set(s * legX, 0.72, 0);
       root.add(thigh);
 
-      // Lower leg / calf (skin — tapered)
-      var calfGeo = new THREE.CylinderGeometry(0.048 * B.leg, 0.042 * B.leg, 0.34, 10);
-      var calf = new THREE.Mesh(calfGeo, mSkin);
-      calf.position.set(s * legX, 0.38, 0);
-      root.add(calf);
-
-      // Knee cap
+      // Knee joint — sphere to bridge thigh/calf
       var knee = new THREE.Mesh(
-        new THREE.SphereGeometry(0.033, 8, 8), mSkin
+        new THREE.SphereGeometry(0.052 * B.leg, 8, 8), mSkin
       );
-      knee.position.set(s * legX, 0.56, 0.04);
-      knee.scale.set(1, 0.6, 0.5);
+      knee.position.set(s * legX, 0.56, 0.02);
+      knee.scale.set(1.0, 0.7, 0.85);
       root.add(knee);
+
+      // Lower leg / calf (skin — tapered)
+      var calfGeo = new THREE.CylinderGeometry(0.052 * B.leg, 0.044 * B.leg, 0.36, 10);
+      var calf = new THREE.Mesh(calfGeo, mSkin);
+      calf.position.set(s * legX, 0.36, 0);
+      root.add(calf);
     }
 
     buildSkinLeg('L');
