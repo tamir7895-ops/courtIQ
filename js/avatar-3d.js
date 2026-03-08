@@ -152,45 +152,59 @@
     earR.scale.set(0.4, 0.7, 0.5);
     root.add(earR);
 
-    /* ── Arms (relaxed at sides) ────────────────────────── */
+    /* ── Arms (relaxed at sides using parent groups) ────── */
     var shoulderOffset = 0.28 * bs.shoulderW;
+    var armRadius = 0.05 * bs.limbScale;
+    var forearmRadius = 0.04 * bs.limbScale;
 
-    // Upper arms — angled down ~55° from horizontal
-    var uaGeo = new THREE.CapsuleGeometry(0.05 * bs.limbScale, 0.2, 6, 12);
+    // Left arm group — pivot at shoulder
+    var armGroupL = new THREE.Group();
+    armGroupL.position.set(-shoulderOffset, 1.12, 0);
+    armGroupL.rotation.z = 0.45;  // ~26° from vertical
+    armGroupL.name = 'armGroupL';
+
+    var uaGeo = new THREE.CapsuleGeometry(armRadius, 0.2, 6, 12);
     var uaL = new THREE.Mesh(uaGeo, skinMat);
-    uaL.position.set(-shoulderOffset - 0.03, 0.95, 0);
-    uaL.rotation.z = 0.65;
+    uaL.position.set(0, -0.14, 0);
     uaL.name = 'upperArmL';
-    root.add(uaL);
-    var uaR = new THREE.Mesh(uaGeo, skinMat);
-    uaR.position.set(shoulderOffset + 0.03, 0.95, 0);
-    uaR.rotation.z = -0.65;
-    uaR.name = 'upperArmR';
-    root.add(uaR);
+    armGroupL.add(uaL);
 
-    // Forearms — hanging naturally with slight forward bend
-    var faGeo = new THREE.CapsuleGeometry(0.04 * bs.limbScale, 0.18, 6, 12);
+    var faGeo = new THREE.CapsuleGeometry(forearmRadius, 0.18, 6, 12);
     var faL = new THREE.Mesh(faGeo, skinMat);
-    faL.position.set(-shoulderOffset - 0.06, 0.68, 0.06);
-    faL.rotation.z = 0.12;
-    faL.rotation.x = -0.2;
+    faL.position.set(0.02, -0.4, 0.05);
+    faL.rotation.z = -0.2;
+    faL.rotation.x = -0.15;
     faL.name = 'forearmL';
-    root.add(faL);
-    var faR = new THREE.Mesh(faGeo, skinMat);
-    faR.position.set(shoulderOffset + 0.06, 0.68, 0.06);
-    faR.rotation.z = -0.12;
-    faR.rotation.x = -0.2;
-    faR.name = 'forearmR';
-    root.add(faR);
+    armGroupL.add(faL);
 
-    // Hands
     var handGeo = new THREE.SphereGeometry(0.04, 8, 8);
     var handL = new THREE.Mesh(handGeo, skinMat);
-    handL.position.set(-shoulderOffset - 0.07, 0.52, 0.1);
-    root.add(handL);
+    handL.position.set(0.03, -0.58, 0.08);
+    armGroupL.add(handL);
+    root.add(armGroupL);
+
+    // Right arm group — pivot at shoulder
+    var armGroupR = new THREE.Group();
+    armGroupR.position.set(shoulderOffset, 1.12, 0);
+    armGroupR.rotation.z = -0.45;
+    armGroupR.name = 'armGroupR';
+
+    var uaR = new THREE.Mesh(uaGeo, skinMat);
+    uaR.position.set(0, -0.14, 0);
+    uaR.name = 'upperArmR';
+    armGroupR.add(uaR);
+
+    var faR = new THREE.Mesh(faGeo, skinMat);
+    faR.position.set(-0.02, -0.4, 0.05);
+    faR.rotation.z = 0.2;
+    faR.rotation.x = -0.15;
+    faR.name = 'forearmR';
+    armGroupR.add(faR);
+
     var handR = new THREE.Mesh(handGeo, skinMat);
-    handR.position.set(shoulderOffset + 0.07, 0.52, 0.1);
-    root.add(handR);
+    handR.position.set(-0.03, -0.58, 0.08);
+    armGroupR.add(handR);
+    root.add(armGroupR);
 
     /* ── Hips / Shorts ───────────────────────────────────── */
     var hipsGeo = new THREE.CapsuleGeometry(0.18 * bs.torsoX, 0.12, 8, 12);
