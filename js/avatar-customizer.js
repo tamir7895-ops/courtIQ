@@ -24,7 +24,7 @@
   /* ── Open Modal ─────────────────────────────────────────── */
   function open() {
     overlay = document.getElementById('ac-overlay');
-    canvas = document.getElementById('ac-avatar-canvas');
+    container = document.getElementById('ac-avatar-container');
     controlsEl = document.getElementById('ac-controls');
     if (!overlay) return;
 
@@ -44,7 +44,15 @@
     tempCfg = JSON.parse(JSON.stringify(savedCfg));
 
     renderControls();
-    redraw();
+
+    // Initialize 3D avatar via bridge
+    if (container && typeof AvatarBridge !== 'undefined') {
+      var drawCfg = JSON.parse(JSON.stringify(tempCfg));
+      drawCfg.position = ob.position || 'SG';
+      AvatarBridge.render(container, drawCfg, { width: 200, height: 280, interactive: true, animate: true });
+    } else {
+      redraw();
+    }
 
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
