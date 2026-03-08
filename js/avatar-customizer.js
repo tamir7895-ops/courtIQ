@@ -7,7 +7,7 @@
 (function () {
   'use strict';
 
-  var overlay, canvas, controlsEl;
+  var overlay, container, controlsEl;
   var tempCfg = {};   // working copy while editing
   var savedCfg = {};  // snapshot to revert on cancel
 
