@@ -804,20 +804,22 @@
 
       case 'sweatband': {
         var sw = new THREE.Mesh(
-          new THREE.TorusGeometry(0.048, 0.012, 8, 14), mFabric
+          new THREE.TorusGeometry(0.056, 0.013, 8, 14), mFabric
         );
-        sw.position.set(-0.28, 1.22, 0.04);
+        sw.position.set(-0.26, 1.2, 0.03);
         sw.rotation.x = Math.PI * 0.5;
+        sw.rotation.z = 0.08;
         g.add(sw);
         break;
       }
 
       case 'armband': {
         var ab = new THREE.Mesh(
-          new THREE.TorusGeometry(0.052, 0.01, 8, 14), mMetal
+          new THREE.TorusGeometry(0.058, 0.012, 8, 14), mMetal
         );
-        ab.position.set(0.28, 1.38, 0);
+        ab.position.set(0.26, 1.36, 0.01);
         ab.rotation.x = Math.PI * 0.5;
+        ab.rotation.z = -0.08;
         g.add(ab);
         break;
       }
