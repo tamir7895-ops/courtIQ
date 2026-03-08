@@ -2080,5 +2080,47 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+<!-- Skeleton removal: MutationObserver watches for content injection -->
+<script>
+(function () {
+  function hideSkel(skelId) {
+    var el = document.getElementById(skelId);
+    if (el) { el.style.transition = 'opacity 0.25s ease'; el.style.opacity = '0'; setTimeout(function () { el.style.display = 'none'; }, 250); }
+  }
+
+  // Profile summary: hide skeleton when content is populated
+  var profileContent = document.getElementById('profile-summary-content');
+  if (profileContent) {
+    new MutationObserver(function (_, obs) {
+      if (profileContent.children.length > 0) {
+        hideSkel('skel-profile');
+        obs.disconnect();
+      }
+    }).observe(profileContent, { childList: true });
+  }
+
+  // DC card: hide skeleton when DailyWorkout injects content (non-skeleton children)
+  var dcCard = document.getElementById('dc-card');
+  if (dcCard) {
+    new MutationObserver(function (mutations, obs) {
+      // Check if any child other than the skeleton was added
+      for (var i = 0; i < dcCard.children.length; i++) {
+        if (dcCard.children[i].id !== 'skel-dc') {
+          hideSkel('skel-dc');
+          obs.disconnect();
+          return;
+        }
+      }
+    }).observe(dcCard, { childList: true });
+  }
+
+  // Fallback: hard-hide skeletons after 3s in case observers miss
+  setTimeout(function () {
+    hideSkel('skel-profile');
+    hideSkel('skel-dc');
+  }, 3000);
+})();
+</script>
+
 </body>
 </html>
