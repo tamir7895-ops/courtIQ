@@ -30,6 +30,7 @@
   <link rel="stylesheet" href="styles/challenge.css" />
   <link rel="stylesheet" href="styles/archetype.css" />
   <link rel="stylesheet" href="styles/onboarding.css" />
+  <link rel="stylesheet" href="styles/components.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -203,6 +204,18 @@
   <!-- MAIN CONTENT AREA -->
   <main class="db-main" id="db-main">
     <div class="db-main-inner">
+
+    <!-- Breadcrumb topbar -->
+    <div class="db-topbar" id="db-topbar">
+      <div class="db-breadcrumb">
+        <span class="db-breadcrumb-root">Dashboard</span>
+        <span class="db-breadcrumb-sep">/</span>
+        <span class="db-breadcrumb-current" id="db-breadcrumb-current">Log Session</span>
+      </div>
+      <div class="db-topbar-right">
+        <span class="db-topbar-date" id="db-topbar-date"></span>
+      </div>
+    </div>
 
     <!-- Dashboard header -->
     <div class="db-main-header">
