@@ -94,8 +94,13 @@
     updateNav();
   }
 
+  var STEP_NAMES = [
+    'Basic Info', 'Play Style', 'Skills', 'Goals',
+    'Your Avatar', 'AI Analysis', 'Scouting Report'
+  ];
+
   function updateProgress() {
-    var pct = ((current - 1) / (TOTAL_STEPS - 1)) * 100;
+    var pct = Math.round(((current - 1) / (TOTAL_STEPS - 1)) * 100);
     var fill = document.getElementById('ob-progress-fill');
     if (fill) fill.style.width = pct + '%';
 
@@ -103,6 +108,14 @@
       d.classList.toggle('active', i === current - 1);
       d.classList.toggle('done', i < current - 1);
     });
+
+    // Update label
+    var nameEl    = document.getElementById('ob-progress-step-name');
+    var counterEl = document.getElementById('ob-progress-counter');
+    var pctEl     = document.getElementById('ob-progress-pct');
+    if (nameEl)    nameEl.textContent    = STEP_NAMES[current - 1] || '';
+    if (counterEl) counterEl.textContent = current + ' / ' + TOTAL_STEPS;
+    if (pctEl)     pctEl.textContent     = pct + '%';
   }
 
   function updateNav() {
