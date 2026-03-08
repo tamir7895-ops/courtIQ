@@ -394,14 +394,20 @@
   /* ── chart helpers ── */
   const DB_CHART_DEFAULTS = {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: {
-      backgroundColor: '#181c26', borderColor: 'rgba(255,255,255,0.07)',
-      borderWidth: 1, titleColor: 'rgba(240,237,230,0.45)', bodyColor: '#f0ede6',
-      padding: 10, titleFont: { size: 10 }, bodyFont: { size: 13, weight: 700 },
-    }},
+    animation: { duration: 800, easing: 'easeOutQuart' },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: 'rgba(24,28,38,0.95)', borderColor: 'rgba(245,166,35,0.15)',
+        borderWidth: 1, titleColor: 'rgba(240,237,230,0.5)', bodyColor: '#f0ede6',
+        padding: 12, cornerRadius: 8, displayColors: false,
+        titleFont: { size: 10, family: "'Space Grotesk', sans-serif", weight: 600 },
+        bodyFont: { size: 14, family: "'Space Grotesk', sans-serif", weight: 700 },
+      },
+    },
     scales: {
-      x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(240,237,230,0.45)', font: { size: 11 } }, border: { display: false } },
-      y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(240,237,230,0.45)', font: { size: 11 } }, border: { display: false } },
+      x: { grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: 'rgba(240,237,230,0.4)', font: { size: 11, family: "'Space Grotesk', sans-serif" } }, border: { display: false } },
+      y: { grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: 'rgba(240,237,230,0.4)', font: { size: 11, family: "'Space Grotesk', sans-serif" } }, border: { display: false } },
     },
   };
 
