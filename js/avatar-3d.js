@@ -384,45 +384,45 @@
       var s = side === 'L' ? -1 : 1;
       var sx = s * legX;
 
-      // Shoe upper — rounded half-sphere
-      var upperGeo = new THREE.SphereGeometry(0.058, 14, 14, 0, Math.PI * 2, 0, Math.PI * 0.55);
+      // Shoe upper — rounded half-sphere (high-top)
+      var upperGeo = new THREE.SphereGeometry(0.062, 16, 16, 0, Math.PI * 2, 0, Math.PI * 0.55);
       var upper = new THREE.Mesh(upperGeo, mShoe);
       upper.position.set(sx, 0.1, 0.01);
-      upper.scale.set(1, 0.65, 1.35);
+      upper.scale.set(1.0, 0.65, 1.4);
       root.add(upper);
 
       // Toebox — rounded front
-      var toeGeo = new THREE.SphereGeometry(0.04, 10, 10);
+      var toeGeo = new THREE.SphereGeometry(0.044, 12, 12);
       var toe = new THREE.Mesh(toeGeo, mShoe);
-      toe.position.set(sx, 0.06, 0.08);
-      toe.scale.set(1.1, 0.55, 1.0);
+      toe.position.set(sx, 0.055, 0.09);
+      toe.scale.set(1.1, 0.5, 1.0);
       root.add(toe);
 
       // Heel cup
-      var heelGeo = new THREE.SphereGeometry(0.035, 8, 8);
+      var heelGeo = new THREE.SphereGeometry(0.038, 10, 10);
       var heel = new THREE.Mesh(heelGeo, mShoe);
-      heel.position.set(sx, 0.065, -0.05);
+      heel.position.set(sx, 0.065, -0.055);
       heel.scale.set(1.0, 0.6, 0.8);
       root.add(heel);
 
       // Sole — slightly wider/longer than upper
-      var soleGeo = new THREE.CapsuleGeometry(0.012, 0.16, 4, 10);
+      var soleGeo = new THREE.CapsuleGeometry(0.014, 0.17, 6, 12);
       var sole = new THREE.Mesh(soleGeo, mSole);
-      sole.position.set(sx, 0.015, 0.01);
+      sole.position.set(sx, 0.012, 0.01);
       sole.rotation.z = Math.PI * 0.5;
       sole.rotation.y = Math.PI * 0.5;
-      sole.scale.set(1, 1, 0.65);
+      sole.scale.set(1, 1, 0.7);
       root.add(sole);
 
-      // Midsole accent — thin white line between upper and sole
-      var midGeo = new THREE.CylinderGeometry(0.056, 0.058, 0.008, 12);
+      // Midsole accent — visible white line
+      var midGeo = new THREE.CylinderGeometry(0.06, 0.062, 0.01, 14);
       var mid = new THREE.Mesh(midGeo, mMidsole);
-      mid.position.set(sx, 0.03, 0.01);
-      mid.scale.set(1, 1, 1.35);
+      mid.position.set(sx, 0.028, 0.01);
+      mid.scale.set(1, 1, 1.4);
       root.add(mid);
 
       // Ankle collar — high-top opening
-      var anklGeo = new THREE.TorusGeometry(0.046, 0.005, 6, 12);
+      var anklGeo = new THREE.TorusGeometry(0.05, 0.006, 8, 14);
       var ankle = new THREE.Mesh(anklGeo, mShoe);
       ankle.position.set(sx, 0.13, -0.005);
       ankle.rotation.x = Math.PI * 0.5;
