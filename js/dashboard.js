@@ -75,6 +75,13 @@
       }
       // ── End onboarding check ─────────────────────────────
 
+      // Set topbar date
+      var dateEl = document.getElementById('db-topbar-date');
+      if (dateEl) {
+        var now = new Date();
+        dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+      }
+
       // Load profile → populate player name & position
       const profile = await DataService.getProfile();
       const positionMap = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward', PF: 'Power Forward', C: 'Center' };

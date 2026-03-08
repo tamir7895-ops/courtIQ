@@ -2899,7 +2899,7 @@
 
     /* ── DB panels ── */
     .db-panel { display: none; }
-    .db-panel.active { display: block; animation: pane-in 0.3s ease; }
+    .db-panel.active { display: block; }
 
     /* ── Form cards ── */
     .db-card {
