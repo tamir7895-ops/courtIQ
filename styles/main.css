@@ -2988,6 +2988,28 @@
       border-radius: var(--r-md);
       padding: 20px;
       display: flex; flex-direction: column; gap: 6px;
+      position: relative;
+      overflow: hidden;
+      transition: border-color var(--duration-base) var(--ease-out-expo),
+                  transform var(--duration-base) var(--ease-out-expo),
+                  box-shadow var(--duration-slow) var(--ease-out-expo);
+    }
+    .db-kpi::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--c-amber), transparent);
+      opacity: 0;
+      transition: opacity var(--duration-base);
+    }
+    .db-kpi:hover {
+      border-color: rgba(245,166,35,0.15);
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-amber);
+    }
+    .db-kpi:hover::before {
+      opacity: 1;
     }
     .db-kpi-label { font-size: 10px; color: var(--c-muted); text-transform: uppercase; letter-spacing: 0.12em; }
     .db-kpi-val {
