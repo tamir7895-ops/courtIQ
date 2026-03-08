@@ -1,0 +1,12 @@
+{
+  "name": "courtiq",
+  "version": "1.0.0",
+  "description": "**AI-Powered Basketball Training Platform**",
+  "main": "auto-sync.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
