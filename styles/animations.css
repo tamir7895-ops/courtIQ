@@ -15,34 +15,93 @@
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  gap: 28px;
-  transition: opacity 0.8s cubic-bezier(0.4, 0, 0.2, 1),
-              visibility 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+  gap: 20px;
+  transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+              visibility 0.8s cubic-bezier(0.25, 1, 0.5, 1);
 }
 #page-loader.loaded {
   opacity: 0;
+  transform: scale(1.05);
   visibility: hidden;
   pointer-events: none;
 }
-.loader-icon {
-  width: 64px; height: 64px;
-  animation: loader-breathe 1.4s ease-in-out infinite;
-  margin-bottom: -12px;
+
+/* Bouncing basketball */
+.loader-basketball {
+  position: relative;
+  width: 64px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
 }
+.loader-ball {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f5a623 0%, #e09020 50%, #d4841c 100%);
+  position: relative;
+  overflow: hidden;
+  animation: ball-bounce 0.6s ease-in-out infinite;
+  box-shadow: inset -4px -6px 12px rgba(0,0,0,0.25),
+              inset 2px 2px 8px rgba(255,210,100,0.2),
+              0 8px 30px rgba(245,166,35,0.3);
+}
+.loader-seam {
+  position: absolute;
+  background: rgba(0,0,0,0.2);
+}
+.loader-seam-h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+.loader-seam-v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+}
+.loader-shadow {
+  width: 40px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(245,166,35,0.15);
+  margin-top: 8px;
+  animation: shadow-pulse 0.6s ease-in-out infinite;
+}
+@keyframes ball-bounce {
+  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+  40% { transform: translateY(-30px) scaleY(1.05) scaleX(0.95); }
+  80% { transform: translateY(0) scaleY(0.92) scaleX(1.06); }
+}
+@keyframes shadow-pulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.4; }
+  40% { transform: scaleX(0.6); opacity: 0.15; }
+  80% { transform: scaleX(1.15); opacity: 0.5; }
+}
+
+/* Wordmark */
 .loader-wordmark {
   font-family: 'Barlow Condensed', sans-serif;
-  font-size: 56px;
+  font-size: 48px;
   font-weight: 900;
   letter-spacing: -0.01em;
   text-transform: uppercase;
   color: #f0ede6;
-  animation: loader-breathe 1.4s ease-in-out infinite;
 }
 .loader-wordmark span { color: #f5a623; }
+
+/* Progress bar */
 .loader-bar {
-  width: 100px;
+  width: 120px;
   height: 2px;
-  background: rgba(245,166,35,0.12);
+  background: rgba(255,255,255,0.06);
   border-radius: 2px;
   overflow: hidden;
 }
@@ -52,13 +111,21 @@
   background: linear-gradient(90deg, #f5a623, #ffd060, #f5a623);
   background-size: 200% auto;
   border-radius: 2px;
-  animation: loader-fill 1s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards,
+  animation: loader-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards,
              loader-shimmer 1.5s linear 0.1s infinite;
 }
-@keyframes loader-breathe {
-  0%, 100% { opacity: 0.25; transform: scale(0.97); }
-  50%       { opacity: 1;    transform: scale(1); }
+
+/* Loading text */
+.loader-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.25);
+  margin-top: -4px;
 }
+
 @keyframes loader-fill {
   to { width: 100%; }
 }
