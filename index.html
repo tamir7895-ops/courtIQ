@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0e1014" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="apple-touch-icon" href="assets/favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
   <title>CourtIQ — Train Smarter. Dominate the Court.</title>
   <meta name="description" content="CourtIQ delivers personalized basketball training programs powered by artificial intelligence. Improve your game with adaptive drills, real-time feedback, and position-specific coaching." />
 
@@ -1482,6 +1483,14 @@
   </div>
 
 </aside>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+</script>
 
 </body>
 </html>

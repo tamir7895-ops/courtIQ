@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#0e1014" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="apple-touch-icon" href="assets/favicon.svg" />
+  <link rel="manifest" href="manifest.json" />
   <title>CourtIQ — AI Performance Dashboard</title>
   <meta name="description" content="CourtIQ AI Performance Dashboard — log sessions, track progress, and get AI-powered coaching feedback." />
 
@@ -2023,6 +2024,14 @@
 <script src="js/gamification.js"></script>
 <script src="js/avatar-shop.js"></script>
 <script src="js/avatar-customizer.js"></script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    navigator.serviceWorker.register('/sw.js').catch(function () {});
+  });
+}
+</script>
 
 </body>
 </html>
