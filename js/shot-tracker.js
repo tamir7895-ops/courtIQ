@@ -155,6 +155,11 @@
     if (typeof ProgressCharts !== 'undefined' && ProgressCharts.refresh) {
       ProgressCharts.refresh();
     }
+
+    // AI shot analysis feedback
+    if (typeof ShotAnalysis !== 'undefined' && ShotAnalysis.renderFeedback) {
+      ShotAnalysis.renderFeedback();
+    }
   }
 
   /* ── Error helpers ─────────────────────────────────────────── */
