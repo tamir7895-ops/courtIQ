@@ -81,23 +81,33 @@
        LAYER 1: SKIN BODY (anatomical compound shapes)
        ═════════════════════════════════════════════════════ */
 
-    /* ── Skin Torso (chest + waist + bridge) ─────────── */
+    /* ── Skin Torso (chest + waist + bridge + pecs) ──── */
     // Upper chest — wider for shoulder width
-    var chestGeo = new THREE.CapsuleGeometry(0.16 * B.chest, 0.2, 8, 16);
+    var chestGeo = new THREE.CapsuleGeometry(0.165 * B.chest, 0.22, 10, 18);
     var chest = new THREE.Mesh(chestGeo, mSkin);
     chest.position.set(0, 1.45, 0);
     chest.scale.set(B.sx, 1, B.sz * 0.92);
     root.add(chest);
 
+    // Pec definition (subtle front chest volume)
+    var pecGeo = new THREE.SphereGeometry(0.08 * B.chest, 10, 10);
+    var pecL = new THREE.Mesh(pecGeo, mSkin);
+    pecL.position.set(-0.07 * B.sx, 1.48, 0.1 * B.sz);
+    pecL.scale.set(1.2, 0.55, 0.5);
+    root.add(pecL);
+    var pecR = pecL.clone();
+    pecR.position.set(0.07 * B.sx, 1.48, 0.1 * B.sz);
+    root.add(pecR);
+
     // Lower torso — narrower for waist taper
-    var waistGeo = new THREE.CapsuleGeometry(0.13 * B.waist, 0.15, 8, 14);
+    var waistGeo = new THREE.CapsuleGeometry(0.135 * B.waist, 0.16, 8, 14);
     var waist = new THREE.Mesh(waistGeo, mSkin);
     waist.position.set(0, 1.2, 0);
     waist.scale.set(B.sx * 0.95, 1, B.sz * 0.9);
     root.add(waist);
 
-    // Core bridge — cylinder for ribcage-to-waist transition
-    var coreGeo = new THREE.CylinderGeometry(0.15 * B.chest, 0.12 * B.waist, 0.2, 14);
+    // Core bridge — smooth ribcage-to-waist transition
+    var coreGeo = new THREE.CylinderGeometry(0.155 * B.chest, 0.125 * B.waist, 0.22, 16);
     var core = new THREE.Mesh(coreGeo, mSkin);
     core.position.set(0, 1.32, 0);
     core.scale.set(B.sx, 1, B.sz * 0.92);
