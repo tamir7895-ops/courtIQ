@@ -2633,8 +2633,11 @@
       font-weight: 800;
       letter-spacing: 0.16em;
       text-transform: uppercase;
-      color: var(--c-dimmer);
-      padding: 8px 14px 6px;
+      color: var(--c-text-tertiary);
+      padding: 12px 14px 6px;
+    }
+    .db-sidebar-group:first-child .db-sidebar-group-label {
+      padding-top: 4px;
     }
     .db-sidebar.collapsed .db-sidebar-group-label {
       font-size: 0; overflow: hidden;
