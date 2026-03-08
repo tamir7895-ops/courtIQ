@@ -428,7 +428,7 @@
 
     // Header: avatar + name + archetype
     html += '<div class="ob-report-header">';
-    html += '<div class="ob-report-avatar"><canvas id="ob-report-avatar-canvas" width="120" height="168"></canvas></div>';
+    html += '<div class="ob-report-avatar"><div id="ob-report-avatar-container" class="avatar-3d-viewport" style="width:120px;height:168px"></div></div>';
     html += '<div class="ob-report-info">';
     html += '<div class="ob-report-name">' + esc(data.name || 'Player') + '</div>';
     html += '<div class="ob-report-archetype">' + (archetype ? archetype.icon + ' ' : '') + (archetype ? archetype.name : archetypeKey) + '</div>';
