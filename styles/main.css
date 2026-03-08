@@ -786,17 +786,32 @@
       padding: 32px 24px;
       text-align: center;
       position: relative;
+      overflow: hidden;
       background: var(--glass-bg);
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
       border: 1px solid var(--glass-border);
       border-radius: var(--r-md);
-      transition: var(--transition);
+      transition: border-color var(--duration-base) var(--ease-out-expo),
+                  box-shadow var(--duration-slow) var(--ease-out-expo),
+                  transform var(--duration-base) var(--ease-out-expo);
+    }
+    .stats-bar-item::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, var(--c-amber), transparent);
+      opacity: 0;
+      transition: opacity var(--duration-base);
     }
     .stats-bar-item:hover {
       border-color: rgba(245,166,35,0.15);
-      box-shadow: var(--shadow-glow);
-      transform: translateY(-2px);
+      box-shadow: var(--shadow-amber);
+      transform: translateY(-3px);
+    }
+    .stats-bar-item:hover::before {
+      opacity: 1;
     }
     .stats-bar-number {
       font-family: var(--font-display);
