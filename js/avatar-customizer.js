@@ -198,10 +198,17 @@
       PlayerProfile.renderSummary();
     }
     // Re-render shop preview if visible
-    var shopCanvas = document.getElementById('shop-avatar-preview');
-    if (shopCanvas && typeof AvatarBuilder !== 'undefined') {
+    var shopContainer = document.getElementById('shop-avatar-container');
+    if (shopContainer && typeof AvatarBridge !== 'undefined') {
       var ob2 = getOnboarding();
-      if (ob2.avatar) AvatarBuilder.draw(shopCanvas, Object.assign({}, ob2.avatar, { position: ob2.position || 'SG' }));
+      if (ob2.avatar) AvatarBridge.update(shopContainer, Object.assign({}, ob2.avatar, { position: ob2.position || 'SG' }));
+    }
+
+    // Re-render sidebar mini avatar
+    var sidebarAvatar = document.getElementById('db-sidebar-avatar');
+    if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
+      var ob3 = getOnboarding();
+      if (ob3.avatar) AvatarBridge.renderMini(sidebarAvatar, ob3.avatar);
     }
 
     close();
