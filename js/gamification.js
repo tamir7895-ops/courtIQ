@@ -89,6 +89,15 @@
     render();
     showXPToast(amount, reason);
 
+    // Play sound effects
+    if (typeof SFX !== 'undefined') {
+      if (leveled) {
+        SFX.levelUp();
+      } else {
+        SFX.xp();
+      }
+    }
+
     if (leveled) {
       showLevelUp(newLevel);
     }
