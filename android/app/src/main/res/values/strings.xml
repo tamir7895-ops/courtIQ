@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">CourtIQ</string>
+    <string name="title_activity_main">CourtIQ</string>
+    <string name="package_name">com.courtiq.app</string>
+    <string name="custom_url_scheme">com.courtiq.app</string>
+</resources>
