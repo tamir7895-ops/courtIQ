@@ -134,6 +134,9 @@
     renderHistory(sessions);
     clearForm();
 
+    // Sound effect
+    if (typeof SFX !== 'undefined') SFX.success();
+
     // XP integration
     if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
       XPSystem.grantXP(20, 'Shot Session Logged');
