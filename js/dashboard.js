@@ -87,6 +87,42 @@
   ══════════════════════════════════════════════════════════════ */
   async function initDashboard() {
     try {
+      // ── Sync user_data from Supabase → localStorage (new device restore) ──
+      if (typeof DataService !== 'undefined') {
+        try {
+          const userData = await DataService.getUserData();
+          if (userData) {
+            // Restore XP if not already in localStorage
+            if (userData.xp_data && !localStorage.getItem('courtiq-xp')) {
+              localStorage.setItem('courtiq-xp', JSON.stringify(userData.xp_data));
+              if (typeof XPSystem !== 'undefined' && XPSystem.render) XPSystem.render();
+            }
+            // Restore onboarding if not already done on this device
+            if (userData.onboarding_data && !localStorage.getItem('courtiq-onboarding-complete')) {
+              const ob = userData.onboarding_data;
+              localStorage.setItem('courtiq-onboarding-data', JSON.stringify(ob));
+              localStorage.setItem('courtiq-onboarding-complete', String(ob.ts || Date.now()));
+              if (ob.archetype) {
+                localStorage.setItem('courtiq-archetype', JSON.stringify({ key: ob.archetype, ts: Date.now() }));
+              }
+              if (ob.position) {
+                const vals = Object.values(ob.skills || {});
+                const skillAvg = vals.length ? vals.reduce(function (s, v) { return s + v; }, 0) / vals.length : 5;
+                const skillLevel = skillAvg >= 7 ? 'Advanced' : skillAvg >= 4 ? 'Intermediate' : 'Beginner';
+                localStorage.setItem('courtiq-player-profile', JSON.stringify({
+                  position: ob.position || '',
+                  height: String(ob.height || ''),
+                  age: String(ob.age || ''),
+                  skillLevel: skillLevel,
+                  primaryGoal: ob.goals ? ob.goals[0] : ''
+                }));
+              }
+            }
+          }
+        } catch (e) { /* silently skip — user still gets localStorage version */ }
+      }
+      // ── End Supabase sync ─────────────────────────────────
+
       // ── Onboarding check ─────────────────────────────────
       const onboardingDone = localStorage.getItem('courtiq-onboarding-complete');
       if (!onboardingDone && typeof Onboarding !== 'undefined') {
