@@ -1,0 +1,326 @@
+/* ═══════════════════════════════════════════════════════════════
+   COMPONENTS.CSS — Reusable UI components for CourtIQ
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── BUTTON VARIANTS ───────────────────────────────────────── */
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--c-text-secondary);
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semi);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  border: none;
+  cursor: pointer;
+  transition: color var(--duration-fast), background var(--duration-fast);
+}
+.btn-ghost:hover {
+  color: var(--c-white);
+  background: rgba(255,255,255,0.05);
+}
+
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+.btn-icon:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.12);
+  color: var(--c-white);
+}
+
+.btn-sm {
+  padding: 8px 16px !important;
+  font-size: var(--fs-xs) !important;
+}
+
+/* ─── STAT CARD ─────────────────────────────────────────────── */
+
+.card-stat {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  position: relative;
+  overflow: hidden;
+  transition: border-color var(--duration-base) var(--ease-out-expo),
+              transform var(--duration-base) var(--ease-out-expo),
+              box-shadow var(--duration-slow) var(--ease-out-expo);
+}
+.card-stat::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-amber), transparent);
+  opacity: 0;
+  transition: opacity var(--duration-base);
+}
+.card-stat:hover {
+  border-color: rgba(245,166,35,0.15);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-amber);
+}
+.card-stat:hover::before {
+  opacity: 1;
+}
+
+/* ─── INTERACTIVE CARD ──────────────────────────────────────── */
+
+.card-interactive {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  cursor: pointer;
+  transition: border-color var(--duration-base) var(--ease-out-expo),
+              transform var(--duration-base) var(--ease-out-expo),
+              box-shadow var(--duration-slow) var(--ease-out-expo);
+}
+.card-interactive:hover {
+  border-color: rgba(245,166,35,0.2);
+  transform: translateY(-3px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.35), var(--shadow-amber);
+}
+
+/* ─── BADGES ────────────────────────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: var(--fw-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  line-height: 1.4;
+}
+.badge--amber {
+  background: var(--c-amber-dim);
+  color: var(--c-amber);
+  border: 1px solid rgba(245,166,35,0.25);
+}
+.badge--green {
+  background: var(--c-green-dim);
+  color: var(--c-green);
+  border: 1px solid rgba(86,211,100,0.25);
+}
+.badge--red {
+  background: var(--c-red-dim);
+  color: var(--c-red);
+  border: 1px solid rgba(232,64,64,0.25);
+}
+.badge--blue {
+  background: var(--c-blue-dim);
+  color: var(--c-blue);
+  border: 1px solid rgba(76,163,255,0.25);
+}
+.badge--purple {
+  background: var(--c-purple-dim);
+  color: var(--c-purple);
+  border: 1px solid rgba(188,140,255,0.25);
+}
+
+/* ─── TREND INDICATORS ──────────────────────────────────────── */
+
+.trend-up {
+  color: var(--c-green);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semi);
+}
+.trend-up::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 5px solid currentColor;
+}
+.trend-down {
+  color: var(--c-red);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-semi);
+}
+.trend-down::before {
+  content: '';
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+}
+.trend-flat {
+  color: var(--c-text-tertiary);
+  font-size: var(--fs-sm);
+}
+
+/* ─── PROGRESS RING ─────────────────────────────────────────── */
+
+.progress-ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+.progress-ring svg {
+  transform: rotate(-90deg);
+}
+.progress-ring__bg {
+  stroke: rgba(255,255,255,0.06);
+  fill: none;
+  stroke-width: 4;
+}
+.progress-ring__fill {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke: var(--c-amber);
+  transition: stroke-dashoffset 1s var(--ease-out-expo);
+}
+.progress-ring__value {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--fs-sm);
+  font-weight: var(--fw-heavy);
+  color: var(--c-white);
+}
+
+/* ─── BASKETBALL VISUAL IDENTITY ────────────────────────────── */
+
+/* Court-line decoration for section backgrounds */
+.court-pattern {
+  position: relative;
+}
+.court-pattern::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -20px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  border: 1px solid rgba(245,166,35,0.04);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Three-point arc decoration */
+.court-arc-decoration {
+  position: absolute;
+  bottom: -40px;
+  right: -40px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 1px solid rgba(245,166,35,0.04);
+  pointer-events: none;
+  opacity: 0.6;
+}
+
+/* Court-line divider */
+.divider-court {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.12), rgba(245,166,35,0.06), transparent);
+  margin: var(--sp-8) 0;
+}
+
+/* ─── SKELETON LOADER ───────────────────────────────────────── */
+
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(245,166,35,0.06) 50%,
+    rgba(255,255,255,0.03) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s ease infinite;
+  border-radius: var(--r-sm);
+}
+@keyframes skeleton-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Pulsing loading dot */
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--c-amber);
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+@keyframes loading-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.5); opacity: 0.4; }
+}
+
+/* ─── TOPBAR & BREADCRUMB ───────────────────────────────────── */
+
+.db-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 0 var(--sp-5) 0;
+  margin-bottom: var(--sp-4);
+  border-bottom: 1px solid var(--c-border);
+}
+.db-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-sm);
+  font-family: var(--font-body);
+}
+.db-breadcrumb-root {
+  color: var(--c-text-tertiary);
+}
+.db-breadcrumb-sep {
+  color: var(--c-text-disabled);
+  font-size: 10px;
+}
+.db-breadcrumb-current {
+  color: var(--c-amber);
+  font-weight: var(--fw-semi);
+}
+.db-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
