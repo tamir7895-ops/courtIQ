@@ -208,6 +208,21 @@
     const panel = document.getElementById('db-panel-' + id);
     if (panel) panel.classList.add('active');
 
+    // Update breadcrumb
+    var breadcrumbNames = {
+      log: 'Log Session', history: 'History', calendar: 'Calendar',
+      drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
+      progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
+      shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge'
+    };
+    var bcEl = document.getElementById('db-breadcrumb-current');
+    if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
+
+    // GSAP tab animation (graceful fallback)
+    if (panel && window.CourtIQAnimations && CourtIQAnimations.tabIn) {
+      CourtIQAnimations.tabIn(panel);
+    }
+
     // Panel-specific init calls
     if (id === 'history') dbRenderHistory();
     if (id === 'calendar' && typeof calSetSource === 'function') {

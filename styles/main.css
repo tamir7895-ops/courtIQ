@@ -2875,6 +2875,24 @@
       .db-top-widgets { grid-template-columns: 1fr; }
       .db-context-row { grid-template-columns: 1fr; }
       .db-main-header { flex-direction: column; gap: 12px; }
+
+      /* Enhanced mobile: better touch targets */
+      .db-sidebar-item { min-height: 48px; }
+      .db-input { font-size: 16px; padding: 14px 16px; } /* prevent iOS zoom */
+      .btn-ghost, .btn-icon { min-height: 44px; min-width: 44px; }
+
+      /* Stack KPI cards into 2-col grid */
+      .db-kpi-row { grid-template-columns: repeat(2, 1fr) !important; gap: 12px; }
+
+      /* Breadcrumb compact */
+      .db-topbar { padding: 0 0 var(--sp-3) 0; margin-bottom: var(--sp-3); }
+    }
+
+    @media (max-width: 580px) {
+      .db-kpi-row { grid-template-columns: 1fr !important; }
+      .db-row-2 { grid-template-columns: 1fr; }
+      .db-main-inner { padding: 16px 14px; padding-top: 64px; }
+      .db-main-title { font-size: 24px; }
     }
 
     /* ─── DASHBOARD PANELS (kept from old layout) ──────────────── */
