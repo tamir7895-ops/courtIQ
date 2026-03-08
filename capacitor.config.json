@@ -1,7 +1,7 @@
 {
   "appId": "com.courtiq.app",
   "appName": "CourtIQ",
-  "webDir": ".",
+  "webDir": "www",
   "server": {
     "androidScheme": "https"
   },

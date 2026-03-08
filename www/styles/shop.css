@@ -1,0 +1,253 @@
+/* ============================================================
+   AVATAR SHOP — /styles/shop.css
+   Styles for the avatar accessory shop panel.
+   ============================================================ */
+
+/* ── Header ──────────────────────────────────────────────────── */
+.shop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+.shop-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin: 0 0 4px;
+}
+.shop-subtitle {
+  color: var(--c-text-muted);
+  font-size: 14px;
+  margin: 0;
+}
+
+/* ── Wallet / Coin Display ───────────────────────────────────── */
+.shop-wallet {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  padding: 10px 18px;
+  flex-shrink: 0;
+}
+.shop-wallet-icon {
+  font-size: 22px;
+}
+.shop-wallet-amount {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #f5a623 0%, #ffd060 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.shop-wallet-label {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+/* ── Avatar Preview ──────────────────────────────────────────── */
+.shop-preview {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 28px;
+}
+.shop-preview canvas {
+  border-radius: 12px;
+  border: 2px solid var(--c-border);
+  background: #141518;
+}
+.shop-preview-label {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-weight: 600;
+}
+
+/* ── Shop Sections ───────────────────────────────────────────── */
+.shop-section {
+  margin-bottom: 24px;
+}
+.shop-section-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin-bottom: 12px;
+  letter-spacing: 0.03em;
+}
+
+/* ── Shop Items Grid ─────────────────────────────────────────── */
+.shop-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 10px;
+}
+
+.shop-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: border-color 0.25s ease, transform 0.25s ease;
+}
+.shop-item:hover {
+  border-color: rgba(245,166,35,0.2);
+  transform: translateY(-1px);
+}
+
+.shop-item--owned {
+  border-color: rgba(86,211,100,0.2);
+  background: rgba(86,211,100,0.04);
+}
+.shop-item--locked {
+  opacity: 0.5;
+}
+.shop-item--expensive {
+  opacity: 0.75;
+}
+
+/* Item icon */
+.shop-item-icon {
+  font-size: 28px;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245,166,35,0.06);
+  border-radius: 8px;
+}
+.shop-item--owned .shop-item-icon {
+  background: rgba(86,211,100,0.08);
+}
+
+/* Item info */
+.shop-item-info {
+  flex: 1;
+  min-width: 0;
+}
+.shop-item-name {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-white);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.shop-item-desc {
+  font-size: 12px;
+  color: var(--c-text-muted);
+  margin-top: 2px;
+}
+
+/* Item action */
+.shop-item-action {
+  flex-shrink: 0;
+}
+
+/* Buy button */
+.shop-buy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: linear-gradient(135deg, #f5a623, #e6951a);
+  color: #0c0d0f;
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.shop-buy-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.25);
+}
+.shop-coin-icon {
+  font-size: 14px;
+}
+
+/* Equip button */
+.shop-equip-btn {
+  background: rgba(86,211,100,0.12);
+  color: #56d364;
+  border: 1px solid rgba(86,211,100,0.2);
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  text-transform: uppercase;
+  transition: background 0.2s ease;
+}
+.shop-equip-btn:hover {
+  background: rgba(86,211,100,0.2);
+}
+
+/* Owned badge */
+.shop-owned-badge {
+  color: #56d364;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+/* Lock badge */
+.shop-lock-badge {
+  color: var(--c-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Info Footer ─────────────────────────────────────────────── */
+.shop-info {
+  margin-top: 20px;
+  padding: 16px;
+  background: rgba(245,166,35,0.04);
+  border: 1px solid rgba(245,166,35,0.08);
+  border-radius: 10px;
+}
+.shop-info p {
+  margin: 0 0 6px;
+  font-size: 13px;
+  color: var(--c-text-muted);
+}
+.shop-info p:last-child {
+  margin-bottom: 0;
+}
+.shop-info strong {
+  color: var(--c-white);
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .shop-header {
+    flex-direction: column;
+  }
+  .shop-items {
+    grid-template-columns: 1fr;
+  }
+}

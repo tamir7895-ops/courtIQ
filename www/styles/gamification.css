@@ -1,0 +1,160 @@
+/* ══════════════════════════════════════════════════════════
+   GAMIFICATION — XP bar, level badge, rank display
+   ══════════════════════════════════════════════════════════ */
+
+.xp-widget {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 22px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  margin-bottom: 24px;
+}
+
+/* Level badge */
+.xp-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+  border: 2px solid;
+}
+
+.xp-badge--rookie       { background: rgba(140,140,140,0.12); border-color: rgba(140,140,140,0.4); }
+.xp-badge--hooper       { background: rgba(58,134,255,0.12);  border-color: rgba(58,134,255,0.4); }
+.xp-badge--all-star     { background: var(--c-amber-dim);     border-color: rgba(245,166,35,0.5); }
+.xp-badge--mvp          { background: rgba(188,140,255,0.12); border-color: rgba(188,140,255,0.5); }
+
+/* Info area */
+.xp-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.xp-info-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.xp-rank {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-white);
+}
+
+.xp-rank-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.xp-numbers {
+  font-size: 11px;
+  color: var(--c-dimmer);
+  font-weight: 500;
+}
+
+.xp-numbers strong {
+  color: var(--c-muted);
+}
+
+/* Progress bar */
+.xp-bar {
+  width: 100%;
+  height: 8px;
+  background: var(--c-surface);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.xp-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.xp-bar-fill::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 30px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2));
+  border-radius: 0 4px 4px 0;
+}
+
+.xp-bar-fill--rookie   { background: #8c8c8c; }
+.xp-bar-fill--hooper   { background: #3a86ff; }
+.xp-bar-fill--all-star  { background: var(--c-amber); }
+.xp-bar-fill--mvp       { background: #bc8cff; }
+
+/* XP gain toast animation */
+.xp-gain-toast {
+  position: fixed;
+  top: 80px;
+  right: 24px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 12px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-amber);
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  z-index: 7000;
+  opacity: 0;
+  transform: translateX(40px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+  pointer-events: none;
+  box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+}
+
+.xp-gain-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+/* Level-up flash */
+.xp-widget.level-up {
+  animation: xpLevelUp 0.6s ease;
+  border-color: var(--c-amber);
+}
+
+@keyframes xpLevelUp {
+  0%   { box-shadow: 0 0 0 0 rgba(245,166,35,0.4); }
+  50%  { box-shadow: 0 0 0 12px rgba(245,166,35,0); }
+  100% { box-shadow: none; }
+}
+
+/* ─── Responsive ──────────────────────────────────────────── */
+@media (max-width: 580px) {
+  .xp-widget {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .xp-info-top {
+    flex-direction: column;
+    gap: 2px;
+  }
+}
