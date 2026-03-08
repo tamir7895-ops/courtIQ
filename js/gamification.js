@@ -37,6 +37,10 @@
     try {
       localStorage.setItem(LS_KEY, JSON.stringify(data));
     } catch (e) { /* silent */ }
+    // Write-through: async sync to Supabase (non-blocking)
+    if (window.currentUser && typeof DataService !== 'undefined') {
+      DataService.saveUserData({ xp_data: data }).catch(function () {});
+    }
   }
 
   /* ── Level calc ──────────────────────────────────────────── */

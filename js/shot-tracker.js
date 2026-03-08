@@ -134,6 +134,11 @@
     renderHistory(sessions);
     clearForm();
 
+    // Async sync to Supabase (non-blocking, write-through)
+    if (window.currentUser && typeof DataService !== 'undefined') {
+      DataService.addShotSession(session).catch(function () {});
+    }
+
     // Sound effect
     if (typeof SFX !== 'undefined') SFX.success();
 
