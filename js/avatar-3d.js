@@ -311,24 +311,25 @@
        LAYER 3: SHORTS SHELL (separate garment over thighs)
        ═════════════════════════════════════════════════════ */
 
-    // Shorts main body — hip area
-    var sBodyGeo = new THREE.CapsuleGeometry(0.17 * B.sx, 0.08, 8, 14);
+    // Shorts main body — hip area, wider for fabric drape
+    var sBodyGeo = new THREE.CapsuleGeometry(0.175 * B.sx, 0.1, 10, 16);
     var shortsBody = new THREE.Mesh(sBodyGeo, mShorts);
     shortsBody.position.set(0, 1.04, 0);
+    shortsBody.scale.set(1, 1, B.sz * 0.92);
     root.add(shortsBody);
 
     // Shorts leg tubes — wider than thighs for fabric drape
     function buildShortsLeg(side) {
       var s = side === 'L' ? -1 : 1;
-      var sLegGeo = new THREE.CylinderGeometry(0.068 * B.leg, 0.072 * B.leg, 0.22, 10);
+      var sLegGeo = new THREE.CylinderGeometry(0.075 * B.leg, 0.078 * B.leg, 0.24, 12);
       var sLeg = new THREE.Mesh(sLegGeo, mShorts);
-      sLeg.position.set(s * legX, 0.84, 0);
+      sLeg.position.set(s * legX, 0.82, 0);
       root.add(sLeg);
 
       // Shorts leg hem — visible opening
-      var sHemGeo = new THREE.TorusGeometry(0.072 * B.leg, 0.004, 6, 14);
+      var sHemGeo = new THREE.TorusGeometry(0.078 * B.leg, 0.005, 8, 16);
       var sHem = new THREE.Mesh(sHemGeo, mCollar);
-      sHem.position.set(s * legX, 0.73, 0);
+      sHem.position.set(s * legX, 0.7, 0);
       sHem.rotation.x = Math.PI * 0.5;
       root.add(sHem);
     }
@@ -336,20 +337,20 @@
     buildShortsLeg('L');
     buildShortsLeg('R');
 
-    // Waistband
-    var wbGeo = new THREE.TorusGeometry(0.17 * B.sx, 0.01, 8, 22);
+    // Waistband — visible belt line
+    var wbGeo = new THREE.TorusGeometry(0.175 * B.sx, 0.012, 8, 24);
     var waistband = new THREE.Mesh(wbGeo, mStripe);
-    waistband.position.set(0, 1.09, 0);
+    waistband.position.set(0, 1.1, 0);
     waistband.rotation.x = Math.PI * 0.5;
     root.add(waistband);
 
     // Shorts side stripes
-    var sStripeGeo = new THREE.BoxGeometry(0.004, 0.22, 0.04);
+    var sStripeGeo = new THREE.BoxGeometry(0.005, 0.24, 0.04);
     var sStripeL = new THREE.Mesh(sStripeGeo, mStripe);
-    sStripeL.position.set(-0.075 - legX * 0.3, 0.84, 0.04);
+    sStripeL.position.set(-0.075 - legX * 0.3, 0.82, 0.04);
     root.add(sStripeL);
     var sStripeR = sStripeL.clone();
-    sStripeR.position.set(0.075 + legX * 0.3, 0.84, 0.04);
+    sStripeR.position.set(0.075 + legX * 0.3, 0.82, 0.04);
     root.add(sStripeR);
 
     /* ═════════════════════════════════════════════════════
