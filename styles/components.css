@@ -486,3 +486,276 @@
   font-weight: 700;
   color: rgba(240,237,230,0.5);
 }
+
+/* ══════════════════════════════════════════════════════════
+   SHOT ANALYSIS — AI feedback panel + drill video button
+   ══════════════════════════════════════════════════════════ */
+
+/* Wrapper */
+.sa-feedback-wrap {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow-card);
+  margin-top: 24px;
+}
+
+/* Header */
+.sa-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.sa-header-icon {
+  font-size: 22px;
+}
+
+.sa-header-title {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-white);
+  flex: 1;
+}
+
+.sa-header-sub {
+  font-size: 11px;
+  color: var(--c-muted);
+  font-weight: 500;
+}
+
+/* Stat pills */
+.sa-pills {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.sa-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 10px 18px;
+  min-width: 70px;
+}
+
+.sa-pill.sa-pill-weak {
+  border-color: rgba(248, 81, 73, 0.4);
+  background: rgba(248, 81, 73, 0.06);
+}
+
+.sa-pill-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--c-dimmer);
+  font-family: var(--font-display);
+}
+
+.sa-pill-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--c-white);
+}
+
+.sa-pill-weak .sa-pill-val {
+  color: #f85149;
+}
+
+/* Alert */
+.sa-alert {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: rgba(248, 81, 73, 0.07);
+  border: 1px solid rgba(248, 81, 73, 0.22);
+  border-radius: var(--r-sm);
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--c-muted);
+  line-height: 1.55;
+  margin-bottom: 20px;
+}
+
+.sa-alert.sa-alert-good {
+  background: rgba(86, 211, 100, 0.06);
+  border-color: rgba(86, 211, 100, 0.22);
+}
+
+.sa-alert-dot {
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f85149;
+  margin-top: 4px;
+}
+
+.sa-dot-green {
+  background: #56d364;
+}
+
+.sa-alert strong {
+  color: var(--c-white);
+}
+
+.sa-weak-pct {
+  color: #f85149 !important;
+}
+
+/* Drill recommendations */
+.sa-drills-title {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-amber);
+  margin-bottom: 10px;
+}
+
+.sa-drills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.sa-drill-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--c-surface2);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  padding: 12px 16px;
+}
+
+.sa-drill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.sa-drill-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-white);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sa-drill-meta {
+  font-size: 11px;
+  color: var(--c-dimmer);
+  font-weight: 500;
+}
+
+.sa-drill-yt-btn {
+  flex-shrink: 0;
+  background: #ff0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.sa-drill-yt-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+/* Go to Drills button */
+.sa-go-drills-btn {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--c-amber);
+  color: var(--c-amber);
+  border-radius: var(--r-sm);
+  padding: 11px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  text-align: center;
+}
+
+.sa-go-drills-btn:hover {
+  background: rgba(245, 166, 35, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ── YouTube button injected on drill card expand ─────────── */
+.drill-video-btn-wrap {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--c-border);
+}
+
+.drill-video-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #ff0000;
+  color: #fff;
+  text-decoration: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-display);
+  letter-spacing: 0.03em;
+  transition: var(--transition);
+}
+
+.drill-video-btn:hover {
+  filter: brightness(1.15);
+  transform: translateY(-1px);
+}
+
+@media (max-width: 580px) {
+  .sa-feedback-wrap {
+    padding: 18px 16px;
+  }
+  .sa-pill {
+    padding: 8px 14px;
+    min-width: 60px;
+  }
+  .sa-pill-val {
+    font-size: 18px;
+  }
+  .sa-drill-card {
+    flex-wrap: wrap;
+  }
+  .sa-drill-yt-btn {
+    width: 100%;
+    text-align: center;
+  }
+}
