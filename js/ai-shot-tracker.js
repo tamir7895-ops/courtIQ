@@ -142,12 +142,13 @@
     return h >= 10 && h <= 42;
   }
 
-  function detectBall(imageData) {
+  function detectBallColor() {
+    if (!canvas || !ctx) return null;
+    var imageData = ctx.getImageData(0, 0, W, H);
     var data = imageData.data;
     var w = imageData.width, h = imageData.height;
     var sumX = 0, sumY = 0, count = 0;
 
-    // Sample every 2 pixels for ~4x speedup
     for (var y = 0; y < h; y += 2) {
       for (var x = 0; x < w; x += 2) {
         var i = (y * w + x) * 4;
@@ -158,7 +159,7 @@
     }
 
     if (count < MIN_BLOB || count > MAX_BLOB) return null;
-    return { x: sumX / count, y: sumY / count, size: count };
+    return { x: sumX / count, y: sumY / count, size: count, score: 0.5 };
   }
 
   /* ── Rim geometry ─────────────────────────────────────────── */
