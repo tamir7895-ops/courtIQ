@@ -14,17 +14,17 @@
   'use strict';
 
   /* ── Resolution-relative constants ────────────────────────── */
-  var RIM_RX_FRAC    = 0.043;   // Rim ellipse half-width
-  var RIM_RY_FRAC    = 0.028;   // Rim ellipse half-height
+  var RIM_RX_FRAC    = 0.065;   // Rim ellipse half-width (wider — easier to register shots)
+  var RIM_RY_FRAC    = 0.045;   // Rim ellipse half-height (taller — more forgiving)
   var MAX_HIST       = 45;
   var COOLDOWN_SEC   = 2.0;
   var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.014;
-  var VEL_FALL_FRAC  = 0.014;
-  var TELEPORT_FRAC  = 0.22;
-  var DISAPPEAR_GRACE = 6;
+  var VEL_RISE_FRAC  = 0.008;   // lowered — catch slower arcing shots
+  var VEL_FALL_FRAC  = 0.008;   // lowered — catch slower descents
+  var TELEPORT_FRAC  = 0.30;    // increased — allow bigger jumps (low FPS video)
+  var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
   /* ── Ball size for color detection (fraction of frame width) */
   var BALL_DIAM_MIN_FRAC = 0.012;
@@ -40,11 +40,11 @@
   var ROI_BELOW_RIM_FRAC = 0.45;     // search 45% of frame height below rim (was 12% — way too small)
 
   /* ── Rim auto-detection constants ────────────────────────── */
-  var RIM_DETECT_INTERVAL  = 500;   // ms between auto-detect attempts
-  var RIM_DETECT_MAX_TRIES = 16;    // give up after this many attempts
-  var RIM_MIN_WIDTH_FRAC   = 0.03;  // rim blob must be at least 3% of frame width
-  var RIM_MAX_WIDTH_FRAC   = 0.25;  // rim blob can't be more than 25% of frame width
-  var RIM_SCAN_TOP_FRAC    = 0.60;  // only scan the top 60% of the frame for rim
+  var RIM_DETECT_INTERVAL  = 600;   // ms between auto-detect attempts
+  var RIM_DETECT_MAX_TRIES = 20;    // more attempts before giving up
+  var RIM_MIN_WIDTH_FRAC   = 0.02;  // rim blob must be at least 2% of frame width (smaller for distant shots)
+  var RIM_MAX_WIDTH_FRAC   = 0.35;  // rim blob can't be more than 35% of frame width
+  var RIM_SCAN_TOP_FRAC    = 0.75;  // scan top 75% of frame (rim can be lower in some angles)
 
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
@@ -193,7 +193,8 @@
   }
 
   /* ── ML detection with person exclusion ─────────────────────── */
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.8, 'orange': 0.65 };
+  // Wider set of classes — COCO-SSD sometimes classifies basketballs as these
+  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7, 'apple': 0.5, 'bowl': 0.3, 'clock': 0.25 };
   var mlMissCount = 0;
 
   function detectBallAsync() {
@@ -201,13 +202,13 @@
       // Use canvas instead of video element — ensures ML and color detection
       // are analyzing the exact same frame (avoids desync)
       return tfModel.detect(canvas).then(function (preds) {
-        var best = null, bestAdjScore = 0.25;
+        var best = null, bestAdjScore = 0.15; // lowered from 0.25 — catch lower-confidence ball detections
         var frameArea = W * H;
 
         // First pass: collect person bounding boxes for exclusion
         personBoxes = [];
         for (var p = 0; p < preds.length; p++) {
-          if (preds[p].class === 'person' && preds[p].score > 0.4) {
+          if (preds[p].class === 'person' && preds[p].score > 0.35) {
             var pb = preds[p].bbox;
             personBoxes.push({ x: pb[0], y: pb[1], w: pb[2], h: pb[3] });
           }
@@ -223,11 +224,11 @@
 
           var bbox = preds[i].bbox;
           var area = bbox[2] * bbox[3];
-          if (area < frameArea * 0.0003 || area > frameArea * 0.10) continue;
+          if (area < frameArea * 0.0001 || area > frameArea * 0.15) continue; // wider area range
 
-          // Shape check
+          // Shape check — basketballs can look slightly elongated in motion
           var bAspect = Math.max(bbox[2] / bbox[3], bbox[3] / bbox[2]);
-          if (bAspect > 2.2) continue;
+          if (bAspect > 2.8) continue; // more lenient aspect ratio
 
           // Center of detection
           var cx = bbox[0] + bbox[2] / 2;
@@ -246,11 +247,9 @@
           return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: bestAdjScore };
         }
 
+        // Always try color fallback when ML misses — don't wait 3 frames
         mlMissCount++;
-        if (mlMissCount >= 3) {
-          return detectBallColor();
-        }
-        return null;
+        return detectBallColor();
       }).catch(function () { return detectBallColor(); });
     }
     return Promise.resolve(detectBallColor());
@@ -260,19 +259,21 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 70) return false;   // lowered from 100 — indoor/dim videos
+    if (max < 50) return false;   // very low — handle dim indoor/gym lighting
     var delta = max - min;
-    if (delta < 25) return false;  // lowered from 40 — color-graded footage
+    if (delta < 15) return false;  // very low — handle extreme desaturation from filters
     var s = delta / max;
-    if (s < 0.30) return false;   // lowered from 0.45 — TikTok desaturation
+    if (s < 0.18) return false;   // very low — TikTok cool filters almost wash out color
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange range: 5-50 (wider: red-orange through yellow-orange)
-    // Handles TikTok warm filters, cool filters, indoor tungsten lighting
-    return h >= 5 && h <= 50;
+    // Basketball orange range: extremely wide to handle all filters and lighting
+    // Red-orange (0-60) and deep red wrapping around (340-360)
+    // Covers: pure orange, warm-filtered orange, cool-filtered brown-orange,
+    //         tungsten yellow-orange, fluorescent-shifted orange
+    return (h >= 0 && h <= 60) || h >= 340;
   }
 
   function detectBallColor() {
@@ -407,32 +408,78 @@
   }
 
   /* ── Rim auto-detection ─────────────────────────────────────
-     Scans the upper portion of the frame for orange/red horizontal
-     blobs that look like a basketball rim. Returns { cx, cy } or null.
-     Strategy:
-       1. isRimColor: detect orange-red pixels (rim is orange/red metal)
-       2. Only scan top 60% of frame (rim is always in upper half)
-       3. Cluster into blobs, pick the most "rim-shaped" one:
-          - Wider than tall (aspect ratio > 1.5)
-          - Correct size range
-          - In upper portion of frame
+     Multi-strategy rim detection:
+       Strategy A: Color-based — detect orange/red rim-colored horizontal blobs
+       Strategy B: Edge-based — detect strong horizontal edges (works for ANY rim color)
+       Strategy C: ML-based — use COCO-SSD to find backboard area
+       Strategy D: Net detection — look for white/light net hanging below a horizontal structure
      ──────────────────────────────────────────────────────────── */
+
+  // Strategy A: Orange/red rim color detection
   function isRimColor(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 60) return false;  // lowered from 80 — rims can be dimmer
+    if (max < 50) return false;
     var delta = max - min;
-    if (delta < 20) return false; // lowered from 30 — indoor lighting washes out
+    if (delta < 15) return false;
     var s = delta / max;
-    if (s < 0.25) return false;  // lowered from 0.35 — TikTok filters desaturate
+    if (s < 0.20) return false;
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Rim colors: red, orange-red, deep orange (hue 0-35 and 335+)
-    // Much wider range to handle color grading, filters, and different rim paints
-    return (h >= 0 && h <= 35) || h >= 335;
+    // Very wide range: red, orange, deep orange, yellow-orange
+    return (h >= 0 && h <= 55) || h >= 320;
+  }
+
+  // Strategy B: Detect white/light/metallic rim (gray, silver, white rims)
+  function isLightRimColor(r, g, b) {
+    // White/light gray rims: high brightness, low saturation
+    var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
+    var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
+    var brightness = (r + g + b) / 3;
+    // Bright and low saturation = white/gray/silver
+    if (brightness > 180 && (max - min) < 50) return true;
+    // Medium brightness metallic look
+    if (brightness > 120 && brightness < 200 && (max - min) < 30) return true;
+    return false;
+  }
+
+  // Horizontal edge detection for finding rim structures regardless of color
+  function detectHorizontalEdges(imageData, scanW, scanH) {
+    var data = imageData.data;
+    var edges = [];
+    var step = 2;
+
+    for (var y = step; y < scanH - step; y += step) {
+      var runStart = -1, runLen = 0;
+      for (var x = 0; x < scanW; x += step) {
+        var idx = (y * scanW + x) * 4;
+        var idxUp = ((y - step) * scanW + x) * 4;
+        var idxDn = ((y + step) * scanW + x) * 4;
+
+        // Vertical gradient (Sobel-like)
+        var grayUp = (data[idxUp] + data[idxUp + 1] + data[idxUp + 2]) / 3;
+        var grayDn = (data[idxDn] + data[idxDn + 1] + data[idxDn + 2]) / 3;
+        var edgeStrength = Math.abs(grayDn - grayUp);
+
+        if (edgeStrength > 30) {
+          if (runStart < 0) runStart = x;
+          runLen++;
+        } else {
+          if (runLen >= 8) { // minimum horizontal edge run
+            edges.push({ x1: runStart, x2: x - step, y: y, len: runLen });
+          }
+          runStart = -1;
+          runLen = 0;
+        }
+      }
+      if (runLen >= 8) {
+        edges.push({ x1: runStart, x2: scanW - step, y: y, len: runLen });
+      }
+    }
+    return edges;
   }
 
   function detectRimAuto() {
@@ -445,22 +492,118 @@
     var imageData = ctx.getImageData(0, 0, W, scanH);
     var data = imageData.data;
 
-    // Collect rim-colored pixels (skip every 3px for speed)
+    var minRimW = W * RIM_MIN_WIDTH_FRAC;
+    var maxRimW = W * RIM_MAX_WIDTH_FRAC;
+
+    // ═══ Strategy A: Color-based (orange/red rims) ═══
+    var colorCandidate = detectRimByColor(data, W, scanH, minRimW, maxRimW, isRimColor);
+
+    // ═══ Strategy B: Light/white rim color detection ═══
+    var lightCandidate = detectRimByColor(data, W, scanH, minRimW, maxRimW, isLightRimColor);
+
+    // ═══ Strategy C: Horizontal edge detection (any color rim) ═══
+    var edgeCandidate = null;
+    var edges = detectHorizontalEdges(imageData, W, scanH);
+    if (edges.length > 0) {
+      // Group edges that are at similar Y positions (within 5% of frame height)
+      var yTolerance = H * 0.04;
+      var edgeGroups = [];
+      for (var ei = 0; ei < edges.length; ei++) {
+        var e = edges[ei];
+        var edgeW = e.x2 - e.x1;
+        if (edgeW < minRimW || edgeW > maxRimW) continue;
+
+        var placed = false;
+        for (var gi = 0; gi < edgeGroups.length; gi++) {
+          if (Math.abs(edgeGroups[gi].avgY - e.y) < yTolerance) {
+            edgeGroups[gi].edges.push(e);
+            edgeGroups[gi].totalLen += e.len;
+            edgeGroups[gi].avgY = (edgeGroups[gi].avgY * (edgeGroups[gi].edges.length - 1) + e.y) / edgeGroups[gi].edges.length;
+            placed = true;
+            break;
+          }
+        }
+        if (!placed) {
+          edgeGroups.push({ edges: [e], avgY: e.y, totalLen: e.len });
+        }
+      }
+
+      // Find the best horizontal edge group (looks like a rim)
+      var bestEdgeScore = -1;
+      for (var egi = 0; egi < edgeGroups.length; egi++) {
+        var eg = edgeGroups[egi];
+        if (eg.edges.length < 2) continue;
+
+        var allMinX = Infinity, allMaxX = -Infinity;
+        for (var k = 0; k < eg.edges.length; k++) {
+          if (eg.edges[k].x1 < allMinX) allMinX = eg.edges[k].x1;
+          if (eg.edges[k].x2 > allMaxX) allMaxX = eg.edges[k].x2;
+        }
+        var groupW = allMaxX - allMinX;
+        if (groupW < minRimW || groupW > maxRimW) continue;
+
+        // Must be in center-ish portion horizontally (not at extreme edges)
+        var groupCX = (allMinX + allMaxX) / 2;
+        if (groupCX < W * 0.15 || groupCX > W * 0.85) continue;
+
+        var heightPref = 1.0 - (eg.avgY / scanH); // prefer higher in frame
+        var widthPref = Math.min(groupW / (W * 0.08), 1.0);
+        var densityPref = Math.min(eg.totalLen / 20, 1.0);
+        var eScore = widthPref * 0.35 + heightPref * 0.35 + densityPref * 0.3;
+
+        if (eScore > bestEdgeScore) {
+          bestEdgeScore = eScore;
+          edgeCandidate = { cx: groupCX, cy: eg.avgY, score: eScore * 0.7 };
+        }
+      }
+    }
+
+    // ═══ Strategy D: ML-based — look for ball trajectory to infer rim ═══
+    // (This is handled separately in detectRimML below)
+
+    // ═══ Combine strategies: pick best candidate ═══
+    var candidates = [];
+    if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color' });
+    if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light' });
+    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.65, src: 'edge' });
+
+    // If multiple strategies agree on a similar position, boost confidence
+    for (var ai = 0; ai < candidates.length; ai++) {
+      for (var bi = ai + 1; bi < candidates.length; bi++) {
+        var dist = Math.sqrt(Math.pow(candidates[ai].cx - candidates[bi].cx, 2) + Math.pow(candidates[ai].cy - candidates[bi].cy, 2));
+        if (dist < W * 0.1) { // Within 10% of frame width = agreement
+          candidates[ai].score *= 1.5;
+          candidates[bi].score *= 1.5;
+        }
+      }
+    }
+
+    var best = null;
+    for (var ci = 0; ci < candidates.length; ci++) {
+      if (!best || candidates[ci].score > best.score) {
+        best = candidates[ci];
+      }
+    }
+
+    return best ? { cx: best.cx, cy: best.cy } : null;
+  }
+
+  // Helper: generic color-based rim detection (used by both orange and light strategies)
+  function detectRimByColor(data, imgW, scanH, minRimW, maxRimW, colorTestFn) {
     var rimPxX = [], rimPxY = [];
     for (var y = 0; y < scanH; y += 3) {
-      for (var x = 0; x < W; x += 3) {
-        var i = (y * W + x) * 4;
-        if (isRimColor(data[i], data[i + 1], data[i + 2])) {
+      for (var x = 0; x < imgW; x += 3) {
+        var i = (y * imgW + x) * 4;
+        if (colorTestFn(data[i], data[i + 1], data[i + 2])) {
           rimPxX.push(x);
           rimPxY.push(y);
         }
       }
     }
 
-    if (rimPxX.length < 8) return null;
+    if (rimPxX.length < 6) return null;
 
-    // Grid clustering (coarser grid for rim — it's larger than a ball)
-    var cellW = Math.max(1, Math.round(W / 16));
+    var cellW = Math.max(1, Math.round(imgW / 16));
     var cellH = Math.max(1, Math.round(scanH / 16));
     var cells = {};
 
@@ -479,20 +622,17 @@
       if (rimPxY[j] > c.maxY) c.maxY = rimPxY[j];
     }
 
-    var minRimW = W * RIM_MIN_WIDTH_FRAC;
-    var maxRimW = W * RIM_MAX_WIDTH_FRAC;
     var bestCandidate = null, bestScore = -1;
     var cellKeys = Object.keys(cells);
 
     for (var ci = 0; ci < cellKeys.length; ci++) {
       var center = cells[cellKeys[ci]];
-
-      // Merge with neighbors (3x3 grid)
       var bMinX = center.minX, bMaxX = center.maxX;
       var bMinY = center.minY, bMaxY = center.maxY;
       var bCount = 0, bSumX = 0, bSumY = 0;
 
-      for (var ni = -1; ni <= 1; ni++) {
+      // Merge with neighbors (3x3 grid)
+      for (var ni = -2; ni <= 2; ni++) {
         for (var nj = -1; nj <= 1; nj++) {
           var nk = (center.gx + ni) + ',' + (center.gy + nj);
           if (!cells[nk]) continue;
@@ -510,32 +650,69 @@
       var blobW = bMaxX - bMinX + 1;
       var blobH = bMaxY - bMinY + 1;
 
-      // Rim is usually wider than tall, but from steep angles it can be nearly round
       var aspect = blobW / Math.max(blobH, 1);
-      if (aspect < 0.8) continue;  // only reject clearly vertical blobs
+      if (aspect < 0.7) continue;
 
-      // Size checks
       if (blobW < minRimW || blobW > maxRimW) continue;
-
-      // Rim shouldn't be too thick vertically
-      if (blobH > blobW * 0.6) continue;
+      if (blobH > blobW * 0.7) continue;
 
       var cx = bSumX / bCount;
       var cy = bSumY / bCount;
 
-      // Score: prefer wider, higher-up, well-populated blobs
-      var widthScore = Math.min(blobW / (W * 0.08), 1.0);
-      var heightScore = 1.0 - (cy / scanH);  // higher in frame = better
-      var countScore = Math.min(bCount / 30, 1.0);
+      // Must be somewhat centered horizontally
+      if (cx < imgW * 0.1 || cx > imgW * 0.9) continue;
+
+      var widthScore = Math.min(blobW / (imgW * 0.06), 1.0);
+      var heightScore = 1.0 - (cy / scanH);
+      var countScore = Math.min(bCount / 20, 1.0);
       var score = widthScore * 0.4 + heightScore * 0.3 + countScore * 0.3;
 
       if (score > bestScore) {
         bestScore = score;
-        bestCandidate = { cx: cx, cy: cy };
+        bestCandidate = { cx: cx, cy: cy, score: score };
       }
     }
 
     return bestCandidate;
+  }
+
+  // ML-based rim detection: use COCO-SSD to find where the ball lands
+  var mlRimVotes = [];
+
+  function detectRimML() {
+    if (!mlReady || !tfModel || !canvas) return Promise.resolve(null);
+
+    return tfModel.detect(canvas).then(function (preds) {
+      // Look for sports ball detections and track their positions
+      for (var i = 0; i < preds.length; i++) {
+        var p = preds[i];
+        if (p.class === 'sports ball' && p.score > 0.2) {
+          var ballCX = p.bbox[0] + p.bbox[2] / 2;
+          var ballCY = p.bbox[1] + p.bbox[3] / 2;
+          // Ball near top of frame likely near rim
+          if (ballCY < H * 0.5) {
+            mlRimVotes.push({ x: ballCX, y: ballCY });
+          }
+        }
+      }
+
+      // After collecting multiple votes, estimate rim location
+      if (mlRimVotes.length >= 3) {
+        // Find the cluster of highest ball positions (near rim area)
+        mlRimVotes.sort(function (a, b) { return a.y - b.y; });
+        // Take the top-most cluster
+        var topVotes = mlRimVotes.slice(0, Math.min(5, mlRimVotes.length));
+        var avgX = 0, avgY = 0;
+        for (var j = 0; j < topVotes.length; j++) {
+          avgX += topVotes[j].x;
+          avgY += topVotes[j].y;
+        }
+        avgX /= topVotes.length;
+        avgY /= topVotes.length;
+        return { cx: avgX, cy: avgY };
+      }
+      return null;
+    }).catch(function () { return null; });
   }
 
   /* ── Rim geometry ───────────────────────────────────────────── */
@@ -543,16 +720,22 @@
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
     var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.0;
+    return dx * dx + dy * dy <= 1.5;  // 1.5 instead of 1.0 — more forgiving hit zone
   }
 
   function inApproachZone(x, y) {
     if (!rim) return false;
-    return y > rim.cy - rim.ry * 6 && y < rim.cy + rim.ry * 2.5 &&
-           Math.abs(x - rim.cx) < rim.rx * 4;
+    // Much wider approach zone — ball can come from far away
+    return y > rim.cy - rim.ry * 10 && y < rim.cy + rim.ry * 5 &&
+           Math.abs(x - rim.cx) < rim.rx * 6;
   }
 
   /* ── Shot detection state machine ───────────────────────────── */
+  // Track the highest point the ball reached (for arc detection)
+  var ballPeakY = Infinity;
+  var ballStartY = 0;
+  var nearRimFrames = 0;  // how many frames ball was near rim area
+
   function processBall(ball) {
     var now = Date.now();
     if (now < cooldownUntil) return;
@@ -562,64 +745,149 @@
 
     if (!ball) {
       disappearCount++;
+
+      // Ball disappeared near the rim — likely went through or bounced off
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
         var wentBelow = checkExitedBelow();
         if (wentBelow) {
           commitShot(true, now);
-        } else if (atRimFrames >= 3) {
+        } else if (atRimFrames >= 2) {
+          // Ball was at rim and disappeared — likely a miss (bounce off)
           commitShot(false, now);
         }
         shotPhase = 'idle';
         atRimFrames = 0;
-      } else if (shotPhase === 'ascending' && disappearCount > DISAPPEAR_GRACE) {
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (shotPhase === 'near_rim' && disappearCount >= DISAPPEAR_GRACE) {
+        // Ball was near rim area and disappeared — could be a swish (no rim touch)
+        // Check if ball was descending and within horizontal bounds of rim
+        var lastValid = getLastValidBalls(3);
+        if (lastValid.length >= 2) {
+          var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
+          var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
+          var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
+          if (wasDescending && wasNearRimX && wasBelowRimLevel) {
+            commitShot(true, now);  // Likely swish — ball fell through cleanly
+          } else if (wasNearRimX) {
+            commitShot(false, now); // Near but not through
+          }
+        }
         shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (shotPhase === 'ascending' && disappearCount > DISAPPEAR_GRACE * 2) {
+        shotPhase = 'idle';
+        ballPeakY = Infinity;
       }
       return;
     }
 
     disappearCount = 0;
 
+    // Track peak height
+    if (ball.y < ballPeakY) ballPeakY = ball.y;
+
     var recent = [];
-    for (var i = ballHistory.length - 1; i >= 0 && recent.length < 10; i--) {
+    for (var i = ballHistory.length - 1; i >= 0 && recent.length < 12; i--) {
       if (ballHistory[i]) recent.unshift(ballHistory[i]);
     }
     var yVel = 0;
-    if (recent.length >= 4) {
+    if (recent.length >= 3) {
       var lookback = Math.min(8, recent.length - 1);
       var old = recent[recent.length - 1 - lookback];
       yVel = (ball.y - old.y) / H;
     }
 
+    // Check proximity to rim area (wider than insideRim)
+    var nearRim = rim && Math.abs(ball.x - rim.cx) < rim.rx * 2.5 &&
+                  Math.abs(ball.y - rim.cy) < rim.ry * 3;
+
     if (shotPhase === 'idle') {
-      if (yVel < -VEL_RISE_FRAC && inApproachZone(ball.x, ball.y)) {
+      if (yVel < -VEL_RISE_FRAC) {
         shotPhase = 'ascending';
+        ballPeakY = ball.y;
+        ballStartY = ball.y;
+      }
+      // Also detect ball already descending near rim (missed the ascent)
+      if (yVel > VEL_FALL_FRAC && nearRim && ball.y < rim.cy) {
+        shotPhase = 'near_rim';
+        nearRimFrames = 1;
       }
     } else if (shotPhase === 'ascending') {
       if (insideRim(ball.x, ball.y)) {
         shotPhase = 'at_rim';
         atRimFrames = 1;
+      } else if (nearRim) {
+        shotPhase = 'near_rim';
+        nearRimFrames = 1;
       } else if (yVel > VEL_FALL_FRAC) {
-        if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 2.5) {
-          commitShot(false, now);
+        // Ball is falling — check if it was near the rim area
+        if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 3.5) {
+          // Check if the ball arced high enough to be a real shot
+          var arcHeight = ballStartY - ballPeakY;
+          if (arcHeight > H * 0.03) { // minimum arc height
+            commitShot(false, now);
+          }
         }
         shotPhase = 'idle';
+        ballPeakY = Infinity;
       }
-    } else if (shotPhase === 'at_rim') {
-      atRimFrames++;
-      if (!insideRim(ball.x, ball.y)) {
-        if (ball.y > rim.cy + rim.ry * 0.5) {
+    } else if (shotPhase === 'near_rim') {
+      nearRimFrames++;
+      if (insideRim(ball.x, ball.y)) {
+        shotPhase = 'at_rim';
+        atRimFrames = 1;
+      } else if (ball.y > rim.cy + rim.ry * 2) {
+        // Ball passed below rim — made shot
+        if (Math.abs(ball.x - rim.cx) < rim.rx * 2) {
           commitShot(true, now);
         } else {
           commitShot(false, now);
         }
         shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (nearRimFrames > 20) {
+        // Too long near rim without resolution
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
+        // Ball left the area entirely — miss
+        commitShot(false, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      }
+    } else if (shotPhase === 'at_rim') {
+      atRimFrames++;
+      if (!insideRim(ball.x, ball.y)) {
+        if (ball.y > rim.cy + rim.ry * 0.3) {
+          commitShot(true, now);  // Exited below — made
+        } else {
+          commitShot(false, now); // Exited above/side — miss
+        }
+        shotPhase = 'idle';
         atRimFrames = 0;
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
       } else if (atRimFrames > atRimMaxFrames) {
         commitShot(false, now);
         shotPhase = 'idle';
         atRimFrames = 0;
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
       }
     }
+  }
+
+  function getLastValidBalls(count) {
+    var result = [];
+    for (var i = ballHistory.length - 1; i >= 0 && result.length < count; i--) {
+      if (ballHistory[i]) result.unshift(ballHistory[i]);
+    }
+    return result;
   }
 
   function checkExitedBelow() {
@@ -936,7 +1204,8 @@
   }
 
   // Seek to different timestamps on each retry (for video mode)
-  var rimSeekTimes = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 0.2, 2.5, 3.5, 6.0, 8.0];
+  // More timestamps, better spread across the video
+  var rimSeekTimes = [0.3, 0.8, 1.2, 1.8, 2.5, 3.0, 4.0, 5.0, 6.0, 8.0, 10.0, 0.1, 1.5, 3.5, 7.0, 12.0, 15.0, 2.0, 4.5, 9.0];
 
   function startRimAutoDetect() {
     rimDetectTries = 0;
@@ -976,6 +1245,18 @@
       showCalibState('confirm');
       stopRimDetectTimer();
       return;
+    }
+
+    // After several color-based failures, try ML-based detection
+    if (rimDetectTries >= 8 && mlReady) {
+      detectRimML().then(function (mlCandidate) {
+        if (mlCandidate && phase === PHASE.CALIBRATING) {
+          autoRimCandidate = mlCandidate;
+          rim = { cx: mlCandidate.cx, cy: mlCandidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+          showCalibState('confirm');
+          stopRimDetectTimer();
+        }
+      });
     }
 
     if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {

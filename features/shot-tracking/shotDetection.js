@@ -15,21 +15,21 @@
   'use strict';
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 2000;  // Cooldown between counted shots (increased for rebounds)
-  var MIN_TRAJECTORY_PTS   = 6;    // Min points before analyzing
-  var MAX_HISTORY          = 30;   // Rolling buffer size
-  var MAX_GAP_FRAMES       = 5;    // Frames ball can vanish before losing track
-  var MIN_MOVEMENT_PX      = 3;    // Sub-pixel jitter threshold
-  var BALL_CONFIDENCE      = 0.35; // Min COCO-SSD confidence
-  var MADE_MAX_FRAMES      = 12;   // Max transit frames through rim
-  var DETECTION_INTERVAL   = 100;  // ms between ML detections (~10 FPS)
+  var DEBOUNCE_MS          = 1800;  // Cooldown between counted shots
+  var MIN_TRAJECTORY_PTS   = 4;    // Fewer points needed before analyzing (was 6)
+  var MAX_HISTORY          = 40;   // Larger rolling buffer
+  var MAX_GAP_FRAMES       = 8;    // More grace frames for ball vanishing (compressed video)
+  var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
+  var BALL_CONFIDENCE      = 0.20; // Much lower — COCO-SSD struggles with basketballs
+  var MADE_MAX_FRAMES      = 18;   // More frames allowed for rim transit
+  var DETECTION_INTERVAL   = 80;   // Faster detection (~12 FPS)
 
   /* Area thresholds as fractions of total frame area */
-  var BALL_MIN_AREA_FRAC   = 0.0005;  // ~200/(640*480)
-  var BALL_MAX_AREA_FRAC   = 0.09;    // ~80000/(640*480) generous
+  var BALL_MIN_AREA_FRAC   = 0.0001;  // Much smaller — distant shots
+  var BALL_MAX_AREA_FRAC   = 0.15;    // Larger — close-up shots
 
   /* Y-trend diff threshold as fraction of frame height */
-  var Y_TREND_FRAC         = 0.007;   // ~5/720
+  var Y_TREND_FRAC         = 0.004;   // Lower — catch slower arcing shots
 
   /* ── Tracker ────────────────────────────────────────────────── */
   function createTracker() {
@@ -103,11 +103,11 @@
       centerX: cx, centerY: cy, width: w, height: h,
       left: cx - w / 2, right: cx + w / 2,
       top: cy - h / 2, bottom: cy + h / 2,
-      // Wider approach zone for better miss detection
-      approachLeft: cx - w * 1.0,
-      approachRight: cx + w * 1.0,
-      approachTop: cy - h * 2.0,
-      approachBottom: cy + h * 2.0
+      // Much wider approach zone — ball can come from far away
+      approachLeft: cx - w * 2.0,
+      approachRight: cx + w * 2.0,
+      approachTop: cy - h * 4.0,
+      approachBottom: cy + h * 4.0
     };
   }
 
@@ -130,29 +130,42 @@
 
   /* ── Shot Analysis ──────────────────────────────────────────── */
   function analyzeMade(trajectory, rim) {
-    if (trajectory.length < 4) return { isMade: false, entryPoint: null };
+    if (trajectory.length < 3) return { isMade: false, entryPoint: null };
     var enteredAbove = false, enteredRim = false, exitedBelow = false;
     var entryFrame = -1, entryPoint = null;
+    var nearRim = false;
 
     for (var i = 0; i < trajectory.length; i++) {
       var pt = trajectory[i];
-      if (!enteredAbove && isAboveRim(pt.y, rim) && isWithinHorizontalBounds(pt.x, rim)) {
+      // Was above rim at some point
+      if (!enteredAbove && isAboveRim(pt.y, rim)) {
         enteredAbove = true;
       }
+      // Passed through or near rim zone
       if (enteredAbove && !enteredRim && isInsideRim(pt.x, pt.y, rim)) {
         enteredRim = true;
         entryFrame = pt.frame;
         entryPoint = { x: pt.x, y: pt.y };
       }
-      if (enteredRim && isBelowRim(pt.y, rim)) {
-        if (pt.frame - entryFrame <= MADE_MAX_FRAMES && isWithinHorizontalBounds(pt.x, rim)) {
+      // Also track "near rim" for swish detection
+      if (enteredAbove && !nearRim && isInApproachZone(pt.x, pt.y, rim) && Math.abs(pt.y - rim.centerY) < rim.height) {
+        nearRim = true;
+        if (!entryPoint) entryPoint = { x: pt.x, y: pt.y };
+        if (entryFrame < 0) entryFrame = pt.frame;
+      }
+      // Exited below rim
+      if ((enteredRim || nearRim) && isBelowRim(pt.y, rim)) {
+        var frameLimit = enteredRim ? MADE_MAX_FRAMES : MADE_MAX_FRAMES * 1.5;
+        if (pt.frame - entryFrame <= frameLimit && isWithinHorizontalBounds(pt.x, rim)) {
           exitedBelow = true;
           break;
         }
       }
       if (enteredRim && pt.frame - entryFrame > MADE_MAX_FRAMES) break;
     }
-    return { isMade: enteredAbove && enteredRim && exitedBelow, entryPoint: entryPoint };
+    // Made if: was above, went through/near rim, exited below
+    var isMade = enteredAbove && (enteredRim || nearRim) && exitedBelow;
+    return { isMade: isMade, entryPoint: entryPoint };
   }
 
   function analyzeMiss(trajectory, rim) {
@@ -266,7 +279,7 @@
             return;
           }
 
-          cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
+          cocoSsd.load({ base: 'mobilenet_v2' }).then(function (model) {
             self.model = model;
             self._setStatus('ready');
             resolve(true);
@@ -353,13 +366,16 @@
 
         var bestBall = null;
         var bestScore = 0;
+        // Accept multiple COCO-SSD classes that can match a basketball
+        var ballClasses = { 'sports ball': 1.0, 'frisbee': 0.8, 'orange': 0.65, 'apple': 0.4 };
         for (var i = 0; i < predictions.length; i++) {
           var p = predictions[i];
-          if (p.class === 'sports ball' && p.score > BALL_CONFIDENCE && p.score > bestScore) {
+          var classWeight = ballClasses[p.class];
+          if (classWeight && p.score * classWeight > BALL_CONFIDENCE && p.score * classWeight > bestScore) {
             var area = p.bbox[2] * p.bbox[3];
             if (area >= minArea && area <= maxArea) {
               bestBall = p;
-              bestScore = p.score;
+              bestScore = p.score * classWeight;
             }
           }
         }
@@ -394,12 +410,13 @@
       if (now - this.lastShotTime < DEBOUNCE_MS) return;
       if (this.tracker.positions.length < MIN_TRAJECTORY_PTS) return;
 
-      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
+      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 25);
       var last = traj[traj.length - 1];
       if (!isInApproachZone(last.x, last.y, this.rimZone)) return;
 
       var trend = getYTrend(this.tracker, vh);
-      if (trend !== 'falling') return;
+      // Accept falling OR flat (ball near rim can appear flat in trajectory)
+      if (trend === 'rising') return;
 
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
