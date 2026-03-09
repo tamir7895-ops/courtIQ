@@ -488,11 +488,25 @@
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
 
+    // Initialize adaptive learning system
+    var learningReady = window.AdaptiveLearning
+      ? window.AdaptiveLearning.init()
+      : Promise.resolve();
+
     // Initialize and start
-    engine.init().then(function (ok) {
+    Promise.all([engine.init(), learningReady]).then(function (results) {
+      var ok = results[0];
       if (ok && phase === 'tracking') {
         engine.start(videoEl);
         startOverlayLoop();
+
+        // Show learning status
+        if (window.AdaptiveLearning) {
+          var stats = window.AdaptiveLearning.getStats();
+          if (stats.overallConfidence > 0.1) {
+            onDetectionStatus('detecting-learned');
+          }
+        }
       }
     });
   }
@@ -525,6 +539,9 @@
         break;
       case 'detecting':
         txt.textContent = 'Tracking';
+        break;
+      case 'detecting-learned':
+        txt.textContent = 'Tracking (AI learned)';
         break;
       case 'error':
         dot.classList.add('error');
@@ -951,6 +968,29 @@
       );
     }
     html.push('</div>');
+
+    // AI Learning Stats
+    if (window.AdaptiveLearning) {
+      var learnStats = window.AdaptiveLearning.getStats();
+      html.push(
+        '<div class="st-learn-section">',
+          '<div class="st-section-title">AI Learning</div>',
+          '<div class="st-learn-row">',
+            '<span class="st-learn-label">Color calibration</span>',
+            '<span class="st-learn-value">' + Math.round(learnStats.color.confidence * 100) + '% (' + learnStats.color.sampleCount + ' samples)</span>',
+          '</div>',
+          '<div class="st-learn-row">',
+            '<span class="st-learn-label">Shot patterns</span>',
+            '<span class="st-learn-value">' + (learnStats.trajectory.madeCount + learnStats.trajectory.missCount) + ' learned</span>',
+          '</div>',
+          '<div class="st-learn-row">',
+            '<span class="st-learn-label">Ball recognition</span>',
+            '<span class="st-learn-value">' + (learnStats.transfer.isReady ? Math.round(learnStats.transfer.confidence * 100) + '% trained' : learnStats.transfer.positiveSamples + ' samples') + '</span>',
+          '</div>',
+          '<div class="st-learn-overall">AI Confidence: ' + Math.round(learnStats.overallConfidence * 100) + '%</div>',
+        '</div>'
+      );
+    }
 
     // Actions
     html.push(
