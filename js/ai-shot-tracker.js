@@ -37,7 +37,7 @@
      - Vertically: from top of frame down to rim + some margin below
      - Excludes bottom 15% of frame (video overlays/watermarks)  */
   var ROI_BOTTOM_MARGIN_FRAC = 0.10; // ignore bottom 10% of frame (only watermarks)
-  var ROI_BELOW_RIM_FRAC = 0.45;     // search 45% of frame height below rim (was 12% — way too small)
+  var ROI_BELOW_RIM_FRAC = 0.30;     // search 30% below rim — cuts off deep court floor at 45%
 
   /* ── Rim auto-detection constants ────────────────────────── */
   var RIM_DETECT_INTERVAL  = 600;   // ms between auto-detect attempts
@@ -285,11 +285,11 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 55) return false;   // lowered — accept slightly darker/compressed frames
+    if (max < 70) return false;   // moderate — reject dark court shadows, keep bright ball
     var delta = max - min;
-    if (delta < 15) return false;  // lowered — compressed video reduces contrast
+    if (delta < 18) return false;  // moderate — court wood has low delta at similar hues
     var s = delta / max;
-    if (s < 0.22) return false;   // lowered — TikTok/HEVC compression desaturates colors
+    if (s < 0.28) return false;   // moderate — basketball s≈0.50+, wood floor s≈0.25-0.35
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
@@ -421,8 +421,8 @@
         proximityScore = Math.max(0, 1.0 - distToRim / maxDist);
       }
 
-      var score = roundness * 0.35 + Math.min(fillRatio, 1.0) * 0.25 +
-                  Math.max(sizeScore, 0) * 0.2 + proximityScore * 0.2;
+      var score = roundness * 0.35 + Math.min(fillRatio, 1.0) * 0.20 +
+                  Math.max(sizeScore, 0) * 0.10 + proximityScore * 0.35;  // proximity weight raised: floor blobs far from rim score lower
 
       if (score > bestScore) {
         bestScore = score;
