@@ -1,465 +1,795 @@
-/**
- * ShotTrackingScreen.js — Camera + Live Overlay UI
- *
- * Full-screen camera view with:
- *  - Semi-transparent overlay showing rim zone
- *  - Live shot counter (Made: X / Attempts: Y) at top
- *  - Ball tracking indicator (small dot following detected ball)
- *  - Green flash on made shot, red flash on miss
- *  - Stop button to end session
- *  - Pause/resume capability
- */
-import React, { useRef, useCallback, useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Dimensions,
-  StatusBar,
-  Alert,
-  Vibration,
-} from 'react-native';
-import { Camera, useCameraDevice } from 'react-native-vision-camera';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSequence,
-  withTiming,
-  withDelay,
-  runOnJS,
-  Easing,
-} from 'react-native-reanimated';
+/* ══════════════════════════════════════════════════════════════
+   SHOT TRACKING SCREEN — Vanilla JS / HTML5 / Canvas
+   Self-contained UI module for the AI Shot Tracker feature.
 
-import useShotDetection from './hooks/useShotDetection';
-import useSessionManager from './hooks/useSessionManager';
+   Phases:
+     1. RIM LOCK — Camera preview, user taps rim to calibrate
+     2. TRACKING — Live detection overlay with stats
+     3. SUMMARY  — Post-session results + shot chart + save
 
-const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
+   Dependencies:
+     - ShotDetectionEngine  (shotDetection.js)
+     - ShotService           (shotService.js)
+     - Global `sb`           (supabase-client.js)
+     - Global `currentUser`  (dashboard.js auth guard)
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
 
-// Colors
-const COLOR_MADE = '#00ff88';
-const COLOR_MISSED = '#ff4444';
-const COLOR_RIM = '#ff6b00';
-const COLOR_BALL_DOT = '#ffaa00';
+  /* ── Constants ──────────────────────────────────────────────── */
+  var DEFAULT_RIM_W = 0.18;
+  var DEFAULT_RIM_H = 0.04;
+  var XP_PER_MADE   = 10;
+  var XP_PER_ATTEMPT = 2;
 
-export default function ShotTrackingScreen({ route, navigation }) {
-  const { rimZone } = route.params;
-  const device = useCameraDevice('back');
-  const cameraRef = useRef(null);
+  /* ── Half-court SVG dimensions (for shot chart) ─────────────── */
+  var COURT_W = 500;
+  var COURT_H = 470;
+  var RIM_SVG_X = COURT_W / 2;
+  var RIM_SVG_Y = 63;
+  var THREE_PT_R = 190;
 
-  // Get userId from your auth system — adjust import as needed
-  const [userId] = useState('current-user-id'); // Replace with actual auth
+  /* ── State ──────────────────────────────────────────────────── */
+  var phase = 'idle'; // idle | rimlock | tracking | summary
+  var stream = null;
+  var videoEl, canvasEl, canvasCtx;
+  var overlayAnimFrame = null;
 
-  // Session manager
-  const {
-    sessionState,
-    startSession,
-    recordShot,
-    endSession,
-    shots,
-  } = useSessionManager(userId);
+  // Rim lock state
+  var rimCenter = null;       // { x, y } normalized (0-1)
+  var rimSize   = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
+  var rimLocked = false;
 
-  // Flash animation values
-  const flashOpacity = useSharedValue(0);
-  const flashColor = useSharedValue(COLOR_MADE);
+  // Tracking state
+  var sessionId     = null;
+  var sessionStart  = 0;
+  var elapsedSec    = 0;
+  var timerInterval = null;
+  var shots         = [];
+  var streak        = 0;
+  var maxStreak     = 0;
 
-  // Shot result text animation
-  const resultScale = useSharedValue(0);
-  const resultOpacity = useSharedValue(0);
-  const [lastResult, setLastResult] = useState(null);
+  // DOM refs (populated in buildHTML)
+  var els = {};
 
-  // Timer
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const timerRef = useRef(null);
+  /* ══════════════════════════════════════════════════════════════
+     HTML INJECTION
+     ══════════════════════════════════════════════════════════════ */
+  function buildHTML() {
+    var screen = document.getElementById('shot-tracking-screen');
+    if (!screen) {
+      screen = document.createElement('div');
+      screen.id = 'shot-tracking-screen';
+      document.body.appendChild(screen);
+    }
 
-  /**
-   * Handle shot detection callback.
-   */
-  const handleShotDetected = useCallback(
-    (shotData) => {
-      // Record in session manager
-      recordShot(shotData);
+    screen.innerHTML = [
+      /* Video + Canvas layer */
+      '<div class="st-video-wrap">',
+        '<video id="st-video" autoplay playsinline muted></video>',
+        '<canvas id="st-canvas"></canvas>',
+      '</div>',
 
-      // Visual feedback
-      const isMade = shotData.result === 'made';
-      setLastResult(isMade ? 'SWISH!' : 'MISS');
+      /* ── Rim Lock overlay ── */
+      '<div id="st-rimlock" class="st-rimlock-overlay">',
+        '<div class="st-rimlock-scrim" id="st-rimlock-tap"></div>',
+        '<div class="st-rimlock-instruction"><p id="st-rimlock-text">Tap the center of the basketball rim</p></div>',
+        '<div class="st-crosshair-h" id="st-crosshair-h"></div>',
+        '<div class="st-crosshair-v" id="st-crosshair-v"></div>',
+        '<div class="st-crosshair-center" id="st-crosshair-center"></div>',
+        '<div class="st-rim-indicator" id="st-rim-indicator"></div>',
+        '<div class="st-rim-size-controls" id="st-size-controls">',
+          '<button class="st-rim-size-btn" id="st-size-minus">&minus;</button>',
+          '<span class="st-rim-size-label">Rim Size</span>',
+          '<button class="st-rim-size-btn" id="st-size-plus">+</button>',
+        '</div>',
+        '<button class="st-lock-btn" id="st-lock-btn">Lock Rim & Start</button>',
+        '<button class="st-cancel-btn" id="st-cancel-btn">Cancel</button>',
+      '</div>',
 
-      // Flash effect
-      flashColor.value = isMade ? COLOR_MADE : COLOR_MISSED;
-      flashOpacity.value = withSequence(
-        withTiming(0.4, { duration: 100 }),
-        withDelay(200, withTiming(0, { duration: 400 }))
-      );
+      /* ── Tracking overlay ── */
+      '<div id="st-tracking" class="st-tracking-overlay">',
+        '<div class="st-top-bar">',
+          '<div class="st-stat-row">',
+            '<div class="st-stat-block"><div class="st-stat-value" id="st-made">0</div><div class="st-stat-label">Made</div></div>',
+            '<div class="st-stat-divider"></div>',
+            '<div class="st-stat-block"><div class="st-stat-value" id="st-attempts">0</div><div class="st-stat-label">Attempts</div></div>',
+            '<div class="st-stat-divider"></div>',
+            '<div class="st-stat-block"><div class="st-stat-value" id="st-accuracy" style="color:#f5a623;">0%</div><div class="st-stat-label">Accuracy</div></div>',
+          '</div>',
+          '<div class="st-timer" id="st-timer">0:00</div>',
+        '</div>',
+        '<div class="st-status-badge" id="st-status-badge">',
+          '<div class="st-status-dot loading" id="st-status-dot"></div>',
+          '<span class="st-status-text" id="st-status-text">Loading model...</span>',
+        '</div>',
+        '<div class="st-flash" id="st-flash"></div>',
+        '<div class="st-result-text" id="st-result-text"></div>',
+        '<div class="st-bottom-bar">',
+          '<button class="st-stop-btn" id="st-stop-btn">',
+            '<div class="st-stop-icon"></div>',
+            '<span class="st-stop-text">End Session</span>',
+          '</button>',
+        '</div>',
+      '</div>',
 
-      // Result text pop
-      resultScale.value = withSequence(
-        withTiming(1.5, { duration: 150, easing: Easing.out(Easing.back) }),
-        withDelay(600, withTiming(0, { duration: 200 }))
-      );
-      resultOpacity.value = withSequence(
-        withTiming(1, { duration: 100 }),
-        withDelay(600, withTiming(0, { duration: 200 }))
-      );
+      /* ── Summary overlay ── */
+      '<div id="st-summary" class="st-summary-overlay">',
+        '<div class="st-summary-content" id="st-summary-content"></div>',
+      '</div>'
+    ].join('');
 
-      // Haptic feedback
-      Vibration.vibrate(isMade ? [0, 50, 30, 50] : [0, 100]);
-    },
-    [recordShot, flashColor, flashOpacity, resultScale, resultOpacity]
-  );
+    // Cache refs
+    els.screen           = screen;
+    els.video            = document.getElementById('st-video');
+    els.canvas           = document.getElementById('st-canvas');
+    els.rimlock          = document.getElementById('st-rimlock');
+    els.rimlockTap       = document.getElementById('st-rimlock-tap');
+    els.rimlockText      = document.getElementById('st-rimlock-text');
+    els.crosshairH       = document.getElementById('st-crosshair-h');
+    els.crosshairV       = document.getElementById('st-crosshair-v');
+    els.crosshairCenter  = document.getElementById('st-crosshair-center');
+    els.rimIndicator     = document.getElementById('st-rim-indicator');
+    els.sizeControls     = document.getElementById('st-size-controls');
+    els.sizeMinus        = document.getElementById('st-size-minus');
+    els.sizePlus         = document.getElementById('st-size-plus');
+    els.lockBtn          = document.getElementById('st-lock-btn');
+    els.cancelBtn        = document.getElementById('st-cancel-btn');
+    els.tracking         = document.getElementById('st-tracking');
+    els.made             = document.getElementById('st-made');
+    els.attempts         = document.getElementById('st-attempts');
+    els.accuracy         = document.getElementById('st-accuracy');
+    els.timer            = document.getElementById('st-timer');
+    els.statusBadge      = document.getElementById('st-status-badge');
+    els.statusDot        = document.getElementById('st-status-dot');
+    els.statusText       = document.getElementById('st-status-text');
+    els.flash            = document.getElementById('st-flash');
+    els.resultText       = document.getElementById('st-result-text');
+    els.stopBtn          = document.getElementById('st-stop-btn');
+    els.summary          = document.getElementById('st-summary');
+    els.summaryContent   = document.getElementById('st-summary-content');
 
-  // Shot detection hook
-  const {
-    frameProcessor,
-    isDetecting,
-    ballPosition,
-    stats,
-    startDetection,
-    stopDetection,
-  } = useShotDetection(rimZone, handleShotDetected);
+    videoEl   = els.video;
+    canvasEl  = els.canvas;
+    canvasCtx = canvasEl.getContext('2d');
 
-  // Start session and detection on mount
-  useEffect(() => {
-    startSession();
-    startDetection();
-
-    // Start timer
-    timerRef.current = setInterval(() => {
-      setElapsedTime((prev) => prev + 1);
-    }, 1000);
-
-    return () => {
-      clearInterval(timerRef.current);
-      stopDetection();
-    };
-  }, []);
-
-  /**
-   * Handle stop button — confirm and navigate to summary.
-   */
-  const handleStop = useCallback(() => {
-    Alert.alert('End Session', 'Stop tracking and view your results?', [
-      { text: 'Keep Going', style: 'cancel' },
-      {
-        text: 'End Session',
-        style: 'destructive',
-        onPress: () => {
-          stopDetection();
-          clearInterval(timerRef.current);
-          const summary = endSession();
-          navigation.replace('SessionSummary', { summary });
-        },
-      },
-    ]);
-  }, [stopDetection, endSession, navigation]);
-
-  // Format elapsed time
-  const formatTime = (seconds) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  // Animated styles
-  const flashStyle = useAnimatedStyle(() => ({
-    opacity: flashOpacity.value,
-    backgroundColor: flashColor.value,
-  }));
-
-  const resultStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: resultScale.value }],
-    opacity: resultOpacity.value,
-  }));
-
-  if (!device) {
-    return (
-      <View style={styles.container}>
-        <Text style={styles.errorText}>Camera not available</Text>
-      </View>
-    );
+    bindEvents();
   }
 
-  const accuracy =
-    stats.attempts > 0
-      ? Math.round((stats.made / stats.attempts) * 100)
+  /* ══════════════════════════════════════════════════════════════
+     EVENT BINDING
+     ══════════════════════════════════════════════════════════════ */
+  function bindEvents() {
+    els.rimlockTap.addEventListener('click', onRimTap);
+    els.sizeMinus.addEventListener('click', function () { adjustRimSize(-0.02); });
+    els.sizePlus.addEventListener('click', function () { adjustRimSize(0.02); });
+    els.lockBtn.addEventListener('click', onLockAndStart);
+    els.cancelBtn.addEventListener('click', closeScreen);
+    els.stopBtn.addEventListener('click', onStopSession);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     PUBLIC API
+     ══════════════════════════════════════════════════════════════ */
+  function openScreen() {
+    buildHTML();
+    els.screen.classList.add('active');
+    phase = 'rimlock';
+    rimCenter = null;
+    rimLocked = false;
+    rimSize = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
+    shots = [];
+    streak = 0;
+    maxStreak = 0;
+
+    // Show rim lock overlay
+    els.rimlock.classList.add('active');
+    els.tracking.classList.remove('active');
+    els.summary.classList.remove('active');
+
+    // Show crosshairs
+    toggleCrosshairs(true);
+    els.rimIndicator.style.display = 'none';
+    els.sizeControls.classList.remove('active');
+    els.lockBtn.classList.remove('active');
+    els.rimlockText.textContent = 'Tap the center of the basketball rim';
+
+    startCamera();
+  }
+
+  function closeScreen() {
+    stopCamera();
+    stopTracking();
+    phase = 'idle';
+    if (els.screen) els.screen.classList.remove('active');
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     CAMERA
+     ══════════════════════════════════════════════════════════════ */
+  function startCamera() {
+    if (stream) return;
+
+    var constraints = {
+      video: {
+        facingMode: { ideal: 'environment' },
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
+      },
+      audio: false
+    };
+
+    navigator.mediaDevices.getUserMedia(constraints)
+      .then(function (s) {
+        stream = s;
+        videoEl.srcObject = s;
+        videoEl.play();
+        videoEl.addEventListener('loadedmetadata', function onMeta() {
+          videoEl.removeEventListener('loadedmetadata', onMeta);
+          resizeCanvas();
+        });
+      })
+      .catch(function (err) {
+        console.error('Camera access failed:', err);
+        alert('Camera access is required for shot tracking. Please allow camera permissions and try again.');
+        closeScreen();
+      });
+  }
+
+  function stopCamera() {
+    if (stream) {
+      stream.getTracks().forEach(function (t) { t.stop(); });
+      stream = null;
+    }
+    if (videoEl) videoEl.srcObject = null;
+  }
+
+  function resizeCanvas() {
+    if (!canvasEl || !videoEl) return;
+    canvasEl.width = videoEl.videoWidth || videoEl.clientWidth;
+    canvasEl.height = videoEl.videoHeight || videoEl.clientHeight;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     RIM LOCK PHASE
+     ══════════════════════════════════════════════════════════════ */
+  function onRimTap(e) {
+    if (rimLocked) return;
+
+    var rect = els.rimlockTap.getBoundingClientRect();
+    var normX = (e.clientX - rect.left) / rect.width;
+    var normY = (e.clientY - rect.top) / rect.height;
+
+    rimCenter = { x: normX, y: normY };
+    updateRimIndicator();
+    toggleCrosshairs(false);
+    els.sizeControls.classList.add('active');
+    els.lockBtn.classList.add('active');
+    els.rimlockText.textContent = 'Adjust position or tap "Lock Rim & Start"';
+  }
+
+  function adjustRimSize(delta) {
+    if (rimLocked || !rimCenter) return;
+    rimSize.w = Math.max(0.08, Math.min(0.35, rimSize.w + delta));
+    rimSize.h = Math.max(0.02, Math.min(0.12, rimSize.h + delta * 0.3));
+    updateRimIndicator();
+  }
+
+  function updateRimIndicator() {
+    if (!rimCenter) return;
+    var el = els.rimIndicator;
+    var pw = els.rimlockTap.clientWidth;
+    var ph = els.rimlockTap.clientHeight;
+    var w = rimSize.w * pw;
+    var h = rimSize.h * ph;
+    el.style.display = 'block';
+    el.style.left   = (rimCenter.x * pw - w / 2) + 'px';
+    el.style.top    = (rimCenter.y * ph - h / 2) + 'px';
+    el.style.width  = w + 'px';
+    el.style.height = h + 'px';
+  }
+
+  function toggleCrosshairs(show) {
+    var v = show ? '' : 'none';
+    els.crosshairH.style.display = v;
+    els.crosshairV.style.display = v;
+    els.crosshairCenter.style.display = v;
+  }
+
+  function onLockAndStart() {
+    if (!rimCenter) return;
+    rimLocked = true;
+    els.rimIndicator.classList.add('locked');
+    els.sizeControls.classList.remove('active');
+    els.lockBtn.classList.remove('active');
+    els.rimlockText.textContent = 'Rim locked! Starting session...';
+
+    setTimeout(function () {
+      enterTrackingPhase();
+    }, 400);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     TRACKING PHASE
+     ══════════════════════════════════════════════════════════════ */
+  function enterTrackingPhase() {
+    phase = 'tracking';
+    els.rimlock.classList.remove('active');
+    els.tracking.classList.add('active');
+
+    // Session init
+    sessionId = 'ai_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    sessionStart = Date.now();
+    elapsedSec = 0;
+    shots = [];
+    streak = 0;
+    maxStreak = 0;
+
+    // Reset UI
+    els.made.textContent = '0';
+    els.attempts.textContent = '0';
+    els.accuracy.textContent = '0%';
+    els.timer.textContent = '0:00';
+
+    // Start timer
+    timerInterval = setInterval(function () {
+      elapsedSec++;
+      els.timer.textContent = formatTime(elapsedSec);
+    }, 1000);
+
+    // Configure detection engine
+    var engine = window.ShotDetectionEngine;
+    engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    engine.onShotDetected = onShotDetected;
+    engine.onBallUpdate   = onBallUpdate;
+    engine.onStatusChange = onDetectionStatus;
+
+    // Initialize and start
+    engine.init().then(function (ok) {
+      if (ok && phase === 'tracking') {
+        engine.start(videoEl);
+        startOverlayLoop();
+      }
+    });
+  }
+
+  function stopTracking() {
+    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    if (overlayAnimFrame) { cancelAnimationFrame(overlayAnimFrame); overlayAnimFrame = null; }
+    var engine = window.ShotDetectionEngine;
+    if (engine) engine.stop();
+  }
+
+  function onDetectionStatus(status) {
+    var dot = els.statusDot;
+    var txt = els.statusText;
+    dot.className = 'st-status-dot';
+    switch (status) {
+      case 'loading':
+        dot.classList.add('loading');
+        txt.textContent = 'Loading model...';
+        break;
+      case 'ready':
+        txt.textContent = 'Model ready';
+        break;
+      case 'detecting':
+        txt.textContent = 'Tracking';
+        break;
+      case 'error':
+        dot.classList.add('error');
+        txt.textContent = 'Detection error';
+        break;
+      default:
+        txt.textContent = status;
+    }
+  }
+
+  /* ── Shot callback ──────────────────────────────────────────── */
+  function onShotDetected(data) {
+    var isMade = data.result === 'made';
+
+    // Record shot
+    var userId = window.currentUser ? window.currentUser.id : 'anonymous';
+    shots.push({
+      session_id:  sessionId,
+      user_id:     userId,
+      shot_result: data.result,
+      shot_x:      data.shotX,
+      shot_y:      data.shotY,
+      ball_trajectory_points: data.trajectory,
+      timestamp:   new Date(data.timestamp).toISOString(),
+      shot_number: shots.length + 1
+    });
+
+    // Streak
+    if (isMade) {
+      streak++;
+      if (streak > maxStreak) maxStreak = streak;
+    } else {
+      streak = 0;
+    }
+
+    // Update UI
+    var engine = window.ShotDetectionEngine;
+    els.made.textContent = engine.stats.made;
+    els.attempts.textContent = engine.stats.attempts;
+    var pct = engine.stats.attempts > 0
+      ? Math.round((engine.stats.made / engine.stats.attempts) * 100)
       : 0;
+    els.accuracy.textContent = pct + '%';
+    els.accuracy.style.color = getAccuracyColor(pct);
 
-  return (
-    <View style={styles.container}>
-      <StatusBar hidden />
+    // Flash
+    showFlash(isMade ? 'made' : 'missed');
 
-      {/* Camera */}
-      <Camera
-        ref={cameraRef}
-        style={StyleSheet.absoluteFill}
-        device={device}
-        isActive={true}
-        frameProcessor={frameProcessor}
-        pixelFormat="rgb"
-        fps={30}
-      />
+    // Result text
+    showResultText(isMade ? 'SWISH!' : 'MISS', isMade ? 'made' : 'missed');
 
-      {/* Semi-transparent overlay */}
-      <View style={styles.overlay} pointerEvents="box-none">
-        {/* ── TOP BAR: Stats ── */}
-        <View style={styles.topBar}>
-          <View style={styles.statRow}>
-            <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{stats.made}</Text>
-              <Text style={styles.statLabel}>Made</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBlock}>
-              <Text style={styles.statValue}>{stats.attempts}</Text>
-              <Text style={styles.statLabel}>Attempts</Text>
-            </View>
-            <View style={styles.statDivider} />
-            <View style={styles.statBlock}>
-              <Text style={[styles.statValue, { color: getAccuracyColor(accuracy) }]}>
-                {accuracy}%
-              </Text>
-              <Text style={styles.statLabel}>Accuracy</Text>
-            </View>
-          </View>
-          <Text style={styles.timer}>{formatTime(elapsedTime)}</Text>
-        </View>
+    // Haptic (if available)
+    if (navigator.vibrate) {
+      navigator.vibrate(isMade ? [50, 30, 50] : [100]);
+    }
+  }
 
-        {/* ── RIM ZONE INDICATOR ── */}
-        <View
-          style={[
-            styles.rimZoneIndicator,
-            {
-              left: rimZone.centerX * SCREEN_W - (rimZone.width * SCREEN_W) / 2,
-              top: rimZone.centerY * SCREEN_H - (rimZone.height * SCREEN_H) / 2,
-              width: rimZone.width * SCREEN_W,
-              height: rimZone.height * SCREEN_H,
-            },
-          ]}
-        />
+  function showFlash(cls) {
+    var el = els.flash;
+    el.className = 'st-flash ' + cls + ' show';
+    setTimeout(function () { el.classList.remove('show'); }, 300);
+  }
 
-        {/* ── BALL TRACKING DOT ── */}
-        {ballPosition && (
-          <View
-            style={[
-              styles.ballDot,
-              {
-                left: ballPosition.x * SCREEN_W - 6,
-                top: ballPosition.y * SCREEN_H - 6,
-              },
-            ]}
-          />
-        )}
+  function showResultText(text, cls) {
+    var el = els.resultText;
+    el.textContent = text;
+    el.className = 'st-result-text ' + cls + ' show';
+    setTimeout(function () { el.classList.remove('show'); }, 800);
+  }
 
-        {/* ── FLASH OVERLAY (made/missed) ── */}
-        <Animated.View style={[styles.flashOverlay, flashStyle]} pointerEvents="none" />
+  /* ── Ball update callback → canvas overlay ──────────────────── */
+  var currentBall = null;
+  function onBallUpdate(pos) { currentBall = pos; }
 
-        {/* ── RESULT TEXT ("SWISH!" / "MISS") ── */}
-        <Animated.View style={[styles.resultContainer, resultStyle]} pointerEvents="none">
-          <Text
-            style={[
-              styles.resultText,
-              {
-                color:
-                  lastResult === 'SWISH!' ? COLOR_MADE : COLOR_MISSED,
-              },
-            ]}
-          >
-            {lastResult}
-          </Text>
-        </Animated.View>
+  function startOverlayLoop() {
+    function draw() {
+      if (phase !== 'tracking') return;
+      overlayAnimFrame = requestAnimationFrame(draw);
 
-        {/* ── BOTTOM CONTROLS ── */}
-        <View style={styles.bottomBar}>
-          <TouchableOpacity style={styles.stopButton} onPress={handleStop}>
-            <View style={styles.stopIcon} />
-            <Text style={styles.stopText}>End Session</Text>
-          </TouchableOpacity>
-        </View>
+      var cw = canvasEl.width;
+      var ch = canvasEl.height;
+      if (cw === 0 || ch === 0) { resizeCanvas(); return; }
 
-        {/* ── DETECTION STATUS ── */}
-        <View style={styles.statusDot}>
-          <View
-            style={[
-              styles.dot,
-              { backgroundColor: isDetecting ? '#00ff88' : '#ff4444' },
-            ]}
-          />
-          <Text style={styles.statusText}>
-            {isDetecting ? 'Tracking' : 'Initializing...'}
-          </Text>
-        </View>
-      </View>
-    </View>
-  );
-}
+      canvasCtx.clearRect(0, 0, cw, ch);
 
-function getAccuracyColor(pct) {
-  if (pct >= 65) return COLOR_MADE;
-  if (pct >= 50) return '#ffaa00';
-  return COLOR_MISSED;
-}
+      // Draw rim zone indicator (dashed orange circle)
+      if (rimCenter) {
+        var rx = rimSize.w * cw / 2;
+        var ry = rimSize.h * ch / 2;
+        canvasCtx.save();
+        canvasCtx.strokeStyle = 'rgba(245,166,35,0.5)';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.setLineDash([8, 6]);
+        canvasCtx.beginPath();
+        canvasCtx.ellipse(
+          rimCenter.x * cw, rimCenter.y * ch,
+          rx, ry, 0, 0, Math.PI * 2
+        );
+        canvasCtx.stroke();
+        // Light fill
+        canvasCtx.fillStyle = 'rgba(245,166,35,0.06)';
+        canvasCtx.fill();
+        canvasCtx.restore();
+      }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  errorText: {
-    color: '#fff',
-    fontSize: 18,
-    textAlign: 'center',
-    marginTop: 100,
-  },
+      // Draw ball tracking dot
+      if (currentBall) {
+        var bx = currentBall.normX * cw;
+        var by = currentBall.normY * ch;
+        canvasCtx.save();
+        canvasCtx.beginPath();
+        canvasCtx.arc(bx, by, 7, 0, Math.PI * 2);
+        canvasCtx.fillStyle = '#ffaa00';
+        canvasCtx.fill();
+        canvasCtx.strokeStyle = '#fff';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.stroke();
+        // Glow
+        canvasCtx.shadowColor = '#ffaa00';
+        canvasCtx.shadowBlur = 10;
+        canvasCtx.beginPath();
+        canvasCtx.arc(bx, by, 4, 0, Math.PI * 2);
+        canvasCtx.fillStyle = '#ffaa00';
+        canvasCtx.fill();
+        canvasCtx.restore();
+      }
+    }
 
-  // Top bar
-  topBar: {
-    position: 'absolute',
-    top: 50,
-    left: 16,
-    right: 16,
-    backgroundColor: 'rgba(0,0,0,0.75)',
-    borderRadius: 16,
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-  },
-  statRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    alignItems: 'center',
-  },
-  statBlock: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  statValue: {
-    color: '#fff',
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  statLabel: {
-    color: '#888',
-    fontSize: 11,
-    fontWeight: '600',
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-  statDivider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-  },
-  timer: {
-    color: '#aaa',
-    fontSize: 13,
-    textAlign: 'center',
-    marginTop: 8,
-    fontVariant: ['tabular-nums'],
-  },
+    draw();
+  }
 
-  // Rim zone
-  rimZoneIndicator: {
-    position: 'absolute',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 107, 0, 0.5)',
-    borderStyle: 'dashed',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255, 107, 0, 0.08)',
-  },
+  /* ── Stop session ───────────────────────────────────────────── */
+  function onStopSession() {
+    if (!confirm('End session and view your results?')) return;
+    stopTracking();
+    enterSummaryPhase();
+  }
 
-  // Ball dot
-  ballDot: {
-    position: 'absolute',
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: COLOR_BALL_DOT,
-    borderWidth: 2,
-    borderColor: '#fff',
-    elevation: 4,
-    shadowColor: COLOR_BALL_DOT,
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-  },
+  /* ══════════════════════════════════════════════════════════════
+     SUMMARY PHASE
+     ══════════════════════════════════════════════════════════════ */
+  function enterSummaryPhase() {
+    phase = 'summary';
+    stopCamera();
+    els.tracking.classList.remove('active');
+    els.summary.classList.add('active');
 
-  // Flash overlay
-  flashOverlay: {
-    ...StyleSheet.absoluteFillObject,
-  },
+    var engine = window.ShotDetectionEngine;
+    var totalMade     = engine.stats.made;
+    var totalAttempts = engine.stats.attempts;
+    var accuracy      = totalAttempts > 0 ? Math.round((totalMade / totalAttempts) * 1000) / 10 : 0;
+    var durationMs    = Date.now() - sessionStart;
+    var durationFmt   = formatDuration(durationMs);
 
-  // Result text
-  resultContainer: {
-    position: 'absolute',
-    top: SCREEN_H * 0.4,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  resultText: {
-    fontSize: 48,
-    fontWeight: '900',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 8,
-  },
+    // XP calculation (per spec: 10 per made, 2 per attempt)
+    var xpMade    = totalMade * XP_PER_MADE;
+    var xpAttempt = totalAttempts * XP_PER_ATTEMPT;
+    var xpTotal   = xpMade + xpAttempt;
+    var xpBreakdown = [];
+    if (xpMade > 0)    xpBreakdown.push({ reason: totalMade + ' made shots (\u00d710)', amount: xpMade });
+    if (xpAttempt > 0) xpBreakdown.push({ reason: totalAttempts + ' attempts (\u00d72)', amount: xpAttempt });
 
-  // Bottom bar
-  bottomBar: {
-    position: 'absolute',
-    bottom: 50,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
-  stopButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 68, 68, 0.9)',
-    paddingHorizontal: 28,
-    paddingVertical: 14,
-    borderRadius: 30,
-    elevation: 4,
-    shadowColor: '#ff4444',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  stopIcon: {
-    width: 16,
-    height: 16,
-    borderRadius: 3,
-    backgroundColor: '#fff',
-    marginRight: 10,
-  },
-  stopText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+    var summary = {
+      sessionId:      sessionId,
+      userId:         window.currentUser ? window.currentUser.id : 'anonymous',
+      startTime:      new Date(sessionStart).toISOString(),
+      durationMs:     durationMs,
+      durationFmt:    durationFmt,
+      totalMade:      totalMade,
+      totalAttempts:  totalAttempts,
+      accuracy:       accuracy,
+      maxStreak:      maxStreak,
+      xpEarned:       xpTotal,
+      xpBreakdown:    xpBreakdown,
+      shots:          shots
+    };
 
-  // Status indicator
-  statusDot: {
-    position: 'absolute',
-    top: 140,
-    right: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    borderRadius: 12,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginRight: 6,
-  },
-  statusText: {
-    color: '#aaa',
-    fontSize: 11,
-    fontWeight: '600',
-  },
-});
+    renderSummary(summary);
+  }
+
+  function renderSummary(summary) {
+    var html = [];
+
+    // Header
+    html.push(
+      '<div class="st-summary-header">',
+        '<div class="st-summary-title">Session Complete</div>',
+        '<div class="st-summary-duration">' + summary.durationFmt + '</div>',
+      '</div>'
+    );
+
+    // Big stats
+    html.push(
+      '<div class="st-big-stats">',
+        '<div class="st-big-stat">',
+          '<div class="st-big-stat-value" style="color:' + getAccuracyColor(Math.round(summary.accuracy)) + '">' + Math.round(summary.accuracy) + '%</div>',
+          '<div class="st-big-stat-label">Accuracy</div>',
+        '</div>',
+        '<div class="st-big-stat-divider"></div>',
+        '<div class="st-big-stat">',
+          '<div class="st-big-stat-value">' + summary.totalMade + '</div>',
+          '<div class="st-big-stat-label">Made</div>',
+        '</div>',
+        '<div class="st-big-stat-divider"></div>',
+        '<div class="st-big-stat">',
+          '<div class="st-big-stat-value">' + summary.totalAttempts + '</div>',
+          '<div class="st-big-stat-label">Attempts</div>',
+        '</div>',
+      '</div>'
+    );
+
+    // Shot chart
+    html.push(
+      '<div class="st-chart-section">',
+        '<div class="st-section-title">Shot Chart</div>',
+        '<div class="st-chart-wrap">',
+          buildShotChartSVG(summary.shots),
+          '<div class="st-chart-legend">',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#00ff88;"></div>Made</div>',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#ff4444;"></div>Missed</div>',
+          '</div>',
+        '</div>',
+      '</div>'
+    );
+
+    // XP
+    html.push(
+      '<div class="st-xp-section">',
+        '<div class="st-xp-title">XP Earned</div>',
+        '<div class="st-xp-total">+' + summary.xpEarned + ' XP</div>'
+    );
+    for (var i = 0; i < summary.xpBreakdown.length; i++) {
+      var item = summary.xpBreakdown[i];
+      html.push(
+        '<div class="st-xp-row">',
+          '<span class="st-xp-reason">' + item.reason + '</span>',
+          '<span class="st-xp-amount">+' + item.amount + '</span>',
+        '</div>'
+      );
+    }
+    html.push('</div>');
+
+    // Actions
+    html.push(
+      '<div class="st-actions">',
+        '<button class="st-save-btn" id="st-save-btn">Save to CourtIQ</button>',
+        '<button class="st-done-btn" id="st-done-btn">Done</button>',
+      '</div>'
+    );
+
+    els.summaryContent.innerHTML = html.join('');
+
+    // Bind action buttons
+    var saveBtn = document.getElementById('st-save-btn');
+    var doneBtn = document.getElementById('st-done-btn');
+    var isSaving = false;
+
+    saveBtn.addEventListener('click', function () {
+      if (isSaving) return;
+      isSaving = true;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Saving...';
+
+      saveSessionData(summary).then(function (ok) {
+        if (ok) {
+          saveBtn.textContent = '\u2713 Saved';
+          saveBtn.classList.add('saved');
+        } else {
+          saveBtn.textContent = 'Save Failed \u2014 Retry';
+          saveBtn.disabled = false;
+          isSaving = false;
+        }
+      });
+    });
+
+    doneBtn.addEventListener('click', function () {
+      closeScreen();
+    });
+  }
+
+  /* ── Save to Supabase ───────────────────────────────────────── */
+  async function saveSessionData(summary) {
+    try {
+      var zones = categorizeShotsByZone(summary.shots);
+
+      await window.ShotService.saveSession({
+        id:             summary.sessionId,
+        user_id:        summary.userId,
+        session_date:   summary.startTime,
+        session_type:   'ai_tracking',
+        duration_ms:    summary.durationMs,
+        total_attempts: summary.totalAttempts,
+        total_made:     summary.totalMade,
+        accuracy:       summary.accuracy,
+        max_streak:     summary.maxStreak,
+        xp_earned:      summary.xpEarned,
+        fg_made:        zones.midrange.made,
+        fg_missed:      zones.midrange.missed,
+        three_made:     zones.threePoint.made,
+        three_missed:   zones.threePoint.missed,
+        ft_made:        zones.paint.made,
+        ft_missed:      zones.paint.missed
+      });
+
+      await window.ShotService.saveShots(summary.shots);
+
+      await window.ShotService.grantXP(
+        summary.userId,
+        summary.xpEarned,
+        'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
+      );
+
+      return true;
+    } catch (err) {
+      console.error('Save failed:', err);
+      return false;
+    }
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     SHOT CHART SVG (half-court diagram)
+     ══════════════════════════════════════════════════════════════ */
+  function buildShotChartSVG(shotList) {
+    var lines = [];
+    lines.push('<svg viewBox="0 0 ' + COURT_W + ' ' + COURT_H + '" xmlns="http://www.w3.org/2000/svg">');
+
+    // Court background
+    lines.push('<rect x="0" y="0" width="' + COURT_W + '" height="' + COURT_H + '" rx="8" fill="#1a1a2e"/>');
+
+    // Court lines
+    lines.push('<g stroke="rgba(255,255,255,0.15)" stroke-width="1.5" fill="none">');
+    // Boundary
+    lines.push('<rect x="5" y="5" width="' + (COURT_W - 10) + '" height="' + (COURT_H - 10) + '" rx="4"/>');
+    // Three-point arc
+    lines.push('<path d="M 30 0 L 30 ' + (RIM_SVG_Y + 80) + ' A ' + THREE_PT_R + ' ' + THREE_PT_R + ' 0 0 0 ' + (COURT_W - 30) + ' ' + (RIM_SVG_Y + 80) + ' L ' + (COURT_W - 30) + ' 0"/>');
+    // Paint
+    lines.push('<path d="M ' + (RIM_SVG_X - 60) + ' 0 L ' + (RIM_SVG_X - 60) + ' ' + (RIM_SVG_Y + 150) + ' L ' + (RIM_SVG_X + 60) + ' ' + (RIM_SVG_Y + 150) + ' L ' + (RIM_SVG_X + 60) + ' 0"/>');
+    // FT circle
+    lines.push('<circle cx="' + RIM_SVG_X + '" cy="' + (RIM_SVG_Y + 150) + '" r="60"/>');
+    // Backboard
+    lines.push('<path d="M ' + (RIM_SVG_X - 30) + ' ' + (RIM_SVG_Y - 10) + ' L ' + (RIM_SVG_X + 30) + ' ' + (RIM_SVG_Y - 10) + '" stroke-width="3"/>');
+    lines.push('</g>');
+
+    // Rim
+    lines.push('<circle cx="' + RIM_SVG_X + '" cy="' + RIM_SVG_Y + '" r="12" stroke="#f5a623" stroke-width="2" fill="rgba(245,166,35,0.2)"/>');
+
+    // Shot dots — misses first
+    for (var i = 0; i < shotList.length; i++) {
+      var s = shotList[i];
+      var cx = 50 + s.shot_x * (COURT_W - 100);
+      var cy = RIM_SVG_Y + (1 - s.shot_y) * (COURT_H - RIM_SVG_Y - 40);
+      var isMade = s.shot_result === 'made';
+      if (!isMade) {
+        lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="#ff4444" opacity="0.6"/>');
+      }
+    }
+    // Made on top
+    for (var j = 0; j < shotList.length; j++) {
+      var s2 = shotList[j];
+      var cx2 = 50 + s2.shot_x * (COURT_W - 100);
+      var cy2 = RIM_SVG_Y + (1 - s2.shot_y) * (COURT_H - RIM_SVG_Y - 40);
+      if (s2.shot_result === 'made') {
+        lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="#00ff88" opacity="0.9" stroke="#fff" stroke-width="1"/>');
+      }
+    }
+
+    lines.push('</svg>');
+    return lines.join('');
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     HELPERS
+     ══════════════════════════════════════════════════════════════ */
+  function formatTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function formatDuration(ms) {
+    var totalSec = Math.floor(ms / 1000);
+    var min = Math.floor(totalSec / 60);
+    var sec = totalSec % 60;
+    return min > 0 ? min + 'm ' + sec + 's' : sec + 's';
+  }
+
+  function getAccuracyColor(pct) {
+    if (pct >= 65) return '#00ff88';
+    if (pct >= 50) return '#ffaa00';
+    return '#ff4444';
+  }
+
+  function categorizeShotsByZone(shotList) {
+    var zones = {
+      paint:      { made: 0, missed: 0 },
+      midrange:   { made: 0, missed: 0 },
+      threePoint: { made: 0, missed: 0 }
+    };
+    for (var i = 0; i < shotList.length; i++) {
+      var s = shotList[i];
+      var zone;
+      if (s.shot_y > 0.6) zone = 'paint';
+      else if (s.shot_y > 0.35) zone = 'midrange';
+      else zone = 'threePoint';
+      if (s.shot_result === 'made') zones[zone].made++;
+      else zones[zone].missed++;
+    }
+    return zones;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     EXPOSE GLOBALLY
+     ══════════════════════════════════════════════════════════════ */
+  window.ShotTrackingScreen = {
+    open:  openScreen,
+    close: closeScreen
+  };
+
+})();
