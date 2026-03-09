@@ -599,9 +599,51 @@
 
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
-    // Launch button
+    // Live camera button
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
+
+    // Upload video button
+    var uploadBtn = document.getElementById('ast-upload-btn');
+    if (uploadBtn) uploadBtn.addEventListener('click', openOverlayVideo);
+
+    // Hidden file input — fires after user picks a file
+    var fileInput = document.getElementById('ast-file-input');
+    if (fileInput) {
+      fileInput.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (openOverlayBase()) startVideo(file);
+      });
+    }
+
+    // Video playback controls
+    var ppBtn = document.getElementById('ast-vc-playpause');
+    if (ppBtn) {
+      ppBtn.addEventListener('click', function () {
+        if (!video || mode !== 'video') return;
+        if (video.paused) { video.play(); ppBtn.textContent = '⏸'; }
+        else              { video.pause(); ppBtn.textContent = '▶'; }
+      });
+    }
+
+    var scrub = document.getElementById('ast-vc-scrub');
+    if (scrub) {
+      scrub.addEventListener('input', function () {
+        if (!video || mode !== 'video' || !video.duration) return;
+        video.currentTime = (scrub.value / 100) * video.duration;
+      });
+    }
+
+    document.querySelectorAll('.ast-vc-speed-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!video) return;
+        video.playbackRate = parseFloat(btn.dataset.speed);
+        document.querySelectorAll('.ast-vc-speed-btn').forEach(function (b) {
+          b.classList.toggle('ast-vc-speed-active', b === btn);
+        });
+      });
+    });
 
     // Close (X) button
     var closeBtn = document.getElementById('ast-close-btn');
