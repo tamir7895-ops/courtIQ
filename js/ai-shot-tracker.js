@@ -865,9 +865,14 @@
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
-      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
-        // Ball left the area entirely — miss
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y) && nearRimFrames >= 2) {
+        // Ball left the area entirely (and we saw it near rim for at least 2 frames) — miss
         commitShot(false, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
+        // Ball left too fast — likely a tracking error, just reset phase
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
