@@ -770,17 +770,19 @@
         nearRimFrames = 0;
         ballPeakY = Infinity;
       } else if (shotPhase === 'near_rim' && disappearCount >= DISAPPEAR_GRACE) {
-        // Ball was near rim area and disappeared — could be a swish (no rim touch)
-        // Check if ball was descending and within horizontal bounds of rim
-        var lastValid = getLastValidBalls(3);
-        if (lastValid.length >= 2) {
-          var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
-          var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
-          var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
-          if (wasDescending && wasNearRimX && wasBelowRimLevel) {
-            commitShot(true, now);  // Likely swish — ball fell through cleanly
-          } else if (wasNearRimX) {
-            commitShot(false, now); // Near but not through
+        // Ball was near rim and disappeared — only count as swish if we saw it there for multiple frames
+        // (guard against brief tracking loss triggering false swish)
+        if (nearRimFrames >= 3) {
+          var lastValid = getLastValidBalls(3);
+          if (lastValid.length >= 2) {
+            var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
+            var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
+            var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
+            if (wasDescending && wasNearRimX && wasBelowRimLevel) {
+              commitShot(true, now);  // Likely swish — confirmed near rim for several frames
+            } else if (wasNearRimX && nearRimFrames >= 5) {
+              commitShot(false, now); // Near rim for a while but didn't go through
+            }
           }
         }
         shotPhase = 'idle';
