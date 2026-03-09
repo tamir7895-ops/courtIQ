@@ -2,29 +2,34 @@
    SHOT DETECTION — TensorFlow.js COCO-SSD Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
+   v2 — Resolution-normalized thresholds, better area filtering,
+        improved Y-trend with normalized diff, cooldown as ms
+        instead of frame count, wider approach zone.
+
    Runs entirely in-browser using:
      - @tensorflow/tfjs (CDN)
      - @tensorflow-models/coco-ssd (CDN)
      - Web MediaDevices API for camera feed
-
-   Detects "sports ball" class from COCO-SSD, tracks centroid
-   across frames, determines made/missed shots by analyzing
-   ball trajectory relative to a user-calibrated rim position.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
+  var DEBOUNCE_MS          = 2000;  // Cooldown between counted shots (increased for rebounds)
   var MIN_TRAJECTORY_PTS   = 6;    // Min points before analyzing
   var MAX_HISTORY          = 30;   // Rolling buffer size
   var MAX_GAP_FRAMES       = 5;    // Frames ball can vanish before losing track
   var MIN_MOVEMENT_PX      = 3;    // Sub-pixel jitter threshold
-  var BALL_MIN_AREA        = 200;  // Min bbox area for "sports ball"
-  var BALL_MAX_AREA        = 80000;// Max bbox area
   var BALL_CONFIDENCE      = 0.35; // Min COCO-SSD confidence
   var MADE_MAX_FRAMES      = 12;   // Max transit frames through rim
   var DETECTION_INTERVAL   = 100;  // ms between ML detections (~10 FPS)
+
+  /* Area thresholds as fractions of total frame area */
+  var BALL_MIN_AREA_FRAC   = 0.0005;  // ~200/(640*480)
+  var BALL_MAX_AREA_FRAC   = 0.09;    // ~80000/(640*480) generous
+
+  /* Y-trend diff threshold as fraction of frame height */
+  var Y_TREND_FRAC         = 0.007;   // ~5/720
 
   /* ── Tracker ────────────────────────────────────────────────── */
   function createTracker() {
@@ -74,7 +79,7 @@
     });
   }
 
-  function getYTrend(tracker, lookback) {
+  function getYTrend(tracker, vh, lookback) {
     lookback = lookback || 8;
     var pts = tracker.positions;
     if (pts.length < lookback) return 'flat';
@@ -85,9 +90,10 @@
     firstAvg /= mid;
     for (var j = mid; j < recent.length; j++) secondAvg += recent[j].y;
     secondAvg /= (recent.length - mid);
-    var diff = secondAvg - firstAvg;
-    if (diff < -5) return 'rising';
-    if (diff > 5) return 'falling';
+    // Normalize diff relative to frame height
+    var diff = (secondAvg - firstAvg) / (vh || 720);
+    if (diff < -Y_TREND_FRAC) return 'rising';
+    if (diff > Y_TREND_FRAC) return 'falling';
     return 'flat';
   }
 
@@ -97,10 +103,11 @@
       centerX: cx, centerY: cy, width: w, height: h,
       left: cx - w / 2, right: cx + w / 2,
       top: cy - h / 2, bottom: cy + h / 2,
-      approachLeft: cx - w * 0.75,
-      approachRight: cx + w * 0.75,
-      approachTop: cy - h * 1.5,
-      approachBottom: cy + h * 1.5
+      // Wider approach zone for better miss detection
+      approachLeft: cx - w * 1.0,
+      approachRight: cx + w * 1.0,
+      approachTop: cy - h * 2.0,
+      approachBottom: cy + h * 2.0
     };
   }
 
@@ -176,10 +183,6 @@
   }
 
   /* ── Launch Point Detection ────────────────────────────────── */
-  /**
-   * Find the launch point — first position where ball starts rising.
-   * Approximates the shooter's court position.
-   */
   function getLaunchPoint(tracker, vw, vh) {
     var pts = tracker.positions;
     if (pts.length < 3) return null;
@@ -191,32 +194,18 @@
         return { x: pts[i].x / vw, y: pts[i].y / vh };
       }
     }
-    // Fallback: earliest position
     return { x: pts[0].x / vw, y: pts[0].y / vh };
   }
 
-  /**
-   * Classify shot zone based on normalized distance from launch point to rim.
-   *
-   * @param {Object} launchPt  { x, y } normalized (0–1)
-   * @param {Object} rim       Rim zone (with centerX, centerY)
-   * @param {number} threePtDist  Calibrated 3PT distance threshold (normalized)
-   * @returns {string} 'paint' | 'midrange' | 'threePoint'
-   */
   function classifyShotZone(launchPt, rim, threePtDist) {
     if (!launchPt || !rim) return 'midrange';
 
     var dx = launchPt.x - rim.centerX;
     var dy = launchPt.y - rim.centerY;
     var dist = Math.sqrt(dx * dx + dy * dy);
-
-    // Free throw detection: launch point nearly centered on rim X
-    // and at a specific distance (~FT line distance)
     var xOffset = Math.abs(dx);
 
     if (!threePtDist || threePtDist <= 0) {
-      // No calibration — use rough Y-based fallback
-      // FT: centered horizontally (within 8% of rim X) and specific Y range
       if (xOffset < 0.08 && launchPt.y > rim.centerY + 0.15 && launchPt.y < rim.centerY + 0.30) return 'freeThrow';
       if (launchPt.y > rim.centerY + 0.25) return 'paint';
       if (launchPt.y > rim.centerY + 0.10) return 'midrange';
@@ -228,7 +217,6 @@
     var ftMaxThreshold = threePtDist * 0.45;
     var midrangeThreshold = threePtDist * 0.85;
 
-    // FT: centered horizontally (within 10% of 3PT distance) and within FT distance range
     if (xOffset < threePtDist * 0.10 && dist >= ftMinThreshold && dist <= ftMaxThreshold) return 'freeThrow';
     if (dist <= paintThreshold) return 'paint';
     if (dist <= midrangeThreshold) return 'midrange';
@@ -240,7 +228,7 @@
     model: null,
     tracker: null,
     rimZone: null,
-    threePtDistance: 0,    // Calibrated 3PT line distance (normalized)
+    threePtDistance: 0,
     lastShotTime: 0,
     isRunning: false,
     detectionTimer: null,
@@ -248,16 +236,12 @@
     canvasEl: null,
     canvasCtx: null,
     stats: { made: 0, attempts: 0 },
-    ballPosition: null,   // { normX, normY } for overlay
-    onShotDetected: null,  // callback({ result, shotX, shotY, trajectory, launchPoint, shotZone })
-    onBallUpdate: null,    // callback({ normX, normY } | null)
-    onStatusChange: null,  // callback(status: string)
+    ballPosition: null,
+    onShotDetected: null,
+    onBallUpdate: null,
+    onStatusChange: null,
     _isDetecting: false,
 
-    /**
-     * Initialize TF.js and load COCO-SSD model.
-     * Call once on page load. Returns a promise.
-     */
     init: function () {
       var self = this;
       self.tracker = createTracker();
@@ -267,7 +251,6 @@
       self._setStatus('loading');
 
       return new Promise(function (resolve) {
-        // Ensure TF.js is loaded (from CDN)
         if (typeof tf === 'undefined') {
           console.error('TF.js not loaded — include @tensorflow/tfjs CDN');
           self._setStatus('error');
@@ -276,7 +259,6 @@
         }
 
         tf.ready().then(function () {
-          // Load COCO-SSD
           if (typeof cocoSsd === 'undefined') {
             console.error('COCO-SSD not loaded — include @tensorflow-models/coco-ssd CDN');
             self._setStatus('error');
@@ -301,29 +283,14 @@
       });
     },
 
-    /**
-     * Set the rim zone from calibration.
-     * @param {number} normCX  Normalized center X (0-1)
-     * @param {number} normCY  Normalized center Y (0-1)
-     * @param {number} normW   Normalized width (0-1)
-     * @param {number} normH   Normalized height (0-1)
-     */
     setRimZone: function (normCX, normCY, normW, normH) {
       this.rimZone = createRimZone(normCX, normCY, normW, normH);
     },
 
-    /**
-     * Set the calibrated 3-point line distance.
-     * @param {number} dist  Normalized Euclidean distance from 3PT line to rim center
-     */
     setThreePtDistance: function (dist) {
       this.threePtDistance = dist;
     },
 
-    /**
-     * Start detection loop on a <video> element.
-     * @param {HTMLVideoElement} videoEl
-     */
     start: function (videoEl) {
       if (this.isRunning) return;
       if (!this.model) {
@@ -340,9 +307,6 @@
       this._scheduleDetection();
     },
 
-    /**
-     * Stop detection loop.
-     */
     stop: function () {
       this.isRunning = false;
       if (this.detectionTimer) {
@@ -353,7 +317,6 @@
       this._setStatus('stopped');
     },
 
-    /** Reset stats (for new session). */
     resetStats: function () {
       this.stats = { made: 0, attempts: 0 };
       resetTracker(this.tracker);
@@ -380,19 +343,21 @@
       self._isDetecting = true;
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
+      var frameArea = vw * vh;
+      var minArea = frameArea * BALL_MIN_AREA_FRAC;
+      var maxArea = frameArea * BALL_MAX_AREA_FRAC;
 
       self.model.detect(self.videoEl).then(function (predictions) {
         self._isDetecting = false;
         if (!self.isRunning) return;
 
-        // Find best "sports ball" detection
         var bestBall = null;
         var bestScore = 0;
         for (var i = 0; i < predictions.length; i++) {
           var p = predictions[i];
           if (p.class === 'sports ball' && p.score > BALL_CONFIDENCE && p.score > bestScore) {
             var area = p.bbox[2] * p.bbox[3];
-            if (area >= BALL_MIN_AREA && area <= BALL_MAX_AREA) {
+            if (area >= minArea && area <= maxArea) {
               bestBall = p;
               bestScore = p.score;
             }
@@ -433,10 +398,9 @@
       var last = traj[traj.length - 1];
       if (!isInApproachZone(last.x, last.y, this.rimZone)) return;
 
-      var trend = getYTrend(this.tracker);
+      var trend = getYTrend(this.tracker, vh);
       if (trend !== 'falling') return;
 
-      // Detect launch point before analyzing result
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
 

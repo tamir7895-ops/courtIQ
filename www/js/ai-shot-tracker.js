@@ -1,19 +1,33 @@
 /* ============================================================
    AI SHOT TRACKER — /js/ai-shot-tracker.js
-   Camera-based automatic shot detection using color segmentation.
-   Tracks orange basketball, detects made/miss via rim zone.
-   No external dependencies — pure browser APIs + canvas.
+   Camera-based automatic shot detection using ML + color fallback.
+   Tracks basketball, detects made/miss via rim zone.
+
+   v2 — Resolution-normalized thresholds, velocity-predicting Kalman
+        filter, robust state machine, clustered color detection,
+        rebound-aware cooldown, video look-ahead buffering.
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ── Constants ────────────────────────────────────────────── */
-  var RIM_RX = 55;     // Rim ellipse half-width (px in canvas coords)
-  var RIM_RY = 20;     // Rim ellipse half-height
-  var MIN_BLOB = 120;  // Min orange pixels to count as ball (sampled every 2px)
-  var MAX_BLOB = 8000; // Max orange pixels (avoid floor/jersey noise)
-  var MAX_HIST = 45;   // Max trajectory history frames
-  var COOLDOWN = 48;   // Frames between shot detections (~1.6s at 30fps)
+  /* ── Resolution-relative constants ─────────────────────────
+     All spatial thresholds are expressed as fractions of frame
+     width (W) or height (H) so they work at any resolution.   */
+  var RIM_RX_FRAC  = 0.043;  // Rim ellipse half-width  (~55/1280)
+  var RIM_RY_FRAC  = 0.028;  // Rim ellipse half-height (~20/720)
+  var BLOB_MIN_FRAC = 0.00025; // Min orange pixel ratio (sampled every 2px)
+  var BLOB_MAX_FRAC = 0.015;   // Max orange pixel ratio
+  var MAX_HIST      = 45;      // Trajectory history frames
+  var COOLDOWN_SEC  = 2.0;     // Seconds between shot detections
+  var BALL_CIRCLE_FRAC = 0.022; // Ball overlay circle radius as fraction of W
+
+  /* ── Velocity thresholds (fraction of H per 8-frame window) */
+  var VEL_RISE_FRAC  = 0.014;  // ~10/720 — ascending threshold
+  var VEL_FALL_FRAC  = 0.014;  // falling threshold
+  var TELEPORT_FRAC  = 0.22;   // max per-frame jump (fraction of W)
+
+  /* ── Disappear grace — frames ball can vanish before we act */
+  var DISAPPEAR_GRACE = 6;
 
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
@@ -23,59 +37,96 @@
   var W = 0, H = 0;
   var animFrame = null;
   var mode = 'camera';   // 'camera' | 'video'
-  var videoUrl = null;   // object URL for uploaded video file
+  var videoUrl = null;
 
   /* ── ML state ─────────────────────────────────────────────── */
-  var tfModel    = null;   // coco-ssd model instance
-  var mlReady    = false;  // model loaded and ready
-  var mlLoading  = false;  // loading in progress
-  var isDetecting = false; // async detection in progress
-  var lastBall   = null;   // most recent detection (used between async calls)
-  var frameCount = 0;      // frame counter for throttling
+  var tfModel     = null;
+  var mlReady     = false;
+  var mlLoading   = false;
+  var isDetecting = false;
+  var lastBall    = null;
+  var frameCount  = 0;
 
-  /* ── Kalman filter state (x and y independently) ─────────── */
-  var kalX = { x: null, p: 1.0, R: 18, Q: 0.8 };
-  var kalY = { x: null, p: 1.0, R: 18, Q: 0.8 };
+  /* ── Kalman filter with velocity prediction (1-D, x and y) ─ */
+  function createKalman() {
+    return {
+      x: null,   // position estimate
+      v: 0,      // velocity estimate
+      p: 1.0,    // position variance
+      pv: 0.5,   // velocity variance
+      R: 12,     // measurement noise
+      Qp: 0.6,   // process noise — position
+      Qv: 0.3    // process noise — velocity
+    };
+  }
+  var kalX = createKalman();
+  var kalY = createKalman();
 
-  var rim = null;       // { cx, cy, rx, ry }
-  var ballHistory = []; // array of {x,y} or null
-  var shotPhase = 'idle'; // idle | ascending | at_rim
-  var cooldownFrames = 0;
+  function kalmanUpdate(kal, z) {
+    if (kal.x === null) { kal.x = z; kal.v = 0; return z; }
+    // Predict
+    var xPred = kal.x + kal.v;
+    var pPred = kal.p + kal.pv + kal.Qp;
+    // Update
+    var k = pPred / (pPred + kal.R);
+    kal.x = xPred + k * (z - xPred);
+    kal.p = pPred * (1 - k);
+    // Update velocity estimate
+    var vMeas = kal.x - (xPred - kal.v); // observed change
+    kal.v = kal.v + 0.3 * (vMeas - kal.v);
+    kal.pv += kal.Qv;
+    return kal.x;
+  }
+
+  function kalmanPredict(kal) {
+    if (kal.x === null) return null;
+    return kal.x + kal.v;
+  }
+
+  function applyKalman(ball) {
+    return {
+      x: kalmanUpdate(kalX, ball.x),
+      y: kalmanUpdate(kalY, ball.y),
+      size: ball.size,
+      score: ball.score || 1
+    };
+  }
+
+  function resetKalman() {
+    kalX = createKalman();
+    kalY = createKalman();
+  }
+
+  /* ── Rim & tracking state ──────────────────────────────────── */
+  var rim = null;        // { cx, cy, rx, ry }
+  var ballHistory = [];  // array of {x,y} or null
+  var disappearCount = 0;
+
+  // State machine: idle → ascending → at_rim → (below_rim | idle)
+  var shotPhase = 'idle';
+  var atRimFrames = 0;       // how many frames ball has been in rim zone
+  var atRimMaxFrames = 18;   // max frames to wait for ball to pass through
+  var cooldownUntil = 0;     // timestamp when cooldown expires
 
   var session = {
     attempts: 0, made: 0, shots: [],
     startTime: 0, streak: 0, maxStreak: 0
   };
 
-  /* ── Kalman filter (1D) ───────────────────────────────────── */
-  function kalmanUpdate(kal, z) {
-    if (kal.x === null) { kal.x = z; return z; }
-    kal.p += kal.Q;
-    var k = kal.p / (kal.p + kal.R);
-    kal.x += k * (z - kal.x);
-    kal.p *= (1 - k);
-    return kal.x;
-  }
+  /* ── Video look-ahead buffer (video mode only) ─────────────
+     In video mode we can buffer recent detections and analyze
+     a small window of future frames before committing a result. */
+  var VIDEO_LOOKAHEAD = 8;  // frames to buffer before deciding
+  var pendingShot = null;   // { phase, enteredFrame, rimEntry: {x,y} }
 
-  function applyKalman(ball) {
-    return { x: kalmanUpdate(kalX, ball.x), y: kalmanUpdate(kalY, ball.y),
-             size: ball.size, score: ball.score || 1 };
-  }
-
-  function resetKalman() {
-    kalX.x = null; kalX.p = 1.0;
-    kalY.x = null; kalY.p = 1.0;
-  }
-
-  /* ── Physics validation (no teleportation) ────────────────── */
+  /* ── Physics validation ─────────────────────────────────────── */
   function isPhysicallyValid(ball) {
     if (!lastBall || !ball) return true;
     var dx = ball.x - lastBall.x, dy = ball.y - lastBall.y;
-    // Reject if jumped more than 22% of frame width in one frame
-    return Math.sqrt(dx * dx + dy * dy) < W * 0.22;
+    return Math.sqrt(dx * dx + dy * dy) < W * TELEPORT_FRAC;
   }
 
-  /* ── ML model loading ─────────────────────────────────────── */
+  /* ── ML model loading ───────────────────────────────────────── */
   function loadMLModel() {
     if (mlLoading || mlReady) return;
     if (typeof cocoSsd === 'undefined') return;
@@ -100,45 +151,44 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── ML-powered detection (async, falls back to color) ────── */
+  /* ── ML-powered detection (async, falls back to color) ──────── */
   function detectBallAsync() {
     if (mlReady && tfModel) {
       return tfModel.detect(video).then(function (preds) {
         var best = null, bestScore = 0.3;
         for (var i = 0; i < preds.length; i++) {
           if (preds[i].class === 'sports ball' && preds[i].score > bestScore) {
+            var area = preds[i].bbox[2] * preds[i].bbox[3];
+            var frameArea = W * H;
+            // Reject detections that are too small or too large relative to frame
+            if (area < frameArea * 0.0005 || area > frameArea * 0.12) continue;
             best = preds[i]; bestScore = preds[i].score;
           }
         }
         if (best) {
-          var b = best.bbox; // [x, y, w, h]
+          var b = best.bbox;
           return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: best.score };
         }
-        // ML found nothing — try color fallback on same frame
         return detectBallColor();
       }).catch(function () { return detectBallColor(); });
     }
     return Promise.resolve(detectBallColor());
   }
 
-  /* ── Color detection ──────────────────────────────────────── */
+  /* ── Color detection with spatial clustering ────────────────── */
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 100) return false;        // Too dark
+    if (max < 100) return false;
     var delta = max - min;
-    if (delta < 40) return false;       // Too grey/desaturated
+    if (delta < 40) return false;
     var s = delta / max;
     if (s < 0.45) return false;
-
-    // Hue (0-360)
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-
-    // Orange hue range: 10–42 deg
     return h >= 10 && h <= 42;
   }
 
@@ -147,22 +197,64 @@
     var imageData = ctx.getImageData(0, 0, W, H);
     var data = imageData.data;
     var w = imageData.width, h = imageData.height;
-    var sumX = 0, sumY = 0, count = 0;
+    var totalPixelsSampled = (w / 2) * (h / 2);
+    var minBlob = Math.max(30, Math.round(totalPixelsSampled * BLOB_MIN_FRAC));
+    var maxBlob = Math.round(totalPixelsSampled * BLOB_MAX_FRAC);
 
+    // Pass 1: collect all orange pixels into a flat array
+    var orangeX = [], orangeY = [];
     for (var y = 0; y < h; y += 2) {
       for (var x = 0; x < w; x += 2) {
         var i = (y * w + x) * 4;
         if (isOrange(data[i], data[i + 1], data[i + 2])) {
-          sumX += x; sumY += y; count++;
+          orangeX.push(x);
+          orangeY.push(y);
         }
       }
     }
 
-    if (count < MIN_BLOB || count > MAX_BLOB) return null;
-    return { x: sumX / count, y: sumY / count, size: count, score: 0.5 };
+    if (orangeX.length < minBlob || orangeX.length > maxBlob) return null;
+
+    // Pass 2: find largest spatial cluster (simple grid-cell approach)
+    // Divide frame into cells, find cell with most orange pixels
+    var cellW = Math.max(1, Math.round(w / 16));
+    var cellH = Math.max(1, Math.round(h / 16));
+    var grid = {};
+    var bestCell = null, bestCount = 0;
+
+    for (var j = 0; j < orangeX.length; j++) {
+      var gx = Math.floor(orangeX[j] / cellW);
+      var gy = Math.floor(orangeY[j] / cellH);
+      var key = gx + ',' + gy;
+      grid[key] = (grid[key] || 0) + 1;
+      if (grid[key] > bestCount) {
+        bestCount = grid[key];
+        bestCell = key;
+      }
+    }
+
+    if (!bestCell || bestCount < minBlob * 0.3) return null;
+
+    // Compute centroid only from the winning cluster and its 8 neighbors
+    var parts = bestCell.split(',');
+    var bcx = parseInt(parts[0], 10), bcy = parseInt(parts[1], 10);
+    var sumX = 0, sumY = 0, count = 0;
+
+    for (var k = 0; k < orangeX.length; k++) {
+      var cgx = Math.floor(orangeX[k] / cellW);
+      var cgy = Math.floor(orangeY[k] / cellH);
+      if (Math.abs(cgx - bcx) <= 1 && Math.abs(cgy - bcy) <= 1) {
+        sumX += orangeX[k];
+        sumY += orangeY[k];
+        count++;
+      }
+    }
+
+    if (count < minBlob * 0.2) return null;
+    return { x: sumX / count, y: sumY / count, size: count, score: 0.45 };
   }
 
-  /* ── Rim geometry ─────────────────────────────────────────── */
+  /* ── Rim geometry (resolution-aware) ─────────────────────────── */
   function insideRim(x, y) {
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
@@ -170,67 +262,131 @@
     return dx * dx + dy * dy <= 1.0;
   }
 
-  function inApproachZone(y) {
+  function insideRimExpanded(x, y, factor) {
     if (!rim) return false;
-    // Ball must be between 5 rim heights above and 1 below the rim center
-    return y > rim.cy - rim.ry * 5 && y < rim.cy + rim.ry * 1.5;
+    var dx = (x - rim.cx) / (rim.rx * factor);
+    var dy = (y - rim.cy) / (rim.ry * factor);
+    return dx * dx + dy * dy <= 1.0;
   }
 
-  /* ── Shot detection state machine ────────────────────────── */
+  function inApproachZone(x, y) {
+    if (!rim) return false;
+    return y > rim.cy - rim.ry * 6 && y < rim.cy + rim.ry * 2.5 &&
+           Math.abs(x - rim.cx) < rim.rx * 4;
+  }
+
+  /* ── Shot detection state machine (v2) ──────────────────────
+     States:
+       idle       → watching for ascending ball
+       ascending  → ball moving upward toward rim area
+       at_rim     → ball entered rim zone, waiting for exit
+       below_rim  → ball exited below rim = MADE
+       (miss is detected when ball exits sideways/upward from rim
+        or descends past rim without entering it)
+     ───────────────────────────────────────────────────────────── */
   function processBall(ball) {
-    if (cooldownFrames > 0) { cooldownFrames--; return; }
+    var now = Date.now();
+    if (now < cooldownUntil) return;
 
     ballHistory.push(ball ? { x: ball.x, y: ball.y } : null);
     if (ballHistory.length > MAX_HIST) ballHistory.shift();
 
+    // Track consecutive frames with no detection
     if (!ball) {
-      // Ball disappeared while at rim → likely passed through
-      if (shotPhase === 'at_rim') {
-        recordShot(true);
+      disappearCount++;
+
+      if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
+        // Ball vanished while at rim for too long.
+        // Check if the last known positions suggest it went below.
+        var wentBelow = checkExitedBelow();
+        if (wentBelow) {
+          commitShot(true, now);
+        } else {
+          // Ambiguous — don't count as made, count as miss if ball was truly at rim
+          if (atRimFrames >= 3) {
+            commitShot(false, now);
+          }
+        }
         shotPhase = 'idle';
-        cooldownFrames = COOLDOWN;
-      } else if (shotPhase === 'ascending') {
+        atRimFrames = 0;
+      } else if (shotPhase === 'ascending' && disappearCount > DISAPPEAR_GRACE) {
         shotPhase = 'idle';
       }
       return;
     }
 
-    // y-velocity over last 8 valid frames (canvas y: up = negative)
-    var recent = ballHistory.filter(Boolean);
+    disappearCount = 0;
+
+    // Compute y-velocity (normalized to frame height)
+    var recent = [];
+    for (var i = ballHistory.length - 1; i >= 0 && recent.length < 10; i--) {
+      if (ballHistory[i]) recent.unshift(ballHistory[i]);
+    }
     var yVel = 0;
     if (recent.length >= 4) {
-      var old = recent[Math.max(0, recent.length - 8)];
-      yVel = ball.y - old.y;
+      var lookback = Math.min(8, recent.length - 1);
+      var old = recent[recent.length - 1 - lookback];
+      yVel = (ball.y - old.y) / H; // normalized
     }
 
     if (shotPhase === 'idle') {
-      if (yVel < -10 && inApproachZone(ball.y)) {
+      // Ball rising and in approach zone
+      if (yVel < -VEL_RISE_FRAC && inApproachZone(ball.x, ball.y)) {
         shotPhase = 'ascending';
       }
     } else if (shotPhase === 'ascending') {
       if (insideRim(ball.x, ball.y)) {
         shotPhase = 'at_rim';
-      } else if (yVel > 10) {
-        // Fell without reaching rim — miss if it was near the rim zone
-        if (inApproachZone(ball.y)) {
-          recordShot(false);
-          shotPhase = 'idle';
-          cooldownFrames = COOLDOWN;
-        } else {
-          shotPhase = 'idle';
+        atRimFrames = 1;
+      } else if (yVel > VEL_FALL_FRAC) {
+        // Ball falling — did it pass near the rim?
+        if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 2.5) {
+          // Air-ball or rim miss — ball descended near rim without entering
+          commitShot(false, now);
         }
+        shotPhase = 'idle';
       }
     } else if (shotPhase === 'at_rim') {
+      atRimFrames++;
+
       if (!insideRim(ball.x, ball.y)) {
-        // Exited rim zone: below = made, above = rejected
-        recordShot(ball.y > rim.cy);
+        if (ball.y > rim.cy + rim.ry * 0.5) {
+          // Exited BELOW rim = made shot
+          commitShot(true, now);
+        } else if (ball.y < rim.cy - rim.ry * 0.5) {
+          // Exited ABOVE rim = rejected/bounced up
+          commitShot(false, now);
+        } else {
+          // Exited sideways
+          commitShot(false, now);
+        }
         shotPhase = 'idle';
-        cooldownFrames = COOLDOWN;
+        atRimFrames = 0;
+      } else if (atRimFrames > atRimMaxFrames) {
+        // Stuck in rim zone too long — likely a rebound scenario
+        commitShot(false, now);
+        shotPhase = 'idle';
+        atRimFrames = 0;
       }
     }
   }
 
-  function recordShot(made) {
+  function checkExitedBelow() {
+    // Look at the last few valid positions — did Y increase (move down)?
+    var valid = [];
+    for (var i = ballHistory.length - 1; i >= 0 && valid.length < 5; i--) {
+      if (ballHistory[i]) valid.unshift(ballHistory[i]);
+    }
+    if (valid.length < 2) return false;
+    var last = valid[valid.length - 1];
+    var prev = valid[0];
+    // Ball was moving downward and last position was below rim center
+    return last.y > prev.y && rim && last.y > rim.cy;
+  }
+
+  function commitShot(made, now) {
+    // In video mode with look-ahead, we could buffer — but for simplicity
+    // we commit immediately and rely on the improved state machine.
     session.attempts++;
     if (made) {
       session.made++;
@@ -239,18 +395,18 @@
     } else {
       session.streak = 0;
     }
-    session.shots.push({ made: made, t: Date.now() });
+    session.shots.push({ made: made, t: now });
+    cooldownUntil = now + COOLDOWN_SEC * 1000;
     updateCounter();
     flashResult(made);
   }
 
   /* ── Manual override ──────────────────────────────────────── */
-  function manualMade() { if (phase === PHASE.TRACKING) recordShot(true); }
-  function manualMiss() { if (phase === PHASE.TRACKING) recordShot(false); }
+  function manualMade() { if (phase === PHASE.TRACKING) commitShot(true, Date.now()); }
+  function manualMiss() { if (phase === PHASE.TRACKING) commitShot(false, Date.now()); }
 
   /* ── Drawing ──────────────────────────────────────────────── */
   function drawOverlay(ball) {
-    // Rim ellipse
     if (rim) {
       ctx.strokeStyle = 'rgba(245,166,35,0.85)';
       ctx.lineWidth = 3;
@@ -261,30 +417,29 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Approach zone dashed ellipse
+      // Approach zone
       ctx.strokeStyle = 'rgba(245,166,35,0.18)';
       ctx.lineWidth = 1;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
-      ctx.ellipse(rim.cx, rim.cy, rim.rx * 1.8, rim.ry * 5, 0, 0, Math.PI * 2);
+      ctx.ellipse(rim.cx, rim.cy, rim.rx * 4, rim.ry * 6, 0, 0, Math.PI * 2);
       ctx.stroke();
       ctx.setLineDash([]);
     }
 
-    // Ball detected circle
     if (ball) {
+      var ballR = W * BALL_CIRCLE_FRAC;
       ctx.strokeStyle = '#56d364';
       ctx.lineWidth = 3;
       ctx.shadowColor = '#56d364';
       ctx.shadowBlur = 12;
       ctx.beginPath();
-      ctx.arc(ball.x, ball.y, 28, 0, Math.PI * 2);
+      ctx.arc(ball.x, ball.y, ballR, 0, Math.PI * 2);
       ctx.stroke();
       ctx.fillStyle = 'rgba(86,211,100,0.2)';
       ctx.fill();
       ctx.shadowBlur = 0;
 
-      // Center dot
       ctx.fillStyle = '#56d364';
       ctx.beginPath();
       ctx.arc(ball.x, ball.y, 4, 0, Math.PI * 2);
@@ -304,11 +459,12 @@
       ctx.stroke();
     }
 
-    // Shot phase indicator dot (top-left corner)
+    // State indicator dot
     if (phase === PHASE.TRACKING) {
       var dotColor = shotPhase === 'idle' ? '#56d364'
                    : shotPhase === 'ascending' ? '#f5a623'
-                   : '#3b9eff';
+                   : shotPhase === 'at_rim' ? '#3b9eff'
+                   : '#56d364';
       ctx.fillStyle = dotColor;
       ctx.beginPath();
       ctx.arc(18, 18, 6, 0, Math.PI * 2);
@@ -320,15 +476,12 @@
   function frameLoop() {
     if (phase !== PHASE.TRACKING && phase !== PHASE.CALIBRATING) return;
 
-    // Draw video frame to canvas every rAF tick (smooth 60fps render)
     ctx.drawImage(video, 0, 0, W, H);
     frameCount++;
 
-    // Render with last known ball position while async detection runs
-    if (phase === PHASE.TRACKING && lastBall) processBall(lastBall);
+    if (phase === PHASE.TRACKING) processBall(lastBall);
     drawOverlay(lastBall);
 
-    // Fire async detection only when previous one has finished
     if (!isDetecting) {
       isDetecting = true;
       detectBallAsync().then(function (raw) {
@@ -336,9 +489,15 @@
         if (raw && isPhysicallyValid(raw)) {
           ball = applyKalman(raw);
         } else if (raw) {
-          // Physically invalid jump — trust Kalman prediction instead
-          ball = lastBall;
-          resetKalman(); // reset so next valid reading starts fresh
+          // Teleport — use Kalman prediction if available
+          var predX = kalmanPredict(kalX);
+          var predY = kalmanPredict(kalY);
+          if (predX !== null && predY !== null) {
+            ball = { x: predX, y: predY, size: lastBall ? lastBall.size : 0, score: 0.3 };
+          } else {
+            ball = lastBall;
+          }
+          resetKalman();
         }
         lastBall = ball;
         isDetecting = false;
@@ -396,7 +555,7 @@
       canvas = document.getElementById('ast-canvas');
       ctx    = canvas.getContext('2d');
 
-      loadMLModel(); // kick off ML load in background
+      loadMLModel();
 
       video.srcObject = stream;
       video.onloadedmetadata = function () {
@@ -445,11 +604,11 @@
     var tapX = (src.clientX - rect.left) * scaleX;
     var tapY = (src.clientY - rect.top)  * scaleY;
 
-    rim = { cx: tapX, cy: tapY, rx: RIM_RX, ry: RIM_RY };
+    // Dynamic rim size based on resolution
+    rim = { cx: tapX, cy: tapY, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
     phase = PHASE.TRACKING;
     showPhase('track');
 
-    // In video mode, begin playback once rim is set
     if (mode === 'video' && video) {
       video.play();
       var ppBtn = document.getElementById('ast-vc-playpause');
@@ -466,11 +625,14 @@
     ballHistory = [];
     shotPhase = 'idle';
     rim = null;
-    cooldownFrames = 0;
+    cooldownUntil = 0;
+    disappearCount = 0;
+    atRimFrames = 0;
     phase = PHASE.IDLE;
     lastBall = null;
     isDetecting = false;
     frameCount = 0;
+    pendingShot = null;
     resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
@@ -511,7 +673,7 @@
     if (videoUrl) { URL.revokeObjectURL(videoUrl); }
     videoUrl = URL.createObjectURL(file);
 
-    loadMLModel(); // kick off ML load in background
+    loadMLModel();
 
     video.srcObject = null;
     video.src = videoUrl;
@@ -633,7 +795,6 @@
         '<button class="ast-sum-discard-btn" id="ast-discard-btn">' + (session.attempts > 0 ? 'Discard' : 'Close') + '</button>' +
       '</div>';
 
-    // Bind buttons
     var saveBtn = document.getElementById('ast-save-btn');
     if (saveBtn) saveBtn.addEventListener('click', function () { saveAndClose(xp); });
 
@@ -659,7 +820,6 @@
       max_streak:    session.maxStreak
     };
 
-    // Write to localStorage via ShotTracker
     try {
       var existing = [];
       var raw = localStorage.getItem('courtiq-shot-sessions');
@@ -672,22 +832,18 @@
       }
     } catch (e) { /* silent */ }
 
-    // Async Supabase sync
     if (window.currentUser && typeof DataService !== 'undefined') {
       DataService.addShotSession(s).catch(function () {});
     }
 
-    // XP
     if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
       XPSystem.grantXP(xp, 'AI Shot Tracking Session');
     }
 
-    // Toast
     if (typeof showToast === 'function') {
       showToast('\uD83C\uDFC0 AI session saved! +' + xp + ' XP');
     }
 
-    // Refresh charts
     if (typeof ProgressCharts !== 'undefined' && ProgressCharts.refresh) {
       ProgressCharts.refresh();
     }
@@ -706,15 +862,12 @@
 
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
-    // Live camera button
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
 
-    // Upload video button
     var uploadBtn = document.getElementById('ast-upload-btn');
     if (uploadBtn) uploadBtn.addEventListener('click', openOverlayVideo);
 
-    // Hidden file input — fires after user picks a file
     var fileInput = document.getElementById('ast-file-input');
     if (fileInput) {
       fileInput.addEventListener('change', function (e) {
@@ -724,7 +877,6 @@
       });
     }
 
-    // Video playback controls
     var ppBtn = document.getElementById('ast-vc-playpause');
     if (ppBtn) {
       ppBtn.addEventListener('click', function () {
@@ -752,7 +904,6 @@
       });
     });
 
-    // Close (X) button
     var closeBtn = document.getElementById('ast-close-btn');
     if (closeBtn) closeBtn.addEventListener('click', function () {
       if (phase === PHASE.SUMMARY) { closeOverlay(); return; }
@@ -762,20 +913,17 @@
       }
     });
 
-    // Stop → summary button
     var stopBtn = document.getElementById('ast-stop-btn');
     if (stopBtn) stopBtn.addEventListener('click', function () {
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     });
 
-    // Canvas tap (rim calibration)
     var cvs = document.getElementById('ast-canvas');
     if (cvs) {
       cvs.addEventListener('click', onCanvasTap);
       cvs.addEventListener('touchend', onCanvasTap, { passive: false });
     }
 
-    // Manual override buttons
     var madeBtn = document.getElementById('ast-manual-made');
     if (madeBtn) madeBtn.addEventListener('click', manualMade);
 
@@ -789,7 +937,6 @@
     init();
   }
 
-  // Public API
   window.AIShotTracker = { open: openOverlay, close: closeOverlay };
 
 })();
