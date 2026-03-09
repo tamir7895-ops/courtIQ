@@ -356,12 +356,11 @@
     }
   }
 
-  /* ── Open overlay ─────────────────────────────────────────── */
-  function openOverlay() {
+  /* ── Open overlay (shared reset) ─────────────────────────── */
+  function openOverlayBase() {
     var overlay = document.getElementById('ast-overlay');
-    if (!overlay) return;
+    if (!overlay) return false;
 
-    // Reset state
     session = { attempts: 0, made: 0, shots: [], startTime: Date.now(), streak: 0, maxStreak: 0 };
     ballHistory = [];
     shotPhase = 'idle';
@@ -369,23 +368,78 @@
     cooldownFrames = 0;
     phase = PHASE.IDLE;
 
-    // Show camera view, hide summary
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
     if (cameraView)  cameraView.style.display  = '';
     if (summaryView) summaryView.style.display = 'none';
 
-    // Reset counter
     updateCounter();
+    showVideoControls(false);
 
-    // Clear error
     var errEl = document.getElementById('ast-error');
     if (errEl) errEl.style.display = 'none';
 
     overlay.classList.add('ast-visible');
     document.body.style.overflow = 'hidden';
+    return true;
+  }
 
-    startCamera();
+  /* ── Open with live camera ────────────────────────────────── */
+  function openOverlay() {
+    mode = 'camera';
+    if (openOverlayBase()) startCamera();
+  }
+
+  /* ── Open with uploaded video ─────────────────────────────── */
+  function openOverlayVideo() {
+    mode = 'video';
+    var fileInput = document.getElementById('ast-file-input');
+    if (fileInput) { fileInput.value = ''; fileInput.click(); }
+  }
+
+  /* ── Start from a File object ─────────────────────────────── */
+  function startVideo(file) {
+    video  = document.getElementById('ast-video');
+    canvas = document.getElementById('ast-canvas');
+    ctx    = canvas.getContext('2d');
+
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); }
+    videoUrl = URL.createObjectURL(file);
+
+    video.srcObject = null;
+    video.src = videoUrl;
+    video.loop = false;
+    video.playbackRate = 1;
+
+    video.onloadedmetadata = function () {
+      W = video.videoWidth  || 1280;
+      H = video.videoHeight || 720;
+      canvas.width  = W;
+      canvas.height = H;
+      video.currentTime = 0;
+      video.pause();
+      phase = PHASE.CALIBRATING;
+      showPhase('calibrate');
+      showVideoControls(true);
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = '▶';
+      animFrame = requestAnimationFrame(frameLoop);
+    };
+
+    video.ontimeupdate = function () {
+      var scrub = document.getElementById('ast-vc-scrub');
+      if (scrub && video.duration) {
+        scrub.value = (video.currentTime / video.duration) * 100;
+      }
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = video.paused ? '▶' : '⏸';
+    };
+
+    video.onended = function () {
+      if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
+    };
+
+    video.load();
   }
 
   /* ── Stop → Summary ───────────────────────────────────────── */
