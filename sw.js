@@ -2,7 +2,7 @@
    SERVICE WORKER — CourtIQ PWA
    Cache-first for static assets, network-first for API calls.
    ============================================================ */
-const CACHE_NAME = 'courtiq-v1';
+const CACHE_NAME = 'courtiq-v3';  // bumped to clear old stale caches
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -61,6 +61,13 @@ self.addEventListener('activate', function (event) {
 /* ── Fetch: cache-first for static, network-first for API ── */
 self.addEventListener('fetch', function (event) {
   var url = event.request.url;
+
+  // DEVELOPMENT: always go to network for localhost — never cache local files
+  // This ensures edited files load immediately without stale SW caching.
+  if (url.includes('127.0.0.1') || url.includes('localhost')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
 
   // Network-first: Supabase, Anthropic, and CDN resources
   if (
