@@ -1179,7 +1179,14 @@
     session.startTime = Date.now();
     showPhase('track');
 
+    // Clear scanning status message
+    var mlStatus = document.getElementById('ast-ml-status');
+    if (mlStatus && mlReady) { mlStatus.textContent = 'AI Active'; mlStatus.style.display = ''; }
+    else if (mlStatus) { mlStatus.style.display = 'none'; }
+
     if (mode === 'video' && video) {
+      // Reset to beginning and play
+      video.currentTime = 0;
       video.play();
       var ppBtn = document.getElementById('ast-vc-playpause');
       if (ppBtn) ppBtn.textContent = '⏸';
@@ -1210,11 +1217,16 @@
   function startRimAutoDetect() {
     rimDetectTries = 0;
     autoRimCandidate = null;
-    showCalibState('auto');
+    if (mode !== 'video') showCalibState('auto');
     stopRimDetectTimer();
 
     rimDetectTimer = setInterval(function () {
-      if (phase !== PHASE.CALIBRATING) { stopRimDetectTimer(); return; }
+      // For video mode, allow detection during both calibrating and tracking
+      if (mode === 'video') {
+        if (phase !== PHASE.CALIBRATING && phase !== PHASE.TRACKING) { stopRimDetectTimer(); return; }
+      } else {
+        if (phase !== PHASE.CALIBRATING) { stopRimDetectTimer(); return; }
+      }
       rimDetectTries++;
 
       // For video mode: seek to different timestamps on each try
@@ -1241,6 +1253,11 @@
     var candidate = detectRimAuto();
     if (candidate) {
       autoRimCandidate = candidate;
+      // Video mode: skip confirmation, go straight to tracking
+      if (mode === 'video') {
+        confirmRimAndStart(candidate.cx, candidate.cy);
+        return;
+      }
       rim = { cx: candidate.cx, cy: candidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
       showCalibState('confirm');
       stopRimDetectTimer();
@@ -1248,10 +1265,14 @@
     }
 
     // After several color-based failures, try ML-based detection
-    if (rimDetectTries >= 8 && mlReady) {
+    if (rimDetectTries >= 6 && mlReady) {
       detectRimML().then(function (mlCandidate) {
         if (mlCandidate && phase === PHASE.CALIBRATING) {
           autoRimCandidate = mlCandidate;
+          if (mode === 'video') {
+            confirmRimAndStart(mlCandidate.cx, mlCandidate.cy);
+            return;
+          }
           rim = { cx: mlCandidate.cx, cy: mlCandidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
           showCalibState('confirm');
           stopRimDetectTimer();
@@ -1261,7 +1282,15 @@
 
     if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
       stopRimDetectTimer();
-      showCalibState('manual');
+      if (mode === 'video') {
+        // Video mode: use smart default — assume rim is in upper-center of frame
+        // Most basketball videos have the hoop in the upper-center area
+        var defaultCX = W * 0.5;
+        var defaultCY = H * 0.25;
+        confirmRimAndStart(defaultCX, defaultCY);
+      } else {
+        showCalibState('manual');
+      }
     }
   }
 
@@ -1351,10 +1380,14 @@
         video.pause();
         ctx.drawImage(video, 0, 0, W, H);
         phase = PHASE.CALIBRATING;
-        showPhase('calibrate');
+        // Video mode: hide calibration UI, show tracking UI with scanning status
+        showPhase('track');
         showVideoControls(true);
         var ppBtn = document.getElementById('ast-vc-playpause');
         if (ppBtn) ppBtn.textContent = '▶';
+        // Show scanning status in the tracking UI
+        var mlStatus = document.getElementById('ast-ml-status');
+        if (mlStatus) { mlStatus.textContent = 'Scanning for rim...'; mlStatus.style.display = ''; }
         startRimAutoDetect();
         animFrame = requestAnimationFrame(frameLoop);
       };
