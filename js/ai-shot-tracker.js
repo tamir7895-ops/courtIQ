@@ -301,6 +301,12 @@
   function detectBallColor() {
     if (!canvas || !ctx) return null;
 
+    // Level 1: Use adaptive learned color if confident enough
+    if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
+      var learned = window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, W, H);
+      if (learned) return { x: learned.x, y: learned.y, size: learned.w * learned.h, score: learned.score };
+    }
+
     // Only scan within the ROI
     var roi = getROI();
     if (roi.w < 10 || roi.h < 10) return null;
