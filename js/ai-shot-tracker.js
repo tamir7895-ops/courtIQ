@@ -27,9 +27,9 @@
   var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
   /* ── Ball size for color detection (fraction of frame width) */
-  var BALL_DIAM_MIN_FRAC = 0.012;
-  var BALL_DIAM_MAX_FRAC = 0.14;
-  var BALL_ASPECT_MAX    = 2.2;
+  var BALL_DIAM_MIN_FRAC = 0.010;   // lowered — catch small/distant balls
+  var BALL_DIAM_MAX_FRAC = 0.20;    // raised — portrait videos can show larger ball area
+  var BALL_ASPECT_MAX    = 2.5;     // raised — motion blur can stretch ball shape
 
   /* ── ROI: Region of Interest for ball search ────────────────
      After rim calibration, we only search in this region:
@@ -404,7 +404,7 @@
       if (diameter < ballMinPx || diameter > ballMaxPx) continue;
 
       var fillRatio = bCount / ((blobW / 2) * (blobH / 2));
-      if (fillRatio < 0.15) continue;
+      if (fillRatio < 0.10) continue;  // lowered — compressed video reduces apparent fill density
 
       // Centroid must not be inside person core body
       var centX = bSumX / bCount;
