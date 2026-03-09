@@ -22,6 +22,8 @@
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
   var animFrame = null;
+  var mode = 'camera';   // 'camera' | 'video'
+  var videoUrl = null;   // object URL for uploaded video file
 
   var rim = null;       // { cx, cy, rx, ry }
   var ballHistory = []; // array of {x,y} or null
@@ -314,6 +316,14 @@
   function stopCamera() {
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    if (mode === 'video' && video) { video.pause(); video.src = ''; video.load(); }
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
+    showVideoControls(false);
+  }
+
+  function showVideoControls(show) {
+    var vc = document.getElementById('ast-video-controls');
+    if (vc) vc.style.display = show ? '' : 'none';
   }
 
   function showCameraError(msg) {
@@ -337,14 +347,20 @@
     rim = { cx: tapX, cy: tapY, rx: RIM_RX, ry: RIM_RY };
     phase = PHASE.TRACKING;
     showPhase('track');
+
+    // In video mode, begin playback once rim is set
+    if (mode === 'video' && video) {
+      video.play();
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = '⏸';
+    }
   }
 
-  /* ── Open overlay ─────────────────────────────────────────── */
-  function openOverlay() {
+  /* ── Open overlay (shared reset) ─────────────────────────── */
+  function openOverlayBase() {
     var overlay = document.getElementById('ast-overlay');
-    if (!overlay) return;
+    if (!overlay) return false;
 
-    // Reset state
     session = { attempts: 0, made: 0, shots: [], startTime: Date.now(), streak: 0, maxStreak: 0 };
     ballHistory = [];
     shotPhase = 'idle';
@@ -352,23 +368,78 @@
     cooldownFrames = 0;
     phase = PHASE.IDLE;
 
-    // Show camera view, hide summary
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
     if (cameraView)  cameraView.style.display  = '';
     if (summaryView) summaryView.style.display = 'none';
 
-    // Reset counter
     updateCounter();
+    showVideoControls(false);
 
-    // Clear error
     var errEl = document.getElementById('ast-error');
     if (errEl) errEl.style.display = 'none';
 
     overlay.classList.add('ast-visible');
     document.body.style.overflow = 'hidden';
+    return true;
+  }
 
-    startCamera();
+  /* ── Open with live camera ────────────────────────────────── */
+  function openOverlay() {
+    mode = 'camera';
+    if (openOverlayBase()) startCamera();
+  }
+
+  /* ── Open with uploaded video ─────────────────────────────── */
+  function openOverlayVideo() {
+    mode = 'video';
+    var fileInput = document.getElementById('ast-file-input');
+    if (fileInput) { fileInput.value = ''; fileInput.click(); }
+  }
+
+  /* ── Start from a File object ─────────────────────────────── */
+  function startVideo(file) {
+    video  = document.getElementById('ast-video');
+    canvas = document.getElementById('ast-canvas');
+    ctx    = canvas.getContext('2d');
+
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); }
+    videoUrl = URL.createObjectURL(file);
+
+    video.srcObject = null;
+    video.src = videoUrl;
+    video.loop = false;
+    video.playbackRate = 1;
+
+    video.onloadedmetadata = function () {
+      W = video.videoWidth  || 1280;
+      H = video.videoHeight || 720;
+      canvas.width  = W;
+      canvas.height = H;
+      video.currentTime = 0;
+      video.pause();
+      phase = PHASE.CALIBRATING;
+      showPhase('calibrate');
+      showVideoControls(true);
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = '▶';
+      animFrame = requestAnimationFrame(frameLoop);
+    };
+
+    video.ontimeupdate = function () {
+      var scrub = document.getElementById('ast-vc-scrub');
+      if (scrub && video.duration) {
+        scrub.value = (video.currentTime / video.duration) * 100;
+      }
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = video.paused ? '▶' : '⏸';
+    };
+
+    video.onended = function () {
+      if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
+    };
+
+    video.load();
   }
 
   /* ── Stop → Summary ───────────────────────────────────────── */
@@ -528,9 +599,51 @@
 
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
-    // Launch button
+    // Live camera button
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
+
+    // Upload video button
+    var uploadBtn = document.getElementById('ast-upload-btn');
+    if (uploadBtn) uploadBtn.addEventListener('click', openOverlayVideo);
+
+    // Hidden file input — fires after user picks a file
+    var fileInput = document.getElementById('ast-file-input');
+    if (fileInput) {
+      fileInput.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        if (!file) return;
+        if (openOverlayBase()) startVideo(file);
+      });
+    }
+
+    // Video playback controls
+    var ppBtn = document.getElementById('ast-vc-playpause');
+    if (ppBtn) {
+      ppBtn.addEventListener('click', function () {
+        if (!video || mode !== 'video') return;
+        if (video.paused) { video.play(); ppBtn.textContent = '⏸'; }
+        else              { video.pause(); ppBtn.textContent = '▶'; }
+      });
+    }
+
+    var scrub = document.getElementById('ast-vc-scrub');
+    if (scrub) {
+      scrub.addEventListener('input', function () {
+        if (!video || mode !== 'video' || !video.duration) return;
+        video.currentTime = (scrub.value / 100) * video.duration;
+      });
+    }
+
+    document.querySelectorAll('.ast-vc-speed-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        if (!video) return;
+        video.playbackRate = parseFloat(btn.dataset.speed);
+        document.querySelectorAll('.ast-vc-speed-btn').forEach(function (b) {
+          b.classList.toggle('ast-vc-speed-active', b === btn);
+        });
+      });
+    });
 
     // Close (X) button
     var closeBtn = document.getElementById('ast-close-btn');

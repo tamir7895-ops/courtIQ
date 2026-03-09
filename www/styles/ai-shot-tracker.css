@@ -69,13 +69,35 @@
   transform: translateY(0);
 }
 
+/* ── Two-button group on launch card ─────────────────────── */
+.ast-launch-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ast-launch-btn-upload {
+  background: transparent;
+  color: var(--c-amber);
+  border: 1.5px solid var(--c-amber);
+}
+
+.ast-launch-btn-upload:hover {
+  background: rgba(245,166,35,0.1);
+}
+
 @media (max-width: 600px) {
   .ast-launch-card {
     flex-direction: column;
     text-align: center;
   }
-  .ast-launch-btn {
+  .ast-launch-btns {
     width: 100%;
+    flex-direction: row;
+  }
+  .ast-launch-btn {
+    flex: 1;
   }
 }
 
@@ -374,6 +396,78 @@
 }
 
 .ast-manual-miss:hover { filter: brightness(1.2); }
+
+/* ── Video playback controls bar ─────────────────────────── */
+.ast-video-controls {
+  position: absolute;
+  bottom: 100px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(12,13,15,0.82);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 40px;
+  padding: 8px 16px;
+  pointer-events: all;
+  backdrop-filter: blur(12px);
+  max-width: 92vw;
+  z-index: 10;
+}
+
+.ast-vc-btn {
+  background: rgba(245,166,35,0.15);
+  border: 1px solid rgba(245,166,35,0.4);
+  color: var(--c-amber);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 15px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.ast-vc-btn:hover { background: rgba(245,166,35,0.3); }
+
+.ast-vc-scrub {
+  flex: 1;
+  min-width: 80px;
+  max-width: 200px;
+  height: 4px;
+  accent-color: var(--c-amber);
+  cursor: pointer;
+}
+
+.ast-vc-speeds {
+  display: flex;
+  gap: 4px;
+}
+
+.ast-vc-speed-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: var(--c-muted);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.ast-vc-speed-btn:hover { color: var(--c-white); border-color: rgba(255,255,255,0.4); }
+
+.ast-vc-speed-active {
+  background: rgba(245,166,35,0.2);
+  border-color: var(--c-amber);
+  color: var(--c-amber);
+}
 
 /* ── Error message ────────────────────────────────────────── */
 .ast-error {

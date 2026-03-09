@@ -1125,10 +1125,14 @@
         <div class="ast-launch-icon">📷</div>
         <div class="ast-launch-text">
           <div class="ast-launch-title">AI Shot Tracker</div>
-          <div class="ast-launch-sub">Point your camera at the hoop. Auto-detect made &amp; missed shots — no manual input.</div>
+          <div class="ast-launch-sub">Auto-detect made &amp; missed shots — use your live camera or upload a video from your gallery.</div>
         </div>
-        <button class="ast-launch-btn" id="ast-launch-btn">Start AI Tracking</button>
+        <div class="ast-launch-btns">
+          <button class="ast-launch-btn" id="ast-launch-btn">📷 Live Camera</button>
+          <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
+        </div>
       </div>
+      <input type="file" accept="video/*" id="ast-file-input" style="display:none">
 
       <div class="st-layout">
 
@@ -2351,6 +2355,17 @@ if ('serviceWorker' in navigator) {
         <button class="ast-manual-btn ast-manual-miss" id="ast-manual-miss">× Miss</button>
         <div class="ast-manual-label">Manual override</div>
         <button class="ast-manual-btn ast-manual-made" id="ast-manual-made">+ Made</button>
+      </div>
+
+      <!-- Video playback controls (video-upload mode only) -->
+      <div class="ast-video-controls" id="ast-video-controls" style="display:none;">
+        <button class="ast-vc-btn" id="ast-vc-playpause" title="Play / Pause">▶</button>
+        <input class="ast-vc-scrub" id="ast-vc-scrub" type="range" min="0" max="100" value="0" step="0.1">
+        <div class="ast-vc-speeds">
+          <button class="ast-vc-speed-btn" data-speed="0.5">0.5×</button>
+          <button class="ast-vc-speed-btn ast-vc-speed-active" data-speed="1">1×</button>
+          <button class="ast-vc-speed-btn" data-speed="2">2×</button>
+        </div>
       </div>
 
       <!-- Camera / permission error -->
