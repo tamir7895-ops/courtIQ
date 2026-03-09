@@ -1135,6 +1135,14 @@
       </div>
       <input type="file" accept="video/*" id="ast-file-input" style="display:none">
 
+      <!-- AI Session History -->
+      <div class="ast-history-section">
+        <div class="ast-history-title">AI Session History</div>
+        <div class="ast-history-list" id="ast-history-list">
+          <div class="ast-hist-empty">No AI tracking sessions yet. Start one above!</div>
+        </div>
+      </div>
+
       <div class="st-layout">
 
         <!-- Input form -->
@@ -2336,6 +2344,12 @@ if ('serviceWorker' in navigator) {
         <div class="ast-msg-icon">🏀</div>
         <div class="ast-msg-text">Tap the center of the rim</div>
         <div class="ast-msg-sub">Point your camera at the basket first, then tap to set the rim position</div>
+        <!-- Rim size slider -->
+        <div class="ast-rim-slider-wrap" id="ast-rim-slider-wrap">
+          <label class="ast-rim-slider-label">Rim Size: <span id="ast-rim-slider-val">100%</span></label>
+          <input type="range" class="ast-rim-slider" id="ast-rim-slider" min="50" max="200" value="100" step="5">
+          <div class="ast-rim-slider-hint">Adjust if rim appears larger or smaller on screen</div>
+        </div>
       </div>
 
       <!-- Tracking message (shown after calibration) -->
@@ -2359,6 +2373,13 @@ if ('serviceWorker' in navigator) {
 
       <!-- Flash result (made/miss) -->
       <div class="ast-flash" id="ast-flash"></div>
+
+      <!-- Shot type selector -->
+      <div class="ast-type-bar">
+        <button class="ast-type-btn ast-type-active" data-type="fg">FG</button>
+        <button class="ast-type-btn" data-type="3pt">3PT</button>
+        <button class="ast-type-btn" data-type="ft">FT</button>
+      </div>
 
       <!-- Manual override buttons -->
       <div class="ast-manual" id="ast-manual">
