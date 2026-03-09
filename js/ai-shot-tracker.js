@@ -1627,6 +1627,12 @@
 
   /* ── Init ────────────────────────────────────────────────── */
   function init() {
+    // Initialize adaptive learning system if available
+    if (window.AdaptiveLearning) {
+      window.AdaptiveLearning.init();
+      console.log('[AST] AdaptiveLearning initialized');
+    }
+
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
 
