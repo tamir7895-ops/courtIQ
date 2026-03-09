@@ -25,6 +25,18 @@
   var mode = 'camera';   // 'camera' | 'video'
   var videoUrl = null;   // object URL for uploaded video file
 
+  /* ── ML state ─────────────────────────────────────────────── */
+  var tfModel    = null;   // coco-ssd model instance
+  var mlReady    = false;  // model loaded and ready
+  var mlLoading  = false;  // loading in progress
+  var isDetecting = false; // async detection in progress
+  var lastBall   = null;   // most recent detection (used between async calls)
+  var frameCount = 0;      // frame counter for throttling
+
+  /* ── Kalman filter state (x and y independently) ─────────── */
+  var kalX = { x: null, p: 1.0, R: 18, Q: 0.8 };
+  var kalY = { x: null, p: 1.0, R: 18, Q: 0.8 };
+
   var rim = null;       // { cx, cy, rx, ry }
   var ballHistory = []; // array of {x,y} or null
   var shotPhase = 'idle'; // idle | ascending | at_rim
