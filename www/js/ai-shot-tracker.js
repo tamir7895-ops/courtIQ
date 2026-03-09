@@ -25,6 +25,18 @@
   var mode = 'camera';   // 'camera' | 'video'
   var videoUrl = null;   // object URL for uploaded video file
 
+  /* ── ML state ─────────────────────────────────────────────── */
+  var tfModel    = null;   // coco-ssd model instance
+  var mlReady    = false;  // model loaded and ready
+  var mlLoading  = false;  // loading in progress
+  var isDetecting = false; // async detection in progress
+  var lastBall   = null;   // most recent detection (used between async calls)
+  var frameCount = 0;      // frame counter for throttling
+
+  /* ── Kalman filter state (x and y independently) ─────────── */
+  var kalX = { x: null, p: 1.0, R: 18, Q: 0.8 };
+  var kalY = { x: null, p: 1.0, R: 18, Q: 0.8 };
+
   var rim = null;       // { cx, cy, rx, ry }
   var ballHistory = []; // array of {x,y} or null
   var shotPhase = 'idle'; // idle | ascending | at_rim
@@ -34,6 +46,80 @@
     attempts: 0, made: 0, shots: [],
     startTime: 0, streak: 0, maxStreak: 0
   };
+
+  /* ── Kalman filter (1D) ───────────────────────────────────── */
+  function kalmanUpdate(kal, z) {
+    if (kal.x === null) { kal.x = z; return z; }
+    kal.p += kal.Q;
+    var k = kal.p / (kal.p + kal.R);
+    kal.x += k * (z - kal.x);
+    kal.p *= (1 - k);
+    return kal.x;
+  }
+
+  function applyKalman(ball) {
+    return { x: kalmanUpdate(kalX, ball.x), y: kalmanUpdate(kalY, ball.y),
+             size: ball.size, score: ball.score || 1 };
+  }
+
+  function resetKalman() {
+    kalX.x = null; kalX.p = 1.0;
+    kalY.x = null; kalY.p = 1.0;
+  }
+
+  /* ── Physics validation (no teleportation) ────────────────── */
+  function isPhysicallyValid(ball) {
+    if (!lastBall || !ball) return true;
+    var dx = ball.x - lastBall.x, dy = ball.y - lastBall.y;
+    // Reject if jumped more than 22% of frame width in one frame
+    return Math.sqrt(dx * dx + dy * dy) < W * 0.22;
+  }
+
+  /* ── ML model loading ─────────────────────────────────────── */
+  function loadMLModel() {
+    if (mlLoading || mlReady) return;
+    if (typeof cocoSsd === 'undefined') return;
+    mlLoading = true;
+    setMLStatus('loading');
+    cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
+      tfModel = model;
+      mlReady = true;
+      mlLoading = false;
+      setMLStatus('ready');
+    }).catch(function () {
+      mlLoading = false;
+      setMLStatus('fallback');
+    });
+  }
+
+  function setMLStatus(state) {
+    var el = document.getElementById('ast-ml-status');
+    if (!el) return;
+    if (state === 'loading') { el.textContent = '🧠 Loading AI model…'; el.style.display = ''; }
+    else if (state === 'ready') { el.textContent = '🤖 AI Active'; el.style.display = ''; }
+    else { el.style.display = 'none'; }
+  }
+
+  /* ── ML-powered detection (async, falls back to color) ────── */
+  function detectBallAsync() {
+    if (mlReady && tfModel) {
+      return tfModel.detect(video).then(function (preds) {
+        var best = null, bestScore = 0.3;
+        for (var i = 0; i < preds.length; i++) {
+          if (preds[i].class === 'sports ball' && preds[i].score > bestScore) {
+            best = preds[i]; bestScore = preds[i].score;
+          }
+        }
+        if (best) {
+          var b = best.bbox; // [x, y, w, h]
+          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: best.score };
+        }
+        // ML found nothing — try color fallback on same frame
+        return detectBallColor();
+      }).catch(function () { return detectBallColor(); });
+    }
+    return Promise.resolve(detectBallColor());
+  }
 
   /* ── Color detection ──────────────────────────────────────── */
   function isOrange(r, g, b) {
@@ -56,12 +142,13 @@
     return h >= 10 && h <= 42;
   }
 
-  function detectBall(imageData) {
+  function detectBallColor() {
+    if (!canvas || !ctx) return null;
+    var imageData = ctx.getImageData(0, 0, W, H);
     var data = imageData.data;
     var w = imageData.width, h = imageData.height;
     var sumX = 0, sumY = 0, count = 0;
 
-    // Sample every 2 pixels for ~4x speedup
     for (var y = 0; y < h; y += 2) {
       for (var x = 0; x < w; x += 2) {
         var i = (y * w + x) * 4;
@@ -72,7 +159,7 @@
     }
 
     if (count < MIN_BLOB || count > MAX_BLOB) return null;
-    return { x: sumX / count, y: sumY / count, size: count };
+    return { x: sumX / count, y: sumY / count, size: count, score: 0.5 };
   }
 
   /* ── Rim geometry ─────────────────────────────────────────── */
@@ -233,18 +320,30 @@
   function frameLoop() {
     if (phase !== PHASE.TRACKING && phase !== PHASE.CALIBRATING) return;
 
-    // Draw video frame to canvas
+    // Draw video frame to canvas every rAF tick (smooth 60fps render)
     ctx.drawImage(video, 0, 0, W, H);
+    frameCount++;
 
-    // Read pixels + detect ball
-    var imageData = ctx.getImageData(0, 0, W, H);
-    var ball = detectBall(imageData);
+    // Render with last known ball position while async detection runs
+    if (phase === PHASE.TRACKING && lastBall) processBall(lastBall);
+    drawOverlay(lastBall);
 
-    // Run shot detection
-    if (phase === PHASE.TRACKING) processBall(ball);
-
-    // Draw overlays
-    drawOverlay(ball);
+    // Fire async detection only when previous one has finished
+    if (!isDetecting) {
+      isDetecting = true;
+      detectBallAsync().then(function (raw) {
+        var ball = null;
+        if (raw && isPhysicallyValid(raw)) {
+          ball = applyKalman(raw);
+        } else if (raw) {
+          // Physically invalid jump — trust Kalman prediction instead
+          ball = lastBall;
+          resetKalman(); // reset so next valid reading starts fresh
+        }
+        lastBall = ball;
+        isDetecting = false;
+      });
+    }
 
     animFrame = requestAnimationFrame(frameLoop);
   }
@@ -296,6 +395,8 @@
       video  = document.getElementById('ast-video');
       canvas = document.getElementById('ast-canvas');
       ctx    = canvas.getContext('2d');
+
+      loadMLModel(); // kick off ML load in background
 
       video.srcObject = stream;
       video.onloadedmetadata = function () {
@@ -367,6 +468,10 @@
     rim = null;
     cooldownFrames = 0;
     phase = PHASE.IDLE;
+    lastBall = null;
+    isDetecting = false;
+    frameCount = 0;
+    resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
@@ -405,6 +510,8 @@
 
     if (videoUrl) { URL.revokeObjectURL(videoUrl); }
     videoUrl = URL.createObjectURL(file);
+
+    loadMLModel(); // kick off ML load in background
 
     video.srcObject = null;
     video.src = videoUrl;

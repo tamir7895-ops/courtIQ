@@ -2247,6 +2247,9 @@
 <script src="js/avatar-shop.js"></script>
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
+<!-- TF.js + COCO-SSD for AI ball detection (loaded async, non-blocking) -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" defer></script>
 <script src="js/ai-shot-tracker.js"></script>
 
 <script>
@@ -2318,6 +2321,7 @@ if ('serviceWorker' in navigator) {
       <div class="ast-topbar">
         <button class="ast-close-btn" id="ast-close-btn">✕ Close</button>
         <div class="ast-topbar-title">AI Shot Tracker</div>
+        <span class="ast-ml-status" id="ast-ml-status" style="display:none;"></span>
         <button class="ast-stop-btn" id="ast-stop-btn">⏹ Stop</button>
       </div>
 
