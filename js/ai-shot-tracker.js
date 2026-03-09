@@ -31,6 +31,32 @@
   /* ── Adjustable rim size ─────────────────────────────────── */
   var rimScale = 1.0;    // multiplier from slider (0.5–2.0)
 
+  /* ── Court size presets ─────────────────────────────────── */
+  var COURT_PRESETS = {
+    nba:  { label: 'NBA',  threeLineFt: 23.75, ftLineFt: 15, courtW: 50, courtL: 94 },
+    fiba: { label: 'FIBA', threeLineFt: 22.15, ftLineFt: 15.09, courtW: 49.21, courtL: 91.86 },
+    hs:   { label: 'HS',   threeLineFt: 19.75, ftLineFt: 15, courtW: 50, courtL: 84 }
+  };
+  var courtPreset = 'nba';
+
+  /* ── Shot arc analysis state ───────────────────────────── */
+  var shotArcData = [];  // { peakY, startY, endY, angle, made }
+
+  /* ── Shot replay state ─────────────────────────────────── */
+  var replayTrajectory = null; // array of {x,y} from last shot
+  var replayFrame = 0;
+  var replayTimer = null;
+
+  /* ── HORSE competition state ───────────────────────────── */
+  var horseMode = false;
+  var horsePlayers = [
+    { name: 'Player 1', letters: '', score: [] },
+    { name: 'Player 2', letters: '', score: [] }
+  ];
+  var horseCurrentPlayer = 0;
+  var horseWord = 'HORSE';
+  var horseChallengeActive = false; // P1 made a shot, P2 must match
+
   /* ── ML state ─────────────────────────────────────────────── */
   var tfModel    = null;
   var mlReady    = false;
@@ -320,9 +346,212 @@
     }
     // Store shot with position and type
     var pos = lastBall ? { x: lastBall.x / W, y: lastBall.y / H } : null;
-    session.shots.push({ made: made, t: Date.now(), type: shotType, pos: pos });
+
+    // Compute shot arc data from trajectory
+    var arcInfo = computeArc(ballHistory);
+    session.shots.push({ made: made, t: Date.now(), type: shotType, pos: pos, arc: arcInfo });
+
+    // Store arc data for analysis
+    if (arcInfo) {
+      shotArcData.push({ peakY: arcInfo.peakY, startY: arcInfo.startY, endY: arcInfo.endY, angle: arcInfo.angle, made: made });
+    }
+
+    // Trigger shot replay animation
+    triggerReplay(ballHistory);
+
+    // HORSE mode logic
+    if (horseMode) processHorseShot(made);
+
     updateCounter();
     flashResult(made);
+  }
+
+  /* ── Shot Arc Analysis ──────────────────────────────────── */
+  function computeArc(history) {
+    var pts = history.filter(Boolean);
+    if (pts.length < 5) return null;
+
+    // Find peak (lowest y = highest point on screen)
+    var peakY = Infinity, peakIdx = 0;
+    for (var i = 0; i < pts.length; i++) {
+      if (pts[i].y < peakY) { peakY = pts[i].y; peakIdx = i; }
+    }
+
+    var startY = pts[0].y;
+    var endY = pts[pts.length - 1].y;
+
+    // Arc height in pixels relative to start
+    var arcHeight = startY - peakY;
+    // Horizontal distance
+    var dx = Math.abs(pts[pts.length - 1].x - pts[0].x);
+    // Entry angle (angle of descent at end of trajectory)
+    var angle = 0;
+    if (pts.length >= 3) {
+      var last = pts[pts.length - 1];
+      var prev = pts[Math.max(0, pts.length - 4)];
+      var dxEnd = last.x - prev.x;
+      var dyEnd = last.y - prev.y;
+      angle = Math.round(Math.atan2(Math.abs(dyEnd), Math.abs(dxEnd)) * (180 / Math.PI));
+    }
+
+    // Classify arc type
+    var arcType = 'flat';
+    if (arcHeight > H * 0.15) arcType = 'high';
+    else if (arcHeight > H * 0.08) arcType = 'medium';
+
+    return { peakY: peakY / H, startY: startY / H, endY: endY / H, angle: angle, arcHeight: arcHeight, arcType: arcType, dx: dx };
+  }
+
+  /* ── Shot Replay Animation ─────────────────────────────── */
+  function triggerReplay(history) {
+    var pts = history.filter(Boolean);
+    if (pts.length < 4) return;
+    replayTrajectory = pts.slice();
+    replayFrame = 0;
+    if (replayTimer) clearInterval(replayTimer);
+    replayTimer = setInterval(function () {
+      replayFrame++;
+      if (replayFrame > replayTrajectory.length + 10) {
+        clearInterval(replayTimer);
+        replayTimer = null;
+        replayTrajectory = null;
+      }
+    }, 35);
+  }
+
+  function drawReplay() {
+    if (!replayTrajectory || replayTrajectory.length < 2) return;
+    var count = Math.min(replayFrame, replayTrajectory.length);
+    if (count < 2) return;
+
+    // Draw ghosted arc
+    ctx.save();
+    ctx.strokeStyle = 'rgba(59,158,255,0.6)';
+    ctx.lineWidth = 3;
+    ctx.shadowColor = 'rgba(59,158,255,0.4)';
+    ctx.shadowBlur = 10;
+    ctx.setLineDash([6, 4]);
+    ctx.beginPath();
+    ctx.moveTo(replayTrajectory[0].x, replayTrajectory[0].y);
+    for (var i = 1; i < count; i++) {
+      ctx.lineTo(replayTrajectory[i].x, replayTrajectory[i].y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Draw animated ball dot at current position
+    if (count > 0 && count <= replayTrajectory.length) {
+      var p = replayTrajectory[count - 1];
+      ctx.fillStyle = 'rgba(59,158,255,0.85)';
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  }
+
+  /* ── HORSE Competition Mode ──────────────────────────────── */
+  function processHorseShot(made) {
+    var cp = horseCurrentPlayer;
+    horsePlayers[cp].score.push(made);
+
+    if (horseChallengeActive) {
+      // Player 2 is matching Player 1's shot
+      if (!made) {
+        // Failed to match — gets a letter
+        horsePlayers[cp].letters += horseWord[horsePlayers[cp].letters.length] || '';
+      }
+      horseChallengeActive = false;
+      // Switch back to Player 1
+      horseCurrentPlayer = 0;
+    } else {
+      // Player 1 shooting
+      if (made) {
+        // Challenge — Player 2 must match
+        horseChallengeActive = true;
+        horseCurrentPlayer = 1;
+      }
+      // If missed, just switch turns (no challenge)
+      // Player 1 stays, no letter given
+    }
+
+    updateHorseUI();
+
+    // Check for game over
+    for (var i = 0; i < horsePlayers.length; i++) {
+      if (horsePlayers[i].letters.length >= horseWord.length) {
+        endHorseGame(i);
+        return;
+      }
+    }
+  }
+
+  function updateHorseUI() {
+    var el = document.getElementById('ast-horse-status');
+    if (!el) return;
+
+    var html = '<div class="ast-horse-players">';
+    for (var i = 0; i < horsePlayers.length; i++) {
+      var active = i === horseCurrentPlayer ? ' ast-horse-active' : '';
+      var letters = horsePlayers[i].letters || '';
+      var display = '';
+      for (var j = 0; j < horseWord.length; j++) {
+        display += j < letters.length
+          ? '<span class="ast-horse-letter-lit">' + horseWord[j] + '</span>'
+          : '<span class="ast-horse-letter-dim">' + horseWord[j] + '</span>';
+      }
+      html += '<div class="ast-horse-player' + active + '">' +
+        '<div class="ast-horse-name">' + horsePlayers[i].name + '</div>' +
+        '<div class="ast-horse-letters">' + display + '</div>' +
+      '</div>';
+    }
+    html += '</div>';
+    if (horseChallengeActive) {
+      html += '<div class="ast-horse-challenge">Match the shot!</div>';
+    }
+    html += '<div class="ast-horse-turn">' + horsePlayers[horseCurrentPlayer].name + '\'s turn</div>';
+    el.innerHTML = html;
+    el.style.display = '';
+  }
+
+  function endHorseGame(loserIdx) {
+    var winnerIdx = loserIdx === 0 ? 1 : 0;
+    var el = document.getElementById('ast-horse-status');
+    if (el) {
+      el.innerHTML = '<div class="ast-horse-gameover">' +
+        '<div class="ast-horse-winner">' + horsePlayers[winnerIdx].name + ' Wins!</div>' +
+        '<div class="ast-horse-loser">' + horsePlayers[loserIdx].name + ' spelled ' + horseWord + '</div>' +
+      '</div>';
+    }
+    horseMode = false;
+  }
+
+  function startHorseMode() {
+    var p1 = (document.getElementById('ast-horse-p1') || {}).value || 'Player 1';
+    var p2 = (document.getElementById('ast-horse-p2') || {}).value || 'Player 2';
+    horsePlayers = [
+      { name: p1, letters: '', score: [] },
+      { name: p2, letters: '', score: [] }
+    ];
+    horseCurrentPlayer = 0;
+    horseChallengeActive = false;
+    horseMode = true;
+    var setup = document.getElementById('ast-horse-setup');
+    if (setup) setup.style.display = 'none';
+    updateHorseUI();
+  }
+
+  function toggleHorseSetup() {
+    var setup = document.getElementById('ast-horse-setup');
+    if (!setup) return;
+    setup.style.display = setup.style.display === 'none' ? '' : 'none';
+    // Reset horse mode if toggling off
+    if (setup.style.display === 'none' && horseMode) {
+      horseMode = false;
+      var status = document.getElementById('ast-horse-status');
+      if (status) status.style.display = 'none';
+    }
   }
 
   /* ── Manual override ──────────────────────────────────────── */
@@ -389,6 +618,9 @@
       ctx.arc(18, 18, 6, 0, Math.PI * 2);
       ctx.fill();
     }
+
+    // Draw shot replay animation
+    drawReplay();
   }
 
   /* ── Frame loop ───────────────────────────────────────────── */
@@ -550,6 +782,23 @@
     isDetecting = false;
     frameCount = 0;
     resetKalman();
+
+    // Reset arc/replay/horse state
+    shotArcData = [];
+    replayTrajectory = null;
+    if (replayTimer) { clearInterval(replayTimer); replayTimer = null; }
+    horseMode = false;
+    horsePlayers = [
+      { name: 'Player 1', letters: '', score: [] },
+      { name: 'Player 2', letters: '', score: [] }
+    ];
+    horseCurrentPlayer = 0;
+    horseChallengeActive = false;
+
+    var horseStatus = document.getElementById('ast-horse-status');
+    if (horseStatus) horseStatus.style.display = 'none';
+    var horseSetup = document.getElementById('ast-horse-setup');
+    if (horseSetup) horseSetup.style.display = 'none';
 
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
@@ -734,6 +983,156 @@
     return html;
   }
 
+  /* ── Arc Analysis for Summary ─────────────────────────────── */
+  function buildArcAnalysis() {
+    if (shotArcData.length < 2) return '';
+    var totalAngle = 0, madeAngle = 0, madeCount = 0, missAngle = 0, missCount = 0;
+    var highMade = 0, highTotal = 0, medMade = 0, medTotal = 0, flatMade = 0, flatTotal = 0;
+
+    for (var i = 0; i < shotArcData.length; i++) {
+      var d = shotArcData[i];
+      totalAngle += d.angle;
+      if (d.made) { madeAngle += d.angle; madeCount++; }
+      else { missAngle += d.angle; missCount++; }
+    }
+
+    // Correlate arc type with session shots
+    for (var j = 0; j < session.shots.length; j++) {
+      var s = session.shots[j];
+      if (!s.arc) continue;
+      if (s.arc.arcType === 'high') { highTotal++; if (s.made) highMade++; }
+      else if (s.arc.arcType === 'medium') { medTotal++; if (s.made) medMade++; }
+      else { flatTotal++; if (s.made) flatMade++; }
+    }
+
+    var avgAngle = Math.round(totalAngle / shotArcData.length);
+    var avgMade = madeCount > 0 ? Math.round(madeAngle / madeCount) : 0;
+    var avgMiss = missCount > 0 ? Math.round(missAngle / missCount) : 0;
+
+    var html = '<div class="ast-arc-analysis">' +
+      '<div class="ast-arc-title">Shot Arc Analysis</div>' +
+      '<div class="ast-arc-stats">' +
+        '<div class="ast-arc-stat">' +
+          '<div class="ast-arc-val">' + avgAngle + '\u00b0</div>' +
+          '<div class="ast-arc-lbl">Avg Entry Angle</div>' +
+        '</div>';
+    if (madeCount > 0) {
+      html += '<div class="ast-arc-stat">' +
+        '<div class="ast-arc-val" style="color:#56d364">' + avgMade + '\u00b0</div>' +
+        '<div class="ast-arc-lbl">Avg (Made)</div>' +
+      '</div>';
+    }
+    if (missCount > 0) {
+      html += '<div class="ast-arc-stat">' +
+        '<div class="ast-arc-val" style="color:#f85149">' + avgMiss + '\u00b0</div>' +
+        '<div class="ast-arc-lbl">Avg (Miss)</div>' +
+      '</div>';
+    }
+    html += '</div>';
+
+    // Arc type breakdown
+    if (highTotal + medTotal + flatTotal > 0) {
+      html += '<div class="ast-arc-breakdown">';
+      if (highTotal > 0) {
+        var hp = Math.round((highMade / highTotal) * 100);
+        html += '<div class="ast-arc-row"><span class="ast-arc-type">High Arc</span><span class="ast-arc-bar-wrap"><span class="ast-arc-bar" style="width:' + hp + '%;background:#56d364"></span></span><span class="ast-arc-pct">' + hp + '% (' + highMade + '/' + highTotal + ')</span></div>';
+      }
+      if (medTotal > 0) {
+        var mp = Math.round((medMade / medTotal) * 100);
+        html += '<div class="ast-arc-row"><span class="ast-arc-type">Medium</span><span class="ast-arc-bar-wrap"><span class="ast-arc-bar" style="width:' + mp + '%;background:#f5a623"></span></span><span class="ast-arc-pct">' + mp + '% (' + medMade + '/' + medTotal + ')</span></div>';
+      }
+      if (flatTotal > 0) {
+        var fp = Math.round((flatMade / flatTotal) * 100);
+        html += '<div class="ast-arc-row"><span class="ast-arc-type">Flat</span><span class="ast-arc-bar-wrap"><span class="ast-arc-bar" style="width:' + fp + '%;background:#f85149"></span></span><span class="ast-arc-pct">' + fp + '% (' + flatMade + '/' + flatTotal + ')</span></div>';
+      }
+      html += '</div>';
+    }
+
+    // Tip
+    var tip = '';
+    if (avgAngle < 40) tip = 'Try increasing your arc — shots with a higher angle have a larger target window.';
+    else if (avgAngle > 55) tip = 'Your arc is high. Good for accuracy, but watch for consistency.';
+    else tip = 'Your entry angle is in the optimal range (40-55\u00b0). Keep it up!';
+    html += '<div class="ast-arc-tip">' + tip + '</div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  /* ── Progress Sparkline (history-based) ─────────────────── */
+  function buildProgressSparkline() {
+    var sessions = [];
+    try {
+      var raw = localStorage.getItem('courtiq-shot-sessions');
+      if (raw) sessions = JSON.parse(raw);
+    } catch (e) { return ''; }
+
+    var aiSessions = sessions.filter(function (s) { return s.session_type === 'ai_tracking'; });
+    if (aiSessions.length < 2) return '';
+
+    // Get last 15 sessions (oldest first)
+    var recent = aiSessions.slice(0, 15).reverse();
+
+    var cw = 300, ch = 80;
+    var svg = '<svg viewBox="0 0 ' + cw + ' ' + ch + '" class="ast-sparkline-svg" xmlns="http://www.w3.org/2000/svg">';
+
+    // Background grid
+    svg += '<line x1="0" y1="' + (ch * 0.5) + '" x2="' + cw + '" y2="' + (ch * 0.5) + '" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="4,4"/>';
+
+    // Calculate points for overall, FG, 3PT
+    var lines = {
+      overall: { pts: [], color: '#f5a623' },
+      fg: { pts: [], color: '#4ca3ff' },
+      '3pt': { pts: [], color: '#bc8cff' }
+    };
+
+    for (var i = 0; i < recent.length; i++) {
+      var s = recent[i];
+      var x = (i / (recent.length - 1)) * (cw - 20) + 10;
+      var totalMade = (s.fg_made || 0) + (s.three_made || 0) + (s.ft_made || 0);
+      var totalAtt = totalMade + (s.fg_missed || 0) + (s.three_missed || 0) + (s.ft_missed || 0);
+      var overallPct = totalAtt > 0 ? totalMade / totalAtt : 0;
+
+      var fgAtt = (s.fg_made || 0) + (s.fg_missed || 0);
+      var fgPct = fgAtt > 0 ? s.fg_made / fgAtt : -1;
+
+      var threeAtt = (s.three_made || 0) + (s.three_missed || 0);
+      var threePct = threeAtt > 0 ? s.three_made / threeAtt : -1;
+
+      var yPad = 8;
+      lines.overall.pts.push({ x: x, y: yPad + (1 - overallPct) * (ch - yPad * 2) });
+      if (fgPct >= 0) lines.fg.pts.push({ x: x, y: yPad + (1 - fgPct) * (ch - yPad * 2) });
+      if (threePct >= 0) lines['3pt'].pts.push({ x: x, y: yPad + (1 - threePct) * (ch - yPad * 2) });
+    }
+
+    // Draw lines
+    for (var key in lines) {
+      var line = lines[key];
+      if (line.pts.length < 2) continue;
+      svg += '<polyline points="';
+      for (var j = 0; j < line.pts.length; j++) {
+        svg += line.pts[j].x.toFixed(1) + ',' + line.pts[j].y.toFixed(1) + ' ';
+      }
+      svg += '" fill="none" stroke="' + line.color + '" stroke-width="2" opacity="0.8"/>';
+
+      // Dot at end
+      var last = line.pts[line.pts.length - 1];
+      svg += '<circle cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="3" fill="' + line.color + '"/>';
+    }
+
+    svg += '</svg>';
+
+    return '<div class="ast-sparkline-wrap">' +
+      '<div class="ast-sparkline-title">Shooting Trend</div>' +
+      '<div class="ast-sparkline-legend">' +
+        '<span style="color:#f5a623">Overall</span>' +
+        '<span style="color:#4ca3ff">FG</span>' +
+        '<span style="color:#bc8cff">3PT</span>' +
+      '</div>' +
+      svg +
+    '</div>';
+  }
+
   function buildSummary() {
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
@@ -774,6 +1173,10 @@
       buildTypeBreakdown() +
 
       buildShotChart() +
+
+      buildArcAnalysis() +
+
+      buildProgressSparkline() +
 
       '<div class="ast-sum-xp-box">' +
         '<div class="ast-sum-xp-val">\u26a1 +' + xp + ' XP</div>' +
@@ -823,7 +1226,8 @@
       ft_missed:     typeCounts.ft.missed,
       session_type:  'ai_tracking',
       accuracy:      pct,
-      max_streak:    session.maxStreak
+      max_streak:    session.maxStreak,
+      court_preset:  courtPreset
     };
 
     // Write to localStorage
@@ -932,6 +1336,195 @@
     }
 
     container.innerHTML = html;
+
+    // Also render dashboard sparkline
+    renderDashSparkline(aiSessions);
+  }
+
+  /* ── Dashboard Sparkline ───────────────────────────────── */
+  function renderDashSparkline(aiSessions) {
+    var el = document.getElementById('ast-dash-sparkline');
+    if (!el) return;
+
+    if (!aiSessions || aiSessions.length < 2) { el.innerHTML = ''; return; }
+
+    var recent = aiSessions.slice(0, 15).reverse();
+    var cw = 300, ch = 80;
+    var svg = '<svg viewBox="0 0 ' + cw + ' ' + ch + '" class="ast-sparkline-svg" xmlns="http://www.w3.org/2000/svg">';
+    svg += '<line x1="0" y1="' + (ch * 0.5) + '" x2="' + cw + '" y2="' + (ch * 0.5) + '" stroke="rgba(255,255,255,0.06)" stroke-width="1" stroke-dasharray="4,4"/>';
+
+    var pts = [];
+    for (var i = 0; i < recent.length; i++) {
+      var s = recent[i];
+      var x = (i / (recent.length - 1)) * (cw - 20) + 10;
+      var totalMade = (s.fg_made || 0) + (s.three_made || 0) + (s.ft_made || 0);
+      var totalAtt = totalMade + (s.fg_missed || 0) + (s.three_missed || 0) + (s.ft_missed || 0);
+      var pct = totalAtt > 0 ? totalMade / totalAtt : 0;
+      var yPad = 8;
+      pts.push({ x: x, y: yPad + (1 - pct) * (ch - yPad * 2) });
+    }
+
+    if (pts.length >= 2) {
+      // Gradient area fill
+      svg += '<defs><linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#f5a623" stop-opacity="0.2"/><stop offset="100%" stop-color="#f5a623" stop-opacity="0.02"/></linearGradient></defs>';
+      svg += '<polygon points="' + pts[0].x.toFixed(1) + ',' + ch + ' ';
+      for (var j = 0; j < pts.length; j++) { svg += pts[j].x.toFixed(1) + ',' + pts[j].y.toFixed(1) + ' '; }
+      svg += pts[pts.length - 1].x.toFixed(1) + ',' + ch + '" fill="url(#sparkGrad)"/>';
+
+      svg += '<polyline points="';
+      for (var k = 0; k < pts.length; k++) { svg += pts[k].x.toFixed(1) + ',' + pts[k].y.toFixed(1) + ' '; }
+      svg += '" fill="none" stroke="#f5a623" stroke-width="2" opacity="0.85"/>';
+
+      var last = pts[pts.length - 1];
+      svg += '<circle cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="4" fill="#f5a623"/>';
+    }
+
+    svg += '</svg>';
+
+    el.innerHTML = '<div class="ast-sparkline-wrap">' +
+      '<div class="ast-sparkline-title">Shooting Trend (AI Sessions)</div>' +
+      svg +
+    '</div>';
+  }
+
+  /* ── Push Notifications / Reminders ──────────────────────── */
+  var NOTIF_KEY = 'courtiq-notif-settings';
+
+  function getNotifSettings() {
+    try {
+      var raw = localStorage.getItem(NOTIF_KEY);
+      return raw ? JSON.parse(raw) : { enabled: false, interval: 2, lastSession: 0 };
+    } catch (e) { return { enabled: false, interval: 2, lastSession: 0 }; }
+  }
+
+  function saveNotifSettings(settings) {
+    try { localStorage.setItem(NOTIF_KEY, JSON.stringify(settings)); } catch (e) {}
+  }
+
+  function requestNotifPermission(callback) {
+    if (!('Notification' in window)) { callback(false); return; }
+    if (Notification.permission === 'granted') { callback(true); return; }
+    if (Notification.permission === 'denied') { callback(false); return; }
+    Notification.requestPermission().then(function (perm) {
+      callback(perm === 'granted');
+    });
+  }
+
+  function scheduleReminder() {
+    var settings = getNotifSettings();
+    if (!settings.enabled) return;
+
+    // Check how many days since last session
+    var sessions = [];
+    try {
+      var raw = localStorage.getItem('courtiq-shot-sessions');
+      if (raw) sessions = JSON.parse(raw);
+    } catch (e) {}
+
+    var lastDate = 0;
+    for (var i = 0; i < sessions.length; i++) {
+      var d = new Date(sessions[i].date).getTime();
+      if (d > lastDate) lastDate = d;
+    }
+
+    var daysSince = lastDate > 0 ? Math.floor((Date.now() - lastDate) / 86400000) : 999;
+
+    if (daysSince >= settings.interval) {
+      sendNotification(daysSince);
+    }
+  }
+
+  function sendNotification(daysSince) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+
+    var msgs = [
+      { title: 'Time to train!', body: 'You haven\'t practiced in ' + daysSince + ' days. Let\'s get some shots up!' },
+      { title: 'Don\'t break the streak!', body: daysSince + ' days without practice. Your shooting needs you!' },
+      { title: 'Your court is calling', body: 'It\'s been ' + daysSince + ' days. Even 50 shots can make a difference.' }
+    ];
+    var msg = msgs[Math.floor(Math.random() * msgs.length)];
+
+    try {
+      new Notification(msg.title, {
+        body: msg.body,
+        icon: '/assets/favicon.svg',
+        badge: '/assets/favicon.svg',
+        tag: 'courtiq-reminder'
+      });
+    } catch (e) {}
+  }
+
+  function initNotifications() {
+    var toggle = document.getElementById('ast-notif-toggle');
+    var intervalSel = document.getElementById('ast-notif-interval');
+    if (!toggle) return;
+
+    var settings = getNotifSettings();
+    toggle.checked = settings.enabled;
+    if (intervalSel) intervalSel.value = String(settings.interval);
+
+    toggle.addEventListener('change', function () {
+      if (toggle.checked) {
+        requestNotifPermission(function (granted) {
+          if (granted) {
+            var s = getNotifSettings();
+            s.enabled = true;
+            saveNotifSettings(s);
+          } else {
+            toggle.checked = false;
+            if (typeof showToast === 'function') showToast('Notifications blocked by browser');
+          }
+        });
+      } else {
+        var s = getNotifSettings();
+        s.enabled = false;
+        saveNotifSettings(s);
+      }
+    });
+
+    if (intervalSel) {
+      intervalSel.addEventListener('change', function () {
+        var s = getNotifSettings();
+        s.interval = parseInt(intervalSel.value, 10) || 2;
+        saveNotifSettings(s);
+      });
+    }
+
+    // Check on load
+    scheduleReminder();
+  }
+
+  /* ── Court Preset UI ───────────────────────────────────── */
+  function initCourtPreset() {
+    var btns = document.querySelectorAll('.ast-court-btn');
+    if (btns.length === 0) return;
+
+    // Load saved preset
+    try {
+      var saved = localStorage.getItem('courtiq-court-preset');
+      if (saved && COURT_PRESETS[saved]) courtPreset = saved;
+    } catch (e) {}
+
+    updateCourtPresetUI();
+
+    btns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        courtPreset = btn.dataset.preset || 'nba';
+        try { localStorage.setItem('courtiq-court-preset', courtPreset); } catch (e) {}
+        updateCourtPresetUI();
+      });
+    });
+  }
+
+  function updateCourtPresetUI() {
+    document.querySelectorAll('.ast-court-btn').forEach(function (btn) {
+      btn.classList.toggle('ast-court-active', btn.dataset.preset === courtPreset);
+    });
+    var info = document.getElementById('ast-court-info');
+    if (info) {
+      var p = COURT_PRESETS[courtPreset];
+      info.textContent = p.label + ': 3PT line at ' + p.threeLineFt + ' ft, Court ' + p.courtW + '\u00d7' + p.courtL + ' ft';
+    }
   }
 
   /* ── Init ────────────────────────────────────────────────── */
@@ -1035,6 +1628,19 @@
       });
     }
 
+    // HORSE mode buttons
+    var horseToggleBtn = document.getElementById('ast-horse-toggle');
+    if (horseToggleBtn) horseToggleBtn.addEventListener('click', toggleHorseSetup);
+
+    var horseStartBtn = document.getElementById('ast-horse-start');
+    if (horseStartBtn) horseStartBtn.addEventListener('click', startHorseMode);
+
+    // Court preset
+    initCourtPreset();
+
+    // Notifications
+    initNotifications();
+
     // Render history on load
     renderHistory();
   }
@@ -1046,6 +1652,6 @@
   }
 
   // Public API
-  window.AIShotTracker = { open: openOverlay, close: closeOverlay };
+  window.AIShotTracker = { open: openOverlay, close: closeOverlay, startHorse: startHorseMode };
 
 })();

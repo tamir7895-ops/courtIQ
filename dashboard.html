@@ -1135,6 +1135,40 @@
       </div>
       <input type="file" accept="video/*" id="ast-file-input" style="display:none">
 
+      <!-- Court Size Preset -->
+      <div class="ast-settings-card">
+        <div class="ast-settings-row">
+          <div class="ast-settings-label">Court Size</div>
+          <div class="ast-court-btns">
+            <button class="ast-court-btn ast-court-active" data-preset="nba">NBA</button>
+            <button class="ast-court-btn" data-preset="fiba">FIBA</button>
+            <button class="ast-court-btn" data-preset="hs">HS</button>
+          </div>
+        </div>
+        <div class="ast-court-info" id="ast-court-info">NBA: 3PT line at 23.75 ft, Court 50×94 ft</div>
+        <div class="ast-settings-row" style="margin-top:12px;">
+          <div class="ast-settings-label">Training Reminders</div>
+          <label class="ast-toggle-label">
+            <input type="checkbox" id="ast-notif-toggle" class="ast-toggle-input">
+            <span class="ast-toggle-switch"></span>
+          </label>
+        </div>
+        <div class="ast-notif-options" id="ast-notif-options">
+          <span class="ast-notif-text">Remind after</span>
+          <select id="ast-notif-interval" class="ast-notif-select">
+            <option value="1">1 day</option>
+            <option value="2" selected>2 days</option>
+            <option value="3">3 days</option>
+            <option value="5">5 days</option>
+            <option value="7">1 week</option>
+          </select>
+          <span class="ast-notif-text">of inactivity</span>
+        </div>
+      </div>
+
+      <!-- Progress Sparkline (dashboard level) -->
+      <div class="ast-dash-sparkline" id="ast-dash-sparkline"></div>
+
       <!-- AI Session History -->
       <div class="ast-history-section">
         <div class="ast-history-title">AI Session History</div>
@@ -2379,7 +2413,19 @@ if ('serviceWorker' in navigator) {
         <button class="ast-type-btn ast-type-active" data-type="fg">FG</button>
         <button class="ast-type-btn" data-type="3pt">3PT</button>
         <button class="ast-type-btn" data-type="ft">FT</button>
+        <button class="ast-horse-toggle-btn" id="ast-horse-toggle">H-O-R-S-E</button>
       </div>
+
+      <!-- HORSE Mode Setup -->
+      <div class="ast-horse-setup" id="ast-horse-setup" style="display:none;">
+        <input class="ast-horse-input" id="ast-horse-p1" placeholder="Player 1" maxlength="12">
+        <span class="ast-horse-vs">VS</span>
+        <input class="ast-horse-input" id="ast-horse-p2" placeholder="Player 2" maxlength="12">
+        <button class="ast-horse-start-btn" id="ast-horse-start">Start</button>
+      </div>
+
+      <!-- HORSE Status -->
+      <div class="ast-horse-status" id="ast-horse-status" style="display:none;"></div>
 
       <!-- Manual override buttons -->
       <div class="ast-manual" id="ast-manual">
