@@ -159,13 +159,24 @@
   }
 
   /* ── ML model loading ───────────────────────────────────────── */
+  var mlRetryCount = 0;
+  var ML_MAX_RETRIES = 3;
+
   function loadMLModel() {
     if (mlLoading || mlReady) return;
-    if (typeof cocoSsd === 'undefined') return;
+    if (typeof cocoSsd === 'undefined' || typeof tf === 'undefined') {
+      // TF/COCO-SSD not loaded yet — retry after delay
+      if (mlRetryCount < ML_MAX_RETRIES) {
+        mlRetryCount++;
+        setTimeout(loadMLModel, mlRetryCount * 2000);
+      }
+      return;
+    }
     mlLoading = true;
     setMLStatus('loading');
-    // Use full mobilenet_v2 for better accuracy (larger but more reliable)
-    cocoSsd.load({ base: 'mobilenet_v2' }).then(function (model) {
+    tf.ready().then(function () {
+      return cocoSsd.load({ base: 'mobilenet_v2' });
+    }).then(function (model) {
       tfModel = model;
       mlReady = true;
       mlLoading = false;
