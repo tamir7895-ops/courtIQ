@@ -270,21 +270,19 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 50) return false;   // very low — handle dim indoor/gym lighting
+    if (max < 80) return false;   // raised — exclude dark murky surfaces
     var delta = max - min;
-    if (delta < 15) return false;  // very low — handle extreme desaturation from filters
+    if (delta < 20) return false;  // raised — require more color contrast
     var s = delta / max;
-    if (s < 0.18) return false;   // very low — TikTok cool filters almost wash out color
+    if (s < 0.30) return false;   // raised — exclude skin tones, brownish surfaces
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange range: extremely wide to handle all filters and lighting
-    // Red-orange (0-60) and deep red wrapping around (340-360)
-    // Covers: pure orange, warm-filtered orange, cool-filtered brown-orange,
-    //         tungsten yellow-orange, fluorescent-shifted orange
-    return (h >= 0 && h <= 60) || h >= 340;
+    // Basketball orange: tight range centered on true orange (15–42°)
+    // Slightly extended for warm/cool filter shifts; excludes pure yellow and red jerseys
+    return (h >= 12 && h <= 45) || h >= 345;
   }
 
   function detectBallColor() {
