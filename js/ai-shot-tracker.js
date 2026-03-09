@@ -815,6 +815,14 @@
 
     disappearCount = 0;
 
+    // DIAG: log ball detection every 60 frames
+    if (frameCount % 60 === 0) {
+      console.log('[AST diag] ball: x=' + Math.round(ball.x) + ' y=' + Math.round(ball.y) +
+        ' score=' + (ball.score || 0).toFixed(2) +
+        ' phase=' + shotPhase + ' yVel=tbd' +
+        ' rim=' + (rim ? Math.round(rim.cx) + ',' + Math.round(rim.cy) : 'none'));
+    }
+
     // Track peak height
     if (ball.y < ballPeakY) ballPeakY = ball.y;
 
