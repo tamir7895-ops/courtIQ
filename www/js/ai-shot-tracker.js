@@ -1,33 +1,43 @@
 /* ============================================================
    AI SHOT TRACKER — /js/ai-shot-tracker.js
    Camera-based automatic shot detection using ML + color fallback.
-   Tracks basketball, detects made/miss via rim zone.
 
-   v2 — Resolution-normalized thresholds, velocity-predicting Kalman
-        filter, robust state machine, clustered color detection,
-        rebound-aware cooldown, video look-ahead buffering.
+   v3 — Major detection overhaul:
+     - ROI-based search: only look for ball in the upper court area
+       near the rim (not in video overlays or player body zones)
+     - Person exclusion: COCO-SSD "person" bboxes mask out color search
+     - Better ML model: mobilenet_v2 (full) for improved outdoor accuracy
+     - Stricter color filtering: aspect + size + compactness + proximity
+     - Resolution-normalized everything
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ── Resolution-relative constants ─────────────────────────
-     All spatial thresholds are expressed as fractions of frame
-     width (W) or height (H) so they work at any resolution.   */
-  var RIM_RX_FRAC  = 0.043;  // Rim ellipse half-width  (~55/1280)
-  var RIM_RY_FRAC  = 0.028;  // Rim ellipse half-height (~20/720)
-  var BLOB_MIN_FRAC = 0.00025; // Min orange pixel ratio (sampled every 2px)
-  var BLOB_MAX_FRAC = 0.015;   // Max orange pixel ratio
-  var MAX_HIST      = 45;      // Trajectory history frames
-  var COOLDOWN_SEC  = 2.0;     // Seconds between shot detections
-  var BALL_CIRCLE_FRAC = 0.022; // Ball overlay circle radius as fraction of W
+  /* ── Resolution-relative constants ────────────────────────── */
+  var RIM_RX_FRAC    = 0.043;   // Rim ellipse half-width
+  var RIM_RY_FRAC    = 0.028;   // Rim ellipse half-height
+  var MAX_HIST       = 45;
+  var COOLDOWN_SEC   = 2.0;
+  var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.014;  // ~10/720 — ascending threshold
-  var VEL_FALL_FRAC  = 0.014;  // falling threshold
-  var TELEPORT_FRAC  = 0.22;   // max per-frame jump (fraction of W)
-
-  /* ── Disappear grace — frames ball can vanish before we act */
+  var VEL_RISE_FRAC  = 0.014;
+  var VEL_FALL_FRAC  = 0.014;
+  var TELEPORT_FRAC  = 0.22;
   var DISAPPEAR_GRACE = 6;
+
+  /* ── Ball size for color detection (fraction of frame width) */
+  var BALL_DIAM_MIN_FRAC = 0.012;
+  var BALL_DIAM_MAX_FRAC = 0.14;
+  var BALL_ASPECT_MAX    = 2.2;
+
+  /* ── ROI: Region of Interest for ball search ────────────────
+     After rim calibration, we only search in this region:
+     - Horizontally: full width (ball can come from any angle)
+     - Vertically: from top of frame down to rim + some margin below
+     - Excludes bottom 15% of frame (video overlays/watermarks)  */
+  var ROI_BOTTOM_MARGIN_FRAC = 0.15; // ignore bottom 15% of frame
+  var ROI_BELOW_RIM_FRAC = 0.12;     // search only this far below rim
 
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
@@ -36,7 +46,7 @@
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
   var animFrame = null;
-  var mode = 'camera';   // 'camera' | 'video'
+  var mode = 'camera';
   var videoUrl = null;
 
   /* ── ML state ─────────────────────────────────────────────── */
@@ -46,33 +56,23 @@
   var isDetecting = false;
   var lastBall    = null;
   var frameCount  = 0;
+  var personBoxes = [];  // bboxes of detected people (for exclusion)
 
-  /* ── Kalman filter with velocity prediction (1-D, x and y) ─ */
+  /* ── Kalman filter with velocity prediction ────────────────── */
   function createKalman() {
-    return {
-      x: null,   // position estimate
-      v: 0,      // velocity estimate
-      p: 1.0,    // position variance
-      pv: 0.5,   // velocity variance
-      R: 12,     // measurement noise
-      Qp: 0.6,   // process noise — position
-      Qv: 0.3    // process noise — velocity
-    };
+    return { x: null, v: 0, p: 1.0, pv: 0.5, R: 12, Qp: 0.6, Qv: 0.3 };
   }
   var kalX = createKalman();
   var kalY = createKalman();
 
   function kalmanUpdate(kal, z) {
     if (kal.x === null) { kal.x = z; kal.v = 0; return z; }
-    // Predict
     var xPred = kal.x + kal.v;
     var pPred = kal.p + kal.pv + kal.Qp;
-    // Update
     var k = pPred / (pPred + kal.R);
     kal.x = xPred + k * (z - xPred);
     kal.p = pPred * (1 - k);
-    // Update velocity estimate
-    var vMeas = kal.x - (xPred - kal.v); // observed change
+    var vMeas = kal.x - (xPred - kal.v);
     kal.v = kal.v + 0.3 * (vMeas - kal.v);
     kal.pv += kal.Qv;
     return kal.x;
@@ -85,39 +85,60 @@
 
   function applyKalman(ball) {
     return {
-      x: kalmanUpdate(kalX, ball.x),
-      y: kalmanUpdate(kalY, ball.y),
-      size: ball.size,
-      score: ball.score || 1
+      x: kalmanUpdate(kalX, ball.x), y: kalmanUpdate(kalY, ball.y),
+      size: ball.size, score: ball.score || 1
     };
   }
 
-  function resetKalman() {
-    kalX = createKalman();
-    kalY = createKalman();
-  }
+  function resetKalman() { kalX = createKalman(); kalY = createKalman(); }
 
   /* ── Rim & tracking state ──────────────────────────────────── */
-  var rim = null;        // { cx, cy, rx, ry }
-  var ballHistory = [];  // array of {x,y} or null
+  var rim = null;
+  var ballHistory = [];
   var disappearCount = 0;
-
-  // State machine: idle → ascending → at_rim → (below_rim | idle)
   var shotPhase = 'idle';
-  var atRimFrames = 0;       // how many frames ball has been in rim zone
-  var atRimMaxFrames = 18;   // max frames to wait for ball to pass through
-  var cooldownUntil = 0;     // timestamp when cooldown expires
+  var atRimFrames = 0;
+  var atRimMaxFrames = 18;
+  var cooldownUntil = 0;
 
   var session = {
     attempts: 0, made: 0, shots: [],
     startTime: 0, streak: 0, maxStreak: 0
   };
 
-  /* ── Video look-ahead buffer (video mode only) ─────────────
-     In video mode we can buffer recent detections and analyze
-     a small window of future frames before committing a result. */
-  var VIDEO_LOOKAHEAD = 8;  // frames to buffer before deciding
-  var pendingShot = null;   // { phase, enteredFrame, rimEntry: {x,y} }
+  /* ── ROI helpers ────────────────────────────────────────────── */
+  function getROI() {
+    // Before calibration, search most of the frame (exclude bottom 15% for overlays)
+    if (!rim) {
+      return { x: 0, y: 0, w: W, h: Math.round(H * (1 - ROI_BOTTOM_MARGIN_FRAC)) };
+    }
+    // After calibration, focus on the area around the rim
+    var roiTop = 0;
+    var roiBottom = Math.min(
+      Math.round(rim.cy + H * ROI_BELOW_RIM_FRAC),
+      Math.round(H * (1 - ROI_BOTTOM_MARGIN_FRAC))
+    );
+    return { x: 0, y: roiTop, w: W, h: roiBottom - roiTop };
+  }
+
+  function isInsideROI(x, y) {
+    var roi = getROI();
+    return x >= roi.x && x <= roi.x + roi.w && y >= roi.y && y <= roi.y + roi.h;
+  }
+
+  function isInsidePersonBox(x, y) {
+    for (var i = 0; i < personBoxes.length; i++) {
+      var pb = personBoxes[i];
+      // Shrink person box by 20% on each side to allow ball near hands
+      var shrink = 0.2;
+      var px = pb.x + pb.w * shrink;
+      var py = pb.y + pb.h * shrink;
+      var pw = pb.w * (1 - 2 * shrink);
+      var ph = pb.h * (1 - 2 * shrink);
+      if (x >= px && x <= px + pw && y >= py && y <= py + ph) return true;
+    }
+    return false;
+  }
 
   /* ── Physics validation ─────────────────────────────────────── */
   function isPhysicallyValid(ball) {
@@ -132,14 +153,23 @@
     if (typeof cocoSsd === 'undefined') return;
     mlLoading = true;
     setMLStatus('loading');
-    cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
+    // Use full mobilenet_v2 for better accuracy (larger but more reliable)
+    cocoSsd.load({ base: 'mobilenet_v2' }).then(function (model) {
       tfModel = model;
       mlReady = true;
       mlLoading = false;
       setMLStatus('ready');
     }).catch(function () {
-      mlLoading = false;
-      setMLStatus('fallback');
+      // Fallback to lite if full model fails
+      cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
+        tfModel = model;
+        mlReady = true;
+        mlLoading = false;
+        setMLStatus('ready');
+      }).catch(function () {
+        mlLoading = false;
+        setMLStatus('fallback');
+      });
     });
   }
 
@@ -151,39 +181,58 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── ML-powered detection (async, falls back to color) ──────── */
-  // COCO-SSD sometimes labels basketballs as "frisbee" or "orange"
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7 };
-  var mlMissCount = 0;  // consecutive frames ML found nothing
+  /* ── ML detection with person exclusion ─────────────────────── */
+  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.8, 'orange': 0.65 };
+  var mlMissCount = 0;
 
   function detectBallAsync() {
     if (mlReady && tfModel) {
       return tfModel.detect(video).then(function (preds) {
-        var best = null, bestAdjScore = 0.3;
+        var best = null, bestAdjScore = 0.25;
         var frameArea = W * H;
+
+        // First pass: collect person bounding boxes for exclusion
+        personBoxes = [];
+        for (var p = 0; p < preds.length; p++) {
+          if (preds[p].class === 'person' && preds[p].score > 0.4) {
+            var pb = preds[p].bbox;
+            personBoxes.push({ x: pb[0], y: pb[1], w: pb[2], h: pb[3] });
+          }
+        }
+
+        // Second pass: find best ball detection
         for (var i = 0; i < preds.length; i++) {
           var cls = preds[i].class;
           var classWeight = ML_BALL_CLASSES[cls];
           if (!classWeight) continue;
           var adjScore = preds[i].score * classWeight;
           if (adjScore <= bestAdjScore) continue;
-          var area = preds[i].bbox[2] * preds[i].bbox[3];
+
+          var bbox = preds[i].bbox;
+          var area = bbox[2] * bbox[3];
           if (area < frameArea * 0.0003 || area > frameArea * 0.10) continue;
-          // Shape check: basketball bbox should be roughly square
-          var bw = preds[i].bbox[2], bh = preds[i].bbox[3];
-          var bAspect = Math.max(bw / bh, bh / bw);
-          if (bAspect > 2.2) continue;  // too elongated = not a ball
+
+          // Shape check
+          var bAspect = Math.max(bbox[2] / bbox[3], bbox[3] / bbox[2]);
+          if (bAspect > 2.2) continue;
+
+          // Center of detection
+          var cx = bbox[0] + bbox[2] / 2;
+          var cy = bbox[1] + bbox[3] / 2;
+
+          // Must be inside ROI
+          if (!isInsideROI(cx, cy)) continue;
+
           best = preds[i];
           bestAdjScore = adjScore;
         }
+
         if (best) {
           mlMissCount = 0;
           var b = best.bbox;
           return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: bestAdjScore };
         }
-        // ML found nothing — only fall back to color if ML has been
-        // missing for several frames (avoids color locking onto shirts
-        // when ML is just occasionally missing the ball)
+
         mlMissCount++;
         if (mlMissCount >= 3) {
           return detectBallColor();
@@ -194,10 +243,7 @@
     return Promise.resolve(detectBallColor());
   }
 
-  /* ── Color detection with shape-aware clustering ─────────────
-     Strategy: find all orange blobs, then pick the one that is
-     most ball-shaped (roughly circular, correct size).
-     This avoids locking onto orange shirts, floors, or cones.  */
+  /* ── Color detection: shape-aware, ROI-limited, person-excluded ── */
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
@@ -214,36 +260,40 @@
     return h >= 10 && h <= 42;
   }
 
-  /* Expected basketball diameter as fraction of frame width.
-     A basketball at mid-court in a phone camera is roughly 2-6% of width. */
-  var BALL_DIAM_MIN_FRAC = 0.015;  // ~19px at 1280w
-  var BALL_DIAM_MAX_FRAC = 0.12;   // ~154px at 1280w
-  var BALL_ASPECT_MAX    = 2.5;    // max width/height ratio (ball ≈ 1.0, shirt >> 2)
-
   function detectBallColor() {
     if (!canvas || !ctx) return null;
-    var imageData = ctx.getImageData(0, 0, W, H);
-    var data = imageData.data;
-    var w = imageData.width, h = imageData.height;
 
-    // Pass 1: collect all orange pixels
+    // Only scan within the ROI
+    var roi = getROI();
+    if (roi.w < 10 || roi.h < 10) return null;
+
+    var imageData = ctx.getImageData(roi.x, roi.y, roi.w, roi.h);
+    var data = imageData.data;
+    var rw = imageData.width, rh = imageData.height;
+
+    // Collect orange pixels (skip every 2px for speed)
     var orangeX = [], orangeY = [];
-    for (var y = 0; y < h; y += 2) {
-      for (var x = 0; x < w; x += 2) {
-        var i = (y * w + x) * 4;
+    for (var y = 0; y < rh; y += 2) {
+      for (var x = 0; x < rw; x += 2) {
+        var i = (y * rw + x) * 4;
         if (isOrange(data[i], data[i + 1], data[i + 2])) {
-          orangeX.push(x);
-          orangeY.push(y);
+          // Convert to full-frame coordinates
+          var fx = x + roi.x;
+          var fy = y + roi.y;
+          // Skip if inside a person bounding box (core body area)
+          if (isInsidePersonBox(fx, fy)) continue;
+          orangeX.push(fx);
+          orangeY.push(fy);
         }
       }
     }
 
-    if (orangeX.length < 20) return null;
+    if (orangeX.length < 15) return null;
 
-    // Pass 2: build grid of cells, each cell tracks pixel count + bounding box
-    var cellW = Math.max(1, Math.round(w / 20));
-    var cellH = Math.max(1, Math.round(h / 20));
-    var cells = {}; // key → { count, minX, maxX, minY, maxY }
+    // Grid clustering
+    var cellW = Math.max(1, Math.round(W / 24));
+    var cellH = Math.max(1, Math.round(H / 24));
+    var cells = {};
 
     for (var j = 0; j < orangeX.length; j++) {
       var gx = Math.floor(orangeX[j] / cellW);
@@ -260,12 +310,10 @@
       if (orangeY[j] > c.maxY) c.maxY = orangeY[j];
     }
 
-    // Pass 3: merge each cell with its 8 neighbors into a "blob"
-    // and score each blob by how ball-shaped it is.
+    // Evaluate each cell+neighbors as a blob candidate
     var ballMinPx = W * BALL_DIAM_MIN_FRAC;
     var ballMaxPx = W * BALL_DIAM_MAX_FRAC;
     var bestBlob = null, bestScore = -1;
-
     var cellKeys = Object.keys(cells);
     var visited = {};
 
@@ -274,11 +322,9 @@
       if (visited[ck]) continue;
 
       var center = cells[ck];
-      // Merge center + 8 neighbors
       var bMinX = center.minX, bMaxX = center.maxX;
       var bMinY = center.minY, bMaxY = center.maxY;
-      var bCount = 0;
-      var bSumX = 0, bSumY = 0;
+      var bCount = 0, bSumX = 0, bSumY = 0;
 
       for (var ni = -1; ni <= 1; ni++) {
         for (var nj = -1; nj <= 1; nj++) {
@@ -293,7 +339,7 @@
         }
       }
 
-      // Compute centroid for this blob
+      // Centroid for this blob
       for (var pk = 0; pk < orangeX.length; pk++) {
         var pgx = Math.floor(orangeX[pk] / cellW);
         var pgy = Math.floor(orangeY[pk] / cellH);
@@ -307,28 +353,36 @@
       var blobH = bMaxY - bMinY + 1;
       if (blobW < 4 || blobH < 4) continue;
 
-      // Shape checks: is this blob ball-shaped?
       var aspect = Math.max(blobW / blobH, blobH / blobW);
       var diameter = Math.max(blobW, blobH);
 
-      // Reject if too elongated (shirts, floor lines)
       if (aspect > BALL_ASPECT_MAX) continue;
-
-      // Reject if wrong size
       if (diameter < ballMinPx || diameter > ballMaxPx) continue;
 
-      // Compactness: how filled is the bounding box? Ball ≈ 0.5-0.8, shirt patch < 0.3
-      var fillRatio = bCount / ((blobW / 2) * (blobH / 2)); // sampled every 2px
+      var fillRatio = bCount / ((blobW / 2) * (blobH / 2));
       if (fillRatio < 0.15) continue;
 
-      // Score: prefer round (aspect→1), well-filled, mid-sized blobs
+      // Centroid must not be inside person core body
+      var centX = bSumX / bCount;
+      var centY = bSumY / bCount;
+      if (isInsidePersonBox(centX, centY)) continue;
+
+      // Scoring: roundness + fill + proximity to rim (if calibrated)
       var roundness = 1.0 / aspect;
-      var sizeScore = 1.0 - Math.abs(diameter - ballMaxPx * 0.4) / (ballMaxPx * 0.6);
-      var score = roundness * 0.5 + Math.min(fillRatio, 1.0) * 0.3 + Math.max(sizeScore, 0) * 0.2;
+      var sizeScore = 1.0 - Math.abs(diameter - ballMaxPx * 0.35) / (ballMaxPx * 0.65);
+      var proximityScore = 0;
+      if (rim) {
+        var distToRim = Math.sqrt(Math.pow(centX - rim.cx, 2) + Math.pow(centY - rim.cy, 2));
+        var maxDist = Math.sqrt(W * W + H * H) * 0.5;
+        proximityScore = Math.max(0, 1.0 - distToRim / maxDist);
+      }
+
+      var score = roundness * 0.35 + Math.min(fillRatio, 1.0) * 0.25 +
+                  Math.max(sizeScore, 0) * 0.2 + proximityScore * 0.2;
 
       if (score > bestScore) {
         bestScore = score;
-        bestBlob = { x: bSumX / bCount, y: bSumY / bCount, size: bCount, score: 0.35 + score * 0.15 };
+        bestBlob = { x: centX, y: centY, size: bCount, score: 0.3 + score * 0.2 };
       }
 
       visited[ck] = true;
@@ -337,18 +391,11 @@
     return bestBlob;
   }
 
-  /* ── Rim geometry (resolution-aware) ─────────────────────────── */
+  /* ── Rim geometry ───────────────────────────────────────────── */
   function insideRim(x, y) {
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
     var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.0;
-  }
-
-  function insideRimExpanded(x, y, factor) {
-    if (!rim) return false;
-    var dx = (x - rim.cx) / (rim.rx * factor);
-    var dy = (y - rim.cy) / (rim.ry * factor);
     return dx * dx + dy * dy <= 1.0;
   }
 
@@ -358,15 +405,7 @@
            Math.abs(x - rim.cx) < rim.rx * 4;
   }
 
-  /* ── Shot detection state machine (v2) ──────────────────────
-     States:
-       idle       → watching for ascending ball
-       ascending  → ball moving upward toward rim area
-       at_rim     → ball entered rim zone, waiting for exit
-       below_rim  → ball exited below rim = MADE
-       (miss is detected when ball exits sideways/upward from rim
-        or descends past rim without entering it)
-     ───────────────────────────────────────────────────────────── */
+  /* ── Shot detection state machine ───────────────────────────── */
   function processBall(ball) {
     var now = Date.now();
     if (now < cooldownUntil) return;
@@ -374,21 +413,14 @@
     ballHistory.push(ball ? { x: ball.x, y: ball.y } : null);
     if (ballHistory.length > MAX_HIST) ballHistory.shift();
 
-    // Track consecutive frames with no detection
     if (!ball) {
       disappearCount++;
-
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
-        // Ball vanished while at rim for too long.
-        // Check if the last known positions suggest it went below.
         var wentBelow = checkExitedBelow();
         if (wentBelow) {
           commitShot(true, now);
-        } else {
-          // Ambiguous — don't count as made, count as miss if ball was truly at rim
-          if (atRimFrames >= 3) {
-            commitShot(false, now);
-          }
+        } else if (atRimFrames >= 3) {
+          commitShot(false, now);
         }
         shotPhase = 'idle';
         atRimFrames = 0;
@@ -400,7 +432,6 @@
 
     disappearCount = 0;
 
-    // Compute y-velocity (normalized to frame height)
     var recent = [];
     for (var i = ballHistory.length - 1; i >= 0 && recent.length < 10; i--) {
       if (ballHistory[i]) recent.unshift(ballHistory[i]);
@@ -409,11 +440,10 @@
     if (recent.length >= 4) {
       var lookback = Math.min(8, recent.length - 1);
       var old = recent[recent.length - 1 - lookback];
-      yVel = (ball.y - old.y) / H; // normalized
+      yVel = (ball.y - old.y) / H;
     }
 
     if (shotPhase === 'idle') {
-      // Ball rising and in approach zone
       if (yVel < -VEL_RISE_FRAC && inApproachZone(ball.x, ball.y)) {
         shotPhase = 'ascending';
       }
@@ -422,31 +452,22 @@
         shotPhase = 'at_rim';
         atRimFrames = 1;
       } else if (yVel > VEL_FALL_FRAC) {
-        // Ball falling — did it pass near the rim?
         if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 2.5) {
-          // Air-ball or rim miss — ball descended near rim without entering
           commitShot(false, now);
         }
         shotPhase = 'idle';
       }
     } else if (shotPhase === 'at_rim') {
       atRimFrames++;
-
       if (!insideRim(ball.x, ball.y)) {
         if (ball.y > rim.cy + rim.ry * 0.5) {
-          // Exited BELOW rim = made shot
           commitShot(true, now);
-        } else if (ball.y < rim.cy - rim.ry * 0.5) {
-          // Exited ABOVE rim = rejected/bounced up
-          commitShot(false, now);
         } else {
-          // Exited sideways
           commitShot(false, now);
         }
         shotPhase = 'idle';
         atRimFrames = 0;
       } else if (atRimFrames > atRimMaxFrames) {
-        // Stuck in rim zone too long — likely a rebound scenario
         commitShot(false, now);
         shotPhase = 'idle';
         atRimFrames = 0;
@@ -455,7 +476,6 @@
   }
 
   function checkExitedBelow() {
-    // Look at the last few valid positions — did Y increase (move down)?
     var valid = [];
     for (var i = ballHistory.length - 1; i >= 0 && valid.length < 5; i--) {
       if (ballHistory[i]) valid.unshift(ballHistory[i]);
@@ -463,13 +483,10 @@
     if (valid.length < 2) return false;
     var last = valid[valid.length - 1];
     var prev = valid[0];
-    // Ball was moving downward and last position was below rim center
     return last.y > prev.y && rim && last.y > rim.cy;
   }
 
   function commitShot(made, now) {
-    // In video mode with look-ahead, we could buffer — but for simplicity
-    // we commit immediately and rely on the improved state machine.
     session.attempts++;
     if (made) {
       session.made++;
@@ -500,13 +517,12 @@
       ctx.stroke();
       ctx.shadowBlur = 0;
 
-      // Approach zone
-      ctx.strokeStyle = 'rgba(245,166,35,0.18)';
+      // Draw ROI boundary (subtle)
+      var roi = getROI();
+      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
       ctx.lineWidth = 1;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.ellipse(rim.cx, rim.cy, rim.rx * 4, rim.ry * 6, 0, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.setLineDash([3, 6]);
+      ctx.strokeRect(roi.x, roi.y, roi.w, roi.h);
       ctx.setLineDash([]);
     }
 
@@ -542,12 +558,11 @@
       ctx.stroke();
     }
 
-    // State indicator dot
+    // State indicator
     if (phase === PHASE.TRACKING) {
       var dotColor = shotPhase === 'idle' ? '#56d364'
                    : shotPhase === 'ascending' ? '#f5a623'
-                   : shotPhase === 'at_rim' ? '#3b9eff'
-                   : '#56d364';
+                   : '#3b9eff';
       ctx.fillStyle = dotColor;
       ctx.beginPath();
       ctx.arc(18, 18, 6, 0, Math.PI * 2);
@@ -572,7 +587,6 @@
         if (raw && isPhysicallyValid(raw)) {
           ball = applyKalman(raw);
         } else if (raw) {
-          // Teleport — use Kalman prediction if available
           var predX = kalmanPredict(kalX);
           var predY = kalmanPredict(kalY);
           if (predX !== null && predY !== null) {
@@ -637,9 +651,7 @@
       video  = document.getElementById('ast-video');
       canvas = document.getElementById('ast-canvas');
       ctx    = canvas.getContext('2d');
-
       loadMLModel();
-
       video.srcObject = stream;
       video.onloadedmetadata = function () {
         video.play();
@@ -674,7 +686,7 @@
     if (el) { el.textContent = msg; el.style.display = ''; }
   }
 
-  /* ── Rim calibration (tap on canvas) ─────────────────────── */
+  /* ── Rim calibration ─────────────────────────────────────── */
   function onCanvasTap(e) {
     if (phase !== PHASE.CALIBRATING) return;
     e.preventDefault();
@@ -687,9 +699,9 @@
     var tapX = (src.clientX - rect.left) * scaleX;
     var tapY = (src.clientY - rect.top)  * scaleY;
 
-    // Dynamic rim size based on resolution
     rim = { cx: tapX, cy: tapY, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
     phase = PHASE.TRACKING;
+    session.startTime = Date.now();
     showPhase('track');
 
     if (mode === 'video' && video) {
@@ -699,7 +711,7 @@
     }
   }
 
-  /* ── Open overlay (shared reset) ─────────────────────────── */
+  /* ── Open overlay ─────────────────────────────────────────── */
   function openOverlayBase() {
     var overlay = document.getElementById('ast-overlay');
     if (!overlay) return false;
@@ -715,8 +727,8 @@
     lastBall = null;
     isDetecting = false;
     frameCount = 0;
-    pendingShot = null;
     mlMissCount = 0;
+    personBoxes = [];
     resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
@@ -735,20 +747,17 @@
     return true;
   }
 
-  /* ── Open with live camera ────────────────────────────────── */
   function openOverlay() {
     mode = 'camera';
     if (openOverlayBase()) startCamera();
   }
 
-  /* ── Open with uploaded video ─────────────────────────────── */
   function openOverlayVideo() {
     mode = 'video';
     var fileInput = document.getElementById('ast-file-input');
     if (fileInput) { fileInput.value = ''; fileInput.click(); }
   }
 
-  /* ── Start from a File object ─────────────────────────────── */
   function startVideo(file) {
     video  = document.getElementById('ast-video');
     canvas = document.getElementById('ast-canvas');
