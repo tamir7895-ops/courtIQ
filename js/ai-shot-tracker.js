@@ -773,6 +773,9 @@
 
     if (!ball) {
       disappearCount++;
+      if (frameCount % 60 === 0) {
+        console.log('[AST diag] processBall: NO BALL fc=' + frameCount + ' disappear=' + disappearCount + ' phase=' + shotPhase);
+      }
 
       // Ball disappeared near the rim — likely went through or bounced off
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
