@@ -575,7 +575,7 @@
     var candidates = [];
     if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color' });
     if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light' });
-    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.65, src: 'edge' });
+    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.85, src: 'edge' }); // raised from 0.65 — edge detection works for any rim color
 
     // If multiple strategies agree on a similar position, boost confidence
     for (var ai = 0; ai < candidates.length; ai++) {
