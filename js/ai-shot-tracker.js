@@ -21,8 +21,8 @@
   var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.008;   // lowered — catch slower arcing shots
-  var VEL_FALL_FRAC  = 0.008;   // lowered — catch slower descents
+  var VEL_RISE_FRAC  = 0.015;   // raised — avoid triggering on micro-jitter (was 0.008)
+  var VEL_FALL_FRAC  = 0.015;   // raised — avoid false descend triggers (was 0.008)
   var TELEPORT_FRAC  = 0.30;    // increased — allow bigger jumps (low FPS video)
   var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
@@ -205,7 +205,8 @@
 
   /* ── ML detection with person exclusion ─────────────────────── */
   // Wider set of classes — COCO-SSD sometimes classifies basketballs as these
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7, 'apple': 0.5, 'bowl': 0.3, 'clock': 0.25 };
+  // Only accept classes that plausibly look like a basketball in flight; removed 'bowl' and 'clock' (too noisy)
+  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.80, 'orange': 0.55, 'apple': 0.30 };
   var mlMissCount = 0;
 
   function detectBallAsync() {
@@ -270,21 +271,19 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 50) return false;   // very low — handle dim indoor/gym lighting
+    if (max < 80) return false;   // raised — exclude dark murky surfaces
     var delta = max - min;
-    if (delta < 15) return false;  // very low — handle extreme desaturation from filters
+    if (delta < 20) return false;  // raised — require more color contrast
     var s = delta / max;
-    if (s < 0.18) return false;   // very low — TikTok cool filters almost wash out color
+    if (s < 0.30) return false;   // raised — exclude skin tones, brownish surfaces
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange range: extremely wide to handle all filters and lighting
-    // Red-orange (0-60) and deep red wrapping around (340-360)
-    // Covers: pure orange, warm-filtered orange, cool-filtered brown-orange,
-    //         tungsten yellow-orange, fluorescent-shifted orange
-    return (h >= 0 && h <= 60) || h >= 340;
+    // Basketball orange: tight range centered on true orange (15–42°)
+    // Slightly extended for warm/cool filter shifts; excludes pure yellow and red jerseys
+    return (h >= 12 && h <= 45) || h >= 345;
   }
 
   function detectBallColor() {
@@ -576,7 +575,7 @@
     var candidates = [];
     if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color' });
     if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light' });
-    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.65, src: 'edge' });
+    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.85, src: 'edge' }); // raised from 0.65 — edge detection works for any rim color
 
     // If multiple strategies agree on a similar position, boost confidence
     for (var ai = 0; ai < candidates.length; ai++) {
@@ -731,7 +730,7 @@
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
     var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.5;  // 1.5 instead of 1.0 — more forgiving hit zone
+    return dx * dx + dy * dy <= 1.2;  // slightly forgiving to handle rim calibration error (was 1.5)
   }
 
   function inApproachZone(x, y) {
@@ -771,17 +770,19 @@
         nearRimFrames = 0;
         ballPeakY = Infinity;
       } else if (shotPhase === 'near_rim' && disappearCount >= DISAPPEAR_GRACE) {
-        // Ball was near rim area and disappeared — could be a swish (no rim touch)
-        // Check if ball was descending and within horizontal bounds of rim
-        var lastValid = getLastValidBalls(3);
-        if (lastValid.length >= 2) {
-          var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
-          var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
-          var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
-          if (wasDescending && wasNearRimX && wasBelowRimLevel) {
-            commitShot(true, now);  // Likely swish — ball fell through cleanly
-          } else if (wasNearRimX) {
-            commitShot(false, now); // Near but not through
+        // Ball was near rim and disappeared — only count as swish if we saw it there for multiple frames
+        // (guard against brief tracking loss triggering false swish)
+        if (nearRimFrames >= 3) {
+          var lastValid = getLastValidBalls(3);
+          if (lastValid.length >= 2) {
+            var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
+            var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
+            var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
+            if (wasDescending && wasNearRimX && wasBelowRimLevel) {
+              commitShot(true, now);  // Likely swish — confirmed near rim for several frames
+            } else if (wasNearRimX && nearRimFrames >= 5) {
+              commitShot(false, now); // Near rim for a while but didn't go through
+            }
           }
         }
         shotPhase = 'idle';
@@ -837,7 +838,7 @@
         if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 3.5) {
           // Check if the ball arced high enough to be a real shot
           var arcHeight = ballStartY - ballPeakY;
-          if (arcHeight > H * 0.03) { // minimum arc height
+          if (arcHeight > H * 0.07) { // raised minimum arc — avoids counting dribbles/hops as shots
             commitShot(false, now);
           }
         }
@@ -864,9 +865,14 @@
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
-      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
-        // Ball left the area entirely — miss
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y) && nearRimFrames >= 2) {
+        // Ball left the area entirely (and we saw it near rim for at least 2 frames) — miss
         commitShot(false, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
+        // Ball left too fast — likely a tracking error, just reset phase
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
