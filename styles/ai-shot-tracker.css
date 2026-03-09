@@ -69,13 +69,35 @@
   transform: translateY(0);
 }
 
+/* ── Two-button group on launch card ─────────────────────── */
+.ast-launch-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.ast-launch-btn-upload {
+  background: transparent;
+  color: var(--c-amber);
+  border: 1.5px solid var(--c-amber);
+}
+
+.ast-launch-btn-upload:hover {
+  background: rgba(245,166,35,0.1);
+}
+
 @media (max-width: 600px) {
   .ast-launch-card {
     flex-direction: column;
     text-align: center;
   }
-  .ast-launch-btn {
+  .ast-launch-btns {
     width: 100%;
+    flex-direction: row;
+  }
+  .ast-launch-btn {
+    flex: 1;
   }
 }
 
