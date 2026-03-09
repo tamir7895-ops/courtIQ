@@ -347,6 +347,13 @@
     rim = { cx: tapX, cy: tapY, rx: RIM_RX, ry: RIM_RY };
     phase = PHASE.TRACKING;
     showPhase('track');
+
+    // In video mode, begin playback once rim is set
+    if (mode === 'video' && video) {
+      video.play();
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = '⏸';
+    }
   }
 
   /* ── Open overlay ─────────────────────────────────────────── */
