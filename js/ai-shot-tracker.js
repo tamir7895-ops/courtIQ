@@ -320,18 +320,30 @@
   function frameLoop() {
     if (phase !== PHASE.TRACKING && phase !== PHASE.CALIBRATING) return;
 
-    // Draw video frame to canvas
+    // Draw video frame to canvas every rAF tick (smooth 60fps render)
     ctx.drawImage(video, 0, 0, W, H);
+    frameCount++;
 
-    // Read pixels + detect ball
-    var imageData = ctx.getImageData(0, 0, W, H);
-    var ball = detectBall(imageData);
+    // Render with last known ball position while async detection runs
+    if (phase === PHASE.TRACKING && lastBall) processBall(lastBall);
+    drawOverlay(lastBall);
 
-    // Run shot detection
-    if (phase === PHASE.TRACKING) processBall(ball);
-
-    // Draw overlays
-    drawOverlay(ball);
+    // Fire async detection only when previous one has finished
+    if (!isDetecting) {
+      isDetecting = true;
+      detectBallAsync().then(function (raw) {
+        var ball = null;
+        if (raw && isPhysicallyValid(raw)) {
+          ball = applyKalman(raw);
+        } else if (raw) {
+          // Physically invalid jump — trust Kalman prediction instead
+          ball = lastBall;
+          resetKalman(); // reset so next valid reading starts fresh
+        }
+        lastBall = ball;
+        isDetecting = false;
+      });
+    }
 
     animFrame = requestAnimationFrame(frameLoop);
   }
