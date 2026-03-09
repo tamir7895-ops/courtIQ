@@ -226,6 +226,20 @@
           }
         }
 
+        // DIAG: log all predictions every 60 frames
+        if (frameCount % 60 === 0) {
+          var roi = getROI();
+          var predSummary = preds.map(function(p) {
+            return p.class + '(' + p.score.toFixed(2) + ')@[' + Math.round(p.bbox[0]) + ',' + Math.round(p.bbox[1]) + ']';
+          });
+          console.log('[AST diag] frame=' + frameCount + ' ts=' + (video ? video.currentTime.toFixed(2) : '?') +
+            ' preds=[' + predSummary.join(', ') + ']' +
+            ' persons=' + personBoxes.length +
+            ' roi=y0-' + Math.round(roi.h) +
+            ' rim=' + (rim ? Math.round(rim.cx) + ',' + Math.round(rim.cy) : 'none') +
+            ' mlReady=' + mlReady);
+        }
+
         // Second pass: find best ball detection
         for (var i = 0; i < preds.length; i++) {
           var cls = preds[i].class;
@@ -314,6 +328,10 @@
       }
     }
 
+    // DIAG: log orange pixel count every 60 frames
+    if (frameCount % 60 === 0) {
+      console.log('[AST diag] color: orangePx=' + orangeX.length + ' roiW=' + roi.w + ' roiH=' + roi.h);
+    }
     if (orangeX.length < 15) return null;
 
     // Grid clustering
