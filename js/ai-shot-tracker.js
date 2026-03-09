@@ -21,8 +21,8 @@
   var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.008;   // lowered — catch slower arcing shots
-  var VEL_FALL_FRAC  = 0.008;   // lowered — catch slower descents
+  var VEL_RISE_FRAC  = 0.015;   // raised — avoid triggering on micro-jitter (was 0.008)
+  var VEL_FALL_FRAC  = 0.015;   // raised — avoid false descend triggers (was 0.008)
   var TELEPORT_FRAC  = 0.30;    // increased — allow bigger jumps (low FPS video)
   var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
