@@ -511,10 +511,17 @@
     switch (status) {
       case 'loading':
         dot.classList.add('loading');
-        txt.textContent = 'Loading model...';
+        txt.textContent = 'Loading AI model...';
+        break;
+      case 'retrying':
+        dot.classList.add('loading');
+        txt.textContent = 'Retrying model load...';
         break;
       case 'ready':
-        txt.textContent = 'Model ready';
+        txt.textContent = 'AI + Color active';
+        break;
+      case 'color-only':
+        txt.textContent = 'Color tracking active';
         break;
       case 'detecting':
         txt.textContent = 'Tracking';
