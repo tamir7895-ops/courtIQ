@@ -1140,9 +1140,13 @@
         canvas.width  = W;
         canvas.height = H;
         phase = PHASE.CALIBRATING;
-        showPhase('calibrate');
-        // Live mode: show setup guide first, don't auto-detect yet
-        showLiveCalibState('setup');
+        // Skip calibration UI — go straight to tracking view
+        showPhase('track');
+        // Show scanning status
+        var mlStatus = document.getElementById('ast-ml-status');
+        if (mlStatus) { mlStatus.textContent = 'Scanning for rim...'; mlStatus.style.display = ''; }
+        // Start auto-detection immediately
+        startRimAutoDetect();
         animFrame = requestAnimationFrame(frameLoop);
       };
     }).catch(function (err) {
@@ -1179,10 +1183,13 @@
     session.startTime = Date.now();
     showPhase('track');
 
-    // Clear scanning status message
+    // Update status message
     var mlStatus = document.getElementById('ast-ml-status');
-    if (mlStatus && mlReady) { mlStatus.textContent = 'AI Active'; mlStatus.style.display = ''; }
-    else if (mlStatus) { mlStatus.style.display = 'none'; }
+    if (mlStatus) {
+      if (mlReady) { mlStatus.textContent = 'AI Active'; }
+      else { mlStatus.textContent = 'Loading AI model...'; }
+      mlStatus.style.display = '';
+    }
 
     if (mode === 'video' && video) {
       // Reset to beginning and play
@@ -1217,16 +1224,11 @@
   function startRimAutoDetect() {
     rimDetectTries = 0;
     autoRimCandidate = null;
-    if (mode !== 'video') showCalibState('auto');
     stopRimDetectTimer();
 
     rimDetectTimer = setInterval(function () {
-      // For video mode, allow detection during both calibrating and tracking
-      if (mode === 'video') {
-        if (phase !== PHASE.CALIBRATING && phase !== PHASE.TRACKING) { stopRimDetectTimer(); return; }
-      } else {
-        if (phase !== PHASE.CALIBRATING) { stopRimDetectTimer(); return; }
-      }
+      // Allow detection during both calibrating and tracking phases
+      if (phase !== PHASE.CALIBRATING && phase !== PHASE.TRACKING) { stopRimDetectTimer(); return; }
       rimDetectTries++;
 
       // For video mode: seek to different timestamps on each try
@@ -1253,44 +1255,27 @@
     var candidate = detectRimAuto();
     if (candidate) {
       autoRimCandidate = candidate;
-      // Video mode: skip confirmation, go straight to tracking
-      if (mode === 'video') {
-        confirmRimAndStart(candidate.cx, candidate.cy);
-        return;
-      }
-      rim = { cx: candidate.cx, cy: candidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
-      showCalibState('confirm');
-      stopRimDetectTimer();
+      // Always skip confirmation — go straight to tracking
+      confirmRimAndStart(candidate.cx, candidate.cy);
       return;
     }
 
     // After several color-based failures, try ML-based detection
     if (rimDetectTries >= 6 && mlReady) {
       detectRimML().then(function (mlCandidate) {
-        if (mlCandidate && phase === PHASE.CALIBRATING) {
+        if (mlCandidate && (phase === PHASE.CALIBRATING || phase === PHASE.TRACKING)) {
           autoRimCandidate = mlCandidate;
-          if (mode === 'video') {
-            confirmRimAndStart(mlCandidate.cx, mlCandidate.cy);
-            return;
-          }
-          rim = { cx: mlCandidate.cx, cy: mlCandidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
-          showCalibState('confirm');
-          stopRimDetectTimer();
+          confirmRimAndStart(mlCandidate.cx, mlCandidate.cy);
         }
       });
     }
 
     if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
       stopRimDetectTimer();
-      if (mode === 'video') {
-        // Video mode: use smart default — assume rim is in upper-center of frame
-        // Most basketball videos have the hoop in the upper-center area
-        var defaultCX = W * 0.5;
-        var defaultCY = H * 0.25;
-        confirmRimAndStart(defaultCX, defaultCY);
-      } else {
-        showCalibState('manual');
-      }
+      // Use smart default — assume rim is in upper-center of frame
+      var defaultCX = W * 0.5;
+      var defaultCY = H * 0.25;
+      confirmRimAndStart(defaultCX, defaultCY);
     }
   }
 
