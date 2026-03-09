@@ -687,8 +687,11 @@
       var cx = bSumX / bCount;
       var cy = bSumY / bCount;
 
-      // Must be somewhat centered horizontally
-      if (cx < imgW * 0.1 || cx > imgW * 0.9) continue;
+      // Must be somewhat centered horizontally (not near edges)
+      if (cx < imgW * 0.15 || cx > imgW * 0.85) continue;
+
+      // Must not be too close to the top of the frame (rims don't float at the top edge)
+      if (cy < scanH * 0.08) continue;
 
       var widthScore = Math.min(blobW / (imgW * 0.06), 1.0);
       var heightScore = 1.0 - (cy / scanH);
