@@ -175,11 +175,62 @@
     return { isMiss: false, entryPoint: null };
   }
 
+  /* ── Launch Point Detection ────────────────────────────────── */
+  /**
+   * Find the launch point — first position where ball starts rising.
+   * Approximates the shooter's court position.
+   */
+  function getLaunchPoint(tracker, vw, vh) {
+    var pts = tracker.positions;
+    if (pts.length < 3) return null;
+
+    for (var i = 0; i < pts.length - 2; i++) {
+      var dy1 = pts[i + 1].y - pts[i].y;
+      var dy2 = pts[i + 2].y - pts[i + 1].y;
+      if (dy1 < -MIN_MOVEMENT_PX && dy2 < -MIN_MOVEMENT_PX) {
+        return { x: pts[i].x / vw, y: pts[i].y / vh };
+      }
+    }
+    // Fallback: earliest position
+    return { x: pts[0].x / vw, y: pts[0].y / vh };
+  }
+
+  /**
+   * Classify shot zone based on normalized distance from launch point to rim.
+   *
+   * @param {Object} launchPt  { x, y } normalized (0–1)
+   * @param {Object} rim       Rim zone (with centerX, centerY)
+   * @param {number} threePtDist  Calibrated 3PT distance threshold (normalized)
+   * @returns {string} 'paint' | 'midrange' | 'threePoint'
+   */
+  function classifyShotZone(launchPt, rim, threePtDist) {
+    if (!launchPt || !rim) return 'midrange';
+
+    var dx = launchPt.x - rim.centerX;
+    var dy = launchPt.y - rim.centerY;
+    var dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (!threePtDist || threePtDist <= 0) {
+      // No calibration — use rough Y-based fallback
+      if (launchPt.y > rim.centerY + 0.25) return 'paint';
+      if (launchPt.y > rim.centerY + 0.10) return 'midrange';
+      return 'threePoint';
+    }
+
+    var paintThreshold = threePtDist * 0.40;
+    var midrangeThreshold = threePtDist * 0.85;
+
+    if (dist <= paintThreshold) return 'paint';
+    if (dist <= midrangeThreshold) return 'midrange';
+    return 'threePoint';
+  }
+
   /* ── Main Detection Engine ──────────────────────────────────── */
   var ShotDetectionEngine = {
     model: null,
     tracker: null,
     rimZone: null,
+    threePtDistance: 0,    // Calibrated 3PT line distance (normalized)
     lastShotTime: 0,
     isRunning: false,
     detectionTimer: null,
@@ -188,7 +239,7 @@
     canvasCtx: null,
     stats: { made: 0, attempts: 0 },
     ballPosition: null,   // { normX, normY } for overlay
-    onShotDetected: null,  // callback({ result, shotX, shotY, trajectory })
+    onShotDetected: null,  // callback({ result, shotX, shotY, trajectory, launchPoint, shotZone })
     onBallUpdate: null,    // callback({ normX, normY } | null)
     onStatusChange: null,  // callback(status: string)
     _isDetecting: false,
@@ -249,6 +300,14 @@
      */
     setRimZone: function (normCX, normCY, normW, normH) {
       this.rimZone = createRimZone(normCX, normCY, normW, normH);
+    },
+
+    /**
+     * Set the calibrated 3-point line distance.
+     * @param {number} dist  Normalized Euclidean distance from 3PT line to rim center
+     */
+    setThreePtDistance: function (dist) {
+      this.threePtDistance = dist;
     },
 
     /**
@@ -367,6 +426,10 @@
       var trend = getYTrend(this.tracker);
       if (trend !== 'falling') return;
 
+      // Detect launch point before analyzing result
+      var launchPt = getLaunchPoint(this.tracker, vw, vh);
+      var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+
       // Check made
       var madeResult = analyzeMade(traj, this.rimZone);
       if (madeResult.isMade) {
@@ -379,6 +442,8 @@
             shotX: madeResult.entryPoint ? madeResult.entryPoint.x : normX,
             shotY: madeResult.entryPoint ? madeResult.entryPoint.y : normY,
             trajectory: traj.slice(-20),
+            launchPoint: launchPt,
+            shotZone: shotZone,
             timestamp: now
           });
         }
@@ -397,6 +462,8 @@
             shotX: missResult.entryPoint ? missResult.entryPoint.x : normX,
             shotY: missResult.entryPoint ? missResult.entryPoint.y : normY,
             trajectory: traj.slice(-20),
+            launchPoint: launchPt,
+            shotZone: shotZone,
             timestamp: now
           });
         }

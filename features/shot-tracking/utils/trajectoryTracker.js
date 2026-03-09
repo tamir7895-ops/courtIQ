@@ -191,6 +191,46 @@ export function getYTrend(tracker, lookback = 8) {
 }
 
 /**
+ * Find the launch point — the position where the ball first starts rising.
+ * This approximates the shooter's position on the court.
+ *
+ * Scans the trajectory for the first sustained upward movement (Y decreasing
+ * in screen coords). Returns normalized coordinates if frameWidth/frameHeight
+ * are provided, otherwise pixel coordinates.
+ *
+ * @param {Object} tracker
+ * @param {number} [frameWidth] - Frame width for normalization
+ * @param {number} [frameHeight] - Frame height for normalization
+ * @returns {{ x: number, y: number } | null}
+ */
+export function getLaunchPoint(tracker, frameWidth, frameHeight) {
+  const pts = tracker.positions;
+  if (pts.length < 3) return null;
+
+  // Find the first point where the ball starts a sustained upward movement.
+  // We look for 2+ consecutive frames with decreasing Y (ball moving up on screen).
+  for (let i = 0; i < pts.length - 2; i++) {
+    const dy1 = pts[i + 1].y - pts[i].y;
+    const dy2 = pts[i + 2].y - pts[i + 1].y;
+    // Both segments moving up (negative dy = rising on screen)
+    if (dy1 < -MIN_MOVEMENT_PX && dy2 < -MIN_MOVEMENT_PX) {
+      const launch = pts[i];
+      if (frameWidth && frameHeight) {
+        return { x: launch.x / frameWidth, y: launch.y / frameHeight };
+      }
+      return { x: launch.x, y: launch.y };
+    }
+  }
+
+  // Fallback: use the earliest position in the trajectory
+  const first = pts[0];
+  if (frameWidth && frameHeight) {
+    return { x: first.x / frameWidth, y: first.y / frameHeight };
+  }
+  return { x: first.x, y: first.y };
+}
+
+/**
  * Reset tracker to initial state (reuse instance).
  */
 export function resetTracker(tracker) {

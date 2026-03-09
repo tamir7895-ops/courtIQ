@@ -30,7 +30,7 @@
   var THREE_PT_R = 190;
 
   /* ── State ──────────────────────────────────────────────────── */
-  var phase = 'idle'; // idle | rimlock | tracking | summary
+  var phase = 'idle'; // idle | rimlock | threept | tracking | summary
   var stream = null;
   var videoEl, canvasEl, canvasCtx;
   var overlayAnimFrame = null;
@@ -39,6 +39,10 @@
   var rimCenter = null;       // { x, y } normalized (0-1)
   var rimSize   = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
   var rimLocked = false;
+
+  // 3PT calibration state
+  var threePtPoint = null;    // { x, y } normalized — user-tapped 3PT line point
+  var threePtDistance = 0;    // Euclidean distance from 3PT point to rim center
 
   // Tracking state
   var sessionId     = null;
@@ -85,6 +89,16 @@
         '</div>',
         '<button class="st-lock-btn" id="st-lock-btn">Lock Rim & Start</button>',
         '<button class="st-cancel-btn" id="st-cancel-btn">Cancel</button>',
+      '</div>',
+
+      /* ── 3PT Calibration overlay ── */
+      '<div id="st-threept" class="st-rimlock-overlay">',
+        '<div class="st-rimlock-scrim" id="st-threept-tap"></div>',
+        '<div class="st-rimlock-instruction"><p id="st-threept-text">Tap the 3-point line (anywhere on the arc)</p></div>',
+        '<div class="st-threept-marker" id="st-threept-marker"></div>',
+        '<div class="st-threept-line" id="st-threept-line"></div>',
+        '<button class="st-lock-btn" id="st-threept-confirm">Confirm & Start</button>',
+        '<button class="st-cancel-btn" id="st-threept-skip">Skip (use defaults)</button>',
       '</div>',
 
       /* ── Tracking overlay ── */
@@ -135,6 +149,13 @@
     els.sizePlus         = document.getElementById('st-size-plus');
     els.lockBtn          = document.getElementById('st-lock-btn');
     els.cancelBtn        = document.getElementById('st-cancel-btn');
+    els.threept          = document.getElementById('st-threept');
+    els.threeptTap       = document.getElementById('st-threept-tap');
+    els.threeptText      = document.getElementById('st-threept-text');
+    els.threeptMarker    = document.getElementById('st-threept-marker');
+    els.threeptLine      = document.getElementById('st-threept-line');
+    els.threeptConfirm   = document.getElementById('st-threept-confirm');
+    els.threeptSkip      = document.getElementById('st-threept-skip');
     els.tracking         = document.getElementById('st-tracking');
     els.made             = document.getElementById('st-made');
     els.attempts         = document.getElementById('st-attempts');
@@ -165,6 +186,9 @@
     els.sizePlus.addEventListener('click', function () { adjustRimSize(0.02); });
     els.lockBtn.addEventListener('click', onLockAndStart);
     els.cancelBtn.addEventListener('click', closeScreen);
+    els.threeptTap.addEventListener('click', onThreePtTap);
+    els.threeptConfirm.addEventListener('click', onThreePtConfirm);
+    els.threeptSkip.addEventListener('click', onThreePtSkip);
     els.stopBtn.addEventListener('click', onStopSession);
   }
 
@@ -182,8 +206,13 @@
     streak = 0;
     maxStreak = 0;
 
+    // Reset 3PT state
+    threePtPoint = null;
+    threePtDistance = 0;
+
     // Show rim lock overlay
     els.rimlock.classList.add('active');
+    els.threept.classList.remove('active');
     els.tracking.classList.remove('active');
     els.summary.classList.remove('active');
 
@@ -302,11 +331,79 @@
     els.rimIndicator.classList.add('locked');
     els.sizeControls.classList.remove('active');
     els.lockBtn.classList.remove('active');
-    els.rimlockText.textContent = 'Rim locked! Starting session...';
+    els.rimlockText.textContent = 'Rim locked!';
 
     setTimeout(function () {
-      enterTrackingPhase();
+      enterThreePtCalibration();
     }, 400);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     3-POINT LINE CALIBRATION PHASE
+     ══════════════════════════════════════════════════════════════ */
+  function enterThreePtCalibration() {
+    phase = 'threept';
+    els.rimlock.classList.remove('active');
+    els.threept.classList.add('active');
+    els.threeptMarker.style.display = 'none';
+    els.threeptLine.style.display = 'none';
+    els.threeptConfirm.classList.remove('active');
+    els.threeptText.textContent = 'Tap the 3-point line (anywhere on the arc)';
+    threePtPoint = null;
+    threePtDistance = 0;
+  }
+
+  function onThreePtTap(e) {
+    if (phase !== 'threept') return;
+
+    var rect = els.threeptTap.getBoundingClientRect();
+    var normX = (e.clientX - rect.left) / rect.width;
+    var normY = (e.clientY - rect.top) / rect.height;
+
+    threePtPoint = { x: normX, y: normY };
+
+    // Calculate distance from this point to rim center
+    var dx = normX - rimCenter.x;
+    var dy = normY - rimCenter.y;
+    threePtDistance = Math.sqrt(dx * dx + dy * dy);
+
+    // Show marker at the tapped point
+    var marker = els.threeptMarker;
+    marker.style.display = 'block';
+    marker.style.left = (normX * rect.width - 10) + 'px';
+    marker.style.top  = (normY * rect.height - 10) + 'px';
+
+    // Draw a dashed line from rim to the tapped point
+    var line = els.threeptLine;
+    var pw = rect.width;
+    var ph = rect.height;
+    var x1 = rimCenter.x * pw;
+    var y1 = rimCenter.y * ph;
+    var x2 = normX * pw;
+    var y2 = normY * ph;
+    var angle = Math.atan2(y2 - y1, x2 - x1) * (180 / Math.PI);
+    var len = Math.sqrt((x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1));
+    line.style.display = 'block';
+    line.style.left = x1 + 'px';
+    line.style.top  = y1 + 'px';
+    line.style.width = len + 'px';
+    line.style.transform = 'rotate(' + angle + 'deg)';
+
+    els.threeptConfirm.classList.add('active');
+    els.threeptText.textContent = '3PT distance set. Tap again to adjust.';
+  }
+
+  function onThreePtConfirm() {
+    if (!threePtPoint) return;
+    els.threept.classList.remove('active');
+    enterTrackingPhase();
+  }
+
+  function onThreePtSkip() {
+    threePtPoint = null;
+    threePtDistance = 0;
+    els.threept.classList.remove('active');
+    enterTrackingPhase();
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -340,6 +437,7 @@
     // Configure detection engine
     var engine = window.ShotDetectionEngine;
     engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    engine.setThreePtDistance(threePtDistance);
     engine.onShotDetected = onShotDetected;
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
@@ -388,7 +486,7 @@
   function onShotDetected(data) {
     var isMade = data.result === 'made';
 
-    // Record shot
+    // Record shot with launch point and zone
     var userId = window.currentUser ? window.currentUser.id : 'anonymous';
     shots.push({
       session_id:  sessionId,
@@ -396,6 +494,9 @@
       shot_result: data.result,
       shot_x:      data.shotX,
       shot_y:      data.shotY,
+      launch_x:    data.launchPoint ? data.launchPoint.x : data.shotX,
+      launch_y:    data.launchPoint ? data.launchPoint.y : data.shotY,
+      shot_zone:   data.shotZone || 'midrange',
       ball_trajectory_points: data.trajectory,
       timestamp:   new Date(data.timestamp).toISOString(),
       shot_number: shots.length + 1
@@ -720,11 +821,14 @@
     // Rim
     lines.push('<circle cx="' + RIM_SVG_X + '" cy="' + RIM_SVG_Y + '" r="12" stroke="#f5a623" stroke-width="2" fill="rgba(245,166,35,0.2)"/>');
 
-    // Shot dots — misses first
+    // Shot dots — use launch point for positioning (where player shot from)
+    // Misses first
     for (var i = 0; i < shotList.length; i++) {
       var s = shotList[i];
-      var cx = 50 + s.shot_x * (COURT_W - 100);
-      var cy = RIM_SVG_Y + (1 - s.shot_y) * (COURT_H - RIM_SVG_Y - 40);
+      var posX = s.launch_x !== undefined ? s.launch_x : s.shot_x;
+      var posY = s.launch_y !== undefined ? s.launch_y : s.shot_y;
+      var cx = 50 + posX * (COURT_W - 100);
+      var cy = RIM_SVG_Y + (1 - posY) * (COURT_H - RIM_SVG_Y - 40);
       var isMade = s.shot_result === 'made';
       if (!isMade) {
         lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="#ff4444" opacity="0.6"/>');
@@ -733,8 +837,10 @@
     // Made on top
     for (var j = 0; j < shotList.length; j++) {
       var s2 = shotList[j];
-      var cx2 = 50 + s2.shot_x * (COURT_W - 100);
-      var cy2 = RIM_SVG_Y + (1 - s2.shot_y) * (COURT_H - RIM_SVG_Y - 40);
+      var posX2 = s2.launch_x !== undefined ? s2.launch_x : s2.shot_x;
+      var posY2 = s2.launch_y !== undefined ? s2.launch_y : s2.shot_y;
+      var cx2 = 50 + posX2 * (COURT_W - 100);
+      var cy2 = RIM_SVG_Y + (1 - posY2) * (COURT_H - RIM_SVG_Y - 40);
       if (s2.shot_result === 'made') {
         lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="#00ff88" opacity="0.9" stroke="#fff" stroke-width="1"/>');
       }
@@ -774,10 +880,13 @@
     };
     for (var i = 0; i < shotList.length; i++) {
       var s = shotList[i];
-      var zone;
-      if (s.shot_y > 0.6) zone = 'paint';
-      else if (s.shot_y > 0.35) zone = 'midrange';
-      else zone = 'threePoint';
+      // Use the pre-classified shot_zone if available (distance-based)
+      var zone = s.shot_zone || 'midrange';
+      if (zone === 'threePoint' || zone === 'paint' || zone === 'midrange') {
+        // valid zone
+      } else {
+        zone = 'midrange';
+      }
       if (s.shot_result === 'made') zones[zone].made++;
       else zones[zone].missed++;
     }

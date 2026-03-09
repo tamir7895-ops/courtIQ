@@ -194,6 +194,35 @@
 }
 .st-cancel-btn:active { background: rgba(255,255,255,0.1); }
 
+/* ── PHASE: 3PT Calibration ───────────────────────────────────── */
+.st-threept-marker {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 3px solid #4da6ff;
+  background: rgba(77,166,255,0.25);
+  pointer-events: none;
+  z-index: 3;
+  display: none;
+  box-shadow: 0 0 12px rgba(77,166,255,0.5);
+}
+.st-threept-line {
+  position: absolute;
+  height: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(77,166,255,0.6) 0px,
+    rgba(77,166,255,0.6) 6px,
+    transparent 6px,
+    transparent 12px
+  );
+  transform-origin: 0 50%;
+  pointer-events: none;
+  z-index: 2;
+  display: none;
+}
+
 /* ── PHASE: Tracking ──────────────────────────────────────────── */
 .st-tracking-overlay {
   position: absolute;

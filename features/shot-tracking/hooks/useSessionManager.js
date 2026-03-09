@@ -86,6 +86,9 @@ export default function useSessionManager(userId) {
         shot_result: shotData.result,
         shot_x: shotData.shotX,
         shot_y: shotData.shotY,
+        launch_x: shotData.launchPoint ? shotData.launchPoint.x : shotData.shotX,
+        launch_y: shotData.launchPoint ? shotData.launchPoint.y : shotData.shotY,
+        shot_zone: shotData.shotZone || null,
         ball_trajectory_points: shotData.trajectory,
         timestamp: new Date(shotData.timestamp).toISOString(),
         shot_number: shots.length + 1,
@@ -275,13 +278,11 @@ function formatDuration(ms) {
 }
 
 /**
- * Categorize shots into zones based on normalized shot_x/shot_y.
- * Rough mapping:
- *  - Paint/close: shot_y > 0.6 (close to camera/basket)
- *  - Midrange: 0.35 < shot_y <= 0.6
- *  - Three-point: shot_y <= 0.35 (far from basket)
+ * Categorize shots into zones.
  *
- * This is approximate — actual zone detection would need court mapping.
+ * Uses the pre-classified shot_zone field (distance-based from launch point
+ * to rim, calibrated against the 3PT line) when available. Falls back to
+ * the rough Y-based heuristic for legacy shots without shot_zone.
  */
 function categorizeShotsByZone(shots) {
   const zones = {
@@ -291,14 +292,14 @@ function categorizeShotsByZone(shots) {
   };
 
   for (const shot of shots) {
-    // Use Y as distance proxy (higher Y = closer to basket in typical setup)
     let zone;
-    if (shot.shot_y > 0.6) {
-      zone = 'paint';
-    } else if (shot.shot_y > 0.35) {
-      zone = 'midrange';
+    if (shot.shot_zone && ['paint', 'midrange', 'threePoint'].includes(shot.shot_zone)) {
+      zone = shot.shot_zone;
     } else {
-      zone = 'threePoint';
+      // Legacy fallback: Y-based approximation
+      if (shot.shot_y > 0.6) zone = 'paint';
+      else if (shot.shot_y > 0.35) zone = 'midrange';
+      else zone = 'threePoint';
     }
 
     if (shot.shot_result === 'made') {
