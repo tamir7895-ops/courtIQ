@@ -205,7 +205,8 @@
 
   /* ── ML detection with person exclusion ─────────────────────── */
   // Wider set of classes — COCO-SSD sometimes classifies basketballs as these
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7, 'apple': 0.5, 'bowl': 0.3, 'clock': 0.25 };
+  // Only accept classes that plausibly look like a basketball in flight; removed 'bowl' and 'clock' (too noisy)
+  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.80, 'orange': 0.55, 'apple': 0.30 };
   var mlMissCount = 0;
 
   function detectBallAsync() {
