@@ -972,9 +972,11 @@
     session.shots.push({ made: made, t: now });
     cooldownUntil = now + COOLDOWN_SEC * 1000;
     // Level 2: feed trajectory to adaptive learning
-    if (window.AdaptiveLearning) {
+    if (window.AdaptiveLearning && rim) {
       var traj = ballHistory.filter(Boolean).slice(-20).map(function(b) { return { x: b.x, y: b.y }; });
-      window.AdaptiveLearning.onShotCompleted(traj, made ? 'made' : 'missed', rim);
+      // Translate rim format: TrajectoryLearner expects centerX/centerY, not cx/cy
+      var rimZone = { centerX: rim.cx, centerY: rim.cy, rx: rim.rx, ry: rim.ry };
+      window.AdaptiveLearning.onShotCompleted(traj, made ? 'made' : 'missed', rimZone);
     }
     updateCounter();
     flashResult(made);
