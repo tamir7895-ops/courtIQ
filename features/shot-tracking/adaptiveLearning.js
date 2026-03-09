@@ -524,7 +524,9 @@
       }
     },
 
-    /** Check if it's time to retrain and do so */
+    _worker: null,
+
+    /** Check if it's time to retrain and do so (uses Web Worker) */
     maybeRetrain: function () {
       if (this.isTraining) return;
       var now = Date.now();
@@ -532,7 +534,104 @@
       var totalNew = this.positiveSamples + this.negativeSamples;
       if (totalNew < this.minSamplesToTrain * 2) return;
 
-      this._buildAndTrainClassifier();
+      this._trainInWorker();
+    },
+
+    /** Train in a background Web Worker to avoid freezing UI */
+    _trainInWorker: function () {
+      var self = this;
+
+      /* Fallback to main thread if Workers not supported */
+      if (typeof Worker === 'undefined') {
+        self._buildAndTrainClassifier();
+        return;
+      }
+
+      self.isTraining = true;
+
+      self._getAllSamples().then(function (samples) {
+        if (samples.length < self.minSamplesToTrain * 2) {
+          self.isTraining = false;
+          return;
+        }
+
+        try {
+          if (!self._worker) {
+            self._worker = new Worker('features/shot-tracking/tl-training-worker.js');
+            self._worker.onmessage = function (e) {
+              var msg = e.data;
+              if (msg.type === 'trained' && msg.result && msg.result.success) {
+                self.confidence = Math.min(1.0, msg.result.accuracy);
+                self.isReady = true;
+                self.isTraining = false;
+                self.lastTrainTime = Date.now();
+
+                /* Rebuild classifier on main thread from worker weights */
+                self._rebuildClassifierFromWeights(msg.result.weightSpecs, msg.result.weightData);
+
+                console.log('TL trained in Worker — accuracy: ' + (msg.result.accuracy * 100).toFixed(1) + '%');
+              } else {
+                self.isTraining = false;
+                if (msg.type === 'error') {
+                  console.warn('TL Worker error:', msg.error);
+                }
+              }
+            };
+            self._worker.onerror = function (err) {
+              console.warn('TL Worker failed, falling back to main thread:', err);
+              self._worker = null;
+              self.isTraining = false;
+              /* Fallback to main thread training */
+              self._buildAndTrainClassifier();
+            };
+          }
+
+          self._worker.postMessage({ type: 'train', samples: samples });
+        } catch (e) {
+          console.warn('Worker creation failed:', e);
+          self.isTraining = false;
+          self._buildAndTrainClassifier();
+        }
+      });
+    },
+
+    /** Rebuild classifier model on main thread from Worker-trained weights */
+    _rebuildClassifierFromWeights: function (weightSpecs, weightData) {
+      if (!weightSpecs || !weightData || typeof tf === 'undefined') return;
+      try {
+        var tf_ = window.tf;
+        /* We need the feature model's output shape to build matching classifier */
+        if (!this.featureModel) return;
+
+        /* Get a dummy prediction to know the shape */
+        var dummyInput = tf_.zeros([1, 96, 96, 3]);
+        var dummyFeatures = this.featureModel.predict(dummyInput);
+        var featureShape = dummyFeatures.shape.slice(1);
+        dummyInput.dispose();
+        dummyFeatures.dispose();
+
+        var classifier = tf_.sequential();
+        classifier.add(tf_.layers.flatten({ inputShape: featureShape }));
+        classifier.add(tf_.layers.dense({ units: 32, activation: 'relu' }));
+        classifier.add(tf_.layers.dropout({ rate: 0.3 }));
+        classifier.add(tf_.layers.dense({ units: 1, activation: 'sigmoid' }));
+
+        classifier.compile({
+          optimizer: tf_.train.adam(0.001),
+          loss: 'binaryCrossentropy'
+        });
+
+        /* Set weights from worker data */
+        var tensors = [];
+        for (var i = 0; i < weightSpecs.length; i++) {
+          tensors.push(tf_.tensor(weightData[i], weightSpecs[i].shape));
+        }
+        classifier.setWeights(tensors);
+
+        this.classifierModel = classifier;
+      } catch (e) {
+        console.warn('Failed to rebuild classifier from worker weights:', e);
+      }
     },
 
     /* ── Internal ──────────────────────────────────────────────── */

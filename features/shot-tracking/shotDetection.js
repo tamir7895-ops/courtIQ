@@ -496,7 +496,7 @@
                 ? window.AdaptiveLearning.verifyWithTL(self._canvas, colorBall.x, colorBall.y)
                 : null;
               if (!tlResult || tlResult.isBall || tlResult.score > 0.3) {
-                self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
+                self._processBallDetection(colorBall.x, colorBall.y, vw, vh, 0); /* score=0: color-only, don't feed learning */
               } else {
                 self._processNoBall();
               }
@@ -505,7 +505,7 @@
             }
           } else if (mlBall) {
             self._mlMissCount = 0;
-            self._processBallDetection(mlBall.x, mlBall.y, vw, vh);
+            self._processBallDetection(mlBall.x, mlBall.y, vw, vh, mlBall.mlScore);
           } else {
             self._processNoBall();
           }
@@ -518,7 +518,7 @@
           if (canvasReady) {
             var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
             if (colorBall) {
-              self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
+              self._processBallDetection(colorBall.x, colorBall.y, vw, vh, 0);
             }
           }
           self._scheduleDetection();
@@ -528,7 +528,7 @@
         if (canvasReady) {
           var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
           if (colorBall) {
-            self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
+            self._processBallDetection(colorBall.x, colorBall.y, vw, vh, 0);
           } else {
             self._processNoBall();
           }
@@ -567,19 +567,23 @@
       if (!bestBall) return null;
       return {
         x: bestBall.bbox[0] + bestBall.bbox[2] / 2,
-        y: bestBall.bbox[1] + bestBall.bbox[3] / 2
+        y: bestBall.bbox[1] + bestBall.bbox[3] / 2,
+        mlScore: bestScore
       };
     },
 
-    _processBallDetection: function (cx, cy, vw, vh) {
+    _processBallDetection: function (cx, cy, vw, vh, mlScore) {
       updateTracker(this.tracker, cx, cy);
       var normX = cx / vw;
       var normY = cy / vh;
       this.ballPosition = { normX: normX, normY: normY };
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
 
-      /* Feed to adaptive learning (Level 1 + 3) */
-      if (window.AdaptiveLearning && this._canvas && this._ctx) {
+      /* Feed to adaptive learning ONLY when ML confidence is high enough.
+         This prevents the learning system from training on false positives.
+         Color-only detections (mlScore=0) are NOT fed to learning. */
+      var MIN_LEARN_CONFIDENCE = 0.35;
+      if (window.AdaptiveLearning && this._canvas && this._ctx && mlScore >= MIN_LEARN_CONFIDENCE) {
         window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, cx, cy);
       }
 

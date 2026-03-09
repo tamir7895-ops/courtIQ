@@ -988,6 +988,7 @@
             '<span class="st-learn-value">' + (learnStats.transfer.isReady ? Math.round(learnStats.transfer.confidence * 100) + '% trained' : learnStats.transfer.positiveSamples + ' samples') + '</span>',
           '</div>',
           '<div class="st-learn-overall">AI Confidence: ' + Math.round(learnStats.overallConfidence * 100) + '%</div>',
+          '<button class="st-reset-learn-btn" id="st-reset-learn-btn">Reset AI Learning</button>',
         '</div>'
       );
     }
@@ -1028,6 +1029,18 @@
     doneBtn.addEventListener('click', function () {
       closeScreen();
     });
+
+    // Reset AI learning button
+    var resetLearnBtn = document.getElementById('st-reset-learn-btn');
+    if (resetLearnBtn) {
+      resetLearnBtn.addEventListener('click', function () {
+        if (confirm('Reset all AI learning data? The system will need to relearn from scratch.')) {
+          window.AdaptiveLearning.reset();
+          resetLearnBtn.textContent = 'Learning Reset';
+          resetLearnBtn.disabled = true;
+        }
+      });
+    }
   }
 
   /* ── Save to Supabase ───────────────────────────────────────── */

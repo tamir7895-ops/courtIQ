@@ -574,6 +574,26 @@
   font-weight: 700;
   text-align: center;
 }
+.st-reset-learn-btn {
+  display: block;
+  margin: 12px auto 0;
+  padding: 8px 20px;
+  background: rgba(255,60,60,0.12);
+  border: 1px solid rgba(255,60,60,0.3);
+  border-radius: 8px;
+  color: #ff5555;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.st-reset-learn-btn:hover {
+  background: rgba(255,60,60,0.25);
+}
+.st-reset-learn-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 
 /* Actions */
 .st-actions {
