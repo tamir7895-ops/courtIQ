@@ -432,6 +432,12 @@
       visited[ck] = true;
     }
 
+    // Hard cutoff: reject blobs too far below the rim (court floor)
+    if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 4.5) {
+      console.log('[AST diag] ball blob at y=' + Math.round(bestBlob.y) + ' rejected (below rim+4.5ry=' + Math.round(rim.cy + rim.ry * 4.5) + ')');
+      return null;
+    }
+
     return bestBlob;
   }
 
