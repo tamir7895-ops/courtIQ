@@ -190,7 +190,9 @@ function scoreCandidate(identifier, fileName, fileSizeBytes, title) {
 
 /* ── Search Archive.org for basketball videos ── */
 async function searchArchive(query, rows) {
-  const apiUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&mediatype=movies&fl[]=identifier,title&sort[]=downloads+desc&rows=${rows}&output=json`;
+  // Use simple query without array params which can confuse http clients
+  const q = encodeURIComponent(query + ' AND mediatype:movies');
+  const apiUrl = `https://archive.org/advancedsearch.php?q=${q}&output=json&rows=${rows}&sort=downloads+desc`;
   tLog(`Searching: "${query}"…`);
   const data = await fetchJson(apiUrl);
   return (data.response && data.response.docs) ? data.response.docs : [];
