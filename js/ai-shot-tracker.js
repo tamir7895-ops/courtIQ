@@ -283,20 +283,23 @@
 
   /* ── Color detection: shape-aware, ROI-limited, person-excluded ── */
   function isOrange(r, g, b) {
+    // Level 1: Use learned color profile if AdaptiveLearning has enough confidence
+    if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
+      return window.AdaptiveLearning.isOrangeAdaptive(r, g, b);
+    }
+    // Fallback: hardcoded thresholds
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 70) return false;   // moderate — reject dark court shadows, keep bright ball
+    if (max < 70) return false;
     var delta = max - min;
-    if (delta < 18) return false;  // moderate — court wood has low delta at similar hues
+    if (delta < 18) return false;
     var s = delta / max;
-    if (s < 0.28) return false;   // moderate — basketball s≈0.50+, wood floor s≈0.25-0.35
+    if (s < 0.28) return false;
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange: tight range centered on true orange (10–48°)
-    // Slightly extended for warm/cool filter shifts and compression hue shift
     return (h >= 10 && h <= 48) || h >= 342;
   }
 
