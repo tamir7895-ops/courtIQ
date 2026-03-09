@@ -22,6 +22,8 @@
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
   var animFrame = null;
+  var mode = 'camera';   // 'camera' | 'video'
+  var videoUrl = null;   // object URL for uploaded video file
 
   var rim = null;       // { cx, cy, rx, ry }
   var ballHistory = []; // array of {x,y} or null
