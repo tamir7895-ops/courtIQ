@@ -1094,6 +1094,10 @@
         var ball = null;
         if (raw && isPhysicallyValid(raw)) {
           ball = applyKalman(raw);
+          // Level 1+3: feed confirmed ball position to adaptive learning
+          if (ball && window.AdaptiveLearning && canvas && ctx) {
+            window.AdaptiveLearning.onBallDetected(canvas, ctx, ball.x, ball.y);
+          }
         } else if (raw) {
           var predX = kalmanPredict(kalX);
           var predY = kalmanPredict(kalY);
