@@ -1246,11 +1246,18 @@
     }
 
     if (mode === 'video' && video) {
-      // Reset to beginning and play
+      // Seek to beginning, then play AFTER seek completes (play during seek gets cancelled)
       video.currentTime = 0;
-      video.play();
-      var ppBtn = document.getElementById('ast-vc-playpause');
-      if (ppBtn) ppBtn.textContent = '⏸';
+      video.onseeked = function onConfirmSeek() {
+        video.onseeked = null;
+        video.play().catch(function (e) {
+          console.log('[AST diag] video.play() blocked: ' + e.message + ' — retrying with mute');
+          video.muted = true;
+          video.play().catch(function () {});
+        });
+        var ppBtn = document.getElementById('ast-vc-playpause');
+        if (ppBtn) ppBtn.textContent = '⏸';
+      };
     }
   }
 
