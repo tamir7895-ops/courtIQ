@@ -542,6 +542,39 @@
   font-weight: 700;
 }
 
+/* AI Learning Stats */
+.st-learn-section {
+  background: rgba(0,200,255,0.06);
+  border: 1px solid rgba(0,200,255,0.2);
+  border-radius: var(--r-md, 16px);
+  padding: 20px;
+  margin-bottom: 24px;
+  animation: st-fadeInDown 0.5s 0.4s ease both;
+}
+.st-learn-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.st-learn-label {
+  color: #aaa;
+  font-size: 13px;
+}
+.st-learn-value {
+  color: #00d4ff;
+  font-size: 13px;
+  font-weight: 600;
+}
+.st-learn-overall {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(0,200,255,0.15);
+  color: #00d4ff;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* Actions */
 .st-actions {
   text-align: center;

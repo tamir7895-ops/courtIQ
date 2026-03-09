@@ -235,7 +235,16 @@
   }
 
   /* ── Color-Based Ball Detection (fallback) ─────────────────── */
+  /* Uses AdaptiveLearning if available, otherwise hardcoded ranges */
   function detectBallByColor(canvas, ctx, vw, vh) {
+    /* Prefer learned color model if available */
+    if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
+      return window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, vw, vh);
+    }
+    return _detectBallByDefaultColor(canvas, ctx, vw, vh);
+  }
+
+  function _detectBallByDefaultColor(canvas, ctx, vw, vh) {
     if (!canvas || !ctx || vw < 10 || vh < 10) return null;
 
     try {
@@ -477,12 +486,20 @@
 
           var mlBall = self._findMLBall(predictions, vw, vh);
 
-          // If ML missed, try color
+          // If ML missed, try color + TL verification
           if (!mlBall && canvasReady) {
             self._mlMissCount++;
             var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
             if (colorBall) {
-              self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
+              /* Verify with Transfer Learning if available */
+              var tlResult = window.AdaptiveLearning
+                ? window.AdaptiveLearning.verifyWithTL(self._canvas, colorBall.x, colorBall.y)
+                : null;
+              if (!tlResult || tlResult.isBall || tlResult.score > 0.3) {
+                self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
+              } else {
+                self._processNoBall();
+              }
             } else {
               self._processNoBall();
             }
@@ -560,6 +577,12 @@
       var normY = cy / vh;
       this.ballPosition = { normX: normX, normY: normY };
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
+
+      /* Feed to adaptive learning (Level 1 + 3) */
+      if (window.AdaptiveLearning && this._canvas && this._ctx) {
+        window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, cx, cy);
+      }
+
       this._analyzeShotState(vw, vh, normX, normY);
     },
 
@@ -592,17 +615,20 @@
         this.lastShotTime = now;
         this.stats.made++;
         this.stats.attempts++;
-        if (this.onShotDetected) {
-          this.onShotDetected({
-            result: 'made',
-            shotX: madeResult.entryPoint ? madeResult.entryPoint.x : normX,
-            shotY: madeResult.entryPoint ? madeResult.entryPoint.y : normY,
-            trajectory: traj.slice(-20),
-            launchPoint: launchPt,
-            shotZone: shotZone,
-            timestamp: now
-          });
+        var shotData = {
+          result: 'made',
+          shotX: madeResult.entryPoint ? madeResult.entryPoint.x : normX,
+          shotY: madeResult.entryPoint ? madeResult.entryPoint.y : normY,
+          trajectory: traj.slice(-20),
+          launchPoint: launchPt,
+          shotZone: shotZone,
+          timestamp: now
+        };
+        /* Level 2: Trajectory learning */
+        if (window.AdaptiveLearning) {
+          window.AdaptiveLearning.onShotCompleted(traj, 'made', this.rimZone);
         }
+        if (this.onShotDetected) this.onShotDetected(shotData);
         resetTracker(this.tracker);
         return;
       }
@@ -612,17 +638,20 @@
       if (missResult.isMiss) {
         this.lastShotTime = now;
         this.stats.attempts++;
-        if (this.onShotDetected) {
-          this.onShotDetected({
-            result: 'missed',
-            shotX: missResult.entryPoint ? missResult.entryPoint.x : normX,
-            shotY: missResult.entryPoint ? missResult.entryPoint.y : normY,
-            trajectory: traj.slice(-20),
-            launchPoint: launchPt,
-            shotZone: shotZone,
-            timestamp: now
-          });
+        var missData = {
+          result: 'missed',
+          shotX: missResult.entryPoint ? missResult.entryPoint.x : normX,
+          shotY: missResult.entryPoint ? missResult.entryPoint.y : normY,
+          trajectory: traj.slice(-20),
+          launchPoint: launchPt,
+          shotZone: shotZone,
+          timestamp: now
+        };
+        /* Level 2: Trajectory learning */
+        if (window.AdaptiveLearning) {
+          window.AdaptiveLearning.onShotCompleted(traj, 'missed', this.rimZone);
         }
+        if (this.onShotDetected) this.onShotDetected(missData);
         resetTracker(this.tracker);
       }
     },
