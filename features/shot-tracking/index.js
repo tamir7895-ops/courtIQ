@@ -1,32 +1,68 @@
-/**
- * AI Shot Tracking Session — Feature Module Entry Point
- *
- * Navigation flow: RimLock → ShotTracking → SessionSummary
- *
- * Usage in your app navigator:
- *   import ShotTrackingNavigator from './features/shot-tracking';
- *   <Stack.Screen name="AITracking" component={ShotTrackingNavigator} />
- */
-import React from 'react';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import RimLockScreen from './RimLockScreen';
-import ShotTrackingScreen from './ShotTrackingScreen';
-import SessionSummary from './SessionSummary';
+/* ══════════════════════════════════════════════════════════════
+   SHOT TRACKING — Module Entry Point
 
-const Stack = createNativeStackNavigator();
+   Initializes the AI Shot Tracking feature.
+   Load order (all via <script> tags in dashboard.html):
+     1. shotDetection.js   → window.ShotDetectionEngine
+     2. shotService.js     → window.ShotService
+     3. ShotTrackingScreen.js → window.ShotTrackingScreen
+     4. index.js (this)    → wires everything + creates launch UI
 
-export default function ShotTrackingNavigator() {
-  return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-        animation: 'slide_from_right',
-        gestureEnabled: false, // prevent accidental swipe during session
-      }}
-    >
-      <Stack.Screen name="RimLock" component={RimLockScreen} />
-      <Stack.Screen name="ShotTracking" component={ShotTrackingScreen} />
-      <Stack.Screen name="SessionSummary" component={SessionSummary} />
-    </Stack.Navigator>
-  );
-}
+   Call:  ShotTracking.launch()  — opens the fullscreen shot tracker
+   ══════════════════════════════════════════════════════════════ */
+(function () {
+  'use strict';
+
+  /**
+   * Launch the shot tracking flow.
+   * Opens the fullscreen camera → rim lock → tracking → summary.
+   */
+  function launch() {
+    if (!window.ShotDetectionEngine) {
+      console.error('ShotDetectionEngine not loaded');
+      return;
+    }
+    if (!window.ShotTrackingScreen) {
+      console.error('ShotTrackingScreen not loaded');
+      return;
+    }
+
+    window.ShotTrackingScreen.open();
+  }
+
+  /**
+   * Wire up any existing dashboard launch buttons.
+   * Looks for elements with data-action="launch-shot-tracker".
+   */
+  function bindLaunchButtons() {
+    var buttons = document.querySelectorAll('[data-action="launch-shot-tracker"]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', function (e) {
+        e.preventDefault();
+        launch();
+      });
+    }
+
+    // Also hook into the existing AI Shot Tracker launch card if present
+    var astLaunchBtn = document.querySelector('.ast-launch-btn');
+    if (astLaunchBtn) {
+      astLaunchBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        launch();
+      });
+    }
+  }
+
+  // Auto-bind when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindLaunchButtons);
+  } else {
+    bindLaunchButtons();
+  }
+
+  /* ── Expose globally ────────────────────────────────────────── */
+  window.ShotTracking = {
+    launch: launch
+  };
+
+})();

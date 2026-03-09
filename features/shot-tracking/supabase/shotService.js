@@ -130,6 +130,9 @@ export async function saveShots(shots) {
     shot_result: shot.shot_result,
     shot_x: shot.shot_x,
     shot_y: shot.shot_y,
+    launch_x: shot.launch_x ?? shot.shot_x,
+    launch_y: shot.launch_y ?? shot.shot_y,
+    shot_zone: shot.shot_zone ?? null,
     ball_trajectory_points: shot.ball_trajectory_points,
     timestamp: shot.timestamp,
     shot_number: shot.shot_number,
@@ -242,6 +245,59 @@ export async function grantXP(userId, xpToAdd, reason) {
     console.error('Failed to grant XP:', err);
     return false;
   }
+}
+
+/**
+ * Fetch zone-level stats aggregated over a period.
+ * Used for weekly/monthly zone history tracking.
+ *
+ * @param {string} userId
+ * @param {'week' | 'month' | 'all'} period
+ * @returns {Promise<Object>} Zone stats { paint, midrange, threePoint, freeThrow }
+ */
+export async function fetchZoneHistory(userId, period = 'week') {
+  const sb = getClient();
+
+  let query = sb
+    .from('ai_shots')
+    .select('shot_zone, shot_result')
+    .eq('user_id', userId);
+
+  if (period !== 'all') {
+    const cutoff = new Date();
+    if (period === 'week') cutoff.setDate(cutoff.getDate() - 7);
+    else if (period === 'month') cutoff.setDate(cutoff.getDate() - 30);
+    query = query.gte('timestamp', cutoff.toISOString());
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    console.error('Failed to fetch zone history:', error);
+    return null;
+  }
+
+  const zones = {
+    paint: { made: 0, total: 0, pct: 0 },
+    midrange: { made: 0, total: 0, pct: 0 },
+    threePoint: { made: 0, total: 0, pct: 0 },
+    freeThrow: { made: 0, total: 0, pct: 0 },
+  };
+
+  for (const shot of data) {
+    const zone = shot.shot_zone || 'midrange';
+    if (!zones[zone]) continue;
+    zones[zone].total++;
+    if (shot.shot_result === 'made') zones[zone].made++;
+  }
+
+  for (const zone of Object.keys(zones)) {
+    zones[zone].pct = zones[zone].total > 0
+      ? Math.round((zones[zone].made / zones[zone].total) * 1000) / 10
+      : 0;
+  }
+
+  return zones;
 }
 
 /**

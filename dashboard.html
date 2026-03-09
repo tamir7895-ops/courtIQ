@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="styles/avatar-customizer.css" />
   <link rel="stylesheet" href="styles/shot-tracker.css" />
   <link rel="stylesheet" href="styles/ai-shot-tracker.css" />
+  <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css" />
   <link rel="stylesheet" href="styles/charts.css" />
   <link rel="stylesheet" href="styles/move-library.css" />
   <link rel="stylesheet" href="styles/challenge.css" />
@@ -1133,6 +1134,48 @@
         </div>
       </div>
       <input type="file" accept="video/*" id="ast-file-input" style="display:none">
+
+      <!-- Court Size Preset -->
+      <div class="ast-settings-card">
+        <div class="ast-settings-row">
+          <div class="ast-settings-label">Court Size</div>
+          <div class="ast-court-btns">
+            <button class="ast-court-btn ast-court-active" data-preset="nba">NBA</button>
+            <button class="ast-court-btn" data-preset="fiba">FIBA</button>
+            <button class="ast-court-btn" data-preset="hs">HS</button>
+          </div>
+        </div>
+        <div class="ast-court-info" id="ast-court-info">NBA: 3PT line at 23.75 ft, Court 50×94 ft</div>
+        <div class="ast-settings-row" style="margin-top:12px;">
+          <div class="ast-settings-label">Training Reminders</div>
+          <label class="ast-toggle-label">
+            <input type="checkbox" id="ast-notif-toggle" class="ast-toggle-input">
+            <span class="ast-toggle-switch"></span>
+          </label>
+        </div>
+        <div class="ast-notif-options" id="ast-notif-options">
+          <span class="ast-notif-text">Remind after</span>
+          <select id="ast-notif-interval" class="ast-notif-select">
+            <option value="1">1 day</option>
+            <option value="2" selected>2 days</option>
+            <option value="3">3 days</option>
+            <option value="5">5 days</option>
+            <option value="7">1 week</option>
+          </select>
+          <span class="ast-notif-text">of inactivity</span>
+        </div>
+      </div>
+
+      <!-- Progress Sparkline (dashboard level) -->
+      <div class="ast-dash-sparkline" id="ast-dash-sparkline"></div>
+
+      <!-- AI Session History -->
+      <div class="ast-history-section">
+        <div class="ast-history-title">AI Session History</div>
+        <div class="ast-history-list" id="ast-history-list">
+          <div class="ast-hist-empty">No AI tracking sessions yet. Start one above!</div>
+        </div>
+      </div>
 
       <div class="st-layout">
 
@@ -2251,6 +2294,11 @@
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" defer></script>
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" defer></script>
 <script src="js/ai-shot-tracker.js"></script>
+<!-- Shot Tracking Module (Capacitor/web rewrite) -->
+<script src="features/shot-tracking/shotDetection.js" defer></script>
+<script src="features/shot-tracking/shotService.js" defer></script>
+<script src="features/shot-tracking/ShotTrackingScreen.js" defer></script>
+<script src="features/shot-tracking/index.js" defer></script>
 
 <script>
 if ('serviceWorker' in navigator) {
@@ -2325,11 +2373,80 @@ if ('serviceWorker' in navigator) {
         <button class="ast-stop-btn" id="ast-stop-btn">⏹ Stop</button>
       </div>
 
-      <!-- Calibration message (shown until user taps rim) -->
-      <div class="ast-calib-msg" id="ast-calib-msg">
-        <div class="ast-msg-icon">🏀</div>
-        <div class="ast-msg-text">Tap the center of the rim</div>
-        <div class="ast-msg-sub">Point your camera at the basket first, then tap to set the rim position</div>
+      <!-- ═══ CALIBRATION: VIDEO MODE ═══ -->
+      <div class="ast-calib-msg" id="ast-calib-video" style="display:none;">
+        <!-- Auto-detect scanning -->
+        <div id="ast-vcalib-scanning">
+          <div class="ast-msg-icon">🔍</div>
+          <div class="ast-msg-text">Detecting rim...</div>
+          <div class="ast-msg-sub">Analyzing the video for the basketball hoop</div>
+        </div>
+        <!-- Confirm candidate -->
+        <div id="ast-vcalib-confirm" style="display:none;">
+          <div class="ast-msg-text">Is this the rim?</div>
+          <div class="ast-msg-sub">The green circle marks the detected position</div>
+          <div class="ast-calib-actions">
+            <button class="ast-calib-btn ast-calib-yes" id="ast-vcalib-yes">Yes, start tracking</button>
+            <button class="ast-calib-btn ast-calib-no" id="ast-vcalib-retry">Try again</button>
+          </div>
+        </div>
+        <!-- Manual fallback for video -->
+        <div id="ast-vcalib-manual" style="display:none;">
+          <div class="ast-msg-icon">👆</div>
+          <div class="ast-msg-text">Tap the rim in the video</div>
+          <div class="ast-msg-sub">Tap exactly on the center of the hoop</div>
+        </div>
+        <div class="ast-calib-manual-link">
+          <button class="ast-calib-link-btn" id="ast-vcalib-switch">Or set manually</button>
+        </div>
+      </div>
+
+      <!-- ═══ CALIBRATION: LIVE CAMERA MODE ═══ -->
+      <div class="ast-calib-msg" id="ast-calib-live" style="display:none;">
+        <!-- Step 1: Setup guide -->
+        <div id="ast-lcalib-setup">
+          <div class="ast-setup-steps">
+            <div class="ast-setup-step">
+              <div class="ast-setup-num">1</div>
+              <div class="ast-setup-text">Place your phone on the <strong>side of the court</strong>, leaning against something stable</div>
+            </div>
+            <div class="ast-setup-step">
+              <div class="ast-setup-num">2</div>
+              <div class="ast-setup-text">Make sure the <strong>rim is visible</strong> in the camera frame</div>
+            </div>
+            <div class="ast-setup-step">
+              <div class="ast-setup-num">3</div>
+              <div class="ast-setup-text">Stand <strong>2-4 meters</strong> from the phone so the hoop and your shots are in view</div>
+            </div>
+          </div>
+          <div class="ast-calib-actions" style="margin-top:16px;">
+            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-ready">I'm ready — detect rim</button>
+          </div>
+        </div>
+        <!-- Auto-detect scanning -->
+        <div id="ast-lcalib-scanning" style="display:none;">
+          <div class="ast-msg-icon">🔍</div>
+          <div class="ast-msg-text">Detecting rim...</div>
+          <div class="ast-msg-sub">Looking for the hoop in your camera feed</div>
+        </div>
+        <!-- Confirm candidate -->
+        <div id="ast-lcalib-confirm" style="display:none;">
+          <div class="ast-msg-text">Is this the rim?</div>
+          <div class="ast-msg-sub">The green circle marks the detected position</div>
+          <div class="ast-calib-actions">
+            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-yes">Yes, start tracking</button>
+            <button class="ast-calib-btn ast-calib-no" id="ast-lcalib-retry">Try again</button>
+          </div>
+        </div>
+        <!-- Manual fallback for live -->
+        <div id="ast-lcalib-manual" style="display:none;">
+          <div class="ast-msg-icon">👆</div>
+          <div class="ast-msg-text">Tap the center of the rim</div>
+          <div class="ast-msg-sub">Tap on the hoop in your camera view</div>
+        </div>
+        <div class="ast-calib-manual-link" id="ast-lcalib-manual-link" style="display:none;">
+          <button class="ast-calib-link-btn" id="ast-lcalib-switch">Or set manually</button>
+        </div>
       </div>
 
       <!-- Tracking message (shown after calibration) -->
@@ -2353,6 +2470,25 @@ if ('serviceWorker' in navigator) {
 
       <!-- Flash result (made/miss) -->
       <div class="ast-flash" id="ast-flash"></div>
+
+      <!-- Shot type selector -->
+      <div class="ast-type-bar">
+        <button class="ast-type-btn ast-type-active" data-type="fg">FG</button>
+        <button class="ast-type-btn" data-type="3pt">3PT</button>
+        <button class="ast-type-btn" data-type="ft">FT</button>
+        <button class="ast-horse-toggle-btn" id="ast-horse-toggle">H-O-R-S-E</button>
+      </div>
+
+      <!-- HORSE Mode Setup -->
+      <div class="ast-horse-setup" id="ast-horse-setup" style="display:none;">
+        <input class="ast-horse-input" id="ast-horse-p1" placeholder="Player 1" maxlength="12">
+        <span class="ast-horse-vs">VS</span>
+        <input class="ast-horse-input" id="ast-horse-p2" placeholder="Player 2" maxlength="12">
+        <button class="ast-horse-start-btn" id="ast-horse-start">Start</button>
+      </div>
+
+      <!-- HORSE Status -->
+      <div class="ast-horse-status" id="ast-horse-status" style="display:none;"></div>
 
       <!-- Manual override buttons -->
       <div class="ast-manual" id="ast-manual">

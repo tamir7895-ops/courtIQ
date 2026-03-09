@@ -12,7 +12,7 @@
  *  4. User can adjust by tapping again or pinching to resize
  *  5. "Lock Rim & Start" button confirms and navigates to ShotTrackingScreen
  */
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import Animated, {
   useSharedValue,
@@ -35,6 +36,8 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // Default rim zone size (relative to screen)
 const DEFAULT_RIM_W = 0.18; // ~18% of screen width
 const DEFAULT_RIM_H = 0.04; // ~4% of screen height (thin ellipse viewed from side)
+
+const CALIBRATION_STORAGE_KEY = 'courtiq-rim-calibration';
 
 export default function RimLockScreen({ navigation }) {
   const device = useCameraDevice('back');
@@ -68,29 +71,111 @@ export default function RimLockScreen({ navigation }) {
     [isLocked, pulseScale]
   );
 
+  // 3PT calibration state
+  const [calibrationPhase, setCalibrationPhase] = useState('rim'); // 'rim' | 'threept'
+  const [threePtPoint, setThreePtPoint] = useState(null);
+  const [hasSavedCalibration, setHasSavedCalibration] = useState(false);
+
+  // Load saved calibration on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(CALIBRATION_STORAGE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.rimCenter && data.rimSize) {
+            setRimCenter(data.rimCenter);
+            setRimSize(data.rimSize);
+            if (data.threePtPoint) setThreePtPoint(data.threePtPoint);
+            setHasSavedCalibration(true);
+          }
+        }
+      } catch (e) {
+        // Silent — no saved calibration
+      }
+    })();
+  }, []);
+
   const handleLockAndStart = useCallback(() => {
     if (!rimCenter) return;
 
     setIsLocked(true);
 
-    // Build rim zone config
+    // Move to 3PT calibration phase
+    setTimeout(() => {
+      setCalibrationPhase('threept');
+    }, 400);
+  }, [rimCenter]);
+
+  const handleThreePtTap = useCallback(
+    (event) => {
+      if (calibrationPhase !== 'threept') return;
+
+      const { locationX, locationY } = event.nativeEvent;
+      const normX = locationX / SCREEN_W;
+      const normY = locationY / SCREEN_H;
+      setThreePtPoint({ x: normX, y: normY });
+    },
+    [calibrationPhase]
+  );
+
+  const saveCalibration = useCallback(async (center, size, threePt) => {
+    try {
+      await AsyncStorage.setItem(
+        CALIBRATION_STORAGE_KEY,
+        JSON.stringify({
+          rimCenter: center,
+          rimSize: size,
+          threePtPoint: threePt,
+          savedAt: new Date().toISOString(),
+        })
+      );
+    } catch (e) {
+      // Silent
+    }
+  }, []);
+
+  const handleConfirmThreePt = useCallback(() => {
+    // Calculate 3PT distance
+    let threePtDistance = 0;
+    if (threePtPoint && rimCenter) {
+      const dx = threePtPoint.x - rimCenter.x;
+      const dy = threePtPoint.y - rimCenter.y;
+      threePtDistance = Math.sqrt(dx * dx + dy * dy);
+    }
+
     const rimZone = {
       centerX: rimCenter.x,
       centerY: rimCenter.y,
       width: rimSize.w,
       height: rimSize.h,
-      // Pixel values for the current screen (used by detection)
       pixelCenterX: rimCenter.x * SCREEN_W,
       pixelCenterY: rimCenter.y * SCREEN_H,
       pixelWidth: rimSize.w * SCREEN_W,
       pixelHeight: rimSize.h * SCREEN_H,
+      threePtDistance,
     };
 
-    // Short delay so user sees the "locked" state
-    setTimeout(() => {
-      navigation.replace('ShotTracking', { rimZone });
-    }, 400);
-  }, [rimCenter, rimSize, navigation]);
+    saveCalibration(rimCenter, rimSize, threePtPoint);
+    navigation.replace('ShotTracking', { rimZone });
+  }, [rimCenter, rimSize, threePtPoint, navigation, saveCalibration]);
+
+  const handleSkipThreePt = useCallback(() => {
+    const rimZone = {
+      centerX: rimCenter.x,
+      centerY: rimCenter.y,
+      width: rimSize.w,
+      height: rimSize.h,
+      pixelCenterX: rimCenter.x * SCREEN_W,
+      pixelCenterY: rimCenter.y * SCREEN_H,
+      pixelWidth: rimSize.w * SCREEN_W,
+      pixelHeight: rimSize.h * SCREEN_H,
+      threePtDistance: 0,
+    };
+
+    saveCalibration(rimCenter, rimSize, null);
+    navigation.replace('ShotTracking', { rimZone });
+  }, [rimCenter, rimSize, navigation, saveCalibration]);
 
   const handleAdjustSize = useCallback(
     (delta) => {
@@ -130,89 +215,150 @@ export default function RimLockScreen({ navigation }) {
         video={false}
       />
 
-      {/* Tap area overlay */}
-      <TouchableOpacity
-        style={StyleSheet.absoluteFill}
-        activeOpacity={1}
-        onPress={handleTap}
-      >
-        {/* Semi-transparent overlay */}
-        <View style={styles.overlay}>
-          {/* Instructions */}
-          <View style={styles.instructionBar}>
-            <Text style={styles.instructionText}>
-              {rimCenter
-                ? isLocked
-                  ? 'Rim locked! Starting session...'
-                  : 'Adjust position or tap "Lock Rim & Start"'
-                : 'Tap the center of the basketball rim'}
-            </Text>
-          </View>
-
-          {/* Rim indicator */}
-          {rimCenter && (
-            <Animated.View
-              style={[
-                styles.rimIndicator,
-                rimAnimStyle,
-                {
-                  left: rimCenter.x * SCREEN_W - (rimSize.w * SCREEN_W) / 2,
-                  top: rimCenter.y * SCREEN_H - (rimSize.h * SCREEN_H) / 2,
-                  width: rimSize.w * SCREEN_W,
-                  height: rimSize.h * SCREEN_H,
-                  borderColor: isLocked ? '#00ff88' : '#ff6b00',
-                },
-              ]}
-            />
-          )}
-
-          {/* Size adjust buttons */}
-          {rimCenter && !isLocked && (
-            <View style={styles.sizeControls}>
-              <TouchableOpacity
-                style={styles.sizeBtn}
-                onPress={() => handleAdjustSize(-0.02)}
-              >
-                <Text style={styles.sizeBtnText}>-</Text>
-              </TouchableOpacity>
-              <Text style={styles.sizeLabel}>Rim Size</Text>
-              <TouchableOpacity
-                style={styles.sizeBtn}
-                onPress={() => handleAdjustSize(0.02)}
-              >
-                <Text style={styles.sizeBtnText}>+</Text>
-              </TouchableOpacity>
+      {/* Phase: Rim calibration */}
+      {calibrationPhase === 'rim' && (
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={handleTap}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.instructionBar}>
+              <Text style={styles.instructionText}>
+                {rimCenter
+                  ? isLocked
+                    ? 'Rim locked!'
+                    : hasSavedCalibration
+                      ? 'Previous calibration restored. Tap to adjust or "Lock Rim & Start"'
+                      : 'Adjust position or tap "Lock Rim & Start"'
+                  : 'Tap the center of the basketball rim'}
+              </Text>
             </View>
-          )}
 
-          {/* Lock & Start button */}
-          {rimCenter && !isLocked && (
+            {rimCenter && (
+              <Animated.View
+                style={[
+                  styles.rimIndicator,
+                  rimAnimStyle,
+                  {
+                    left: rimCenter.x * SCREEN_W - (rimSize.w * SCREEN_W) / 2,
+                    top: rimCenter.y * SCREEN_H - (rimSize.h * SCREEN_H) / 2,
+                    width: rimSize.w * SCREEN_W,
+                    height: rimSize.h * SCREEN_H,
+                    borderColor: isLocked ? '#00ff88' : '#ff6b00',
+                  },
+                ]}
+              />
+            )}
+
+            {rimCenter && !isLocked && (
+              <View style={styles.sizeControls}>
+                <TouchableOpacity
+                  style={styles.sizeBtn}
+                  onPress={() => handleAdjustSize(-0.02)}
+                >
+                  <Text style={styles.sizeBtnText}>-</Text>
+                </TouchableOpacity>
+                <Text style={styles.sizeLabel}>Rim Size</Text>
+                <TouchableOpacity
+                  style={styles.sizeBtn}
+                  onPress={() => handleAdjustSize(0.02)}
+                >
+                  <Text style={styles.sizeBtnText}>+</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
+            {rimCenter && !isLocked && (
+              <TouchableOpacity
+                style={styles.lockButton}
+                onPress={handleLockAndStart}
+              >
+                <Text style={styles.lockButtonText}>Lock Rim & Start</Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              style={styles.lockButton}
-              onPress={handleLockAndStart}
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
             >
-              <Text style={styles.lockButtonText}>Lock Rim & Start</Text>
+              <Text style={styles.backButtonText}>Cancel</Text>
             </TouchableOpacity>
-          )}
 
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>Cancel</Text>
-          </TouchableOpacity>
+            {!rimCenter && (
+              <>
+                <View style={styles.crosshairH} />
+                <View style={styles.crosshairV} />
+                <View style={styles.crosshairCenter} />
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      )}
 
-          {/* Crosshair guide (before first tap) */}
-          {!rimCenter && (
-            <>
-              <View style={styles.crosshairH} />
-              <View style={styles.crosshairV} />
-              <View style={styles.crosshairCenter} />
-            </>
-          )}
-        </View>
-      </TouchableOpacity>
+      {/* Phase: 3PT line calibration */}
+      {calibrationPhase === 'threept' && (
+        <TouchableOpacity
+          style={StyleSheet.absoluteFill}
+          activeOpacity={1}
+          onPress={handleThreePtTap}
+        >
+          <View style={styles.overlay}>
+            <View style={styles.instructionBar}>
+              <Text style={styles.instructionText}>
+                {threePtPoint
+                  ? 'Tap again to adjust, or confirm below'
+                  : 'Tap the 3-point line (anywhere on the arc)'}
+              </Text>
+            </View>
+
+            {/* Show locked rim indicator */}
+            {rimCenter && (
+              <View
+                style={[
+                  styles.rimIndicator,
+                  {
+                    left: rimCenter.x * SCREEN_W - (rimSize.w * SCREEN_W) / 2,
+                    top: rimCenter.y * SCREEN_H - (rimSize.h * SCREEN_H) / 2,
+                    width: rimSize.w * SCREEN_W,
+                    height: rimSize.h * SCREEN_H,
+                    borderColor: '#00ff88',
+                  },
+                ]}
+              />
+            )}
+
+            {/* 3PT marker */}
+            {threePtPoint && (
+              <View
+                style={[
+                  styles.threePtMarker,
+                  {
+                    left: threePtPoint.x * SCREEN_W - 10,
+                    top: threePtPoint.y * SCREEN_H - 10,
+                  },
+                ]}
+              />
+            )}
+
+            {threePtPoint && (
+              <TouchableOpacity
+                style={styles.lockButton}
+                onPress={handleConfirmThreePt}
+              >
+                <Text style={styles.lockButtonText}>Confirm & Start</Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleSkipThreePt}
+            >
+              <Text style={styles.backButtonText}>Skip (use defaults)</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -254,6 +400,15 @@ const styles = StyleSheet.create({
     borderWidth: 3,
     borderRadius: 999, // ellipse
     backgroundColor: 'rgba(255, 107, 0, 0.15)',
+  },
+  threePtMarker: {
+    position: 'absolute',
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 3,
+    borderColor: '#4da6ff',
+    backgroundColor: 'rgba(77, 166, 255, 0.25)',
   },
   sizeControls: {
     position: 'absolute',

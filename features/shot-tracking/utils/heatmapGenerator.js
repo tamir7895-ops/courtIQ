@@ -23,6 +23,14 @@ const THREE_PT_RADIUS = 190;
 const DOT_RADIUS_MADE = 6;
 const DOT_RADIUS_MISSED = 5;
 
+// Zone color mapping for shot chart dots
+const ZONE_COLORS = {
+  paint: '#ff4444',
+  midrange: '#ffaa00',
+  threePoint: '#4da6ff',
+  freeThrow: '#ba68c8',
+};
+
 /**
  * @typedef {Object} ShotDot
  * @property {number} x         - X position on court SVG
@@ -46,23 +54,28 @@ const DOT_RADIUS_MISSED = 5;
  */
 export function generateShotChartData(shots) {
   return shots.map((shot) => {
+    // Use launch point (where player shot from) if available, otherwise fall back to shot position
+    const posX = shot.launch_x !== undefined ? shot.launch_x : shot.shot_x;
+    const posY = shot.launch_y !== undefined ? shot.launch_y : shot.shot_y;
+
     // Map normalized coords to court SVG coords
-    // X: 0–1 maps to court width with some margin
-    const courtX = 50 + shot.shot_x * (COURT_WIDTH - 100);
+    const courtX = 50 + posX * (COURT_WIDTH - 100);
 
     // Y: 0 = 3PT line area, 1 = under basket
-    // Invert and map: closer shots (high shot_y) are near the rim
-    const courtY = RIM_Y + (1 - shot.shot_y) * (COURT_HEIGHT - RIM_Y - 40);
+    const courtY = RIM_Y + (1 - posY) * (COURT_HEIGHT - RIM_Y - 40);
 
     const isMade = shot.shot_result === 'made';
+    const zone = shot.shot_zone || 'midrange';
+    const zoneColor = ZONE_COLORS[zone] || ZONE_COLORS.midrange;
 
     return {
       x: courtX,
       y: courtY,
       result: shot.shot_result,
-      color: isMade ? '#00ff88' : '#ff4444',
+      shotZone: zone,
+      color: zoneColor,
       radius: isMade ? DOT_RADIUS_MADE : DOT_RADIUS_MISSED,
-      opacity: isMade ? 0.9 : 0.6,
+      opacity: isMade ? 0.9 : 0.4,
     };
   });
 }
@@ -96,10 +109,12 @@ export function generateHeatmapGrid(shots, gridCols = 10, gridRows = 10) {
     }
   }
 
-  // Count shots per cell
+  // Count shots per cell (use launch point if available)
   for (const shot of shots) {
-    const courtX = 50 + shot.shot_x * (COURT_WIDTH - 100);
-    const courtY = RIM_Y + (1 - shot.shot_y) * (COURT_HEIGHT - RIM_Y - 40);
+    const posX = shot.launch_x !== undefined ? shot.launch_x : shot.shot_x;
+    const posY = shot.launch_y !== undefined ? shot.launch_y : shot.shot_y;
+    const courtX = 50 + posX * (COURT_WIDTH - 100);
+    const courtY = RIM_Y + (1 - posY) * (COURT_HEIGHT - RIM_Y - 40);
 
     const col = Math.min(Math.floor(courtX / cellW), gridCols - 1);
     const row = Math.min(Math.floor(courtY / cellH), gridRows - 1);
@@ -190,17 +205,25 @@ export function getCourtPaths() {
  */
 export function getShotDistribution(shots) {
   const zones = {
-    paint: { made: 0, total: 0, label: 'Paint' },
-    midrange: { made: 0, total: 0, label: 'Mid-Range' },
-    threePoint: { made: 0, total: 0, label: '3-Point' },
+    paint: { made: 0, total: 0, label: 'Paint', color: '#ff4444' },
+    midrange: { made: 0, total: 0, label: 'Mid-Range', color: '#ffaa00' },
+    threePoint: { made: 0, total: 0, label: '3-Point', color: '#4da6ff' },
+    freeThrow: { made: 0, total: 0, label: 'Free Throw', color: '#ba68c8' },
   };
 
   for (const shot of shots) {
-    const distance = 1 - shot.shot_y; // Invert: high shot_y = close
     let zone;
-    if (distance < 0.3) zone = 'paint';
-    else if (distance < 0.6) zone = 'midrange';
-    else zone = 'threePoint';
+    if (shot.shot_zone && zones[shot.shot_zone]) {
+      zone = shot.shot_zone;
+    } else if (shot.shot_zone && ['paint', 'midrange', 'threePoint', 'freeThrow'].includes(shot.shot_zone)) {
+      zone = shot.shot_zone;
+    } else {
+      // Legacy fallback
+      const distance = 1 - shot.shot_y;
+      if (distance < 0.3) zone = 'paint';
+      else if (distance < 0.6) zone = 'midrange';
+      else zone = 'threePoint';
+    }
 
     zones[zone].total++;
     if (shot.shot_result === 'made') zones[zone].made++;
