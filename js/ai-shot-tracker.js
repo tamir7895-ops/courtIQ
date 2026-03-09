@@ -838,7 +838,7 @@
         if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 3.5) {
           // Check if the ball arced high enough to be a real shot
           var arcHeight = ballStartY - ballPeakY;
-          if (arcHeight > H * 0.03) { // minimum arc height
+          if (arcHeight > H * 0.07) { // raised minimum arc — avoids counting dribbles/hops as shots
             commitShot(false, now);
           }
         }
