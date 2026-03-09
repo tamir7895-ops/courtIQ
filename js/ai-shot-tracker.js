@@ -396,6 +396,8 @@
       canvas = document.getElementById('ast-canvas');
       ctx    = canvas.getContext('2d');
 
+      loadMLModel(); // kick off ML load in background
+
       video.srcObject = stream;
       video.onloadedmetadata = function () {
         video.play();
@@ -504,6 +506,8 @@
 
     if (videoUrl) { URL.revokeObjectURL(videoUrl); }
     videoUrl = URL.createObjectURL(file);
+
+    loadMLModel(); // kick off ML load in background
 
     video.srcObject = null;
     video.src = videoUrl;
