@@ -468,6 +468,10 @@
     rim = null;
     cooldownFrames = 0;
     phase = PHASE.IDLE;
+    lastBall = null;
+    isDetecting = false;
+    frameCount = 0;
+    resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
