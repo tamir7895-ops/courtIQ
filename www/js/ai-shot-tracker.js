@@ -152,30 +152,52 @@
   }
 
   /* ── ML-powered detection (async, falls back to color) ──────── */
+  // COCO-SSD sometimes labels basketballs as "frisbee" or "orange"
+  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7 };
+  var mlMissCount = 0;  // consecutive frames ML found nothing
+
   function detectBallAsync() {
     if (mlReady && tfModel) {
       return tfModel.detect(video).then(function (preds) {
-        var best = null, bestScore = 0.3;
+        var best = null, bestAdjScore = 0.3;
+        var frameArea = W * H;
         for (var i = 0; i < preds.length; i++) {
-          if (preds[i].class === 'sports ball' && preds[i].score > bestScore) {
-            var area = preds[i].bbox[2] * preds[i].bbox[3];
-            var frameArea = W * H;
-            // Reject detections that are too small or too large relative to frame
-            if (area < frameArea * 0.0005 || area > frameArea * 0.12) continue;
-            best = preds[i]; bestScore = preds[i].score;
-          }
+          var cls = preds[i].class;
+          var classWeight = ML_BALL_CLASSES[cls];
+          if (!classWeight) continue;
+          var adjScore = preds[i].score * classWeight;
+          if (adjScore <= bestAdjScore) continue;
+          var area = preds[i].bbox[2] * preds[i].bbox[3];
+          if (area < frameArea * 0.0003 || area > frameArea * 0.10) continue;
+          // Shape check: basketball bbox should be roughly square
+          var bw = preds[i].bbox[2], bh = preds[i].bbox[3];
+          var bAspect = Math.max(bw / bh, bh / bw);
+          if (bAspect > 2.2) continue;  // too elongated = not a ball
+          best = preds[i];
+          bestAdjScore = adjScore;
         }
         if (best) {
+          mlMissCount = 0;
           var b = best.bbox;
-          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: best.score };
+          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: bestAdjScore };
         }
-        return detectBallColor();
+        // ML found nothing — only fall back to color if ML has been
+        // missing for several frames (avoids color locking onto shirts
+        // when ML is just occasionally missing the ball)
+        mlMissCount++;
+        if (mlMissCount >= 3) {
+          return detectBallColor();
+        }
+        return null;
       }).catch(function () { return detectBallColor(); });
     }
     return Promise.resolve(detectBallColor());
   }
 
-  /* ── Color detection with spatial clustering ────────────────── */
+  /* ── Color detection with shape-aware clustering ─────────────
+     Strategy: find all orange blobs, then pick the one that is
+     most ball-shaped (roughly circular, correct size).
+     This avoids locking onto orange shirts, floors, or cones.  */
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
@@ -192,16 +214,19 @@
     return h >= 10 && h <= 42;
   }
 
+  /* Expected basketball diameter as fraction of frame width.
+     A basketball at mid-court in a phone camera is roughly 2-6% of width. */
+  var BALL_DIAM_MIN_FRAC = 0.015;  // ~19px at 1280w
+  var BALL_DIAM_MAX_FRAC = 0.12;   // ~154px at 1280w
+  var BALL_ASPECT_MAX    = 2.5;    // max width/height ratio (ball ≈ 1.0, shirt >> 2)
+
   function detectBallColor() {
     if (!canvas || !ctx) return null;
     var imageData = ctx.getImageData(0, 0, W, H);
     var data = imageData.data;
     var w = imageData.width, h = imageData.height;
-    var totalPixelsSampled = (w / 2) * (h / 2);
-    var minBlob = Math.max(30, Math.round(totalPixelsSampled * BLOB_MIN_FRAC));
-    var maxBlob = Math.round(totalPixelsSampled * BLOB_MAX_FRAC);
 
-    // Pass 1: collect all orange pixels into a flat array
+    // Pass 1: collect all orange pixels
     var orangeX = [], orangeY = [];
     for (var y = 0; y < h; y += 2) {
       for (var x = 0; x < w; x += 2) {
@@ -213,45 +238,103 @@
       }
     }
 
-    if (orangeX.length < minBlob || orangeX.length > maxBlob) return null;
+    if (orangeX.length < 20) return null;
 
-    // Pass 2: find largest spatial cluster (simple grid-cell approach)
-    // Divide frame into cells, find cell with most orange pixels
-    var cellW = Math.max(1, Math.round(w / 16));
-    var cellH = Math.max(1, Math.round(h / 16));
-    var grid = {};
-    var bestCell = null, bestCount = 0;
+    // Pass 2: build grid of cells, each cell tracks pixel count + bounding box
+    var cellW = Math.max(1, Math.round(w / 20));
+    var cellH = Math.max(1, Math.round(h / 20));
+    var cells = {}; // key → { count, minX, maxX, minY, maxY }
 
     for (var j = 0; j < orangeX.length; j++) {
       var gx = Math.floor(orangeX[j] / cellW);
       var gy = Math.floor(orangeY[j] / cellH);
       var key = gx + ',' + gy;
-      grid[key] = (grid[key] || 0) + 1;
-      if (grid[key] > bestCount) {
-        bestCount = grid[key];
-        bestCell = key;
+      if (!cells[key]) {
+        cells[key] = { count: 0, minX: orangeX[j], maxX: orangeX[j], minY: orangeY[j], maxY: orangeY[j], gx: gx, gy: gy };
       }
+      var c = cells[key];
+      c.count++;
+      if (orangeX[j] < c.minX) c.minX = orangeX[j];
+      if (orangeX[j] > c.maxX) c.maxX = orangeX[j];
+      if (orangeY[j] < c.minY) c.minY = orangeY[j];
+      if (orangeY[j] > c.maxY) c.maxY = orangeY[j];
     }
 
-    if (!bestCell || bestCount < minBlob * 0.3) return null;
+    // Pass 3: merge each cell with its 8 neighbors into a "blob"
+    // and score each blob by how ball-shaped it is.
+    var ballMinPx = W * BALL_DIAM_MIN_FRAC;
+    var ballMaxPx = W * BALL_DIAM_MAX_FRAC;
+    var bestBlob = null, bestScore = -1;
 
-    // Compute centroid only from the winning cluster and its 8 neighbors
-    var parts = bestCell.split(',');
-    var bcx = parseInt(parts[0], 10), bcy = parseInt(parts[1], 10);
-    var sumX = 0, sumY = 0, count = 0;
+    var cellKeys = Object.keys(cells);
+    var visited = {};
 
-    for (var k = 0; k < orangeX.length; k++) {
-      var cgx = Math.floor(orangeX[k] / cellW);
-      var cgy = Math.floor(orangeY[k] / cellH);
-      if (Math.abs(cgx - bcx) <= 1 && Math.abs(cgy - bcy) <= 1) {
-        sumX += orangeX[k];
-        sumY += orangeY[k];
-        count++;
+    for (var ci = 0; ci < cellKeys.length; ci++) {
+      var ck = cellKeys[ci];
+      if (visited[ck]) continue;
+
+      var center = cells[ck];
+      // Merge center + 8 neighbors
+      var bMinX = center.minX, bMaxX = center.maxX;
+      var bMinY = center.minY, bMaxY = center.maxY;
+      var bCount = 0;
+      var bSumX = 0, bSumY = 0;
+
+      for (var ni = -1; ni <= 1; ni++) {
+        for (var nj = -1; nj <= 1; nj++) {
+          var nk = (center.gx + ni) + ',' + (center.gy + nj);
+          if (!cells[nk]) continue;
+          var nc = cells[nk];
+          bCount += nc.count;
+          if (nc.minX < bMinX) bMinX = nc.minX;
+          if (nc.maxX > bMaxX) bMaxX = nc.maxX;
+          if (nc.minY < bMinY) bMinY = nc.minY;
+          if (nc.maxY > bMaxY) bMaxY = nc.maxY;
+        }
       }
+
+      // Compute centroid for this blob
+      for (var pk = 0; pk < orangeX.length; pk++) {
+        var pgx = Math.floor(orangeX[pk] / cellW);
+        var pgy = Math.floor(orangeY[pk] / cellH);
+        if (Math.abs(pgx - center.gx) <= 1 && Math.abs(pgy - center.gy) <= 1) {
+          bSumX += orangeX[pk];
+          bSumY += orangeY[pk];
+        }
+      }
+
+      var blobW = bMaxX - bMinX + 1;
+      var blobH = bMaxY - bMinY + 1;
+      if (blobW < 4 || blobH < 4) continue;
+
+      // Shape checks: is this blob ball-shaped?
+      var aspect = Math.max(blobW / blobH, blobH / blobW);
+      var diameter = Math.max(blobW, blobH);
+
+      // Reject if too elongated (shirts, floor lines)
+      if (aspect > BALL_ASPECT_MAX) continue;
+
+      // Reject if wrong size
+      if (diameter < ballMinPx || diameter > ballMaxPx) continue;
+
+      // Compactness: how filled is the bounding box? Ball ≈ 0.5-0.8, shirt patch < 0.3
+      var fillRatio = bCount / ((blobW / 2) * (blobH / 2)); // sampled every 2px
+      if (fillRatio < 0.15) continue;
+
+      // Score: prefer round (aspect→1), well-filled, mid-sized blobs
+      var roundness = 1.0 / aspect;
+      var sizeScore = 1.0 - Math.abs(diameter - ballMaxPx * 0.4) / (ballMaxPx * 0.6);
+      var score = roundness * 0.5 + Math.min(fillRatio, 1.0) * 0.3 + Math.max(sizeScore, 0) * 0.2;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestBlob = { x: bSumX / bCount, y: bSumY / bCount, size: bCount, score: 0.35 + score * 0.15 };
+      }
+
+      visited[ck] = true;
     }
 
-    if (count < minBlob * 0.2) return null;
-    return { x: sumX / count, y: sumY / count, size: count, score: 0.45 };
+    return bestBlob;
   }
 
   /* ── Rim geometry (resolution-aware) ─────────────────────────── */
@@ -633,6 +716,7 @@
     isDetecting = false;
     frameCount = 0;
     pendingShot = null;
+    mlMissCount = 0;
     resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
