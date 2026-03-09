@@ -1,7 +1,10 @@
 /* ══════════════════════════════════════════════════════════════
-   CourtIQ Batch Trainer
-   Processes basketball videos offline to pre-train all 3
-   adaptive learning levels before a live session.
+   CourtIQ Batch Trainer  — Auto-Download + Overnight Training
+   ══════════════════════════════════════════════════════════════
+   Auto-mode: on page load → triggers server to download 20 basketball
+   videos from Archive.org → polls progress → auto-starts training.
+
+   Also supports manual file drop as fallback.
 
    Outputs (compatible with adaptiveLearning.js):
    ─ localStorage['courtiq-adaptive-color'] — Level 1 color model
@@ -18,13 +21,20 @@
   var IDB_VERSION       = 1;
 
   /* ── State ──────────────────────────────────────────────────── */
-  var videoFiles   = [];
+  var videoFiles   = [];   // manually dropped File objects
+  var videoUrls    = [];   // [{name, src, size}] server-downloaded videos
   var stopFlag     = false;
   var isRunning    = false;
   var wakeLock     = null;
   var db           = null;
   var startTime    = 0;
   var timerInterval= null;
+
+  /* Auto-mode state */
+  var autoMode         = true;   // set to false to disable auto-download
+  var pollTimer        = null;
+  var downloadComplete = false;
+  var lastLogIndex     = 0;
 
   /* Running counters */
   var totalFrames  = 0;
@@ -33,21 +43,21 @@
   var colorSamples = [];   /* [{r,g,b,ts}] — for Level 1 */
 
   /* ── DOM refs ────────────────────────────────────────────────── */
-  var dropZone    = document.getElementById('dropZone');
-  var fileInput   = document.getElementById('fileInput');
-  var videoList   = document.getElementById('videoList');
-  var logBox      = document.getElementById('logBox');
-  var btnStart    = document.getElementById('btnStart');
-  var btnStop     = document.getElementById('btnStop');
-  var btnClearAll = document.getElementById('btnClearAll');
-  var statusDot   = document.getElementById('statusDot');
-  var statusText  = document.getElementById('statusText');
-  var extractVideo= document.getElementById('extractVideo');
+  var dropZone     = document.getElementById('dropZone');
+  var fileInput    = document.getElementById('fileInput');
+  var videoList    = document.getElementById('videoList');
+  var logBox       = document.getElementById('logBox');
+  var btnStart     = document.getElementById('btnStart');
+  var btnStop      = document.getElementById('btnStop');
+  var btnClearAll  = document.getElementById('btnClearAll');
+  var statusDot    = document.getElementById('statusDot');
+  var statusText   = document.getElementById('statusText');
+  var extractVideo  = document.getElementById('extractVideo');
   var extractCanvas = document.getElementById('extractCanvas');
 
   /* ══════════════════════════════════════════════════════════════
      ORANGE / BALL DETECTION
-     Identical thresholds to ai-shot-tracker.js (keep in sync!)
+     Identical thresholds to ai-shot-tracker.js — keep in sync!
      ══════════════════════════════════════════════════════════════ */
 
   function isOrange(r, g, b) {
@@ -66,19 +76,12 @@
     return (h >= 10 && h <= 48) || h >= 342;
   }
 
-  /**
-   * Detect best orange blob in imageData.
-   * Returns {x, y, w, h, score} or null.
-   * maxY: hard cutoff row (ignore floor below this)
-   */
   function detectBallInFrame(imageData, W, H) {
     var data = imageData.data;
     var cells = 24;
     var cw = Math.floor(W / cells) || 1;
     var ch = Math.floor(H / cells) || 1;
     var grid = new Float32Array(cells * cells);
-
-    /* Only top 70% of frame to skip court floor */
     var scanMaxY = Math.floor(H * 0.70);
 
     for (var y = 0; y < scanMaxY; y++) {
@@ -92,7 +95,6 @@
       }
     }
 
-    /* Find peak cell */
     var best = null;
     var visited = new Uint8Array(cells * cells);
 
@@ -101,7 +103,6 @@
         var v = grid[gy * cells + gx];
         if (v < 15 || visited[gy * cells + gx]) continue;
 
-        /* BFS flood fill */
         var queue = [[gx, gy]];
         var pixels = 0;
         var minGx = gx, maxGx = gx, minGy = gy, maxGy = gy;
@@ -114,56 +115,43 @@
           if (visited[key]) continue;
           if (grid[key] < 5) continue;
           visited[key] = 1;
-
           pixels += grid[key];
           if (bx < minGx) minGx = bx;
           if (bx > maxGx) maxGx = bx;
           if (by < minGy) minGy = by;
           if (by > maxGy) maxGy = by;
-
           var dirs = [[-1,0],[1,0],[0,-1],[0,1],[-1,-1],[1,-1],[-1,1],[1,1]];
           for (var d = 0; d < dirs.length; d++) {
             var nx = bx + dirs[d][0], ny = by + dirs[d][1];
-            if (nx >= 0 && nx < cells && ny >= 0 && ny < cells && !visited[ny * cells + nx]) {
+            if (nx >= 0 && nx < cells && ny >= 0 && ny < cells && !visited[ny * cells + nx])
               queue.push([nx, ny]);
-            }
           }
         }
 
         var blobW = maxGx - minGx + 1;
         var blobH = maxGy - minGy + 1;
         if (blobW < 1 || blobH < 1) continue;
-
-        /* Aspect ratio filter — ball is roughly round */
         var aspect = Math.max(blobW, blobH) / Math.min(blobW, blobH);
         if (aspect > 2.8) continue;
-
-        /* Fill ratio — how "dense" is the orange within bounding box */
         var fillRatio = pixels / (blobW * blobH * cw * ch / 2);
         var score = Math.min(1.0, fillRatio) * 0.5 +
                     (1 / aspect) * 0.3 +
                     Math.min(1, pixels / 300) * 0.2;
-
         if (!best || score > best.score) {
           best = {
             x: ((minGx + maxGx) / 2 + 0.5) * cw,
             y: ((minGy + maxGy) / 2 + 0.5) * ch,
-            w: blobW * cw,
-            h: blobH * ch,
-            score: score,
-            pixels: pixels
+            w: blobW * cw, h: blobH * ch,
+            score: score, pixels: pixels
           };
         }
       }
     }
 
-    /* Extra sanity: min pixels, size bounds */
-    if (!best) return null;
-    if (best.pixels < 80) return null;
+    if (!best || best.pixels < 80) return null;
     var minSize = W * 0.012, maxSize = W * 0.22;
     if (best.w < minSize || best.h < minSize) return null;
     if (best.w > maxSize || best.h > maxSize) return null;
-
     return best;
   }
 
@@ -172,64 +160,43 @@
      ══════════════════════════════════════════════════════════════ */
 
   function addColorSample(imageData, cx, cy) {
-    var W = imageData.width;
-    var H = imageData.height;
-    var data = imageData.data;
+    var W = imageData.width, H = imageData.height, data = imageData.data;
     var radius = 20;
     var x0 = Math.max(0, Math.floor(cx - radius));
     var y0 = Math.max(0, Math.floor(cy - radius));
     var x1 = Math.min(W - 1, Math.floor(cx + radius));
     var y1 = Math.min(H - 1, Math.floor(cy + radius));
-
     var rSum = 0, gSum = 0, bSum = 0, count = 0;
-    var innerR2 = radius * radius * 0.36; /* 60% of radius squared */
-
+    var innerR2 = radius * radius * 0.36;
     for (var y = y0; y <= y1; y++) {
       for (var x = x0; x <= x1; x++) {
         var dx = x - cx, dy = y - cy;
         if (dx * dx + dy * dy > innerR2) continue;
         var i = (y * W + x) * 4;
         var r = data[i], g = data[i + 1], b = data[i + 2];
-        /* Only sample orange-ish center pixels */
-        if (r > 80 && r > g && r > b * 1.3) {
-          rSum += r; gSum += g; bSum += b; count++;
-        }
+        if (r > 80 && r > g && r > b * 1.3) { rSum += r; gSum += g; bSum += b; count++; }
       }
     }
-
     if (count < 5) return;
     colorSamples.push({ r: rSum / count, g: gSum / count, b: bSum / count, ts: Date.now() });
   }
 
   function saveColorStats() {
     if (colorSamples.length < 10) return null;
-
     var recent = colorSamples.slice(-200);
     var rs = recent.map(function (s) { return s.r; }).sort(function (a, b) { return a - b; });
     var gs = recent.map(function (s) { return s.g; }).sort(function (a, b) { return a - b; });
     var bs = recent.map(function (s) { return s.b; }).sort(function (a, b) { return a - b; });
-
-    var p10 = Math.floor(rs.length * 0.10);
-    var p90 = Math.floor(rs.length * 0.90);
-
+    var p10 = Math.floor(rs.length * 0.10), p90 = Math.floor(rs.length * 0.90);
     var payload = {
-      rMin: Math.max(0,   rs[p10] - 15),
-      rMax: Math.min(255, rs[p90] + 15),
-      gMin: Math.max(0,   gs[p10] - 15),
-      gMax: Math.min(255, gs[p90] + 15),
-      bMin: Math.max(0,   bs[p10] - 10),
-      bMax: Math.min(255, bs[p90] + 10),
+      rMin: Math.max(0,   rs[p10] - 15), rMax: Math.min(255, rs[p90] + 15),
+      gMin: Math.max(0,   gs[p10] - 15), gMax: Math.min(255, gs[p90] + 15),
+      bMin: Math.max(0,   bs[p10] - 10), bMax: Math.min(255, bs[p90] + 10),
       confidence: Math.min(1.0, colorSamples.length / 50),
       sampleCount: colorSamples.length,
       samples: colorSamples.slice(-50)
     };
-
-    try {
-      localStorage.setItem(STORAGE_KEY_COLOR, JSON.stringify(payload));
-    } catch (e) {
-      log('⚠ לא ניתן לשמור ל-localStorage: ' + e.message, 'warn');
-    }
-
+    try { localStorage.setItem(STORAGE_KEY_COLOR, JSON.stringify(payload)); } catch (e) { /* ignore */ }
     return payload;
   }
 
@@ -259,8 +226,7 @@
       try {
         var tx = db_.transaction(IDB_STORE, 'readwrite');
         tx.objectStore(IDB_STORE).clear();
-        tx.oncomplete = resolve;
-        tx.onerror    = resolve;
+        tx.oncomplete = resolve; tx.onerror = resolve;
       } catch (e) { resolve(); }
     });
   }
@@ -277,115 +243,94 @@
     });
   }
 
-  /**
-   * Crop a 64×64 patch from imageData at (cx, cy) and save as label.
-   */
   function addSampleToIDB(db_, imageData, cx, cy, label) {
     if (!db_) return Promise.resolve();
-
-    var cropSize = 64;
-    var half = cropSize / 2;
+    var cropSize = 64, half = cropSize / 2;
     var x0 = Math.max(0, Math.floor(cx - half));
     var y0 = Math.max(0, Math.floor(cy - half));
     var w  = Math.min(cropSize, imageData.width  - x0);
     var h  = Math.min(cropSize, imageData.height - y0);
     if (w < 32 || h < 32) return Promise.resolve();
 
-    /* Draw source into a temp canvas then extract crop */
     var srcCanvas = document.createElement('canvas');
     srcCanvas.width  = imageData.width;
     srcCanvas.height = imageData.height;
     srcCanvas.getContext('2d').putImageData(imageData, 0, 0);
 
     var tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width  = cropSize;
-    tmpCanvas.height = cropSize;
+    tmpCanvas.width = cropSize; tmpCanvas.height = cropSize;
     var tmpCtx = tmpCanvas.getContext('2d');
     tmpCtx.drawImage(srcCanvas, x0, y0, cropSize, cropSize, 0, 0, cropSize, cropSize);
     var cropData = tmpCtx.getImageData(0, 0, cropSize, cropSize);
 
-    var sample = {
-      label:  label,
-      pixels: Array.from(cropData.data), /* RGBA flat [64×64×4] */
-      ts:     Date.now()
-    };
-
+    var sample = { label: label, pixels: Array.from(cropData.data), ts: Date.now() };
     return new Promise(function (resolve) {
       try {
         var tx = db_.transaction(IDB_STORE, 'readwrite');
-        var store = tx.objectStore(IDB_STORE);
-        store.add(sample);
-        tx.oncomplete = resolve;
-        tx.onerror    = resolve;
+        tx.objectStore(IDB_STORE).add(sample);
+        tx.oncomplete = resolve; tx.onerror = resolve;
       } catch (e) { resolve(); }
     });
   }
 
   /* ══════════════════════════════════════════════════════════════
      FRAME EXTRACTION
+     Supports both File objects (dropped) and URL strings (server-downloaded)
      ══════════════════════════════════════════════════════════════ */
 
-  /**
-   * Extract frames from a video file by seeking.
-   * Calls onFrame(imageData, W, H, timestamp) for each frame.
-   */
-  function extractFrames(file, intervalSec, onFrame) {
+  function extractFrames(fileOrUrl, intervalSec, onFrame) {
     return new Promise(function (resolve) {
-      var video = extractVideo;
-      var canvas = extractCanvas;
-      var ctx = canvas.getContext('2d');
-      var url = URL.createObjectURL(file);
+      var video   = extractVideo;
+      var canvas  = extractCanvas;
+      var ctx     = canvas.getContext('2d');
+      var blobUrl, needRevoke;
 
-      video.src = url;
+      if (typeof fileOrUrl === 'string') {
+        blobUrl    = fileOrUrl;
+        needRevoke = false;
+      } else {
+        blobUrl    = URL.createObjectURL(fileOrUrl);
+        needRevoke = true;
+      }
+
+      video.src = blobUrl;
 
       video.onerror = function () {
-        URL.revokeObjectURL(url);
+        if (needRevoke) URL.revokeObjectURL(blobUrl);
         resolve(0);
       };
 
       video.onloadedmetadata = function () {
         var duration = video.duration;
         if (!isFinite(duration) || duration <= 0) {
-          URL.revokeObjectURL(url);
+          if (needRevoke) URL.revokeObjectURL(blobUrl);
           resolve(0);
           return;
         }
 
-        /* Normalize to 576×1024 (portrait basketball) */
-        var normW = 576, normH = 1024;
-        var vRatio = video.videoWidth / video.videoHeight;
-
-        if (video.videoWidth > video.videoHeight) {
-          /* Landscape video — rotate mentally, still draw as-is */
-          normW = 576; normH = 324;
-        }
-
+        var normW = video.videoWidth > video.videoHeight ? 576 : 576;
+        var normH = video.videoWidth > video.videoHeight ? 324 : 1024;
         canvas.width  = normW;
         canvas.height = normH;
 
-        var t = 0;
-        var count = 0;
+        var t = 0, count = 0;
 
         function seekNext() {
           if (stopFlag || t >= duration) {
-            URL.revokeObjectURL(url);
+            if (needRevoke) URL.revokeObjectURL(blobUrl);
             resolve(count);
             return;
           }
-
           video.currentTime = t;
         }
 
         video.onseeked = function () {
           ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
           var imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-
-          /* onFrame is async — wait for it before next seek */
           Promise.resolve(onFrame(imageData, canvas.width, canvas.height, t))
             .then(function () {
               count++;
               t += intervalSec;
-              /* Small timeout to keep UI responsive */
               setTimeout(seekNext, 0);
             });
         };
@@ -396,19 +341,138 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     AUTO-DOWNLOAD SYSTEM
+     Talks to serve.js API to download videos overnight
+     ══════════════════════════════════════════════════════════════ */
+
+  function startAutoDownload() {
+    log('🌐 מפעיל הורדת סרטונים אוטומטית מ-Archive.org…', 'info');
+    log('   (השרת יחפש ויוריד 20 סרטונים בסקטבול רלוונטיים)', 'info');
+    setStatus('מוריד…', true);
+
+    fetch('/api/trainer/start')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.ok) {
+          log('✅ השרת התחיל להוריד סרטונים — ממתין…', 'ok');
+          lastLogIndex = 0;
+          pollTimer = setInterval(pollDownloadStatus, 3000);
+        } else {
+          log('⚠ שרת: ' + data.msg, 'warn');
+          // Maybe already running or done — start polling anyway
+          pollTimer = setInterval(pollDownloadStatus, 3000);
+        }
+      })
+      .catch(function (e) {
+        log('❌ לא ניתן להתחבר לשרת (/api/trainer/start): ' + e.message, 'err');
+        log('   ודא שהשרת node serve.js פועל ב-localhost:8080', 'warn');
+        setStatus('שגיאת חיבור', false);
+      });
+  }
+
+  function pollDownloadStatus() {
+    fetch('/api/trainer/status')
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        /* Show new log lines from server */
+        var newLines = data.log ? data.log.slice(lastLogIndex) : [];
+        lastLogIndex = data.log ? data.log.length : lastLogIndex;
+        newLines.forEach(function (entry) {
+          log('[שרת] ' + entry.msg, detectLogType(entry.msg));
+        });
+
+        /* Update download progress in stats */
+        if (data.total > 0) {
+          document.getElementById('statFrames').textContent = data.done + '/' + data.total;
+        }
+
+        /* Update current-video label */
+        var cvl = document.getElementById('currentVideoLabel');
+        if (cvl) {
+          if (data.status === 'searching') {
+            cvl.innerHTML = 'שלב: <span>חיפוש סרטונים…</span>';
+          } else if (data.status === 'downloading') {
+            cvl.innerHTML = 'שלב: <span>מוריד ' + data.done + '/' + data.total + '</span>';
+          }
+        }
+
+        if (data.status === 'done') {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          downloadComplete = true;
+          log('─────────────────────────────────────────', 'info');
+          log('✅ כל הסרטונים הורדו! (' + data.videos.length + ' סרטונים)', 'ok');
+          log('🚀 מתחיל אימון אוטומטי…', 'ok');
+          loadServerVideosAndTrain(data.videos);
+        } else if (data.status === 'error') {
+          clearInterval(pollTimer);
+          pollTimer = null;
+          log('❌ שגיאה בהורדה — אפשר לגרור סרטונים ידנית', 'err');
+          setStatus('שגיאה', false);
+        }
+      })
+      .catch(function (e) {
+        /* Network error — keep polling */
+        log('⚠ בעיית תקשורת עם השרת: ' + e.message, 'warn');
+      });
+  }
+
+  function detectLogType(msg) {
+    if (msg.startsWith('✅') || msg.startsWith('🎉')) return 'ok';
+    if (msg.startsWith('❌') || msg.startsWith('💥')) return 'err';
+    if (msg.startsWith('⚠')) return 'warn';
+    return 'info';
+  }
+
+  /* Load server videos as Blob URLs, then auto-start training */
+  function loadServerVideosAndTrain(videos) {
+    if (!videos || videos.length === 0) {
+      /* Try fetching the video list from disk */
+      fetch('/api/trainer/videos')
+        .then(function (r) { return r.json(); })
+        .then(function (d) { loadServerVideosAndTrain(d.videos); })
+        .catch(function (e) { log('❌ לא ניתן לטעון רשימת סרטונים: ' + e.message, 'err'); });
+      return;
+    }
+
+    log('📥 טוען ' + videos.length + ' סרטונים לתור האימון…', 'info');
+    videoUrls = videos.map(function (v) {
+      return { name: v.name, src: v.webPath, size: v.size || 0 };
+    });
+
+    renderUrlVideoList();
+    setStatus('מאמן…', true);
+
+    /* Auto-start training after short delay */
+    setTimeout(function () {
+      runTraining().catch(function (e) {
+        log('❌ שגיאת אימון: ' + e.message, 'err');
+        isRunning = false;
+        clearInterval(timerInterval);
+        setStatus('שגיאה', false);
+      });
+    }, 500);
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      MAIN TRAINING PIPELINE
      ══════════════════════════════════════════════════════════════ */
 
   async function runTraining() {
-    if (videoFiles.length === 0) {
-      log('❌ אין סרטונים — גרור קבצים ואז התחל.', 'err');
+    /* Merge manually dropped files + server-downloaded URLs */
+    var allEntries = [];
+    videoFiles.forEach(function (f) { allEntries.push({ name: f.name, source: f, size: f.size }); });
+    videoUrls.forEach(function (u)  { allEntries.push({ name: u.name, source: u.src, size: u.size }); });
+
+    if (allEntries.length === 0) {
+      log('❌ אין סרטונים — גרור קבצים או המתן להורדה אוטומטית.', 'err');
       return;
     }
 
     stopFlag  = false;
     isRunning = true;
     startTime = Date.now();
-    setRunning(true);
+    setStatus('מאמן…', true);
 
     var intervalSec = parseFloat(document.getElementById('cfgInterval').value) || 3;
     var minConf     = parseFloat(document.getElementById('cfgConfidence').value) || 0.55;
@@ -439,13 +503,9 @@
     if (clearOld) {
       await clearIDB(db);
       localStorage.removeItem(STORAGE_KEY_COLOR);
-      colorSamples = [];
-      ballSamples  = 0;
-      bgSamples    = 0;
-      totalFrames  = 0;
+      colorSamples = []; ballSamples = bgSamples = totalFrames = 0;
       log('🗑 נתונים ישנים נמחקו', 'info');
     } else {
-      /* Load existing color samples so we continue where we left off */
       try {
         var existing = JSON.parse(localStorage.getItem(STORAGE_KEY_COLOR) || 'null');
         if (existing && existing.samples) {
@@ -453,39 +513,43 @@
           log('📥 נטענו ' + colorSamples.length + ' דגימות צבע קיימות', 'info');
         }
       } catch (e) { /* ignore */ }
-
       var existingCount = await countIDB(db);
       if (existingCount > 0) {
         log('📥 IDB: ' + existingCount + ' דגימות קיימות — מוסיף עליהן', 'info');
-        ballSamples = Math.round(existingCount * 0.4); /* estimate */
+        ballSamples = Math.round(existingCount * 0.4);
         bgSamples   = existingCount - ballSamples;
         updateStats();
       }
     }
 
-    /* Start timer */
     timerInterval = setInterval(updateTimer, 1000);
+    btnStart.disabled = true;
+    btnStop.disabled  = false;
 
     log('─────────────────────────────────────────', 'info');
-    log('🚀 מתחיל אימון — ' + videoFiles.length + ' סרטונים', 'info');
+    log('🚀 מתחיל אימון — ' + allEntries.length + ' סרטונים', 'info');
     log('   כל ' + intervalSec + ' שנ׳ | ביטחון ≥ ' + minConf + ' | ' + maxSamplesPerVideo + ' לסרטון', 'info');
     log('─────────────────────────────────────────', 'info');
 
-    /* Process each video */
-    for (var vi = 0; vi < videoFiles.length; vi++) {
+    for (var vi = 0; vi < allEntries.length; vi++) {
       if (stopFlag) break;
 
-      var file = videoFiles[vi];
-      var itemEl = document.getElementById('vid-item-' + vi);
+      var entry = allEntries[vi];
+      var isUrlMode = typeof entry.source === 'string';
 
-      log('📹 עובד על: ' + file.name + ' (' + formatBytes(file.size) + ')', 'info');
+      log('📹 [' + (vi+1) + '/' + allEntries.length + '] ' + entry.name + ' (' + formatBytes(entry.size) + ')', 'info');
       setVideoStatus(vi, 'active', 'מעבד…');
 
-      var vidBall = 0;
-      var vidBg   = 0;
-      var vidFrames = 0;
+      /* Update current-video label */
+      var cvl = document.getElementById('currentVideoLabel');
+      if (cvl) cvl.innerHTML = 'מעבד: <span>' + escHtml(entry.name) + '</span>';
 
-      var framesResult = await extractFrames(file, intervalSec, async function (imageData, W, H, t) {
+      var vidBall = 0, vidBg = 0, vidFrames = 0;
+
+      /* For URL sources, use the path directly (served by our static server) */
+      var source = entry.source;
+
+      var framesResult = await extractFrames(source, intervalSec, async function (imageData, W, H, t) {
         if (stopFlag) return;
         if (vidBall + vidBg >= maxSamplesPerVideo) return;
 
@@ -495,54 +559,39 @@
         var ball = detectBallInFrame(imageData, W, H);
 
         if (ball && ball.score >= minConf) {
-          /* Positive: ball sample */
           addColorSample(imageData, ball.x, ball.y);
           await addSampleToIDB(db, imageData, ball.x, ball.y, 'ball');
-          ballSamples++;
-          vidBall++;
+          ballSamples++; vidBall++;
 
-          /* Negative samples: random spots away from ball */
           for (var k = 0; k < bgRatio; k++) {
-            var bgX = pickNegativeX(ball.x, W);
-            var bgY = pickNegativeY(ball.y, H);
-            await addSampleToIDB(db, imageData, bgX, bgY, 'background');
-            bgSamples++;
-            vidBg++;
+            await addSampleToIDB(db, imageData, pickNegativeX(ball.x, W), pickNegativeY(ball.y, H), 'background');
+            bgSamples++; vidBg++;
           }
         } else {
-          /* No ball — add a background sample from bottom quarter (floor area) */
           if (Math.random() < 0.3) {
             var floorX = 50 + Math.random() * (W - 100);
             var floorY = H * 0.75 + Math.random() * H * 0.20;
             await addSampleToIDB(db, imageData, floorX, floorY, 'background');
-            bgSamples++;
-            vidBg++;
+            bgSamples++; vidBg++;
           }
         }
 
         updateStats();
 
-        /* Update video item progress */
-        if (itemEl) {
-          var fill = itemEl.querySelector('.vbar-fill');
-          /* We don't know total frames, estimate from time */
-          if (fill) {
-            var pct = Math.min(99, Math.round((t / (extractVideo.duration || 1)) * 100));
-            fill.style.width = pct + '%';
-          }
+        /* Update video bar */
+        var fillEl = document.getElementById('vfill-' + vi);
+        if (fillEl) {
+          var pct = Math.min(99, Math.round((t / (extractVideo.duration || 1)) * 100));
+          fillEl.style.width = pct + '%';
         }
       });
 
-      if (stopFlag) {
-        setVideoStatus(vi, 'error', 'עצר');
-        break;
-      }
+      if (stopFlag) { setVideoStatus(vi, 'error', 'עצר'); break; }
 
       var statusMsg = vidBall + ' כדורים, ' + vidBg + ' רקע (' + framesResult + ' פריימים)';
       setVideoStatus(vi, 'done', statusMsg);
-      log('✅ ' + file.name + ': ' + statusMsg, 'ok');
+      log('✅ ' + entry.name + ': ' + statusMsg, 'ok');
 
-      /* Save color stats periodically */
       var saved = saveColorStats();
       if (saved) {
         var confPct = Math.round(saved.confidence * 100);
@@ -556,13 +605,11 @@
     var finalTotal = await countIDB(db);
 
     log('─────────────────────────────────────────', 'info');
-    log('🏁 אימון הושלם!', 'ok');
+    log('🏁 אימון לילה הושלם!', 'ok');
     log('   דגימות כדור: ' + ballSamples, 'ok');
     log('   דגימות רקע:  ' + bgSamples, 'ok');
     log('   פריימים עובדו: ' + totalFrames, 'ok');
-    if (finalColor) {
-      log('   ביטחון צבע: ' + Math.round(finalColor.confidence * 100) + '%', 'ok');
-    }
+    if (finalColor) log('   ביטחון צבע: ' + Math.round(finalColor.confidence * 100) + '%', 'ok');
     log('   IDB סה"כ: ' + finalTotal + ' דגימות', 'ok');
     log('', 'info');
     log('✨ פתח את הדשבורד — המודל ייטען אוטומטית בהפעלה הבאה.', 'ok');
@@ -573,21 +620,21 @@
 
     isRunning = false;
     clearInterval(timerInterval);
-    setRunning(false);
+    setStatus(stopFlag ? 'עצר' : 'הושלם ✓', false);
+    btnStart.disabled = false;
+    btnStop.disabled  = true;
 
-    /* Release wake lock */
     if (wakeLock) {
       try { await wakeLock.release(); } catch (e) { /* ignore */ }
       wakeLock = null;
     }
+
+    if (cvl) cvl.innerHTML = '';
   }
 
-  /* ── Helpers for negative sample placement ──────────────────── */
-
+  /* ── Negative sample helpers ──────────────────────────────────── */
   function pickNegativeX(ballX, W) {
-    /* Pick x that's at least 80px from the ball */
-    var margin = 80;
-    var candidates = [];
+    var margin = 80, candidates = [];
     if (ballX - margin > 50) candidates.push(50 + Math.random() * (ballX - margin - 50));
     if (ballX + margin < W - 50) candidates.push(ballX + margin + Math.random() * (W - ballX - margin - 50));
     if (candidates.length === 0) return Math.random() * W;
@@ -595,13 +642,8 @@
   }
 
   function pickNegativeY(ballY, H) {
-    /* Prefer floor area (bottom 30%) for hard negatives */
-    if (Math.random() < 0.6) {
-      return H * 0.70 + Math.random() * H * 0.25;
-    }
-    /* Or a random spot */
+    if (Math.random() < 0.6) return H * 0.70 + Math.random() * H * 0.25;
     var result = Math.random() * H;
-    /* Stay away from ball */
     if (Math.abs(result - ballY) < 80) result = (result + 80) % H;
     return result;
   }
@@ -613,31 +655,23 @@
   function log(msg, type) {
     var line = document.createElement('div');
     line.className = 'log-line log-' + (type || 'info');
-
     var now = new Date();
-    var hh  = String(now.getHours()).padStart(2, '0');
-    var mm  = String(now.getMinutes()).padStart(2, '0');
-    var ss  = String(now.getSeconds()).padStart(2, '0');
-
+    var hh = String(now.getHours()).padStart(2, '0');
+    var mm = String(now.getMinutes()).padStart(2, '0');
+    var ss = String(now.getSeconds()).padStart(2, '0');
     line.innerHTML = '<span class="log-time">' + hh + ':' + mm + ':' + ss + '</span>' +
                      '<span class="log-msg">' + escHtml(msg) + '</span>';
-
     logBox.appendChild(line);
     logBox.scrollTop = logBox.scrollHeight;
   }
 
   function escHtml(s) {
-    return String(s)
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;');
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  function setRunning(running) {
-    btnStart.disabled = running;
-    btnStop.disabled  = !running;
-    statusDot.className = 'pill-dot' + (running ? ' active' : '');
-    statusText.textContent = running ? 'מאמן…' : (stopFlag ? 'עצר' : 'הושלם');
+  function setStatus(text, active) {
+    statusText.textContent = text;
+    statusDot.className = 'pill-dot' + (active ? ' active' : '');
   }
 
   function setVideoStatus(vi, state, msg) {
@@ -664,10 +698,7 @@
   }
 
   function updateConfidenceBars(colorConf, tlConf, totalConf) {
-    var c = Math.round(colorConf * 100);
-    var t = Math.round(tlConf * 100);
-    var tot = Math.round(totalConf * 100);
-
+    var c = Math.round(colorConf * 100), t = Math.round(tlConf * 100), tot = Math.round(totalConf * 100);
     document.getElementById('confColor').style.width    = c + '%';
     document.getElementById('confColorPct').textContent = c + '%';
     document.getElementById('confTL').style.width       = t + '%';
@@ -677,59 +708,47 @@
   }
 
   function formatBytes(bytes) {
+    if (!bytes) return '?';
     if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   }
 
-  /* ══════════════════════════════════════════════════════════════
-     FILE / DROP ZONE
-     ══════════════════════════════════════════════════════════════ */
+  /* ── Render server-downloaded video list ─────────────────────── */
+  function renderUrlVideoList() {
+    videoList.innerHTML = '';
+    var allEntries = [];
+    videoFiles.forEach(function (f, i) { allEntries.push({ name: f.name, size: f.size, idx: i, isFile: true }); });
+    videoUrls.forEach(function (u, i)  { allEntries.push({ name: u.name, size: u.size, idx: videoFiles.length + i, isFile: false }); });
 
+    allEntries.forEach(function (entry) {
+      var div = document.createElement('div');
+      div.className = 'video-item';
+      div.id = 'vid-item-' + entry.idx;
+      var icon = entry.isFile ? '📁' : '🌐';
+      div.innerHTML =
+        '<div class="video-item-wrap">' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<span class="vname">' + icon + ' ' + escHtml(entry.name) + '</span>' +
+            '<span class="vsize">' + formatBytes(entry.size) + '</span>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;">' +
+            '<div class="vbar"><div class="vbar-fill" id="vfill-' + entry.idx + '" style="width:0%"></div></div>' +
+            '<span class="vstatus" id="vstatus-' + entry.idx + '">ממתין</span>' +
+          '</div>' +
+        '</div>';
+      videoList.appendChild(div);
+    });
+  }
+
+  /* ── Render manually dropped file list ───────────────────────── */
   function addFiles(files) {
     var added = 0;
     for (var i = 0; i < files.length; i++) {
       var f = files[i];
-      /* Deduplicate by name+size */
       var dup = videoFiles.some(function (v) { return v.name === f.name && v.size === f.size; });
-      if (!dup && f.type.startsWith('video/')) {
-        videoFiles.push(f);
-        added++;
-      }
+      if (!dup && f.type.startsWith('video/')) { videoFiles.push(f); added++; }
     }
-    if (added > 0) renderVideoList();
-  }
-
-  function renderVideoList() {
-    videoList.innerHTML = '';
-    for (var i = 0; i < videoFiles.length; i++) {
-      var f = videoFiles[i];
-      var div = document.createElement('div');
-      div.className = 'video-item';
-      div.id = 'vid-item-' + i;
-      div.innerHTML =
-        '<div class="video-item-wrap">' +
-          '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<span class="vname">📹 ' + escHtml(f.name) + '</span>' +
-            '<span class="vsize">' + formatBytes(f.size) + '</span>' +
-            '<button class="vdel" data-idx="' + i + '">✕</button>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:8px;">' +
-            '<div class="vbar"><div class="vbar-fill" id="vfill-' + i + '" style="width:0%"></div></div>' +
-            '<span class="vstatus" id="vstatus-' + i + '">ממתין</span>' +
-          '</div>' +
-        '</div>';
-      videoList.appendChild(div);
-    }
-
-    /* Delete buttons */
-    videoList.querySelectorAll('.vdel').forEach(function (btn) {
-      btn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var idx = parseInt(this.dataset.idx);
-        videoFiles.splice(idx, 1);
-        renderVideoList();
-      });
-    });
+    if (added > 0) renderUrlVideoList();
   }
 
   /* ── Event listeners ─────────────────────────────────────────── */
@@ -757,38 +776,38 @@
   });
 
   btnStart.addEventListener('click', function () {
+    /* Manual start: train whatever is in the list */
     runTraining().catch(function (e) {
       log('❌ שגיאה: ' + e.message, 'err');
       isRunning = false;
       clearInterval(timerInterval);
-      setRunning(false);
+      setStatus('שגיאה', false);
     });
   });
 
   btnStop.addEventListener('click', function () {
     stopFlag = true;
-    log('⏸ עוצר אחרי הפריים הנוכחי…', 'warn');
+    if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+    log('⏸ עוצר…', 'warn');
   });
 
   btnClearAll.addEventListener('click', async function () {
     if (!confirm('מחק את כל הנתונים שנאספו? (localStorage + IndexedDB)')) return;
     localStorage.removeItem(STORAGE_KEY_COLOR);
     colorSamples = [];
-    ballSamples  = bgSamples = totalFrames = 0;
+    ballSamples = bgSamples = totalFrames = 0;
     updateStats();
     updateConfidenceBars(0, 0, 0);
-
     var db2 = await openIDB();
     await clearIDB(db2);
     log('🗑 כל הנתונים נמחקו', 'warn');
   });
 
-  /* ── Load existing stats on init ─────────────────────────────── */
+  /* ── INIT ─────────────────────────────────────────────────────── */
   (async function init() {
-    log('🏀 CourtIQ Batch Trainer מוכן', 'ok');
-    log('גרור סרטוני בסקטבול → לחץ "התחל אימון לילה"', 'info');
+    log('🏀 CourtIQ Overnight Trainer מופעל', 'ok');
 
-    /* Show current state */
+    /* Check if we have existing trained data */
     try {
       var existing = JSON.parse(localStorage.getItem(STORAGE_KEY_COLOR) || 'null');
       if (existing && existing.confidence > 0) {
@@ -808,6 +827,34 @@
         updateConfidenceBars(0, Math.min(1, cnt / 200), Math.min(1, cnt / 200));
       }
     } catch (e) { /* ignore */ }
+
+    /* Check if server already has downloaded videos */
+    try {
+      var statusRes = await fetch('/api/trainer/status').then(function (r) { return r.json(); });
+      if (statusRes.status === 'done' && statusRes.videos && statusRes.videos.length > 0) {
+        log('📦 נמצאו ' + statusRes.videos.length + ' סרטונים שהורדו בעבר — טוען…', 'info');
+        downloadComplete = true;
+        /* Show in log */
+        statusRes.log.forEach(function (e) { log('[שרת] ' + e.msg, detectLogType(e.msg)); });
+        loadServerVideosAndTrain(statusRes.videos);
+        return;
+      } else if (statusRes.status === 'searching' || statusRes.status === 'downloading') {
+        log('⬇ ההורדה כבר פועלת — ממשיך לעקוב…', 'info');
+        lastLogIndex = statusRes.log ? statusRes.log.length : 0;
+        pollTimer = setInterval(pollDownloadStatus, 3000);
+        setStatus('מוריד…', true);
+        return;
+      }
+    } catch (e) { /* server may not be running or no download started */ }
+
+    /* Auto-start download if auto-mode enabled */
+    if (autoMode) {
+      log('🤖 מצב לילה אוטומטי — מתחיל הורדת סרטונים…', 'info');
+      setTimeout(startAutoDownload, 800);
+    } else {
+      log('גרור סרטוני בסקטבול → לחץ "התחל אימון לילה"', 'info');
+      setStatus('מוכן', false);
+    }
   })();
 
 })();
