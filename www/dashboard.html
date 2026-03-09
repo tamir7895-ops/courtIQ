@@ -26,6 +26,7 @@
   <link rel="stylesheet" href="styles/shop.css" />
   <link rel="stylesheet" href="styles/avatar-customizer.css" />
   <link rel="stylesheet" href="styles/shot-tracker.css" />
+  <link rel="stylesheet" href="styles/ai-shot-tracker.css" />
   <link rel="stylesheet" href="styles/charts.css" />
   <link rel="stylesheet" href="styles/move-library.css" />
   <link rel="stylesheet" href="styles/challenge.css" />
@@ -1118,6 +1119,17 @@
 
     <!-- ── TAB: SHOT TRACKER ── -->
     <div class="db-panel" id="db-panel-shots">
+
+      <!-- AI Tracking Banner -->
+      <div class="ast-launch-card">
+        <div class="ast-launch-icon">📷</div>
+        <div class="ast-launch-text">
+          <div class="ast-launch-title">AI Shot Tracker</div>
+          <div class="ast-launch-sub">Point your camera at the hoop. Auto-detect made &amp; missed shots — no manual input.</div>
+        </div>
+        <button class="ast-launch-btn" id="ast-launch-btn">Start AI Tracking</button>
+      </div>
+
       <div class="st-layout">
 
         <!-- Input form -->
@@ -2231,6 +2243,7 @@
 <script src="js/avatar-shop.js"></script>
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
+<script src="js/ai-shot-tracker.js"></script>
 
 <script>
 if ('serviceWorker' in navigator) {
@@ -2281,6 +2294,82 @@ if ('serviceWorker' in navigator) {
   }, 3000);
 })();
 </script>
+
+<!-- ══════════════════════════════════════════════════════════
+     AI SHOT TRACKER — Fullscreen camera overlay
+     ══════════════════════════════════════════════════════════ -->
+<div class="ast-overlay" id="ast-overlay">
+
+  <!-- ── Camera / Detection View ── -->
+  <div class="ast-camera-view" id="ast-camera-view">
+    <!-- Hidden video source -->
+    <video class="ast-video" id="ast-video" muted playsinline autoplay></video>
+    <!-- Detection + overlay canvas -->
+    <canvas class="ast-canvas" id="ast-canvas"></canvas>
+
+    <!-- UI layer -->
+    <div class="ast-ui">
+
+      <!-- Top bar -->
+      <div class="ast-topbar">
+        <button class="ast-close-btn" id="ast-close-btn">✕ Close</button>
+        <div class="ast-topbar-title">AI Shot Tracker</div>
+        <button class="ast-stop-btn" id="ast-stop-btn">⏹ Stop</button>
+      </div>
+
+      <!-- Calibration message (shown until user taps rim) -->
+      <div class="ast-calib-msg" id="ast-calib-msg">
+        <div class="ast-msg-icon">🏀</div>
+        <div class="ast-msg-text">Tap the center of the rim</div>
+        <div class="ast-msg-sub">Point your camera at the basket first, then tap to set the rim position</div>
+      </div>
+
+      <!-- Tracking message (shown after calibration) -->
+      <div class="ast-track-msg" id="ast-track-msg" style="display:none;">
+        <div class="ast-msg-sub">🟢 Tracking — Shoot away!</div>
+      </div>
+
+      <!-- Live counter -->
+      <div class="ast-counter" id="ast-counter">
+        <div class="ast-counter-item">
+          <div class="ast-counter-val" id="ast-made">0</div>
+          <div class="ast-counter-lbl">Made</div>
+        </div>
+        <div class="ast-counter-sep">/</div>
+        <div class="ast-counter-item">
+          <div class="ast-counter-val" id="ast-attempts">0</div>
+          <div class="ast-counter-lbl">Shots</div>
+        </div>
+        <div class="ast-counter-pct" id="ast-pct">—%</div>
+      </div>
+
+      <!-- Flash result (made/miss) -->
+      <div class="ast-flash" id="ast-flash"></div>
+
+      <!-- Manual override buttons -->
+      <div class="ast-manual" id="ast-manual">
+        <button class="ast-manual-btn ast-manual-miss" id="ast-manual-miss">× Miss</button>
+        <div class="ast-manual-label">Manual override</div>
+        <button class="ast-manual-btn ast-manual-made" id="ast-manual-made">+ Made</button>
+      </div>
+
+      <!-- Camera / permission error -->
+      <div class="ast-error" id="ast-error" style="display:none;"></div>
+
+    </div><!-- /ast-ui -->
+  </div><!-- /ast-camera-view -->
+
+  <!-- ── Summary View (shown after Stop) ── -->
+  <div class="ast-summary-view" id="ast-summary-view" style="display:none;">
+    <div class="ast-sum-header">
+      <div class="ast-sum-title">Session Summary</div>
+    </div>
+    <div class="ast-sum-content" id="ast-sum-content">
+      <!-- Built by buildSummary() in ai-shot-tracker.js -->
+    </div>
+  </div><!-- /ast-summary-view -->
+
+</div><!-- /ast-overlay -->
 
 </body>
 </html>
