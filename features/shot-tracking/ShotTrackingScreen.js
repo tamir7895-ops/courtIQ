@@ -117,6 +117,7 @@
           '<div class="st-status-dot loading" id="st-status-dot"></div>',
           '<span class="st-status-text" id="st-status-text">Loading model...</span>',
         '</div>',
+        '<div class="st-zone-badge" id="st-zone-badge"></div>',
         '<div class="st-flash" id="st-flash"></div>',
         '<div class="st-result-text" id="st-result-text"></div>',
         '<div class="st-bottom-bar">',
@@ -164,6 +165,7 @@
     els.statusBadge      = document.getElementById('st-status-badge');
     els.statusDot        = document.getElementById('st-status-dot');
     els.statusText       = document.getElementById('st-status-text');
+    els.zoneBadge        = document.getElementById('st-zone-badge');
     els.flash            = document.getElementById('st-flash');
     els.resultText       = document.getElementById('st-result-text');
     els.stopBtn          = document.getElementById('st-stop-btn');
@@ -195,6 +197,32 @@
   /* ══════════════════════════════════════════════════════════════
      PUBLIC API
      ══════════════════════════════════════════════════════════════ */
+  /* ── Calibration persistence ─────────────────────────────────── */
+  var CALIBRATION_KEY = 'courtiq-rim-calibration';
+
+  function saveCalibration() {
+    try {
+      var data = {
+        rimCenter: rimCenter,
+        rimSize: rimSize,
+        threePtPoint: threePtPoint,
+        threePtDistance: threePtDistance,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(CALIBRATION_KEY, JSON.stringify(data));
+    } catch (e) { /* silent */ }
+  }
+
+  function loadCalibration() {
+    try {
+      var raw = localStorage.getItem(CALIBRATION_KEY);
+      if (!raw) return null;
+      var data = JSON.parse(raw);
+      if (data && data.rimCenter && data.rimSize) return data;
+    } catch (e) { /* silent */ }
+    return null;
+  }
+
   function openScreen() {
     buildHTML();
     els.screen.classList.add('active');
@@ -210,18 +238,34 @@
     threePtPoint = null;
     threePtDistance = 0;
 
+    // Try to load saved calibration
+    var savedCal = loadCalibration();
+
     // Show rim lock overlay
     els.rimlock.classList.add('active');
     els.threept.classList.remove('active');
     els.tracking.classList.remove('active');
     els.summary.classList.remove('active');
 
-    // Show crosshairs
-    toggleCrosshairs(true);
-    els.rimIndicator.style.display = 'none';
-    els.sizeControls.classList.remove('active');
-    els.lockBtn.classList.remove('active');
-    els.rimlockText.textContent = 'Tap the center of the basketball rim';
+    if (savedCal) {
+      // Restore saved calibration
+      rimCenter = savedCal.rimCenter;
+      rimSize = savedCal.rimSize;
+      threePtPoint = savedCal.threePtPoint;
+      threePtDistance = savedCal.threePtDistance || 0;
+      updateRimIndicator();
+      toggleCrosshairs(false);
+      els.sizeControls.classList.add('active');
+      els.lockBtn.classList.add('active');
+      els.rimlockText.textContent = 'Previous calibration restored. Tap to adjust or "Lock Rim & Start"';
+    } else {
+      // Show crosshairs for new calibration
+      toggleCrosshairs(true);
+      els.rimIndicator.style.display = 'none';
+      els.sizeControls.classList.remove('active');
+      els.lockBtn.classList.remove('active');
+      els.rimlockText.textContent = 'Tap the center of the basketball rim';
+    }
 
     startCamera();
   }
@@ -396,6 +440,7 @@
   function onThreePtConfirm() {
     if (!threePtPoint) return;
     els.threept.classList.remove('active');
+    saveCalibration();
     enterTrackingPhase();
   }
 
@@ -403,6 +448,7 @@
     threePtPoint = null;
     threePtDistance = 0;
     els.threept.classList.remove('active');
+    saveCalibration();
     enterTrackingPhase();
   }
 
@@ -520,6 +566,9 @@
     els.accuracy.textContent = pct + '%';
     els.accuracy.style.color = getAccuracyColor(pct);
 
+    // Zone badge
+    showZoneBadge(data.shotZone || 'midrange');
+
     // Flash
     showFlash(isMade ? 'made' : 'missed');
 
@@ -530,6 +579,28 @@
     if (navigator.vibrate) {
       navigator.vibrate(isMade ? [50, 30, 50] : [100]);
     }
+  }
+
+  var ZONE_LABELS = {
+    paint: 'PAINT',
+    midrange: 'MID',
+    threePoint: '3PT',
+    freeThrow: 'FT'
+  };
+  var ZONE_COLORS = {
+    paint: '#ff4444',
+    midrange: '#ffaa00',
+    threePoint: '#4da6ff',
+    freeThrow: '#ba68c8'
+  };
+
+  function showZoneBadge(zone) {
+    var el = els.zoneBadge;
+    el.textContent = ZONE_LABELS[zone] || zone;
+    el.style.borderColor = ZONE_COLORS[zone] || '#888';
+    el.style.color = ZONE_COLORS[zone] || '#888';
+    el.className = 'st-zone-badge show';
+    setTimeout(function () { el.classList.remove('show'); }, 1200);
   }
 
   function showFlash(cls) {
@@ -655,6 +726,114 @@
     renderSummary(summary);
   }
 
+  /* ── Zone history integration ─────────────────────────────────── */
+  var ZONE_HISTORY_KEY = 'courtiq-zone-history';
+
+  function saveZoneHistory(sessionId, zones) {
+    try {
+      var raw = localStorage.getItem(ZONE_HISTORY_KEY);
+      var history = raw ? JSON.parse(raw) : [];
+      var snapshot = {
+        date: new Date().toISOString(),
+        sessionId: sessionId,
+        zones: {}
+      };
+      var keys = ['paint', 'midrange', 'threePoint', 'freeThrow'];
+      for (var k = 0; k < keys.length; k++) {
+        var z = zones[keys[k]] || { made: 0, missed: 0 };
+        snapshot.zones[keys[k]] = { made: z.made, total: z.made + z.missed };
+      }
+      history.push(snapshot);
+      if (history.length > 100) history = history.slice(-100);
+      localStorage.setItem(ZONE_HISTORY_KEY, JSON.stringify(history));
+    } catch (e) { /* silent */ }
+  }
+
+  function getWeeklyZoneStats() {
+    try {
+      var raw = localStorage.getItem(ZONE_HISTORY_KEY);
+      if (!raw) return null;
+      var history = JSON.parse(raw);
+      var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      var filtered = history.filter(function (s) { return new Date(s.date).getTime() >= cutoff; });
+      if (filtered.length < 2) return null;
+
+      var agg = { paint: { made: 0, total: 0 }, midrange: { made: 0, total: 0 }, threePoint: { made: 0, total: 0 }, freeThrow: { made: 0, total: 0 } };
+      for (var i = 0; i < filtered.length; i++) {
+        var zones = filtered[i].zones;
+        for (var zone in agg) {
+          if (zones[zone]) {
+            agg[zone].made += zones[zone].made;
+            agg[zone].total += zones[zone].total;
+          }
+        }
+      }
+      for (var z in agg) {
+        agg[z].pct = agg[z].total > 0 ? Math.round((agg[z].made / agg[z].total) * 1000) / 10 : 0;
+      }
+      agg._sessions = filtered.length;
+      return agg;
+    } catch (e) { return null; }
+  }
+
+  function generateAlerts(currentZones, weeklyStats) {
+    var alerts = [];
+    var NAMES = { paint: 'Paint', midrange: 'Mid-Range', threePoint: '3-Point', freeThrow: 'Free Throw' };
+    if (!weeklyStats) return alerts;
+
+    for (var zone in currentZones) {
+      var name = NAMES[zone] || zone;
+      var curr = currentZones[zone];
+      var total = curr.made + curr.missed;
+      if (total < 3) continue;
+      var pct = Math.round((curr.made / total) * 100);
+      var weekPct = weeklyStats[zone] ? weeklyStats[zone].pct : 0;
+
+      if (weekPct > 0 && pct - weekPct >= 15) {
+        alerts.push('<div class="st-alert-card"><span class="st-alert-text"><span class="st-alert-highlight">' + name + ': ' + pct + '%</span> today vs ' + weekPct + '% weekly avg — great session!</span></div>');
+      }
+      if (pct === 100 && total >= 3) {
+        alerts.push('<div class="st-alert-card"><span class="st-alert-text"><span class="st-alert-highlight">Perfect ' + total + '/' + total + '</span> from ' + name + '!</span></div>');
+      }
+    }
+
+    // Check for improvements/declines vs previous week
+    try {
+      var raw = localStorage.getItem(ZONE_HISTORY_KEY);
+      var history = raw ? JSON.parse(raw) : [];
+      var now = Date.now();
+      var prevCutoff = now - 14 * 24 * 60 * 60 * 1000;
+      var currCutoff = now - 7 * 24 * 60 * 60 * 1000;
+      var prev = history.filter(function (s) { var t = new Date(s.date).getTime(); return t >= prevCutoff && t < currCutoff; });
+      if (prev.length >= 2) {
+        var prevAgg = {};
+        for (var pz in NAMES) {
+          prevAgg[pz] = { made: 0, total: 0 };
+          for (var pi = 0; pi < prev.length; pi++) {
+            if (prev[pi].zones[pz]) {
+              prevAgg[pz].made += prev[pi].zones[pz].made;
+              prevAgg[pz].total += prev[pi].zones[pz].total;
+            }
+          }
+          prevAgg[pz].pct = prevAgg[pz].total > 0 ? Math.round((prevAgg[pz].made / prevAgg[pz].total) * 1000) / 10 : 0;
+        }
+        for (var az in NAMES) {
+          if (weeklyStats[az] && prevAgg[az] && weeklyStats[az].total > 0 && prevAgg[az].total > 0) {
+            var change = Math.round((weeklyStats[az].pct - prevAgg[az].pct) * 10) / 10;
+            if (change >= 10) {
+              alerts.push('<div class="st-alert-card"><span class="st-alert-text">Your <span class="st-alert-highlight">' + NAMES[az] + '</span> shooting improved by <span class="st-alert-highlight">+' + change + '%</span> this week!</span></div>');
+            }
+            if (change <= -10) {
+              alerts.push('<div class="st-alert-card"><span class="st-alert-text">Your <span class="st-alert-highlight">' + NAMES[az] + '</span> shooting dropped by <span class="st-alert-highlight">' + change + '%</span> this week. Keep practicing!</span></div>');
+            }
+          }
+        }
+      }
+    } catch (e) { /* silent */ }
+
+    return alerts;
+  }
+
   function renderSummary(summary) {
     var html = [];
 
@@ -686,6 +865,21 @@
       '</div>'
     );
 
+    // Save zone history + generate alerts
+    var currentZones = categorizeShotsByZone(summary.shots);
+    saveZoneHistory(summary.sessionId, currentZones);
+    var weeklyStats = getWeeklyZoneStats();
+    var smartAlerts = generateAlerts(currentZones, weeklyStats);
+
+    // Smart alerts (if any)
+    if (smartAlerts.length > 0) {
+      html.push('<div class="st-alert-section">', '<div class="st-section-title">Insights</div>');
+      for (var a = 0; a < smartAlerts.length; a++) {
+        html.push(smartAlerts[a]);
+      }
+      html.push('</div>');
+    }
+
     // Shot chart
     html.push(
       '<div class="st-chart-section">',
@@ -693,12 +887,46 @@
         '<div class="st-chart-wrap">',
           buildShotChartSVG(summary.shots),
           '<div class="st-chart-legend">',
-            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#00ff88;"></div>Made</div>',
-            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#ff4444;"></div>Missed</div>',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#ff4444;"></div>Paint</div>',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#ffaa00;"></div>Mid</div>',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#4da6ff;"></div>3PT</div>',
+            '<div class="st-legend-item"><div class="st-legend-dot" style="background:#ba68c8;"></div>FT</div>',
           '</div>',
         '</div>',
       '</div>'
     );
+
+    // Zone breakdown
+    var zones = categorizeShotsByZone(summary.shots);
+    var zoneEntries = [
+      { key: 'paint', label: 'Paint', color: '#ff4444' },
+      { key: 'midrange', label: 'Mid-Range', color: '#ffaa00' },
+      { key: 'threePoint', label: '3-Point', color: '#4da6ff' },
+      { key: 'freeThrow', label: 'Free Throw', color: '#ba68c8' }
+    ];
+    var hotZone = '', coldZone = '', bestPct = -1, worstPct = 101;
+    html.push('<div class="st-zone-section">', '<div class="st-section-title">Zone Breakdown</div>');
+    for (var z = 0; z < zoneEntries.length; z++) {
+      var ze = zoneEntries[z];
+      var zd = zones[ze.key];
+      var total = zd.made + zd.missed;
+      var pct = total > 0 ? Math.round((zd.made / total) * 100) : 0;
+      var barColor = total > 0 && pct >= 50 ? '#00ff88' : ze.color;
+      if (total > 0 && pct > bestPct) { bestPct = pct; hotZone = ze.label; }
+      if (total > 0 && pct < worstPct) { worstPct = pct; coldZone = ze.label; }
+      html.push(
+        '<div class="st-zone-row">',
+          '<span class="st-zone-label">' + ze.label + '</span>',
+          '<div class="st-zone-bar-bg"><div class="st-zone-bar-fill" style="width:' + (total > 0 ? pct : 0) + '%;background:' + barColor + '"></div></div>',
+          '<span class="st-zone-pct">' + (total > 0 ? pct + '%' : '--') + '</span>',
+          '<span class="st-zone-count">' + zd.made + '/' + total + '</span>',
+        '</div>'
+      );
+    }
+    if (hotZone) {
+      html.push('<div class="st-zone-insight">Hot zone: ' + hotZone + ' | Cold zone: ' + coldZone + '</div>');
+    }
+    html.push('</div>');
 
     // XP
     html.push(
@@ -775,8 +1003,8 @@
         fg_missed:      zones.midrange.missed,
         three_made:     zones.threePoint.made,
         three_missed:   zones.threePoint.missed,
-        ft_made:        zones.paint.made,
-        ft_missed:      zones.paint.missed
+        ft_made:        (zones.paint.made || 0) + (zones.freeThrow.made || 0),
+        ft_missed:      (zones.paint.missed || 0) + (zones.freeThrow.missed || 0)
       });
 
       await window.ShotService.saveShots(summary.shots);
@@ -821,8 +1049,16 @@
     // Rim
     lines.push('<circle cx="' + RIM_SVG_X + '" cy="' + RIM_SVG_Y + '" r="12" stroke="#f5a623" stroke-width="2" fill="rgba(245,166,35,0.2)"/>');
 
+    // Zone color mapping
+    var zoneColorMap = {
+      paint: '#ff4444',
+      midrange: '#ffaa00',
+      threePoint: '#4da6ff',
+      freeThrow: '#ba68c8'
+    };
+
     // Shot dots — use launch point for positioning (where player shot from)
-    // Misses first
+    // Misses first (semi-transparent, zone-colored)
     for (var i = 0; i < shotList.length; i++) {
       var s = shotList[i];
       var posX = s.launch_x !== undefined ? s.launch_x : s.shot_x;
@@ -830,19 +1066,21 @@
       var cx = 50 + posX * (COURT_W - 100);
       var cy = RIM_SVG_Y + (1 - posY) * (COURT_H - RIM_SVG_Y - 40);
       var isMade = s.shot_result === 'made';
+      var dotColor = zoneColorMap[s.shot_zone] || '#ffaa00';
       if (!isMade) {
-        lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="#ff4444" opacity="0.6"/>');
+        lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="' + dotColor + '" opacity="0.4" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>');
       }
     }
-    // Made on top
+    // Made on top (brighter, zone-colored with white stroke)
     for (var j = 0; j < shotList.length; j++) {
       var s2 = shotList[j];
       var posX2 = s2.launch_x !== undefined ? s2.launch_x : s2.shot_x;
       var posY2 = s2.launch_y !== undefined ? s2.launch_y : s2.shot_y;
       var cx2 = 50 + posX2 * (COURT_W - 100);
       var cy2 = RIM_SVG_Y + (1 - posY2) * (COURT_H - RIM_SVG_Y - 40);
+      var dotColor2 = zoneColorMap[s2.shot_zone] || '#ffaa00';
       if (s2.shot_result === 'made') {
-        lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="#00ff88" opacity="0.9" stroke="#fff" stroke-width="1"/>');
+        lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="' + dotColor2 + '" opacity="0.9" stroke="#fff" stroke-width="1"/>');
       }
     }
 
@@ -876,17 +1114,13 @@
     var zones = {
       paint:      { made: 0, missed: 0 },
       midrange:   { made: 0, missed: 0 },
-      threePoint: { made: 0, missed: 0 }
+      threePoint: { made: 0, missed: 0 },
+      freeThrow:  { made: 0, missed: 0 }
     };
     for (var i = 0; i < shotList.length; i++) {
       var s = shotList[i];
-      // Use the pre-classified shot_zone if available (distance-based)
       var zone = s.shot_zone || 'midrange';
-      if (zone === 'threePoint' || zone === 'paint' || zone === 'midrange') {
-        // valid zone
-      } else {
-        zone = 'midrange';
-      }
+      if (!zones[zone]) zone = 'midrange';
       if (s.shot_result === 'made') zones[zone].made++;
       else zones[zone].missed++;
     }

@@ -221,8 +221,8 @@ export default function useSessionManager(userId) {
           fg_missed: summary.shotsByZone.midrange.missed,
           three_made: summary.shotsByZone.threePoint.made,
           three_missed: summary.shotsByZone.threePoint.missed,
-          ft_made: summary.shotsByZone.paint.made,
-          ft_missed: summary.shotsByZone.paint.missed,
+          ft_made: (summary.shotsByZone.paint.made || 0) + (summary.shotsByZone.freeThrow?.made || 0),
+          ft_missed: (summary.shotsByZone.paint.missed || 0) + (summary.shotsByZone.freeThrow?.missed || 0),
         });
 
         // Save individual shot records
@@ -289,11 +289,12 @@ function categorizeShotsByZone(shots) {
     paint: { made: 0, missed: 0 },
     midrange: { made: 0, missed: 0 },
     threePoint: { made: 0, missed: 0 },
+    freeThrow: { made: 0, missed: 0 },
   };
 
   for (const shot of shots) {
     let zone;
-    if (shot.shot_zone && ['paint', 'midrange', 'threePoint'].includes(shot.shot_zone)) {
+    if (shot.shot_zone && zones[shot.shot_zone]) {
       zone = shot.shot_zone;
     } else {
       // Legacy fallback: Y-based approximation

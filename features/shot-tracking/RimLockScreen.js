@@ -12,7 +12,7 @@
  *  4. User can adjust by tapping again or pinching to resize
  *  5. "Lock Rim & Start" button confirms and navigates to ShotTrackingScreen
  */
-import React, { useRef, useState, useCallback } from 'react';
+import React, { useRef, useState, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -21,6 +21,7 @@ import {
   Dimensions,
   StatusBar,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Camera, useCameraDevice } from 'react-native-vision-camera';
 import Animated, {
   useSharedValue,
@@ -35,6 +36,8 @@ const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get('window');
 // Default rim zone size (relative to screen)
 const DEFAULT_RIM_W = 0.18; // ~18% of screen width
 const DEFAULT_RIM_H = 0.04; // ~4% of screen height (thin ellipse viewed from side)
+
+const CALIBRATION_STORAGE_KEY = 'courtiq-rim-calibration';
 
 export default function RimLockScreen({ navigation }) {
   const device = useCameraDevice('back');
@@ -71,6 +74,27 @@ export default function RimLockScreen({ navigation }) {
   // 3PT calibration state
   const [calibrationPhase, setCalibrationPhase] = useState('rim'); // 'rim' | 'threept'
   const [threePtPoint, setThreePtPoint] = useState(null);
+  const [hasSavedCalibration, setHasSavedCalibration] = useState(false);
+
+  // Load saved calibration on mount
+  useEffect(() => {
+    (async () => {
+      try {
+        const raw = await AsyncStorage.getItem(CALIBRATION_STORAGE_KEY);
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.rimCenter && data.rimSize) {
+            setRimCenter(data.rimCenter);
+            setRimSize(data.rimSize);
+            if (data.threePtPoint) setThreePtPoint(data.threePtPoint);
+            setHasSavedCalibration(true);
+          }
+        }
+      } catch (e) {
+        // Silent — no saved calibration
+      }
+    })();
+  }, []);
 
   const handleLockAndStart = useCallback(() => {
     if (!rimCenter) return;
@@ -95,6 +119,22 @@ export default function RimLockScreen({ navigation }) {
     [calibrationPhase]
   );
 
+  const saveCalibration = useCallback(async (center, size, threePt) => {
+    try {
+      await AsyncStorage.setItem(
+        CALIBRATION_STORAGE_KEY,
+        JSON.stringify({
+          rimCenter: center,
+          rimSize: size,
+          threePtPoint: threePt,
+          savedAt: new Date().toISOString(),
+        })
+      );
+    } catch (e) {
+      // Silent
+    }
+  }, []);
+
   const handleConfirmThreePt = useCallback(() => {
     // Calculate 3PT distance
     let threePtDistance = 0;
@@ -116,8 +156,9 @@ export default function RimLockScreen({ navigation }) {
       threePtDistance,
     };
 
+    saveCalibration(rimCenter, rimSize, threePtPoint);
     navigation.replace('ShotTracking', { rimZone });
-  }, [rimCenter, rimSize, threePtPoint, navigation]);
+  }, [rimCenter, rimSize, threePtPoint, navigation, saveCalibration]);
 
   const handleSkipThreePt = useCallback(() => {
     const rimZone = {
@@ -132,8 +173,9 @@ export default function RimLockScreen({ navigation }) {
       threePtDistance: 0,
     };
 
+    saveCalibration(rimCenter, rimSize, null);
     navigation.replace('ShotTracking', { rimZone });
-  }, [rimCenter, rimSize, navigation]);
+  }, [rimCenter, rimSize, navigation, saveCalibration]);
 
   const handleAdjustSize = useCallback(
     (delta) => {
@@ -186,7 +228,9 @@ export default function RimLockScreen({ navigation }) {
                 {rimCenter
                   ? isLocked
                     ? 'Rim locked!'
-                    : 'Adjust position or tap "Lock Rim & Start"'
+                    : hasSavedCalibration
+                      ? 'Previous calibration restored. Tap to adjust or "Lock Rim & Start"'
+                      : 'Adjust position or tap "Lock Rim & Start"'
                   : 'Tap the center of the basketball rim'}
               </Text>
             </View>

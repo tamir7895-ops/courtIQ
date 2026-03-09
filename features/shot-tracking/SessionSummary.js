@@ -20,6 +20,7 @@ import {
   Dimensions,
   Alert,
   ActivityIndicator,
+  Modal,
 } from 'react-native';
 import Svg, {
   Rect,
@@ -40,6 +41,11 @@ import {
   getShotDistribution,
 } from './utils/heatmapGenerator';
 import { saveSession, saveShots, grantXP } from './supabase/shotService';
+import {
+  saveZoneSnapshot,
+  generateSmartAlerts,
+  getZoneStatsForPeriod,
+} from './utils/zoneHistory';
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const CHART_PADDING = 20;
@@ -49,6 +55,25 @@ export default function SessionSummary({ route, navigation }) {
   const { summary } = route.params;
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [selectedZone, setSelectedZone] = useState(null);
+  const [smartAlerts, setSmartAlerts] = useState([]);
+  const [weeklyStats, setWeeklyStats] = useState(null);
+
+  // Save zone history + generate alerts on mount
+  React.useEffect(() => {
+    (async () => {
+      try {
+        const zones = summary.shotsByZone || {};
+        await saveZoneSnapshot(summary.sessionId, zones);
+        const alerts = await generateSmartAlerts(zones);
+        setSmartAlerts(alerts);
+        const weekly = await getZoneStatsForPeriod('week');
+        setWeeklyStats(weekly);
+      } catch (e) {
+        // Non-critical
+      }
+    })();
+  }, [summary]);
 
   // Generate shot chart data
   const chartDots = useMemo(
@@ -87,8 +112,8 @@ export default function SessionSummary({ route, navigation }) {
         fg_missed: summary.shotsByZone?.midrange?.missed ?? 0,
         three_made: summary.shotsByZone?.threePoint?.made ?? 0,
         three_missed: summary.shotsByZone?.threePoint?.missed ?? 0,
-        ft_made: summary.shotsByZone?.paint?.made ?? 0,
-        ft_missed: summary.shotsByZone?.paint?.missed ?? 0,
+        ft_made: (summary.shotsByZone?.paint?.made ?? 0) + (summary.shotsByZone?.freeThrow?.made ?? 0),
+        ft_missed: (summary.shotsByZone?.paint?.missed ?? 0) + (summary.shotsByZone?.freeThrow?.missed ?? 0),
       });
 
       await saveShots(summary.shots);
@@ -142,6 +167,48 @@ export default function SessionSummary({ route, navigation }) {
           <Text style={styles.bigStatLabel}>Attempts</Text>
         </View>
       </Animated.View>
+
+      {/* ── SMART ALERTS ── */}
+      {smartAlerts.length > 0 && (
+        <Animated.View entering={FadeInDown.delay(250)} style={styles.alertSection}>
+          <Text style={styles.sectionTitle}>Insights</Text>
+          {smartAlerts.map((alert, i) => (
+            <View
+              key={i}
+              style={[
+                styles.alertCard,
+                alert.type === 'improvement' && styles.alertCardGreen,
+                alert.type === 'perfect' && styles.alertCardGreen,
+                alert.type === 'decline' && styles.alertCardRed,
+              ]}
+            >
+              <Text style={styles.alertText}>{alert.text}</Text>
+            </View>
+          ))}
+        </Animated.View>
+      )}
+
+      {/* ── WEEKLY ZONE STATS ── */}
+      {weeklyStats && (
+        <Animated.View entering={FadeInDown.delay(280)} style={styles.section}>
+          <Text style={styles.sectionTitle}>This Week</Text>
+          <View style={styles.weeklyRow}>
+            {['paint', 'midrange', 'threePoint', 'freeThrow'].map((zone) => {
+              const data = weeklyStats[zone];
+              if (!data || data.total === 0) return null;
+              return (
+                <View key={zone} style={styles.weeklyItem}>
+                  <Text style={styles.weeklyPct}>{data.pct}%</Text>
+                  <Text style={styles.weeklyLabel}>
+                    {zone === 'paint' ? 'Paint' : zone === 'midrange' ? 'Mid' : zone === 'threePoint' ? '3PT' : 'FT'}
+                  </Text>
+                  <Text style={styles.weeklyCount}>{data.made}/{data.total}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </Animated.View>
+      )}
 
       {/* ── SHOT CHART ── */}
       <Animated.View entering={FadeInDown.delay(300)} style={styles.chartContainer}>
@@ -231,53 +298,74 @@ export default function SessionSummary({ route, navigation }) {
               ))}
           </Svg>
 
-          {/* Legend */}
+          {/* Legend — zone colors */}
           <View style={styles.legend}>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#00ff88' }]} />
-              <Text style={styles.legendText}>Made</Text>
+              <View style={[styles.legendDot, { backgroundColor: '#ff4444' }]} />
+              <Text style={styles.legendText}>Paint</Text>
             </View>
             <View style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: '#ff4444' }]} />
-              <Text style={styles.legendText}>Missed</Text>
+              <View style={[styles.legendDot, { backgroundColor: '#ffaa00' }]} />
+              <Text style={styles.legendText}>Mid</Text>
             </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#4da6ff' }]} />
+              <Text style={styles.legendText}>3PT</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: '#ba68c8' }]} />
+              <Text style={styles.legendText}>FT</Text>
+            </View>
+          </View>
+          <View style={styles.legendSubRow}>
+            <Text style={styles.legendSubText}>Bright = Made | Dim = Missed</Text>
           </View>
         </View>
       </Animated.View>
 
-      {/* ── ZONE BREAKDOWN ── */}
+      {/* ── ZONE BREAKDOWN (interactive) ── */}
       <Animated.View entering={FadeInDown.delay(400)} style={styles.section}>
         <Text style={styles.sectionTitle}>Zone Breakdown</Text>
-        {Object.entries(distribution.zones).map(([key, zone]) => (
-          <View key={key} style={styles.zoneRow}>
-            <Text style={styles.zoneLabel}>{zone.label}</Text>
-            <View style={styles.zoneBarBg}>
-              <View
-                style={[
-                  styles.zoneBarFill,
-                  {
-                    width:
-                      zone.total > 0
-                        ? `${(zone.made / zone.total) * 100}%`
-                        : '0%',
-                    backgroundColor:
-                      zone.total > 0 && zone.made / zone.total >= 0.5
-                        ? '#00ff88'
-                        : '#ff6b00',
-                  },
-                ]}
-              />
-            </View>
-            <Text style={styles.zoneValue}>
-              {zone.total > 0
-                ? `${Math.round((zone.made / zone.total) * 100)}%`
-                : '--'}
-            </Text>
-            <Text style={styles.zoneCount}>
-              {zone.made}/{zone.total}
-            </Text>
-          </View>
-        ))}
+        {Object.entries(distribution.zones).map(([key, zone]) => {
+          const pct = zone.total > 0 ? Math.round((zone.made / zone.total) * 100) : 0;
+          const isSelected = selectedZone === key;
+          return (
+            <TouchableOpacity
+              key={key}
+              activeOpacity={0.7}
+              onPress={() => setSelectedZone(isSelected ? null : key)}
+            >
+              <View style={[styles.zoneRow, isSelected && styles.zoneRowSelected]}>
+                <View style={[styles.zoneColorDot, { backgroundColor: zone.color || '#888' }]} />
+                <Text style={styles.zoneLabel}>{zone.label}</Text>
+                <View style={styles.zoneBarBg}>
+                  <View
+                    style={[
+                      styles.zoneBarFill,
+                      {
+                        width: zone.total > 0 ? `${pct}%` : '0%',
+                        backgroundColor: zone.color || '#ff6b00',
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={styles.zoneValue}>
+                  {zone.total > 0 ? `${pct}%` : '--'}
+                </Text>
+                <Text style={styles.zoneCount}>
+                  {zone.made}/{zone.total}
+                </Text>
+              </View>
+              {isSelected && zone.total > 0 && (
+                <View style={styles.zoneDetail}>
+                  <Text style={styles.zoneDetailText}>
+                    Made: {zone.made} | Missed: {zone.total - zone.made} | Accuracy: {pct}%
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
 
         {distribution.hotZone && (
           <Text style={styles.zoneInsight}>
@@ -437,6 +525,15 @@ const styles = StyleSheet.create({
     color: '#888',
     fontSize: 12,
   },
+  legendSubRow: {
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  legendSubText: {
+    color: '#555',
+    fontSize: 10,
+    fontStyle: 'italic',
+  },
 
   // Zone breakdown
   section: {
@@ -446,11 +543,34 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 10,
+    paddingVertical: 4,
+    paddingHorizontal: 4,
+    borderRadius: 8,
+  },
+  zoneRowSelected: {
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  zoneColorDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
   },
   zoneLabel: {
     color: '#aaa',
     fontSize: 13,
     width: 80,
+  },
+  zoneDetail: {
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 6,
+    padding: 8,
+    marginBottom: 8,
+    marginLeft: 14,
+  },
+  zoneDetailText: {
+    color: '#999',
+    fontSize: 12,
   },
   zoneBarBg: {
     flex: 1,
@@ -483,6 +603,60 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
     fontStyle: 'italic',
+  },
+
+  // Alert section
+  alertSection: {
+    marginBottom: 24,
+  },
+  alertCard: {
+    backgroundColor: 'rgba(77, 166, 255, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(77, 166, 255, 0.2)',
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+  },
+  alertCardGreen: {
+    backgroundColor: 'rgba(0, 255, 136, 0.08)',
+    borderColor: 'rgba(0, 255, 136, 0.2)',
+  },
+  alertCardRed: {
+    backgroundColor: 'rgba(255, 68, 68, 0.08)',
+    borderColor: 'rgba(255, 68, 68, 0.2)',
+  },
+  alertText: {
+    color: '#ccc',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+
+  // Weekly stats row
+  weeklyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    backgroundColor: 'rgba(255,255,255,0.03)',
+    borderRadius: 12,
+    paddingVertical: 14,
+  },
+  weeklyItem: {
+    alignItems: 'center',
+  },
+  weeklyPct: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: '800',
+  },
+  weeklyLabel: {
+    color: '#888',
+    fontSize: 10,
+    textTransform: 'uppercase',
+    marginTop: 2,
+  },
+  weeklyCount: {
+    color: '#555',
+    fontSize: 10,
+    marginTop: 1,
   },
 
   // Extra stats

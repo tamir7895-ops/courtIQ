@@ -210,16 +210,26 @@
     var dy = launchPt.y - rim.centerY;
     var dist = Math.sqrt(dx * dx + dy * dy);
 
+    // Free throw detection: launch point nearly centered on rim X
+    // and at a specific distance (~FT line distance)
+    var xOffset = Math.abs(dx);
+
     if (!threePtDist || threePtDist <= 0) {
       // No calibration — use rough Y-based fallback
+      // FT: centered horizontally (within 8% of rim X) and specific Y range
+      if (xOffset < 0.08 && launchPt.y > rim.centerY + 0.15 && launchPt.y < rim.centerY + 0.30) return 'freeThrow';
       if (launchPt.y > rim.centerY + 0.25) return 'paint';
       if (launchPt.y > rim.centerY + 0.10) return 'midrange';
       return 'threePoint';
     }
 
     var paintThreshold = threePtDist * 0.40;
+    var ftMinThreshold = threePtDist * 0.28;
+    var ftMaxThreshold = threePtDist * 0.45;
     var midrangeThreshold = threePtDist * 0.85;
 
+    // FT: centered horizontally (within 10% of 3PT distance) and within FT distance range
+    if (xOffset < threePtDist * 0.10 && dist >= ftMinThreshold && dist <= ftMaxThreshold) return 'freeThrow';
     if (dist <= paintThreshold) return 'paint';
     if (dist <= midrangeThreshold) return 'midrange';
     return 'threePoint';

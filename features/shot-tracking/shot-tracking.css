@@ -589,6 +589,106 @@
 }
 .st-done-btn:hover { color: #fff; }
 
+/* Zone badge (shown on each shot during tracking) */
+.st-zone-badge {
+  position: absolute;
+  top: calc(max(50px, env(safe-area-inset-top, 50px)) + 95px);
+  left: 20px;
+  background: rgba(0,0,0,0.7);
+  border: 2px solid #888;
+  border-radius: 8px;
+  padding: 4px 12px;
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+  opacity: 0;
+  transform: translateY(6px);
+  pointer-events: none;
+  z-index: 4;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.st-zone-badge.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Zone breakdown in summary */
+.st-zone-section {
+  margin-bottom: 24px;
+  animation: st-fadeInDown 0.5s 0.25s ease both;
+}
+.st-zone-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 8px;
+}
+.st-zone-label {
+  color: #aaa;
+  font-size: 13px;
+  width: 60px;
+  flex-shrink: 0;
+}
+.st-zone-bar-bg {
+  flex: 1;
+  height: 8px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.st-zone-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.st-zone-pct {
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  width: 40px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.st-zone-count {
+  color: #666;
+  font-size: 11px;
+  width: 35px;
+  text-align: right;
+  flex-shrink: 0;
+}
+.st-zone-insight {
+  text-align: center;
+  color: #888;
+  font-size: 12px;
+  font-style: italic;
+  margin-top: 8px;
+}
+
+/* Smart alert banner */
+.st-alert-section {
+  margin-bottom: 24px;
+  animation: st-fadeInDown 0.5s 0.15s ease both;
+}
+.st-alert-card {
+  background: rgba(77,166,255,0.08);
+  border: 1px solid rgba(77,166,255,0.2);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+}
+.st-alert-text {
+  color: #ccc;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.st-alert-highlight {
+  color: #4da6ff;
+  font-weight: 700;
+}
+
 /* ── Animations ───────────────────────────────────────────────── */
 @keyframes st-fadeInDown {
   from { opacity: 0; transform: translateY(16px); }
