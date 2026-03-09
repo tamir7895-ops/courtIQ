@@ -1,0 +1,98 @@
+name: Auto PR + Merge to Master
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+      - 'tracking-**'
+      - 'feature/**'
+      - 'fix/**'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # Use default GITHUB_TOKEN — enough for same-repo merges
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+
+      # ── Create PR (for visibility / history) ───────────────────
+      - name: Create PR (skip if exists)
+        id: create-pr
+        continue-on-error: true          # PR creation may fail if no diff — that's ok
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+          BASE="master"
+
+          EXISTING=$(gh pr list \
+            --head "$BRANCH" \
+            --base "$BASE" \
+            --json number \
+            --jq '.[0].number // empty' 2>/dev/null)
+
+          if [ -n "$EXISTING" ]; then
+            echo "PR already exists: #$EXISTING"
+            echo "pr_number=$EXISTING" >> "$GITHUB_OUTPUT"
+          else
+            NUM=$(gh pr create \
+              --title "🤖 Auto: ${BRANCH}" \
+              --body "$(printf 'Auto-created from \`%s\`\nPushed: %s' "$BRANCH" "$(date -u '+%Y-%m-%d %H:%M UTC')")" \
+              --base "$BASE" \
+              --head "$BRANCH" \
+              --json number \
+              --jq '.number' 2>/dev/null) || true
+
+            if [ -n "$NUM" ]; then
+              echo "Created PR #$NUM"
+              echo "pr_number=$NUM" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      # ── Direct git merge → master (always runs) ────────────────
+      - name: Merge branch into master
+        run: |
+          BRANCH="${GITHUB_REF_NAME}"
+
+          echo "Fetching latest master..."
+          git fetch origin master
+
+          echo "Checking out master..."
+          git checkout master
+
+          echo "Merging ${BRANCH}..."
+          git merge "origin/${BRANCH}" \
+            --no-ff \
+            -m "🤖 Auto-merge: ${BRANCH} → master [skip ci]"
+
+          echo "Pushing to origin/master..."
+          git push origin master
+
+          echo "✅ master is now up to date with ${BRANCH}"
+
+      # ── Close PR if it was created ──────────────────────────────
+      - name: Mark PR as merged
+        if: steps.create-pr.outputs.pr_number != ''
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ steps.create-pr.outputs.pr_number }}"
+          # PR is already merged via git — just close it if still open
+          STATE=$(gh pr view "$PR" --json state --jq '.state' 2>/dev/null)
+          if [ "$STATE" = "OPEN" ]; then
+            gh pr close "$PR" --comment "Merged directly via git push to master ✅"
+          fi
