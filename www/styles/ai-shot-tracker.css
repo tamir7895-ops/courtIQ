@@ -223,6 +223,50 @@
   pointer-events: none;
 }
 
+.ast-calib-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+  pointer-events: auto;
+}
+
+.ast-calib-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ast-calib-yes {
+  background: #56d364;
+  color: #0d1117;
+}
+
+.ast-calib-no {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  backdrop-filter: blur(4px);
+}
+
+.ast-calib-manual-link {
+  margin-top: 6px;
+  pointer-events: auto;
+}
+
+.ast-calib-link-btn {
+  background: none;
+  border: none;
+  color: rgba(255,255,255,0.5);
+  font-size: 13px;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
 .ast-msg-icon {
   font-size: 52px;
   filter: drop-shadow(0 0 20px rgba(245,166,35,0.6));

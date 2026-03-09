@@ -39,9 +39,20 @@
   var ROI_BOTTOM_MARGIN_FRAC = 0.15; // ignore bottom 15% of frame
   var ROI_BELOW_RIM_FRAC = 0.12;     // search only this far below rim
 
+  /* ── Rim auto-detection constants ────────────────────────── */
+  var RIM_DETECT_INTERVAL  = 500;   // ms between auto-detect attempts
+  var RIM_DETECT_MAX_TRIES = 12;    // give up after this many attempts
+  var RIM_MIN_WIDTH_FRAC   = 0.03;  // rim blob must be at least 3% of frame width
+  var RIM_MAX_WIDTH_FRAC   = 0.25;  // rim blob can't be more than 25% of frame width
+  var RIM_SCAN_TOP_FRAC    = 0.60;  // only scan the top 60% of the frame for rim
+
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
   var phase = PHASE.IDLE;
+  var calibMode = 'auto';  // 'auto' | 'confirm' | 'manual'
+  var autoRimCandidate = null;  // { cx, cy } — candidate from auto-detect
+  var rimDetectTimer = null;
+  var rimDetectTries = 0;
 
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
@@ -391,6 +402,137 @@
     return bestBlob;
   }
 
+  /* ── Rim auto-detection ─────────────────────────────────────
+     Scans the upper portion of the frame for orange/red horizontal
+     blobs that look like a basketball rim. Returns { cx, cy } or null.
+     Strategy:
+       1. isRimColor: detect orange-red pixels (rim is orange/red metal)
+       2. Only scan top 60% of frame (rim is always in upper half)
+       3. Cluster into blobs, pick the most "rim-shaped" one:
+          - Wider than tall (aspect ratio > 1.5)
+          - Correct size range
+          - In upper portion of frame
+     ──────────────────────────────────────────────────────────── */
+  function isRimColor(r, g, b) {
+    var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
+    var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
+    if (max < 80) return false;
+    var delta = max - min;
+    if (delta < 30) return false;
+    var s = delta / max;
+    if (s < 0.35) return false;
+    var h;
+    if (max === r)      h = 60 * (((g - b) / delta) % 6);
+    else if (max === g) h = 60 * ((b - r) / delta + 2);
+    else                h = 60 * ((r - g) / delta + 4);
+    if (h < 0) h += 360;
+    // Rim orange/red: hue 0-25 (red-orange range, slightly wider than ball)
+    return (h >= 0 && h <= 25) || h >= 350;
+  }
+
+  function detectRimAuto() {
+    if (!canvas || !ctx || W === 0 || H === 0) return null;
+
+    // Draw current frame to canvas first
+    ctx.drawImage(video, 0, 0, W, H);
+
+    var scanH = Math.round(H * RIM_SCAN_TOP_FRAC);
+    var imageData = ctx.getImageData(0, 0, W, scanH);
+    var data = imageData.data;
+
+    // Collect rim-colored pixels (skip every 3px for speed)
+    var rimPxX = [], rimPxY = [];
+    for (var y = 0; y < scanH; y += 3) {
+      for (var x = 0; x < W; x += 3) {
+        var i = (y * W + x) * 4;
+        if (isRimColor(data[i], data[i + 1], data[i + 2])) {
+          rimPxX.push(x);
+          rimPxY.push(y);
+        }
+      }
+    }
+
+    if (rimPxX.length < 8) return null;
+
+    // Grid clustering (coarser grid for rim — it's larger than a ball)
+    var cellW = Math.max(1, Math.round(W / 16));
+    var cellH = Math.max(1, Math.round(scanH / 16));
+    var cells = {};
+
+    for (var j = 0; j < rimPxX.length; j++) {
+      var gx = Math.floor(rimPxX[j] / cellW);
+      var gy = Math.floor(rimPxY[j] / cellH);
+      var key = gx + ',' + gy;
+      if (!cells[key]) {
+        cells[key] = { count: 0, minX: rimPxX[j], maxX: rimPxX[j], minY: rimPxY[j], maxY: rimPxY[j], gx: gx, gy: gy };
+      }
+      var c = cells[key];
+      c.count++;
+      if (rimPxX[j] < c.minX) c.minX = rimPxX[j];
+      if (rimPxX[j] > c.maxX) c.maxX = rimPxX[j];
+      if (rimPxY[j] < c.minY) c.minY = rimPxY[j];
+      if (rimPxY[j] > c.maxY) c.maxY = rimPxY[j];
+    }
+
+    var minRimW = W * RIM_MIN_WIDTH_FRAC;
+    var maxRimW = W * RIM_MAX_WIDTH_FRAC;
+    var bestCandidate = null, bestScore = -1;
+    var cellKeys = Object.keys(cells);
+
+    for (var ci = 0; ci < cellKeys.length; ci++) {
+      var center = cells[cellKeys[ci]];
+
+      // Merge with neighbors (3x3 grid)
+      var bMinX = center.minX, bMaxX = center.maxX;
+      var bMinY = center.minY, bMaxY = center.maxY;
+      var bCount = 0, bSumX = 0, bSumY = 0;
+
+      for (var ni = -1; ni <= 1; ni++) {
+        for (var nj = -1; nj <= 1; nj++) {
+          var nk = (center.gx + ni) + ',' + (center.gy + nj);
+          if (!cells[nk]) continue;
+          var nc = cells[nk];
+          bCount += nc.count;
+          bSumX += (nc.minX + nc.maxX) / 2 * nc.count;
+          bSumY += (nc.minY + nc.maxY) / 2 * nc.count;
+          if (nc.minX < bMinX) bMinX = nc.minX;
+          if (nc.maxX > bMaxX) bMaxX = nc.maxX;
+          if (nc.minY < bMinY) bMinY = nc.minY;
+          if (nc.maxY > bMaxY) bMaxY = nc.maxY;
+        }
+      }
+
+      var blobW = bMaxX - bMinX + 1;
+      var blobH = bMaxY - bMinY + 1;
+
+      // Rim should be wider than tall (horizontal shape)
+      var aspect = blobW / Math.max(blobH, 1);
+      if (aspect < 1.3) continue;  // must be horizontal-ish
+
+      // Size checks
+      if (blobW < minRimW || blobW > maxRimW) continue;
+
+      // Rim shouldn't be too thick vertically
+      if (blobH > blobW * 0.6) continue;
+
+      var cx = bSumX / bCount;
+      var cy = bSumY / bCount;
+
+      // Score: prefer wider, higher-up, well-populated blobs
+      var widthScore = Math.min(blobW / (W * 0.08), 1.0);
+      var heightScore = 1.0 - (cy / scanH);  // higher in frame = better
+      var countScore = Math.min(bCount / 30, 1.0);
+      var score = widthScore * 0.4 + heightScore * 0.3 + countScore * 0.3;
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestCandidate = { cx: cx, cy: cy };
+      }
+    }
+
+    return bestCandidate;
+  }
+
   /* ── Rim geometry ───────────────────────────────────────────── */
   function insideRim(x, y) {
     if (!rim) return false;
@@ -508,22 +650,47 @@
   /* ── Drawing ──────────────────────────────────────────────── */
   function drawOverlay(ball) {
     if (rim) {
-      ctx.strokeStyle = 'rgba(245,166,35,0.85)';
-      ctx.lineWidth = 3;
-      ctx.shadowColor = 'rgba(245,166,35,0.5)';
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.ellipse(rim.cx, rim.cy, rim.rx, rim.ry, 0, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
+      // During confirm phase, draw with pulsing highlight
+      var isPreview = phase === PHASE.CALIBRATING && calibMode === 'confirm';
+      if (isPreview) {
+        var pulse = 0.6 + 0.4 * Math.sin(Date.now() / 200);
+        ctx.strokeStyle = 'rgba(86,211,100,' + pulse + ')';
+        ctx.lineWidth = 4;
+        ctx.shadowColor = 'rgba(86,211,100,0.7)';
+        ctx.shadowBlur = 16;
+        ctx.beginPath();
+        ctx.ellipse(rim.cx, rim.cy, rim.rx * 1.5, rim.ry * 1.5, 0, 0, Math.PI * 2);
+        ctx.stroke();
 
-      // Draw ROI boundary (subtle)
-      var roi = getROI();
-      ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-      ctx.lineWidth = 1;
-      ctx.setLineDash([3, 6]);
-      ctx.strokeRect(roi.x, roi.y, roi.w, roi.h);
-      ctx.setLineDash([]);
+        // Crosshair at center
+        var chSize = 12;
+        ctx.beginPath();
+        ctx.moveTo(rim.cx - chSize, rim.cy);
+        ctx.lineTo(rim.cx + chSize, rim.cy);
+        ctx.moveTo(rim.cx, rim.cy - chSize);
+        ctx.lineTo(rim.cx, rim.cy + chSize);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      } else {
+        ctx.strokeStyle = 'rgba(245,166,35,0.85)';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = 'rgba(245,166,35,0.5)';
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.ellipse(rim.cx, rim.cy, rim.rx, rim.ry, 0, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+      }
+
+      // Draw ROI boundary (subtle, only during tracking)
+      if (phase === PHASE.TRACKING) {
+        var roi = getROI();
+        ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([3, 6]);
+        ctx.strokeRect(roi.x, roi.y, roi.w, roi.h);
+        ctx.setLineDash([]);
+      }
     }
 
     if (ball) {
@@ -633,6 +800,18 @@
     if (trackEl) trackEl.style.display = p === 'track' ? '' : 'none';
   }
 
+  function showCalibState(state) {
+    var scanning = document.getElementById('ast-calib-scanning');
+    var confirm  = document.getElementById('ast-calib-confirm');
+    var manual   = document.getElementById('ast-calib-manual');
+    var linkBtn  = document.getElementById('ast-calib-switch-manual');
+    if (scanning) scanning.style.display = state === 'auto' ? '' : 'none';
+    if (confirm)  confirm.style.display  = state === 'confirm' ? '' : 'none';
+    if (manual)   manual.style.display   = state === 'manual' ? '' : 'none';
+    if (linkBtn)  linkBtn.textContent    = state === 'manual' ? 'Back to auto-detect' : 'Or set manually';
+    calibMode = state;
+  }
+
   /* ── Camera ───────────────────────────────────────────────── */
   function startCamera() {
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -661,6 +840,7 @@
         canvas.height = H;
         phase = PHASE.CALIBRATING;
         showPhase('calibrate');
+        startRimAutoDetect();
         animFrame = requestAnimationFrame(frameLoop);
       };
     }).catch(function (err) {
@@ -669,6 +849,7 @@
   }
 
   function stopCamera() {
+    stopRimDetectTimer();
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
     if (mode === 'video' && video) { video.pause(); video.src = ''; video.load(); }
@@ -687,8 +868,25 @@
   }
 
   /* ── Rim calibration ─────────────────────────────────────── */
+
+  function confirmRimAndStart(cx, cy) {
+    stopRimDetectTimer();
+    autoRimCandidate = null;
+    rim = { cx: cx, cy: cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+    phase = PHASE.TRACKING;
+    session.startTime = Date.now();
+    showPhase('track');
+
+    if (mode === 'video' && video) {
+      video.play();
+      var ppBtn = document.getElementById('ast-vc-playpause');
+      if (ppBtn) ppBtn.textContent = '⏸';
+    }
+  }
+
   function onCanvasTap(e) {
     if (phase !== PHASE.CALIBRATING) return;
+    if (calibMode !== 'manual') return;  // only accept taps in manual mode
     e.preventDefault();
 
     var rect = canvas.getBoundingClientRect();
@@ -699,16 +897,40 @@
     var tapX = (src.clientX - rect.left) * scaleX;
     var tapY = (src.clientY - rect.top)  * scaleY;
 
-    rim = { cx: tapX, cy: tapY, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
-    phase = PHASE.TRACKING;
-    session.startTime = Date.now();
-    showPhase('track');
+    confirmRimAndStart(tapX, tapY);
+  }
 
-    if (mode === 'video' && video) {
-      video.play();
-      var ppBtn = document.getElementById('ast-vc-playpause');
-      if (ppBtn) ppBtn.textContent = '⏸';
-    }
+  function startRimAutoDetect() {
+    rimDetectTries = 0;
+    autoRimCandidate = null;
+    showCalibState('auto');
+    stopRimDetectTimer();
+
+    rimDetectTimer = setInterval(function () {
+      if (phase !== PHASE.CALIBRATING) { stopRimDetectTimer(); return; }
+      rimDetectTries++;
+
+      var candidate = detectRimAuto();
+      if (candidate) {
+        // Found a candidate — show it and ask for confirmation
+        autoRimCandidate = candidate;
+        // Set temporary rim for drawing the preview ellipse
+        rim = { cx: candidate.cx, cy: candidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+        showCalibState('confirm');
+        stopRimDetectTimer();
+        return;
+      }
+
+      if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
+        // Give up, switch to manual
+        stopRimDetectTimer();
+        showCalibState('manual');
+      }
+    }, RIM_DETECT_INTERVAL);
+  }
+
+  function stopRimDetectTimer() {
+    if (rimDetectTimer) { clearInterval(rimDetectTimer); rimDetectTimer = null; }
   }
 
   /* ── Open overlay ─────────────────────────────────────────── */
@@ -729,6 +951,10 @@
     frameCount = 0;
     mlMissCount = 0;
     personBoxes = [];
+    autoRimCandidate = null;
+    calibMode = 'auto';
+    stopRimDetectTimer();
+    rimDetectTries = 0;
     resetKalman();
 
     var cameraView  = document.getElementById('ast-camera-view');
@@ -780,11 +1006,14 @@
       canvas.height = H;
       video.currentTime = 0;
       video.pause();
+      // Draw first frame so auto-detect has pixels to scan
+      ctx.drawImage(video, 0, 0, W, H);
       phase = PHASE.CALIBRATING;
       showPhase('calibrate');
       showVideoControls(true);
       var ppBtn = document.getElementById('ast-vc-playpause');
       if (ppBtn) ppBtn.textContent = '▶';
+      startRimAutoDetect();
       animFrame = requestAnimationFrame(frameLoop);
     };
 
@@ -1022,6 +1251,41 @@
 
     var missBtn = document.getElementById('ast-manual-miss');
     if (missBtn) missBtn.addEventListener('click', manualMiss);
+
+    // Rim auto-detect: confirm button
+    var confirmBtn = document.getElementById('ast-calib-yes');
+    if (confirmBtn) confirmBtn.addEventListener('click', function () {
+      if (autoRimCandidate && phase === PHASE.CALIBRATING) {
+        confirmRimAndStart(autoRimCandidate.cx, autoRimCandidate.cy);
+      }
+    });
+
+    // Rim auto-detect: retry button
+    var retryBtn = document.getElementById('ast-calib-retry');
+    if (retryBtn) retryBtn.addEventListener('click', function () {
+      if (phase !== PHASE.CALIBRATING) return;
+      rim = null;  // clear the preview
+      autoRimCandidate = null;
+      startRimAutoDetect();
+    });
+
+    // Switch to manual / back to auto
+    var switchBtn = document.getElementById('ast-calib-switch-manual');
+    if (switchBtn) switchBtn.addEventListener('click', function () {
+      if (phase !== PHASE.CALIBRATING) return;
+      if (calibMode === 'manual') {
+        // Go back to auto-detect
+        rim = null;
+        autoRimCandidate = null;
+        startRimAutoDetect();
+      } else {
+        // Switch to manual
+        stopRimDetectTimer();
+        rim = null;
+        autoRimCandidate = null;
+        showCalibState('manual');
+      }
+    });
   }
 
   if (document.readyState === 'loading') {

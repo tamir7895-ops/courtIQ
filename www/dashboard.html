@@ -2325,11 +2325,33 @@ if ('serviceWorker' in navigator) {
         <button class="ast-stop-btn" id="ast-stop-btn">⏹ Stop</button>
       </div>
 
-      <!-- Calibration message (shown until user taps rim) -->
+      <!-- Calibration message (shown until rim is set) -->
       <div class="ast-calib-msg" id="ast-calib-msg">
-        <div class="ast-msg-icon">🏀</div>
-        <div class="ast-msg-text">Tap the center of the rim</div>
-        <div class="ast-msg-sub">Point your camera at the basket first, then tap to set the rim position</div>
+        <!-- Auto-detect scanning state -->
+        <div id="ast-calib-scanning">
+          <div class="ast-msg-icon">🔍</div>
+          <div class="ast-msg-text">Detecting rim...</div>
+          <div class="ast-msg-sub">Scanning for the basketball hoop</div>
+        </div>
+        <!-- Auto-detect found a candidate — confirm or reject -->
+        <div id="ast-calib-confirm" style="display:none;">
+          <div class="ast-msg-text">Is this the rim?</div>
+          <div class="ast-msg-sub">The orange circle marks the detected rim position</div>
+          <div class="ast-calib-actions">
+            <button class="ast-calib-btn ast-calib-yes" id="ast-calib-yes">Yes, confirm</button>
+            <button class="ast-calib-btn ast-calib-no" id="ast-calib-retry">Try again</button>
+          </div>
+        </div>
+        <!-- Manual fallback -->
+        <div id="ast-calib-manual" style="display:none;">
+          <div class="ast-msg-icon">👆</div>
+          <div class="ast-msg-text">Tap the center of the rim</div>
+          <div class="ast-msg-sub">Point your camera at the basket, then tap to set the rim position</div>
+        </div>
+        <!-- Always show manual option -->
+        <div class="ast-calib-manual-link">
+          <button class="ast-calib-link-btn" id="ast-calib-switch-manual">Or set manually</button>
+        </div>
       </div>
 
       <!-- Tracking message (shown after calibration) -->
