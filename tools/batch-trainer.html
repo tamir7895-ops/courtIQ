@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourtIQ — Overnight Model Trainer</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --card: #1e2230;
+      --border: #2a2f3e;
+      --accent: #f97316;
+      --accent2: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .header .badge {
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 1100px;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    /* Drop zone */
+    #dropZone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 32px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-bottom: 12px;
+    }
+
+    #dropZone:hover, #dropZone.drag-over {
+      border-color: var(--accent);
+      background: rgba(249,115,22,.06);
+    }
+
+    #dropZone .icon { font-size: 32px; margin-bottom: 8px; }
+    #dropZone p { color: var(--muted); font-size: 13px; }
+    #dropZone p strong { color: var(--accent); }
+
+    #fileInput { display: none; }
+
+    /* Video list */
+    #videoList { display: flex; flex-direction: column; gap: 6px; }
+
+    .video-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .video-item .vname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .video-item .vsize { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .video-item .vbar { width: 100%; height: 3px; background: var(--border); border-radius: 2px; margin-top: 4px; }
+    .video-item .vbar-fill { height: 100%; border-radius: 2px; background: var(--accent); transition: width .3s; }
+    .video-item-wrap { display: flex; flex-direction: column; width: 100%; gap: 4px; }
+    .video-item .vstatus { font-size: 11px; color: var(--muted); }
+    .video-item .vstatus.done { color: var(--green); }
+    .video-item .vstatus.active { color: var(--accent); }
+    .video-item .vstatus.error { color: var(--red); }
+    .video-item .vdel {
+      background: none; border: none; color: var(--muted); cursor: pointer;
+      font-size: 16px; padding: 0 4px; line-height: 1;
+    }
+    .video-item .vdel:hover { color: var(--red); }
+
+    /* Config */
+    .config-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .config-row:last-child { border-bottom: none; }
+
+    .config-label { color: var(--text); font-size: 13px; }
+    .config-hint { color: var(--muted); font-size: 11px; margin-top: 2px; }
+
+    input[type="number"], input[type="range"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 5px 10px;
+      width: 80px;
+      font-size: 13px;
+      text-align: center;
+    }
+
+    input[type="range"] {
+      width: 120px;
+      padding: 0;
+      cursor: pointer;
+      accent-color: var(--accent);
+    }
+
+    input[type="checkbox"] {
+      accent-color: var(--accent);
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    /* Stats */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box .val {
+      font-size: 24px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .stat-box.green .val { color: var(--green); }
+    .stat-box.orange .val { color: var(--accent); }
+    .stat-box.blue .val { color: var(--accent2); }
+    .stat-box.yellow .val { color: var(--yellow); }
+
+    /* Confidence bar */
+    .conf-bar-wrap {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .conf-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .conf-label { font-size: 12px; width: 60px; color: var(--muted); }
+    .conf-bar-bg {
+      flex: 1;
+      height: 8px;
+      background: var(--border);
+      border-radius: 4px;
+      overflow: hidden;
+    }
+    .conf-bar-fill {
+      height: 100%;
+      border-radius: 4px;
+      background: var(--accent);
+      transition: width .5s;
+    }
+    .conf-pct { font-size: 12px; width: 36px; text-align: right; color: var(--text); }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-danger {
+      background: var(--red);
+      color: #fff;
+    }
+
+    .btn-muted {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    /* Log */
+    #logBox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: 220px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--muted); white-space: nowrap; }
+    .log-msg { flex: 1; }
+    .log-ok .log-msg { color: var(--green); }
+    .log-warn .log-msg { color: var(--yellow); }
+    .log-err .log-msg { color: var(--red); }
+    .log-info .log-msg { color: var(--accent2); }
+
+    /* Full width card */
+    .full-width { grid-column: 1 / -1; }
+
+    /* Status pill */
+    #statusPill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .pill-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .pill-dot.active {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .current-video-label {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .current-video-label span { color: var(--accent); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="header" style="flex-direction:column; align-items:flex-start; gap:4px;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <h1>🏀 CourtIQ — Overnight Model Trainer</h1>
+        <span class="badge">BETA</span>
+      </div>
+      <p style="color:var(--muted);font-size:13px;">
+        תן לאפליקציה ללמוד מסרטונים בזמן שאתה ישן — בבוקר היא תזהה הרבה יותר טוב כדור, טבעת וזריקות.
+      </p>
+    </div>
+  </div>
+
+  <div id="statusPill">
+    <div class="pill-dot" id="statusDot"></div>
+    <span id="statusText">מוכן</span>
+  </div>
+
+  <div class="grid">
+
+    <!-- Videos -->
+    <div class="card">
+      <h2>📹 סרטונים לאימון</h2>
+      <div id="dropZone">
+        <div class="icon">📂</div>
+        <p>גרור קבצי MP4/MOV/AVI לכאן</p>
+        <p><strong>או לחץ לבחירה</strong></p>
+        <input type="file" id="fileInput" multiple accept="video/*">
+      </div>
+      <div id="videoList"></div>
+    </div>
+
+    <!-- Config -->
+    <div class="card">
+      <h2>⚙️ הגדרות</h2>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">דגימה כל N שניות</div>
+          <div class="config-hint">1 = צפוף יותר, איטי יותר. 5 = מהיר.</div>
+        </div>
+        <input type="number" id="cfgInterval" value="3" min="1" max="10">
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">סף ביטחון מינימלי לכדור</div>
+          <div class="config-hint">0.5 = רגיש, 0.8 = רק וודאי</div>
+        </div>
+        <input type="number" id="cfgConfidence" value="0.55" min="0.3" max="0.95" step="0.05">
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">מקסימום דגימות לסרטון</div>
+          <div class="config-hint">כדי לא לאטום את הזיכרון</div>
+        </div>
+        <input type="number" id="cfgMaxSamples" value="400" min="50" max="2000" step="50">
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">יחס רקע:כדור</div>
+          <div class="config-hint">2:1 = 2 דגימות רקע לכל כדור</div>
+        </div>
+        <input type="number" id="cfgBgRatio" value="2" min="1" max="4">
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">שמור מסך דלוק</div>
+          <div class="config-hint">Wake Lock — ימנע כיבוי בלילה</div>
+        </div>
+        <input type="checkbox" id="cfgWakeLock" checked>
+      </div>
+
+      <div class="config-row">
+        <div>
+          <div class="config-label">נקה נתונים ישנים</div>
+          <div class="config-hint">מחיקת IDB קודמות לפני התחלה</div>
+        </div>
+        <input type="checkbox" id="cfgClearOld">
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <h2>📊 סטטיסטיקות</h2>
+      <div class="stat-grid">
+        <div class="stat-box green">
+          <div class="val" id="statBallSamples">0</div>
+          <div class="lbl">דגימות כדור</div>
+        </div>
+        <div class="stat-box blue">
+          <div class="val" id="statBgSamples">0</div>
+          <div class="lbl">דגימות רקע</div>
+        </div>
+        <div class="stat-box orange">
+          <div class="val" id="statFrames">0</div>
+          <div class="lbl">פריימים עובדו</div>
+        </div>
+        <div class="stat-box yellow">
+          <div class="val" id="statTime">00:00</div>
+          <div class="lbl">זמן ריצה</div>
+        </div>
+      </div>
+
+      <div class="conf-bar-wrap" style="margin-top:16px;">
+        <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:4px;">ביטחון מודלים</div>
+        <div class="conf-row">
+          <div class="conf-label">צבע</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="confColor" style="width:0%"></div></div>
+          <div class="conf-pct" id="confColorPct">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">TL (L3)</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="confTL" style="width:0%"></div></div>
+          <div class="conf-pct" id="confTLPct">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">סה"כ</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="confTotal" style="width:0%;background:var(--green)"></div></div>
+          <div class="conf-pct" id="confTotalPct">0%</div>
+        </div>
+      </div>
+
+      <div id="currentVideoLabel" class="current-video-label" style="margin-top:12px;"></div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnStart">▶ התחל אימון לילה</button>
+        <button class="btn btn-danger" id="btnStop" disabled>■ עצור</button>
+        <button class="btn btn-muted" id="btnClearAll">🗑 נקה הכל</button>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card full-width">
+      <h2>🖥 לוג בזמן אמת</h2>
+      <div id="logBox"></div>
+    </div>
+
+  </div>
+
+  <!-- Hidden elements for video processing -->
+  <canvas id="extractCanvas" style="display:none"></canvas>
+  <video id="extractVideo" style="display:none" muted playsinline></video>
+
+  <script src="batch-trainer.js"></script>
+</body>
+</html>
