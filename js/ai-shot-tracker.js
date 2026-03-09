@@ -47,6 +47,80 @@
     startTime: 0, streak: 0, maxStreak: 0
   };
 
+  /* ── Kalman filter (1D) ───────────────────────────────────── */
+  function kalmanUpdate(kal, z) {
+    if (kal.x === null) { kal.x = z; return z; }
+    kal.p += kal.Q;
+    var k = kal.p / (kal.p + kal.R);
+    kal.x += k * (z - kal.x);
+    kal.p *= (1 - k);
+    return kal.x;
+  }
+
+  function applyKalman(ball) {
+    return { x: kalmanUpdate(kalX, ball.x), y: kalmanUpdate(kalY, ball.y),
+             size: ball.size, score: ball.score || 1 };
+  }
+
+  function resetKalman() {
+    kalX.x = null; kalX.p = 1.0;
+    kalY.x = null; kalY.p = 1.0;
+  }
+
+  /* ── Physics validation (no teleportation) ────────────────── */
+  function isPhysicallyValid(ball) {
+    if (!lastBall || !ball) return true;
+    var dx = ball.x - lastBall.x, dy = ball.y - lastBall.y;
+    // Reject if jumped more than 22% of frame width in one frame
+    return Math.sqrt(dx * dx + dy * dy) < W * 0.22;
+  }
+
+  /* ── ML model loading ─────────────────────────────────────── */
+  function loadMLModel() {
+    if (mlLoading || mlReady) return;
+    if (typeof cocoSsd === 'undefined') return;
+    mlLoading = true;
+    setMLStatus('loading');
+    cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
+      tfModel = model;
+      mlReady = true;
+      mlLoading = false;
+      setMLStatus('ready');
+    }).catch(function () {
+      mlLoading = false;
+      setMLStatus('fallback');
+    });
+  }
+
+  function setMLStatus(state) {
+    var el = document.getElementById('ast-ml-status');
+    if (!el) return;
+    if (state === 'loading') { el.textContent = '🧠 Loading AI model…'; el.style.display = ''; }
+    else if (state === 'ready') { el.textContent = '🤖 AI Active'; el.style.display = ''; }
+    else { el.style.display = 'none'; }
+  }
+
+  /* ── ML-powered detection (async, falls back to color) ────── */
+  function detectBallAsync() {
+    if (mlReady && tfModel) {
+      return tfModel.detect(video).then(function (preds) {
+        var best = null, bestScore = 0.3;
+        for (var i = 0; i < preds.length; i++) {
+          if (preds[i].class === 'sports ball' && preds[i].score > bestScore) {
+            best = preds[i]; bestScore = preds[i].score;
+          }
+        }
+        if (best) {
+          var b = best.bbox; // [x, y, w, h]
+          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: best.score };
+        }
+        // ML found nothing — try color fallback on same frame
+        return detectBallColor();
+      }).catch(function () { return detectBallColor(); });
+    }
+    return Promise.resolve(detectBallColor());
+  }
+
   /* ── Color detection ──────────────────────────────────────── */
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
