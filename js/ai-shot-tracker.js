@@ -283,11 +283,6 @@
 
   /* ── Color detection: shape-aware, ROI-limited, person-excluded ── */
   function isOrange(r, g, b) {
-    // Level 1: Use learned color profile if AdaptiveLearning has enough confidence
-    if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
-      return window.AdaptiveLearning.isOrangeAdaptive(r, g, b);
-    }
-    // Fallback: hardcoded thresholds
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
     if (max < 70) return false;
