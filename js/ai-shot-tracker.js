@@ -794,22 +794,50 @@
   }
 
   function showPhase(p) {
-    var calibEl = document.getElementById('ast-calib-msg');
-    var trackEl = document.getElementById('ast-track-msg');
-    if (calibEl) calibEl.style.display = p === 'calibrate' ? '' : 'none';
-    if (trackEl) trackEl.style.display = p === 'track' ? '' : 'none';
+    var videoCalib = document.getElementById('ast-calib-video');
+    var liveCalib  = document.getElementById('ast-calib-live');
+    var trackEl    = document.getElementById('ast-track-msg');
+
+    if (videoCalib) videoCalib.style.display = (p === 'calibrate' && mode === 'video') ? '' : 'none';
+    if (liveCalib)  liveCalib.style.display  = (p === 'calibrate' && mode === 'camera') ? '' : 'none';
+    if (trackEl)    trackEl.style.display    = p === 'track' ? '' : 'none';
   }
 
+  /* ── Mode-specific calibration state helpers ─────────────── */
   function showCalibState(state) {
-    var scanning = document.getElementById('ast-calib-scanning');
-    var confirm  = document.getElementById('ast-calib-confirm');
-    var manual   = document.getElementById('ast-calib-manual');
-    var linkBtn  = document.getElementById('ast-calib-switch-manual');
+    calibMode = state;
+    if (mode === 'video') {
+      showVideoCalibState(state);
+    } else {
+      showLiveCalibState(state);
+    }
+  }
+
+  function showVideoCalibState(state) {
+    var scanning = document.getElementById('ast-vcalib-scanning');
+    var confirm  = document.getElementById('ast-vcalib-confirm');
+    var manual   = document.getElementById('ast-vcalib-manual');
+    var linkBtn  = document.getElementById('ast-vcalib-switch');
     if (scanning) scanning.style.display = state === 'auto' ? '' : 'none';
     if (confirm)  confirm.style.display  = state === 'confirm' ? '' : 'none';
     if (manual)   manual.style.display   = state === 'manual' ? '' : 'none';
     if (linkBtn)  linkBtn.textContent    = state === 'manual' ? 'Back to auto-detect' : 'Or set manually';
-    calibMode = state;
+  }
+
+  function showLiveCalibState(state) {
+    var setup    = document.getElementById('ast-lcalib-setup');
+    var scanning = document.getElementById('ast-lcalib-scanning');
+    var confirm  = document.getElementById('ast-lcalib-confirm');
+    var manual   = document.getElementById('ast-lcalib-manual');
+    var linkWrap = document.getElementById('ast-lcalib-manual-link');
+    var linkBtn  = document.getElementById('ast-lcalib-switch');
+    if (setup)    setup.style.display    = state === 'setup' ? '' : 'none';
+    if (scanning) scanning.style.display = state === 'auto' ? '' : 'none';
+    if (confirm)  confirm.style.display  = state === 'confirm' ? '' : 'none';
+    if (manual)   manual.style.display   = state === 'manual' ? '' : 'none';
+    // Show manual link only after setup phase
+    if (linkWrap) linkWrap.style.display = (state !== 'setup') ? '' : 'none';
+    if (linkBtn)  linkBtn.textContent    = state === 'manual' ? 'Back to auto-detect' : 'Or set manually';
   }
 
   /* ── Camera ───────────────────────────────────────────────── */
@@ -840,7 +868,8 @@
         canvas.height = H;
         phase = PHASE.CALIBRATING;
         showPhase('calibrate');
-        startRimAutoDetect();
+        // Live mode: show setup guide first, don't auto-detect yet
+        showLiveCalibState('setup');
         animFrame = requestAnimationFrame(frameLoop);
       };
     }).catch(function (err) {
@@ -886,7 +915,8 @@
 
   function onCanvasTap(e) {
     if (phase !== PHASE.CALIBRATING) return;
-    if (calibMode !== 'manual') return;  // only accept taps in manual mode
+    // Only accept taps in manual mode (both video and live)
+    if (calibMode !== 'manual') return;
     e.preventDefault();
 
     var rect = canvas.getBoundingClientRect();
@@ -1252,40 +1282,60 @@
     var missBtn = document.getElementById('ast-manual-miss');
     if (missBtn) missBtn.addEventListener('click', manualMiss);
 
-    // Rim auto-detect: confirm button
-    var confirmBtn = document.getElementById('ast-calib-yes');
-    if (confirmBtn) confirmBtn.addEventListener('click', function () {
+    /* ── Video mode calibration buttons ──────────────────── */
+    bindBtn('ast-vcalib-yes', function () {
       if (autoRimCandidate && phase === PHASE.CALIBRATING) {
         confirmRimAndStart(autoRimCandidate.cx, autoRimCandidate.cy);
       }
     });
-
-    // Rim auto-detect: retry button
-    var retryBtn = document.getElementById('ast-calib-retry');
-    if (retryBtn) retryBtn.addEventListener('click', function () {
+    bindBtn('ast-vcalib-retry', function () {
       if (phase !== PHASE.CALIBRATING) return;
-      rim = null;  // clear the preview
-      autoRimCandidate = null;
+      rim = null; autoRimCandidate = null;
       startRimAutoDetect();
     });
-
-    // Switch to manual / back to auto
-    var switchBtn = document.getElementById('ast-calib-switch-manual');
-    if (switchBtn) switchBtn.addEventListener('click', function () {
+    bindBtn('ast-vcalib-switch', function () {
       if (phase !== PHASE.CALIBRATING) return;
       if (calibMode === 'manual') {
-        // Go back to auto-detect
-        rim = null;
-        autoRimCandidate = null;
+        rim = null; autoRimCandidate = null;
         startRimAutoDetect();
       } else {
-        // Switch to manual
         stopRimDetectTimer();
-        rim = null;
-        autoRimCandidate = null;
+        rim = null; autoRimCandidate = null;
         showCalibState('manual');
       }
     });
+
+    /* ── Live camera calibration buttons ─────────────────── */
+    bindBtn('ast-lcalib-ready', function () {
+      if (phase !== PHASE.CALIBRATING) return;
+      startRimAutoDetect();
+    });
+    bindBtn('ast-lcalib-yes', function () {
+      if (autoRimCandidate && phase === PHASE.CALIBRATING) {
+        confirmRimAndStart(autoRimCandidate.cx, autoRimCandidate.cy);
+      }
+    });
+    bindBtn('ast-lcalib-retry', function () {
+      if (phase !== PHASE.CALIBRATING) return;
+      rim = null; autoRimCandidate = null;
+      startRimAutoDetect();
+    });
+    bindBtn('ast-lcalib-switch', function () {
+      if (phase !== PHASE.CALIBRATING) return;
+      if (calibMode === 'manual') {
+        rim = null; autoRimCandidate = null;
+        startRimAutoDetect();
+      } else {
+        stopRimDetectTimer();
+        rim = null; autoRimCandidate = null;
+        showCalibState('manual');
+      }
+    });
+  }
+
+  function bindBtn(id, fn) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', fn);
   }
 
   if (document.readyState === 'loading') {

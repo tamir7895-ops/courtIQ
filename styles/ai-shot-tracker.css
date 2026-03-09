@@ -265,6 +265,49 @@
   padding: 6px 12px;
 }
 
+/* ── Live camera setup guide steps ───────────────────────── */
+.ast-setup-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 0 16px;
+  max-width: 340px;
+}
+
+.ast-setup-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  text-align: left;
+  pointer-events: none;
+}
+
+.ast-setup-num {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(86,211,100,0.2);
+  border: 2px solid #56d364;
+  color: #56d364;
+  font-weight: 800;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ast-setup-text {
+  font-size: 14px;
+  color: rgba(255,255,255,0.85);
+  line-height: 1.4;
+  text-shadow: 0 1px 6px rgba(0,0,0,0.8);
+}
+
+.ast-setup-text strong {
+  color: #fff;
+}
+
 .ast-msg-icon {
   font-size: 52px;
   filter: drop-shadow(0 0 20px rgba(245,166,35,0.6));
