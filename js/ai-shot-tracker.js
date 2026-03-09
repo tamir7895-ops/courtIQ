@@ -730,7 +730,7 @@
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
     var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.5;  // 1.5 instead of 1.0 — more forgiving hit zone
+    return dx * dx + dy * dy <= 1.2;  // slightly forgiving to handle rim calibration error (was 1.5)
   }
 
   function inApproachZone(x, y) {
