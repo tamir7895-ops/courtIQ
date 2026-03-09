@@ -285,19 +285,19 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 80) return false;   // raised — exclude dark murky surfaces
+    if (max < 55) return false;   // lowered — accept slightly darker/compressed frames
     var delta = max - min;
-    if (delta < 20) return false;  // raised — require more color contrast
+    if (delta < 15) return false;  // lowered — compressed video reduces contrast
     var s = delta / max;
-    if (s < 0.30) return false;   // raised — exclude skin tones, brownish surfaces
+    if (s < 0.22) return false;   // lowered — TikTok/HEVC compression desaturates colors
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange: tight range centered on true orange (15–42°)
-    // Slightly extended for warm/cool filter shifts; excludes pure yellow and red jerseys
-    return (h >= 12 && h <= 45) || h >= 345;
+    // Basketball orange: tight range centered on true orange (10–48°)
+    // Slightly extended for warm/cool filter shifts and compression hue shift
+    return (h >= 10 && h <= 48) || h >= 342;
   }
 
   function detectBallColor() {
@@ -332,7 +332,7 @@
     if (frameCount % 60 === 0) {
       console.log('[AST diag] color: orangePx=' + orangeX.length + ' roiW=' + roi.w + ' roiH=' + roi.h);
     }
-    if (orangeX.length < 15) return null;
+    if (orangeX.length < 8) return null;
 
     // Grid clustering
     var cellW = Math.max(1, Math.round(W / 24));
