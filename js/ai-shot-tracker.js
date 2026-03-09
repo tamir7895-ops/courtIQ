@@ -303,8 +303,11 @@
 
     // Level 1: Use adaptive learned color if confident enough
     if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
-      var learned = window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, W, H);
-      if (learned) return { x: learned.x, y: learned.y, size: learned.w * learned.h, score: learned.score };
+      var roi0 = getROI();
+      var learned = window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, roi0.w, Math.min(roi0.h, rim ? Math.round(rim.cy + rim.ry * 4.5) : roi0.h));
+      if (learned && !(rim && learned.y > rim.cy + rim.ry * 4.5)) {
+        return { x: learned.x, y: learned.y, size: learned.w * learned.h, score: learned.score };
+      }
     }
 
     // Only scan within the ROI
