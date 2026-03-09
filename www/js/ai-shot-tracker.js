@@ -36,12 +36,12 @@
      - Horizontally: full width (ball can come from any angle)
      - Vertically: from top of frame down to rim + some margin below
      - Excludes bottom 15% of frame (video overlays/watermarks)  */
-  var ROI_BOTTOM_MARGIN_FRAC = 0.15; // ignore bottom 15% of frame
-  var ROI_BELOW_RIM_FRAC = 0.12;     // search only this far below rim
+  var ROI_BOTTOM_MARGIN_FRAC = 0.10; // ignore bottom 10% of frame (only watermarks)
+  var ROI_BELOW_RIM_FRAC = 0.45;     // search 45% of frame height below rim (was 12% — way too small)
 
   /* ── Rim auto-detection constants ────────────────────────── */
   var RIM_DETECT_INTERVAL  = 500;   // ms between auto-detect attempts
-  var RIM_DETECT_MAX_TRIES = 12;    // give up after this many attempts
+  var RIM_DETECT_MAX_TRIES = 16;    // give up after this many attempts
   var RIM_MIN_WIDTH_FRAC   = 0.03;  // rim blob must be at least 3% of frame width
   var RIM_MAX_WIDTH_FRAC   = 0.25;  // rim blob can't be more than 25% of frame width
   var RIM_SCAN_TOP_FRAC    = 0.60;  // only scan the top 60% of the frame for rim
@@ -198,7 +198,9 @@
 
   function detectBallAsync() {
     if (mlReady && tfModel) {
-      return tfModel.detect(video).then(function (preds) {
+      // Use canvas instead of video element — ensures ML and color detection
+      // are analyzing the exact same frame (avoids desync)
+      return tfModel.detect(canvas).then(function (preds) {
         var best = null, bestAdjScore = 0.25;
         var frameArea = W * H;
 
@@ -258,17 +260,19 @@
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 100) return false;
+    if (max < 70) return false;   // lowered from 100 — indoor/dim videos
     var delta = max - min;
-    if (delta < 40) return false;
+    if (delta < 25) return false;  // lowered from 40 — color-graded footage
     var s = delta / max;
-    if (s < 0.45) return false;
+    if (s < 0.30) return false;   // lowered from 0.45 — TikTok desaturation
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    return h >= 10 && h <= 42;
+    // Basketball orange range: 5-50 (wider: red-orange through yellow-orange)
+    // Handles TikTok warm filters, cool filters, indoor tungsten lighting
+    return h >= 5 && h <= 50;
   }
 
   function detectBallColor() {
@@ -416,18 +420,19 @@
   function isRimColor(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 80) return false;
+    if (max < 60) return false;  // lowered from 80 — rims can be dimmer
     var delta = max - min;
-    if (delta < 30) return false;
+    if (delta < 20) return false; // lowered from 30 — indoor lighting washes out
     var s = delta / max;
-    if (s < 0.35) return false;
+    if (s < 0.25) return false;  // lowered from 0.35 — TikTok filters desaturate
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Rim orange/red: hue 0-25 (red-orange range, slightly wider than ball)
-    return (h >= 0 && h <= 25) || h >= 350;
+    // Rim colors: red, orange-red, deep orange (hue 0-35 and 335+)
+    // Much wider range to handle color grading, filters, and different rim paints
+    return (h >= 0 && h <= 35) || h >= 335;
   }
 
   function detectRimAuto() {
@@ -505,9 +510,9 @@
       var blobW = bMaxX - bMinX + 1;
       var blobH = bMaxY - bMinY + 1;
 
-      // Rim should be wider than tall (horizontal shape)
+      // Rim is usually wider than tall, but from steep angles it can be nearly round
       var aspect = blobW / Math.max(blobH, 1);
-      if (aspect < 1.3) continue;  // must be horizontal-ish
+      if (aspect < 0.8) continue;  // only reject clearly vertical blobs
 
       // Size checks
       if (blobW < minRimW || blobW > maxRimW) continue;
@@ -930,6 +935,9 @@
     confirmRimAndStart(tapX, tapY);
   }
 
+  // Seek to different timestamps on each retry (for video mode)
+  var rimSeekTimes = [0.5, 1.0, 1.5, 2.0, 3.0, 4.0, 5.0, 0.2, 2.5, 3.5, 6.0, 8.0];
+
   function startRimAutoDetect() {
     rimDetectTries = 0;
     autoRimCandidate = null;
@@ -940,23 +948,40 @@
       if (phase !== PHASE.CALIBRATING) { stopRimDetectTimer(); return; }
       rimDetectTries++;
 
-      var candidate = detectRimAuto();
-      if (candidate) {
-        // Found a candidate — show it and ask for confirmation
-        autoRimCandidate = candidate;
-        // Set temporary rim for drawing the preview ellipse
-        rim = { cx: candidate.cx, cy: candidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
-        showCalibState('confirm');
-        stopRimDetectTimer();
+      // For video mode: seek to different timestamps on each try
+      // so we don't scan the same frame 12 times
+      if (mode === 'video' && video && video.duration) {
+        var seekTo = rimSeekTimes[Math.min(rimDetectTries - 1, rimSeekTimes.length - 1)];
+        seekTo = Math.min(seekTo, video.duration * 0.8);
+        video.currentTime = seekTo;
+        // Wait for seek, then scan
+        video.onseeked = function () {
+          video.onseeked = null;
+          ctx.drawImage(video, 0, 0, W, H);
+          checkRimCandidate();
+        };
         return;
       }
 
-      if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
-        // Give up, switch to manual
-        stopRimDetectTimer();
-        showCalibState('manual');
-      }
+      // Live camera: just scan the current frame
+      checkRimCandidate();
     }, RIM_DETECT_INTERVAL);
+  }
+
+  function checkRimCandidate() {
+    var candidate = detectRimAuto();
+    if (candidate) {
+      autoRimCandidate = candidate;
+      rim = { cx: candidate.cx, cy: candidate.cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+      showCalibState('confirm');
+      stopRimDetectTimer();
+      return;
+    }
+
+    if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
+      stopRimDetectTimer();
+      showCalibState('manual');
+    }
   }
 
   function stopRimDetectTimer() {
@@ -1034,17 +1059,24 @@
       H = video.videoHeight || 720;
       canvas.width  = W;
       canvas.height = H;
-      video.currentTime = 0;
-      video.pause();
-      // Draw first frame so auto-detect has pixels to scan
-      ctx.drawImage(video, 0, 0, W, H);
-      phase = PHASE.CALIBRATING;
-      showPhase('calibrate');
-      showVideoControls(true);
-      var ppBtn = document.getElementById('ast-vc-playpause');
-      if (ppBtn) ppBtn.textContent = '▶';
-      startRimAutoDetect();
-      animFrame = requestAnimationFrame(frameLoop);
+
+      // Seek to 1 second in (skip black intro frames common in TikTok)
+      var seekTarget = Math.min(1.0, (video.duration || 2) * 0.1);
+      video.currentTime = seekTarget;
+
+      // Wait for seeked event before drawing — otherwise canvas is blank
+      video.onseeked = function onFirstSeek() {
+        video.onseeked = null; // one-shot
+        video.pause();
+        ctx.drawImage(video, 0, 0, W, H);
+        phase = PHASE.CALIBRATING;
+        showPhase('calibrate');
+        showVideoControls(true);
+        var ppBtn = document.getElementById('ast-vc-playpause');
+        if (ppBtn) ppBtn.textContent = '▶';
+        startRimAutoDetect();
+        animFrame = requestAnimationFrame(frameLoop);
+      };
     };
 
     video.ontimeupdate = function () {
