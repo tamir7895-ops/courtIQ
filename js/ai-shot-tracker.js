@@ -316,6 +316,14 @@
   function stopCamera() {
     if (animFrame) { cancelAnimationFrame(animFrame); animFrame = null; }
     if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
+    if (mode === 'video' && video) { video.pause(); video.src = ''; video.load(); }
+    if (videoUrl) { URL.revokeObjectURL(videoUrl); videoUrl = null; }
+    showVideoControls(false);
+  }
+
+  function showVideoControls(show) {
+    var vc = document.getElementById('ast-video-controls');
+    if (vc) vc.style.display = show ? '' : 'none';
   }
 
   function showCameraError(msg) {
