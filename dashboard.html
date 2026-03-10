@@ -2597,24 +2597,24 @@ if ('serviceWorker' in navigator) {
 <script>
 (function () {
   function renderSkillStats() {
-    var xpData = (typeof XPSystem !== 'undefined') ? XPSystem.load() : { xp: 0, history: [] };
-    var history = xpData.history || [];
-    var sessions   = history.filter(function(e) { return e.reason === 'Session Logged'; }).length;
-    var drills     = history.filter(function(e) { return e.reason === 'Drill Saved' || e.reason === 'Drills Generated'; }).length;
-    var challenges = history.filter(function(e) { return e.reason === 'Daily Challenge'; }).length;
+    var xpData   = (typeof XPSystem !== 'undefined') ? XPSystem.load() : { xp: 0, history: [] };
+    var history  = xpData.history || [];
+    var totalXP  = xpData.xp || 0;
+
+    var shotEv     = history.filter(function(e) { return /shot|basket|scoring/i.test(e.reason); }).length;
+    var trainEv    = history.filter(function(e) { return /drill|session|workout|check/i.test(e.reason); }).length;
+    var challengeEv= history.filter(function(e) { return /daily|challenge|streak/i.test(e.reason); }).length;
 
     var profile = (typeof PlayerProfile !== 'undefined') ? PlayerProfile.load() : null;
     var sl   = profile ? (profile.skillLevel || '').toLowerCase() : '';
-    var base = sl.indexOf('adv') !== -1 ? 68 : sl.indexOf('int') !== -1 ? 48 : 32;
+    var base = sl.indexOf('adv') !== -1 ? 65 : sl.indexOf('int') !== -1 ? 45 : 30;
 
-    var shooting  = Math.min(97, base + sessions * 4 + challenges * 2);
-    var dribbling = Math.min(97, base + drills * 5 + sessions * 2);
-    var defense   = Math.min(97, base + challenges * 6 + sessions * 2);
-    var gameiq    = (typeof XPSystem !== 'undefined') ? XPSystem.getProgress() : Math.min(97, base + sessions * 3);
+    var gameiq    = (typeof XPSystem !== 'undefined') ? XPSystem.getProgress(totalXP) : Math.min(95, base + trainEv * 3);
+    var shooting  = Math.min(97, base + shotEv * 12 + trainEv * 2);
+    var dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3);
+    var defense   = Math.min(97, base + challengeEv * 6 + trainEv * 2);
 
-    if (sessions === 0 && drills === 0 && challenges === 0) {
-      shooting = dribbling = defense = gameiq = 0;
-    }
+    if (totalXP === 0) { shooting = dribbling = defense = gameiq = 0; }
 
     setStat('shooting',  shooting);
     setStat('dribbling', dribbling);
