@@ -904,7 +904,7 @@
         nearRimFrames = 1;
       }
     } else if (shotPhase === 'ascending') {
-      if (insideRim(ball.x, ball.y)) {
+      if (insideRim(ball.x, ball.y) || ballInBasketZone(ball)) {
         shotPhase = 'at_rim';
         atRimFrames = 1;
       } else if (nearRim) {
