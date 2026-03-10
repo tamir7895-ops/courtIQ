@@ -366,11 +366,15 @@
     var img  = document.getElementById('ac2-preview-img');
     var wrap = document.getElementById('ac2-preview-wrap');
     if (!img) return;
+    var newSrc = buildURL();
+    if (img.src === newSrc) return; /* no change, skip */
     wrap && wrap.classList.add('ac2-loading');
     img.onload = img.onerror = function () {
       wrap && wrap.classList.remove('ac2-loading');
     };
-    img.src = buildURL();
+    img.src = newSrc;
+    /* If browser served from cache and already complete, hide spinner immediately */
+    if (img.complete) wrap && wrap.classList.remove('ac2-loading');
   }
 
   /* ── Modal HTML ──────────────────────────────────────────── */
