@@ -924,12 +924,18 @@
       }
     } else if (shotPhase === 'near_rim') {
       nearRimFrames++;
-      if (insideRim(ball.x, ball.y)) {
+      if (insideRim(ball.x, ball.y) || ballInBasketZone(ball)) {
         shotPhase = 'at_rim';
         atRimFrames = 1;
-      } else if (ball.y > rim.cy + rim.ry * 2) {
-        // Ball passed below rim — made shot
-        if (Math.abs(ball.x - rim.cx) < rim.rx * 2) {
+      } else if (ballPassedThroughRim(ball)) {
+        // Ball definitively passed down through the rim opening — swish / clean make
+        commitShot(true, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (ball.y > rim.cy + rim.ry * 2.5) {
+        // Ball passed below rim area — use horizontal position to decide made/miss
+        if (Math.abs(ball.x - rim.cx) < rim.rx * 1.5) {
           commitShot(true, now);
         } else {
           commitShot(false, now);
