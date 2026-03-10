@@ -349,6 +349,8 @@
       if (fhS && fhS.param) {
         p.push('facialHair=' + fhS.param);
         p.push('facialHairColor=' + hexFor(HAIR_COLORS, st.facialHairColor));
+      } else {
+        p.push('facialHairProbability=0'); /* force no beard */
       }
     }
 
