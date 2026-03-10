@@ -1218,7 +1218,6 @@
         lastBall = ball;
         isDetecting = false;
       }).catch(function(e) {
-        console.log('[AST diag] detectBallAsync ERROR: ' + e);
         isDetecting = false;
       });
     }
@@ -1367,9 +1366,6 @@
               : W * RIM_RX_FRAC;
     var ry = rx * 0.38;   // rim ellipse ~2.6:1 aspect (perspective foreshortening)
     rim = { cx: cx, cy: cy, rx: rx, ry: ry };
-    console.log('[AST rim] confirmed cx=' + Math.round(cx) + ' cy=' + Math.round(cy) +
-                ' rx=' + Math.round(rx) + ' ry=' + Math.round(ry) +
-                (detectedRx ? ' (measured)' : ' (default)'));
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
     showPhase('track');
@@ -1388,7 +1384,6 @@
       video.onseeked = function onConfirmSeek() {
         video.onseeked = null;
         video.play().catch(function (e) {
-          console.log('[AST diag] video.play() blocked: ' + e.message + ' — retrying with mute');
           video.muted = true;
           video.play().catch(function () {});
         });
@@ -1773,7 +1768,6 @@
     // Initialize adaptive learning system if available
     if (window.AdaptiveLearning) {
       window.AdaptiveLearning.init();
-      console.log('[AST] AdaptiveLearning initialized');
     }
 
     var launchBtn = document.getElementById('ast-launch-btn');
