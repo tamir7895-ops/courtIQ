@@ -1,0 +1,402 @@
+/* ══════════════════════════════════════════════════════════
+   DASHBOARD REDESIGN v1
+   - Compact player bar (replaces 2 large cards)
+   - Slim Daily Challenge banner
+   - Mobile-first responsive
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Neutralise the old separate card styles ───────────── */
+.db-top-widgets { display: block !important; }
+.profile-summary { display: none !important; }
+.xp-widget      { background: none !important; border: none !important;
+                   padding: 0 !important; margin: 0 !important;
+                   backdrop-filter: none !important; }
+
+/* ══════════════════════════════════════════════════════════
+   COMPACT PLAYER BAR
+   ══════════════════════════════════════════════════════════ */
+.db-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--glass-bg, rgba(255,255,255,0.035));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
+  border-radius: var(--r-md, 14px);
+  padding: 10px 16px;
+  margin-bottom: 16px;
+  min-height: 52px;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Subtle left accent line */
+.db-player-bar::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 3px;
+  background: var(--c-amber, #f5a623);
+  border-radius: 3px 0 0 3px;
+}
+
+/* ── Left: profile section ──────────────────────────────── */
+.db-pbar-profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  min-width: 0;
+}
+
+/* Make avatar small inside bar */
+.db-player-bar .profile-summary-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.db-player-bar .profile-summary-avatar,
+.db-player-bar #profile-mini-avatar {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 12px !important;
+  border-width: 1.5px !important;
+  flex-shrink: 0;
+}
+
+.db-player-bar .profile-summary-pills {
+  display: flex;
+  gap: 5px;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.db-player-bar .profile-pill {
+  font-size: 11px !important;
+  padding: 2px 8px !important;
+  white-space: nowrap;
+}
+
+/* Keep max 2 pills */
+.db-player-bar .profile-pill:nth-child(n+3) {
+  display: none;
+}
+
+/* Skeleton in player bar */
+.db-player-bar .skel-profile-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px;
+  padding: 0;
+  width: 180px;
+}
+
+.db-player-bar .skel-profile-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.db-player-bar .skel-profile-text {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 120px;
+}
+
+/* ── Separator ──────────────────────────────────────────── */
+.db-pbar-sep {
+  width: 1px;
+  height: 28px;
+  background: rgba(255,255,255,0.08);
+  margin: 0 14px;
+  flex-shrink: 0;
+}
+
+/* ── Center: XP section ─────────────────────────────────── */
+.db-pbar-xp {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.db-pbar-xp .xp-badge {
+  width: 26px !important;
+  height: 26px !important;
+  font-size: 13px !important;
+  border-width: 1.5px !important;
+  flex-shrink: 0;
+}
+
+.db-pbar-xp-inner {
+  flex: 1;
+  min-width: 0;
+}
+
+.db-pbar-level-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+
+.db-pbar-level-row .xp-rank {
+  font-size: 12px !important;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+
+.db-pbar-level-row .xp-rank-label {
+  font-size: 9px !important;
+  color: var(--c-muted, rgba(240,237,230,0.55));
+}
+
+.db-pbar-xp-bar {
+  height: 4px !important;
+  border-radius: 2px !important;
+  background: rgba(255,255,255,0.07) !important;
+}
+
+.db-pbar-xp-bar .xp-bar-fill {
+  height: 100% !important;
+  border-radius: 2px !important;
+}
+
+.db-pbar-xp .xp-numbers {
+  font-size: 10px !important;
+  white-space: nowrap;
+  flex-shrink: 0;
+  color: var(--c-dimmer, rgba(240,237,230,0.35));
+}
+
+.db-pbar-xp .xp-numbers strong {
+  color: var(--c-muted, rgba(240,237,230,0.60));
+}
+
+/* ── Right: streak + action buttons ────────────────────── */
+.db-pbar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: 12px;
+}
+
+.db-pbar-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: rgba(245,166,35,0.08);
+  border: 1px solid rgba(245,166,35,0.22);
+  border-radius: 8px;
+  color: var(--c-amber, #f5a623);
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+}
+
+.db-pbar-btn:hover {
+  background: rgba(245,166,35,0.15);
+  box-shadow: 0 2px 10px rgba(245,166,35,0.15);
+  transform: translateY(-1px);
+}
+
+.db-pbar-btn:active { transform: translateY(0); }
+
+.db-pbar-btn--ghost {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.10);
+  color: var(--c-muted, rgba(240,237,230,0.65));
+}
+
+.db-pbar-btn--ghost:hover {
+  background: rgba(255,255,255,0.09);
+  color: var(--c-white, #f0ede6);
+  box-shadow: none;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SLIM DAILY CHALLENGE BANNER
+   ══════════════════════════════════════════════════════════ */
+.dc-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 10px 16px 10px 20px !important;
+  margin-bottom: 16px !important;
+  border-radius: var(--r-md, 14px) !important;
+}
+
+.dc-card .dc-header {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0 !important;
+}
+
+.dc-card .dc-body {
+  flex-shrink: 0;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px;
+}
+
+/* Hide verbose description */
+.dc-card .dc-desc {
+  display: none !important;
+}
+
+/* Hide streak row */
+.dc-card .dc-streak {
+  display: none !important;
+}
+
+/* Smaller icon */
+.dc-icon {
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 16px !important;
+  border-radius: 8px !important;
+}
+
+.dc-name {
+  font-size: 14px !important;
+  line-height: 1.2;
+}
+
+.dc-label {
+  font-size: 9px !important;
+  margin-bottom: 1px !important;
+}
+
+/* Smaller CTA button */
+.dc-complete-btn,
+.dc-done-badge {
+  padding: 6px 14px !important;
+  font-size: 11px !important;
+}
+
+/* Slim skeleton DC banner */
+.skel-dc-wrap {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px;
+  padding: 0 !important;
+  background: none !important;
+}
+
+.skel-dc-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SLIM DASHBOARD MAIN HEADER
+   ══════════════════════════════════════════════════════════ */
+.db-main-header {
+  margin-bottom: 14px !important;
+}
+
+.db-main-title {
+  font-size: 26px !important;
+}
+
+.db-main-subtitle {
+  font-size: 12px !important;
+  margin-top: 1px !important;
+}
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE — ≤ 640px : stack player bar into 2 rows
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .db-player-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px 14px;
+  }
+
+  /* Horizontal sep becomes vertical divider */
+  .db-pbar-sep {
+    width: 100%;
+    height: 1px;
+    margin: 0;
+  }
+
+  .db-pbar-profile {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .db-pbar-xp {
+    width: 100%;
+  }
+
+  .db-pbar-right {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+
+  /* DC banner wraps on mobile */
+  .dc-card {
+    flex-wrap: wrap !important;
+  }
+
+  .dc-card .dc-header {
+    flex: 1 1 100%;
+  }
+
+  .dc-card .dc-body {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .db-main-title {
+    font-size: 20px !important;
+  }
+}
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE — ≤ 400px : ultra compact
+   ══════════════════════════════════════════════════════════ */
+@media (max-width: 400px) {
+  .db-pbar-right {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  /* Show only 1 pill on tiny screens */
+  .db-player-bar .profile-pill:nth-child(n+2) {
+    display: none;
+  }
+
+  .db-pbar-xp .xp-numbers {
+    display: none !important;
+  }
+
+  .db-pbar-btn span {
+    display: none;
+  }
+
+  .db-pbar-btn {
+    padding: 5px 8px;
+  }
+}
