@@ -1358,10 +1358,37 @@
     var candidate = detectRimAuto();
     if (candidate) {
       autoRimCandidate = candidate;
-      // Always skip confirmation — go straight to tracking
-      confirmRimAndStart(candidate.cx, candidate.cy);
-      return;
+      rimCandidateHistory.push(candidate);
+      if (rimCandidateHistory.length > 6) rimCandidateHistory.shift();
+
+      // Need RIM_CONSENSUS_NEEDED consistent detections before confirming
+      if (rimCandidateHistory.length >= RIM_CONSENSUS_NEEDED) {
+        var recent = rimCandidateHistory.slice(-RIM_CONSENSUS_NEEDED);
+        var avgCX = 0, avgCY = 0, avgBW = 0;
+        for (var ri = 0; ri < recent.length; ri++) {
+          avgCX += recent[ri].cx;
+          avgCY += recent[ri].cy;
+          avgBW += (recent[ri].blobW || W * RIM_RX_FRAC * 2);
+        }
+        avgCX /= recent.length;
+        avgCY /= recent.length;
+        avgBW /= recent.length;
+
+        var tol = W * RIM_CONSENSUS_TOL;
+        var allAgree = recent.every(function(c) {
+          return Math.abs(c.cx - avgCX) < tol && Math.abs(c.cy - avgCY) < tol;
+        });
+
+        if (allAgree) {
+          confirmRimAndStart(avgCX, avgCY, avgBW / 2);
+          return;
+        }
+      }
+      return; // keep trying until consensus
     }
+
+    // No candidate this frame — reset streak
+    if (rimCandidateHistory.length > 0) rimCandidateHistory.pop();
 
     // After several color-based failures, try ML-based detection
     if (rimDetectTries >= 6 && mlReady) {
