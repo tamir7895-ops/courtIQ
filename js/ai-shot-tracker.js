@@ -140,12 +140,13 @@
   function isInsidePersonBox(x, y) {
     for (var i = 0; i < personBoxes.length; i++) {
       var pb = personBoxes[i];
-      // Shrink person box by 20% on each side to allow ball near hands
-      var shrink = 0.2;
-      var px = pb.x + pb.w * shrink;
-      var py = pb.y + pb.h * shrink;
-      var pw = pb.w * (1 - 2 * shrink);
-      var ph = pb.h * (1 - 2 * shrink);
+      // Shrink sides by 10% to allow ball near hands, but keep top (face/head) fully excluded
+      var shrinkSide = 0.10;
+      var shrinkBottom = 0.15;
+      var px = pb.x + pb.w * shrinkSide;
+      var py = pb.y;  // no shrink at top — fully exclude face/head
+      var pw = pb.w * (1 - 2 * shrinkSide);
+      var ph = pb.h * (1 - shrinkBottom);
       if (x >= px && x <= px + pw && y >= py && y <= py + ph) return true;
     }
     return false;
