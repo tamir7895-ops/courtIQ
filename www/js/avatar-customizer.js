@@ -825,7 +825,10 @@
         if (url) localStorage.setItem('courtiq_avatar_url', url);
       } catch (e) { /* silent */ }
     }
-    if (url) injectAvatarImg(url);
+    if (url) {
+      injectAvatarImg(url);
+      prewarmAvatarCache(url); // ensure cache is ready for next page load
+    }
     patchPlayerProfile();
   }
 
