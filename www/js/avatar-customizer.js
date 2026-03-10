@@ -72,30 +72,30 @@
     { name: '🌆 Street',     id: 'street',      hex: '4a4a6a', xpRequired: 3 }
   ];
 
-  /* ── Male hair styles ────────────────────────────────────── */
+  /* ── Male hair styles (all verified valid in DiceBear v9) ── */
   var HAIR_MALE = [
-    { name: 'Bald',          id: 'noHair',       top: 'noHair'               },
-    { name: 'Buzz Cut',      id: 'shortFlat',    top: 'shortFlat'            },
-    { name: 'Short Round',   id: 'shortRound',   top: 'shortRound'           },
-    { name: 'Short Curly',   id: 'shortCurly',   top: 'shortCurly'           },
-    { name: 'Short Wavy',    id: 'shortWaved',   top: 'shortWaved'           },
-    { name: 'Caesar',        id: 'theCaesar',    top: 'theCaesar'            },
-    { name: 'Caesar+Part',   id: 'caesarPart',   top: 'theCaesarAndSidePart' },
-    { name: 'Shaved Sides',  id: 'shavedSides',  top: 'shavedSides'          },
-    { name: 'Flat',          id: 'flat',         top: 'flat'                 },
-    { name: 'Sides',         id: 'sides',        top: 'sides'                },
-    { name: 'Fro',           id: 'fro',          top: 'fro'                  },
-    { name: '🏀 Headband',   id: 'froAndBand',   top: 'froAndBand',          xpRequired: 5 },
-    { name: 'Dreads',        id: 'dreads01',     top: 'dreads01'             },
-    { name: 'Dreads 2',      id: 'dreads02',     top: 'dreads02'             },
-    { name: 'Man Bun',       id: 'bun',          top: 'bun'                  },
-    { name: 'Shaggy',        id: 'shaggy',       top: 'shaggy'               },
-    { name: 'Shaggy Mullet', id: 'shaggyMullet', top: 'shaggyMullet'         },
-    { name: 'Mia Wallace',   id: 'miaWallace',   top: 'miaWallace'           },
-    { name: 'Frizzle',       id: 'frizzle',      top: 'frizzle'              },
-    { name: 'Hat',           id: 'hat',          top: 'hat'                  },
-    { name: 'Winter Hat',    id: 'winterHat02',  top: 'winterHat02'          },
-    { name: 'Turban',        id: 'turban',       top: 'turban'               }
+    { name: 'Buzz Cut',     id: 'shortFlat',        top: 'shortFlat'          },
+    { name: 'Shaved Sides', id: 'shavedSides',       top: 'shavedSides'        },
+    { name: 'Short Curly',  id: 'shortCurly',        top: 'shortCurly'         },
+    { name: 'Short Round',  id: 'shortRound',        top: 'shortRound'         },
+    { name: 'Short Wavy',   id: 'shortWaved',        top: 'shortWaved'         },
+    { name: 'Sides',        id: 'sides',             top: 'sides'              },
+    { name: 'Afro',         id: 'fro',               top: 'fro'                },
+    { name: 'Dreads 1',     id: 'dreads01',          top: 'dreads01'           },
+    { name: 'Dreads 2',     id: 'dreads02',          top: 'dreads02'           },
+    { name: '🧢 Cap',       id: 'hat',               top: 'hat'                },
+    { name: 'Man Bun',      id: 'bun',               top: 'bun'                },
+    { name: 'Mia Wallace',  id: 'miaWallace',        top: 'miaWallace'         },
+    { name: 'Big Hair',     id: 'bigHair',           top: 'bigHair',           xpRequired: 3 },
+    { name: 'Bob',          id: 'bob',               top: 'bob',               xpRequired: 3 },
+    { name: 'Curly',        id: 'curly',             top: 'curly',             xpRequired: 3 },
+    { name: 'Curvy',        id: 'curvy',             top: 'curvy',             xpRequired: 3 },
+    { name: 'Long Hair',    id: 'longButNotTooLong', top: 'longButNotTooLong', xpRequired: 3 },
+    { name: 'Straight 1',   id: 'straight01',        top: 'straight01',        xpRequired: 5 },
+    { name: 'Straight 2',   id: 'straight02',        top: 'straight02',        xpRequired: 5 },
+    { name: 'Str+Strand',   id: 'straightAndStrand', top: 'straightAndStrand', xpRequired: 5 },
+    { name: 'Frida',        id: 'frida',             top: 'frida',             xpRequired: 5 },
+    { name: 'Hijab',        id: 'hijab',             top: 'hijab',             xpRequired: 5 }
   ];
 
   /* ── Female hair styles ──────────────────────────────────── */
