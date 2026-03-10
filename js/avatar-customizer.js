@@ -11,10 +11,10 @@
 
   /* ── Option tables ──────────────────────────────────────── */
   var SKIN_COLORS = [
-    { name: 'Pale',       id: 'pale',      hex: 'ffdbac' },
-    { name: 'Light',      id: 'light',     hex: 'fddbb4' },
-    { name: 'Mellow',     id: 'mellow',    hex: 'edb98a' },
-    { name: 'Brown',      id: 'brown',     hex: 'd08b5b' },
+    { name: 'Pale',       id: 'pale',      hex: 'ffdbb4' },  /* schema: ffdbb4 */
+    { name: 'Light',      id: 'light',     hex: 'edb98a' },
+    { name: 'Mellow',     id: 'mellow',    hex: 'd08b5b' },
+    { name: 'Brown',      id: 'brown',     hex: 'ae5d29' },
     { name: 'Dark Brown', id: 'darkBrown', hex: '614335' }
   ];
 
