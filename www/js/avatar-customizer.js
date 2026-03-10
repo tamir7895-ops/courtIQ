@@ -204,18 +204,36 @@
     if (typeof PlayerProfile !== 'undefined' && PlayerProfile.renderSummary) {
       PlayerProfile.renderSummary();
     }
-    // Re-render shop preview if visible
+    // Re-render shop preview if visible (2D canvas)
     var shopContainer = document.getElementById('shop-avatar-container');
-    if (shopContainer && typeof AvatarBridge !== 'undefined') {
+    if (shopContainer && typeof AvatarBuilder !== 'undefined') {
       var ob2 = getOnboarding();
-      if (ob2.avatar) AvatarBridge.update(shopContainer, Object.assign({}, ob2.avatar, { position: ob2.position || 'SG' }));
+      if (ob2.avatar) {
+        var sc = shopContainer.querySelector('canvas');
+        if (!sc) {
+          shopContainer.innerHTML = '';
+          sc = document.createElement('canvas');
+          sc.width = 200; sc.height = 280;
+          sc.style.width = '100%'; sc.style.height = '100%';
+          shopContainer.appendChild(sc);
+        }
+        AvatarBuilder.draw(sc, Object.assign({}, ob2.avatar, { position: ob2.position || 'SG' }));
+      }
     }
 
-    // Re-render sidebar mini avatar
+    // Re-render sidebar mini avatar (2D)
     var sidebarAvatar = document.getElementById('db-sidebar-avatar');
-    if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
+    if (sidebarAvatar && typeof AvatarBuilder !== 'undefined') {
       var ob3 = getOnboarding();
-      if (ob3.avatar) AvatarBridge.renderMini(sidebarAvatar, ob3.avatar);
+      if (ob3.avatar) {
+        sidebarAvatar.innerHTML = '';
+        var miniC = document.createElement('canvas');
+        miniC.width = 48; miniC.height = 48;
+        miniC.style.width = '100%'; miniC.style.height = '100%';
+        miniC.style.borderRadius = '50%';
+        sidebarAvatar.appendChild(miniC);
+        AvatarBuilder.drawMini(miniC, ob3.avatar);
+      }
     }
 
     close();
