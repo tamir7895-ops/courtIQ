@@ -194,17 +194,11 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   STEP 2 — EDITOR LAYOUT (scrollable inner area)
+   STEP 2 — EDITOR LAYOUT
+   Preview + tabs are fixed; only panel scrolls.
    ════════════════════════════════════════════════════════════ */
-.ac2-editor-body {
-  flex: 1;
-  overflow-y: auto;
-  overflow-x: hidden;
-  overscroll-behavior: contain;
-}
-/* step editor uses native flex scroll */
 #ac2-step-editor {
-  overflow: hidden;   /* outer container clips */
+  overflow: hidden;
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -212,12 +206,12 @@
    ════════════════════════════════════════════════════════════ */
 .ac2-preview-wrap {
   position: relative;
-  width: 200px;
-  height: 240px;
-  margin: 16px auto 0;
+  width: 160px;
+  height: 190px;
+  margin: 14px auto 0;
   background: var(--c-surface, #161921);
   border: 1.5px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
+  border-radius: 14px;
   overflow: hidden;
   flex-shrink: 0;
 }
