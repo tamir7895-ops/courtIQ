@@ -87,6 +87,12 @@ self.addEventListener('activate', function (event) {
 self.addEventListener('fetch', function (event) {
   var url = event.request.url;
 
+  // DEVELOPMENT: always go to network for localhost — never cache local files
+  if (url.includes('127.0.0.1') || url.includes('localhost')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
   // Network-first: Supabase, Anthropic, and CDN resources
   if (
     url.includes('supabase.co') ||
