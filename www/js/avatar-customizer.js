@@ -123,22 +123,19 @@
     { name: 'Hijab',        id: 'hijab',             top: 'hijab',           xpRequired: 5 }
   ];
 
-  /* ── Eyes ────────────────────────────────────────────────── */
+  /* ── Eyes (all verified valid in DiceBear v9) ───────────── */
   var EYE_STYLES = [
-    { name: 'Default',     id: 'default'     },
-    { name: 'Happy',       id: 'happy'       },
-    { name: 'Wink',        id: 'wink'        },
-    { name: 'Wink Wild',   id: 'winkWacky'   },
-    { name: 'Squint',      id: 'squint'      },
-    { name: 'Surprised',   id: 'surprised'   },
-    { name: 'Side Glance', id: 'side'        },
-    { name: 'Eye Roll',    id: 'eyeRoll'     },
-    { name: 'Close',       id: 'close'       },
-    { name: 'Sleepy',      id: 'tiredSleepy' },
-    { name: 'Cry',         id: 'cry'         },
-    { name: 'Dizzy',       id: 'dizzy',      xpRequired: 3 },
-    { name: '✕ Dizzy',    id: 'xDizzy',     xpRequired: 3 },
-    { name: 'Hearts',      id: 'hearts',     xpRequired: 3 }
+    { name: 'Default',     id: 'default'                 },
+    { name: 'Happy',       id: 'happy'                   },
+    { name: 'Wink',        id: 'wink'                    },
+    { name: 'Wink Wild',   id: 'winkWacky'               },
+    { name: 'Squint',      id: 'squint'                  },
+    { name: 'Surprised',   id: 'surprised'               },
+    { name: 'Side Glance', id: 'side'                    },
+    { name: 'Eye Roll',    id: 'eyeRoll'                 },
+    { name: 'Cry',         id: 'cry'                     },
+    { name: '✕ Dizzy',    id: 'xDizzy',  xpRequired: 3  },
+    { name: '💜 Hearts',   id: 'hearts',  xpRequired: 3  }
   ];
 
   /* ── Eyebrows ─────────────────────────────────────────────── */
@@ -233,7 +230,7 @@
     {
       name: 'MVP', emoji: '🏆', desc: 'Most Valuable Player',
       state: {
-        skin: 'light', hair: 'froAndBand', hairColor: 'black',
+        skin: 'light', hair: 'fro', hairColor: 'black',
         eyebrows: 'raisedExcited', eyes: 'happy', mouth: 'smile',
         facialHair: 'beardLight', facialHairColor: 'black',
         clothes: 'blazerAndShirt', clothesColor: 'lakers_gold',
@@ -263,7 +260,7 @@
     {
       name: 'Court Legend', emoji: '🌟', desc: 'The G.O.A.T.',
       state: {
-        skin: 'darkBrown', hair: 'theCaesar', hairColor: 'black',
+        skin: 'darkBrown', hair: 'shavedSides', hairColor: 'black',
         eyebrows: 'defaultNatural', eyes: 'default', mouth: 'serious',
         facialHair: 'beardMedium', facialHairColor: 'black',
         clothes: 'hoodie', clothesColor: 'celtics',
