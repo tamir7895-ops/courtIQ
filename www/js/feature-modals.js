@@ -633,8 +633,9 @@
     const log = document.getElementById('fw-chat-log');
     if (!log) return;
 
-    // user message
-    log.innerHTML += `<div class="fw-msg user"><div class="fw-msg-avatar">👤</div><div class="fw-msg-bubble">${msg}</div></div>`;
+    // user message — escapeHTML prevents XSS from user-typed input
+    const safemsg = typeof escapeHTML === 'function' ? escapeHTML(msg) : msg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    log.innerHTML += `<div class="fw-msg user"><div class="fw-msg-avatar">👤</div><div class="fw-msg-bubble">${safemsg}</div></div>`;
 
     // typing indicator
     const typingId = 'fw-typing-' + Date.now();
