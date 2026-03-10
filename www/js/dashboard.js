@@ -30,12 +30,18 @@
       const name = session.user.user_metadata?.first_name || session.user.email;
       sidebarName.textContent = name;
 
-      // Render 3D mini avatar in sidebar
-      if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
+      // Render 2D Memoji-style mini avatar in sidebar
+      if (sidebarAvatar) {
         try {
           var obSidebar = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-          if (obSidebar.avatar) {
-            AvatarBridge.renderMini(sidebarAvatar, obSidebar.avatar);
+          if (obSidebar.avatar && typeof AvatarBuilder !== 'undefined') {
+            sidebarAvatar.innerHTML = '';
+            var miniC = document.createElement('canvas');
+            miniC.width = 48; miniC.height = 48;
+            miniC.style.width = '100%'; miniC.style.height = '100%';
+            miniC.style.borderRadius = '50%';
+            sidebarAvatar.appendChild(miniC);
+            AvatarBuilder.drawMini(miniC, obSidebar.avatar);
           } else {
             // No avatar data yet — show initials
             if (typeof name === 'string') {
