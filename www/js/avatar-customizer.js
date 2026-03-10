@@ -162,21 +162,24 @@
 
   /* ── Live Preview ───────────────────────────────────────── */
   function redraw() {
+    if (!container || typeof AvatarBuilder === 'undefined') return;
+
     var ob = getOnboarding();
     var drawCfg = JSON.parse(JSON.stringify(tempCfg));
     drawCfg.position = ob.position || 'SG';
 
-    // Use 3D bridge if available
-    if (container && typeof AvatarBridge !== 'undefined') {
-      AvatarBridge.update(container, drawCfg);
-      return;
+    // Always use 2D Memoji-style canvas
+    var canvas = container.querySelector('canvas');
+    if (!canvas) {
+      container.innerHTML = '';
+      canvas = document.createElement('canvas');
+      canvas.width = 200;
+      canvas.height = 280;
+      canvas.style.width = '100%';
+      canvas.style.height = '100%';
+      container.appendChild(canvas);
     }
-
-    // Fallback to direct 2D
-    var canvas = container ? container.querySelector('canvas') : null;
-    if (canvas && typeof AvatarBuilder !== 'undefined') {
-      AvatarBuilder.draw(canvas, drawCfg);
-    }
+    AvatarBuilder.draw(canvas, drawCfg);
   }
 
   /* ── Save ───────────────────────────────────────────────── */
