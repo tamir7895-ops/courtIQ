@@ -251,9 +251,13 @@
     if (!overlay) return;
     overlay.classList.remove('active');
     document.body.style.overflow = '';
-    // Dispose 3D scene to free GPU memory
-    if (container && typeof AvatarBridge !== 'undefined') {
-      AvatarBridge.dispose(container);
+    // Clear canvas on close to free memory
+    if (container) {
+      var canvas = container.querySelector('canvas');
+      if (canvas) {
+        var ctx = canvas.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
     }
   }
 
