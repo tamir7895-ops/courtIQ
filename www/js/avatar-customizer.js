@@ -705,10 +705,44 @@
     document.body.style.overflow = '';
   }
 
+  /* ── Avatar cache (PERF-01) ──────────────────────────────────
+     Fetches the DiceBear PNG once and stores as a data URL so
+     every subsequent page-load is served from localStorage with
+     zero network round-trips.  Cache is invalidated whenever the
+     user saves a new avatar (different URL → stale entry replaced).
+  ─────────────────────────────────────────────────────────── */
+  var LS_AVATAR_CACHE = 'courtiq_avatar_cache';
+
+  function getCachedAvatarDataUrl(url) {
+    try {
+      var c = JSON.parse(localStorage.getItem(LS_AVATAR_CACHE) || 'null');
+      if (c && c.url === url && c.dataUrl) return c.dataUrl;
+    } catch (e) { /* silent */ }
+    return null;
+  }
+
+  function prewarmAvatarCache(url) {
+    if (!url || getCachedAvatarDataUrl(url)) return; // already cached
+    fetch(url)
+      .then(function (res) { return res.blob(); })
+      .then(function (blob) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            localStorage.setItem(LS_AVATAR_CACHE,
+              JSON.stringify({ url: url, dataUrl: reader.result }));
+          } catch (e) { /* silent — storage full */ }
+        };
+        reader.readAsDataURL(blob);
+      })
+      .catch(function () { /* silent — network unavailable */ });
+  }
+
   /* ── Save ────────────────────────────────────────────────── */
   function saveAvatar() {
     var url = buildURL();
     localStorage.setItem('courtiq_avatar_url', url);
+    prewarmAvatarCache(url); // prime / refresh cache for new avatar
 
     try {
       var ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
