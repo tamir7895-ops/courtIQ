@@ -264,27 +264,23 @@
         '<button class="ac2-close-btn" id="ac2-close-editor" type="button">&#x2715;</button>',
       '</div>',
 
-      '<div class="ac2-editor-body">',
-
-        /* preview */
-        '<div class="ac2-preview-wrap" id="ac2-preview-wrap">',
-          '<div class="ac2-spinner" aria-hidden="true"></div>',
-          '<img class="ac2-preview-img" id="ac2-preview-img" alt="Avatar" width="300" height="300" />',
-        '</div>',
-
-        /* tabs */
-        '<nav class="ac2-tabs" id="ac2-tabs" role="tablist">',
-          '<button class="ac2-tab active" data-tab="face"    role="tab" type="button">Face</button>',
-          '<button class="ac2-tab"        data-tab="hair"    role="tab" type="button">Hair</button>',
-          '<button class="ac2-tab"        data-tab="eyes"    role="tab" type="button">Eyes</button>',
-          '<button class="ac2-tab"        data-tab="clothes" role="tab" type="button">Clothes</button>',
-          '<button class="ac2-tab"        data-tab="more"    role="tab" type="button">More</button>',
-        '</nav>',
-
-        /* panel */
-        '<div class="ac2-panel" id="ac2-panel"></div>',
-
+      /* preview — fixed, does NOT scroll */
+      '<div class="ac2-preview-wrap" id="ac2-preview-wrap">',
+        '<div class="ac2-spinner" aria-hidden="true"></div>',
+        '<img class="ac2-preview-img" id="ac2-preview-img" alt="Avatar" width="300" height="300" />',
       '</div>',
+
+      /* tabs — fixed */
+      '<nav class="ac2-tabs" id="ac2-tabs" role="tablist">',
+        '<button class="ac2-tab active" data-tab="face"    role="tab" type="button">Face</button>',
+        '<button class="ac2-tab"        data-tab="hair"    role="tab" type="button">Hair</button>',
+        '<button class="ac2-tab"        data-tab="eyes"    role="tab" type="button">Eyes</button>',
+        '<button class="ac2-tab"        data-tab="clothes" role="tab" type="button">Clothes</button>',
+        '<button class="ac2-tab"        data-tab="more"    role="tab" type="button">More</button>',
+      '</nav>',
+
+      /* panel — scrolls independently */
+      '<div class="ac2-panel" id="ac2-panel"></div>',
 
       '<div class="ac2-footer">',
         '<button class="ac2-btn-ghost"   id="ac2-cancel" type="button">Cancel</button>',
