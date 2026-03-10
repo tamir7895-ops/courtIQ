@@ -2593,5 +2593,60 @@ if ('serviceWorker' in navigator) {
 
 </div><!-- /ast-overlay -->
 
+<!-- ── Skill Stats Renderer ── -->
+<script>
+(function () {
+  function renderSkillStats() {
+    var xpData = (typeof XPSystem !== 'undefined') ? XPSystem.load() : { xp: 0, history: [] };
+    var history = xpData.history || [];
+    var sessions   = history.filter(function(e) { return e.reason === 'Session Logged'; }).length;
+    var drills     = history.filter(function(e) { return e.reason === 'Drill Saved' || e.reason === 'Drills Generated'; }).length;
+    var challenges = history.filter(function(e) { return e.reason === 'Daily Challenge'; }).length;
+
+    var profile = (typeof PlayerProfile !== 'undefined') ? PlayerProfile.load() : null;
+    var sl   = profile ? (profile.skillLevel || '').toLowerCase() : '';
+    var base = sl.indexOf('adv') !== -1 ? 68 : sl.indexOf('int') !== -1 ? 48 : 32;
+
+    var shooting  = Math.min(97, base + sessions * 4 + challenges * 2);
+    var dribbling = Math.min(97, base + drills * 5 + sessions * 2);
+    var defense   = Math.min(97, base + challenges * 6 + sessions * 2);
+    var gameiq    = (typeof XPSystem !== 'undefined') ? XPSystem.getProgress() : Math.min(97, base + sessions * 3);
+
+    if (sessions === 0 && drills === 0 && challenges === 0) {
+      shooting = dribbling = defense = gameiq = 0;
+    }
+
+    setStat('shooting',  shooting);
+    setStat('dribbling', dribbling);
+    setStat('defense',   defense);
+    setStat('gameiq',    gameiq);
+  }
+
+  function setStat(name, pct) {
+    var pctEl = document.getElementById('stat-' + name);
+    var barEl = document.getElementById('stat-' + name + '-bar');
+    if (pctEl) pctEl.textContent = pct > 0 ? pct + '%' : '–';
+    if (barEl) setTimeout(function() { barEl.style.width = pct + '%'; }, 150);
+  }
+
+  function init() {
+    renderSkillStats();
+    if (typeof XPSystem !== 'undefined' && XPSystem.render) {
+      var _origRender = XPSystem.render;
+      XPSystem.render = function() {
+        _origRender.apply(this, arguments);
+        renderSkillStats();
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 200);
+  }
+})();
+</script>
+
 </body>
 </html>
