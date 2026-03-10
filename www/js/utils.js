@@ -66,9 +66,21 @@
     }
   };
 
+  /* ── Shared constants ────────────────────────────────────────
+     Single source of truth for XP level thresholds.
+     Consumed by gamification.js and social-hub.js.
+  ─────────────────────────────────────────────────────────── */
+  var COURTIQ_LEVELS = [
+    { name: 'Rookie',   icon: '🏀', threshold: 0,    cls: 'rookie'   },
+    { name: 'Hooper',   icon: '⚡', threshold: 200,  cls: 'hooper'   },
+    { name: 'All-Star', icon: '⭐', threshold: 600,  cls: 'all-star' },
+    { name: 'MVP',      icon: '👑', threshold: 1500, cls: 'mvp'      }
+  ];
+
   /* ── Exports ─────────────────────────────────────────────── */
-  window.escapeHTML    = escapeHTML;
-  window.safeNumber    = safeNumber;
-  window.safeJSONParse = safeJSONParse;
-  window.LS            = LS;
+  window.escapeHTML      = escapeHTML;
+  window.safeNumber      = safeNumber;
+  window.safeJSONParse   = safeJSONParse;
+  window.LS              = LS;
+  window.COURTIQ_LEVELS  = COURTIQ_LEVELS;
 })();
