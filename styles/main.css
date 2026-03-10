@@ -817,12 +817,13 @@
     }
     .stats-bar-number {
       font-family: var(--font-display);
-      font-size: 56px;
+      font-size: clamp(36px, 5vw, 56px);
       font-weight: 900;
       color: var(--c-amber);
       letter-spacing: -0.02em;
       line-height: 1;
       margin-bottom: 8px;
+      overflow: visible;
     }
     .stats-bar-label {
       font-size: 13px;
