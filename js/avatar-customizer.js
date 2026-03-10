@@ -53,16 +53,16 @@
   ];
 
   var CLOTHES = [
-    { name: 'Blazer',    id: 'blazerShirt'   },
-    { name: 'Graphic',   id: 'graphicShirt'  },
-    { name: 'Hoodie',    id: 'hoodie'        },
-    { name: 'Overall',   id: 'overall'       },
-    { name: 'Crew Neck', id: 'shirtCrewNeck' },
-    { name: 'V-Neck',    id: 'shirtVNeck'    }
+    { name: 'Blazer',    id: 'blazerAndShirt' },
+    { name: 'Graphic',   id: 'graphicShirt'   },
+    { name: 'Hoodie',    id: 'hoodie'         },
+    { name: 'Overall',   id: 'overall'        },
+    { name: 'Crew Neck', id: 'shirtCrewNeck'  },
+    { name: 'V-Neck',    id: 'shirtVNeck'     }
   ];
 
   var ACCESSORIES = [
-    { name: 'None',    id: 'none',           param: 'blank'          },
+    { name: 'None',    id: 'none',           param: ''               },
     { name: 'Glasses', id: 'prescription01', param: 'prescription01' }
   ];
 
