@@ -187,11 +187,21 @@
 
   /* ── Save ───────────────────────────────────────────────── */
   function save() {
+    var ob;
     try {
-      var ob = getOnboarding();
+      ob = getOnboarding();
       ob.avatar = JSON.parse(JSON.stringify(tempCfg));
       localStorage.setItem('courtiq-onboarding-data', JSON.stringify(ob));
-    } catch (e) { /* silent */ }
+    } catch (e) { ob = {}; /* silent */ }
+
+    // ── Cloud sync: save avatar to Supabase so it restores on any device ──
+    if (typeof window.currentUser !== 'undefined' && window.currentUser &&
+        typeof DataService !== 'undefined') {
+      DataService.saveUserData({
+        onboarding_data: ob,
+        avatar: ob.avatar || null
+      }).catch(function () {});
+    }
 
     // Re-render mini avatar everywhere
     if (typeof PlayerProfile !== 'undefined' && PlayerProfile.renderSummary) {
