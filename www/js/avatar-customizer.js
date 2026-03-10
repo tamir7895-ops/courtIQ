@@ -341,6 +341,7 @@
     /* accessories */
     var accS = find(ACCESSORIES, function (a) { return a.id === st.accessory; });
     if (accS && accS.param) p.push('accessories=' + accS.param);
+    else p.push('accessoriesProbability=0'); /* no accessory → force hide */
 
     /* facial hair (male) */
     if (st.gender !== 'female') {
