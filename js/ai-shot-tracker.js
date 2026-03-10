@@ -1187,10 +1187,7 @@
     ctx.drawImage(video, 0, 0, W, H);
     frameCount++;
 
-    // DIAG: heartbeat log
-    if (frameCount === 1 || frameCount % 60 === 0) {
-      console.log('[AST diag] frameLoop fc=' + frameCount + ' phase=' + phase + ' isDetecting=' + isDetecting + ' ts=' + (video ? video.currentTime.toFixed(2) : '?'));
-    }
+
 
     if (phase === PHASE.TRACKING) processBall(lastBall);
     drawOverlay(lastBall);
