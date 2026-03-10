@@ -77,10 +77,25 @@
     { name: 'MVP',      icon: '👑', threshold: 1500, cls: 'mvp'      }
   ];
 
+  /* ── AI Prompt sanitiser ─────────────────────────────────────
+     Strips control characters (including newlines) and trims to
+     maxLen.  Use before embedding any user value in an AI prompt
+     to prevent prompt-injection via newline smuggling.
+  ─────────────────────────────────────────────────────────── */
+  function sanitizePromptStr(val, maxLen) {
+    if (val == null) return '';
+    var s = String(val)
+      .replace(/[\x00-\x1F\x7F]/g, ' ')  // strip newlines & control chars
+      .replace(/\s+/g, ' ')              // collapse runs of whitespace
+      .trim();
+    return maxLen ? s.slice(0, maxLen) : s;
+  }
+
   /* ── Exports ─────────────────────────────────────────────── */
-  window.escapeHTML      = escapeHTML;
-  window.safeNumber      = safeNumber;
-  window.safeJSONParse   = safeJSONParse;
-  window.LS              = LS;
-  window.COURTIQ_LEVELS  = COURTIQ_LEVELS;
+  window.escapeHTML          = escapeHTML;
+  window.safeNumber          = safeNumber;
+  window.safeJSONParse       = safeJSONParse;
+  window.LS                  = LS;
+  window.COURTIQ_LEVELS      = COURTIQ_LEVELS;
+  window.sanitizePromptStr   = sanitizePromptStr;
 })();
