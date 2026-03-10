@@ -122,8 +122,15 @@
 
     <nav class="db-sidebar-nav" role="navigation" aria-label="Dashboard navigation">
       <div class="db-sidebar-group">
+        <button class="db-sidebar-item active" data-tab="home">
+          <span class="db-sidebar-icon">🏠</span>
+          <span class="db-sidebar-text">Home</span>
+        </button>
+      </div>
+
+      <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Training</div>
-        <button class="db-sidebar-item active" data-tab="log">
+        <button class="db-sidebar-item" data-tab="log">
           <span class="db-sidebar-icon">📋</span>
           <span class="db-sidebar-text">Log Session</span>
         </button>
@@ -219,72 +226,19 @@
   <main class="db-main" id="db-main">
     <div class="db-main-inner">
 
-    <!-- Breadcrumb topbar -->
+    <!-- Topbar -->
     <div class="db-topbar" id="db-topbar">
       <div class="db-breadcrumb">
-        <span class="db-breadcrumb-root">Dashboard</span>
-        <span class="db-breadcrumb-sep">/</span>
-        <span class="db-breadcrumb-current" id="db-breadcrumb-current">Log Session</span>
+        <span class="db-breadcrumb-current" id="db-breadcrumb-current">Home</span>
       </div>
       <div class="db-topbar-right">
         <span class="db-topbar-date" id="db-topbar-date"></span>
-      </div>
-    </div>
-
-    <!-- Dashboard header -->
-    <div class="db-main-header">
-      <div>
-        <h1 class="db-main-title">Dashboard</h1>
-        <p class="db-main-subtitle">Track your progress and train smarter with AI</p>
-      </div>
-      <div class="db-main-header-right">
-        <div class="db-week-pill">
-          <span id="db-week-label">Week 1</span>
-          <span id="db-session-count">0 sessions logged</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Top widgets row -->
-    <div class="db-top-widgets">
-      <!-- Player Profile Summary -->
-      <div class="profile-summary" id="profile-summary-card">
-        <!-- Skeleton shown while content loads -->
-        <div class="skel-profile-wrap" id="skel-profile">
-          <div class="skel-profile-row">
-            <div class="skel skel-circle skel-avatar"></div>
-            <div class="skel-profile-text">
-              <div class="skel skel-line-lg" style="width:55%"></div>
-              <div class="skel skel-line"    style="width:40%"></div>
-              <div class="skel skel-line-sm" style="width:30%"></div>
-            </div>
-          </div>
-          <div class="skel skel-line" style="width:70%"></div>
-          <div class="skel skel-line-sm" style="width:50%"></div>
-        </div>
-        <div id="profile-summary-content"></div>
-        <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
-          <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
-        </div>
-      </div>
-
-      <!-- XP / Level Widget -->
-      <div class="xp-widget" id="xp-widget">
-        <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
-        <div class="xp-info">
-          <div class="xp-info-top">
-            <div>
-              <span class="xp-rank" id="xp-rank">Rookie</span>
-              <span class="xp-rank-label">Level</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
-              <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;cursor:default;"></div>
-            </div>
-          </div>
-          <div class="xp-bar">
-            <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+        <!-- Compact profile badge -->
+        <div class="db-topbar-profile" id="db-topbar-profile" onclick="dbSwitchTab('home')">
+          <div class="db-topbar-profile-avatar" id="db-topbar-avatar"></div>
+          <div class="db-topbar-profile-info">
+            <span class="db-topbar-profile-name" id="db-topbar-profile-name">Player</span>
+            <span class="db-topbar-profile-xp" id="db-topbar-profile-xp">0 XP</span>
           </div>
         </div>
       </div>
@@ -303,27 +257,159 @@
       </div>
     </div>
 
-    <!-- Daily Challenge Card -->
-    <div class="dc-card" id="dc-card">
-      <!-- Skeleton shown until DailyWorkout renders content -->
-      <div class="skel-dc-wrap" id="skel-dc">
-        <div class="skel-dc-row">
-          <div class="skel skel-circle" style="width:40px;height:40px;flex-shrink:0;"></div>
-          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
-            <div class="skel skel-line-lg" style="width:50%"></div>
-            <div class="skel skel-line"    style="width:75%"></div>
+    <!-- ══ TAB: HOME ══ -->
+    <div class="db-panel active" id="db-panel-home">
+
+      <!-- Hero welcome -->
+      <div class="home-hero">
+        <div class="home-hero-text">
+          <h1 class="home-hero-title">Welcome to Court<span>IQ</span></h1>
+          <p class="home-hero-sub">Your AI-powered basketball training companion. Track sessions, get personalized drills, and level up your game.</p>
+        </div>
+        <div class="home-hero-stats">
+          <div class="db-week-pill">
+            <span id="db-week-label">Week 1</span>
+            <span id="db-session-count">0 sessions logged</span>
           </div>
         </div>
-        <div class="skel skel-rect" style="height:48px;width:100%"></div>
-        <div style="display:flex;gap:10px;">
-          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
-          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+      </div>
+
+      <!-- Profile + XP Row -->
+      <div class="db-top-widgets">
+        <!-- Player Profile Summary -->
+        <div class="profile-summary" id="profile-summary-card">
+          <div class="skel-profile-wrap" id="skel-profile">
+            <div class="skel-profile-row">
+              <div class="skel skel-circle skel-avatar"></div>
+              <div class="skel-profile-text">
+                <div class="skel skel-line-lg" style="width:55%"></div>
+                <div class="skel skel-line"    style="width:40%"></div>
+                <div class="skel skel-line-sm" style="width:30%"></div>
+              </div>
+            </div>
+            <div class="skel skel-line" style="width:70%"></div>
+            <div class="skel skel-line-sm" style="width:50%"></div>
+          </div>
+          <div id="profile-summary-content"></div>
+          <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
+            <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
+          </div>
+        </div>
+
+        <!-- XP / Level Widget -->
+        <div class="xp-widget" id="xp-widget">
+          <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
+          <div class="xp-info">
+            <div class="xp-info-top">
+              <div>
+                <span class="xp-rank" id="xp-rank">Rookie</span>
+                <span class="xp-rank-label">Level</span>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;">
+                <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
+                <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;cursor:default;"></div>
+              </div>
+            </div>
+            <div class="xp-bar">
+              <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <!-- Player context row -->
-    <div class="db-context-row">
+      <!-- Daily Challenge Card -->
+      <div class="dc-card" id="dc-card">
+        <div class="skel-dc-wrap" id="skel-dc">
+          <div class="skel-dc-row">
+            <div class="skel skel-circle" style="width:40px;height:40px;flex-shrink:0;"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+              <div class="skel skel-line-lg" style="width:50%"></div>
+              <div class="skel skel-line"    style="width:75%"></div>
+            </div>
+          </div>
+          <div class="skel skel-rect" style="height:48px;width:100%"></div>
+          <div style="display:flex;gap:10px;">
+            <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+            <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Actions Grid -->
+      <div class="home-section-label">Quick Actions</div>
+      <div class="home-features-grid">
+        <button class="home-feature-card" onclick="dbSwitchTab('log')">
+          <div class="home-feature-icon">📋</div>
+          <div class="home-feature-name">Log Session</div>
+          <div class="home-feature-desc">Record today's training data</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('drills')">
+          <div class="home-feature-icon">🎯</div>
+          <div class="home-feature-name">Drills</div>
+          <div class="home-feature-desc">AI-generated drills for your position</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('workouts')">
+          <div class="home-feature-icon">🏀</div>
+          <div class="home-feature-name">Workouts</div>
+          <div class="home-feature-desc">Full workout programs</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('shots')">
+          <div class="home-feature-icon">🏹</div>
+          <div class="home-feature-name">Shot Tracker</div>
+          <div class="home-feature-desc">Track and analyze your shooting</div>
+        </button>
+      </div>
+
+      <!-- Analytics & Tools -->
+      <div class="home-section-label">Analytics & Tools</div>
+      <div class="home-features-grid">
+        <button class="home-feature-card" onclick="dbSwitchTab('summary')">
+          <div class="home-feature-icon">📊</div>
+          <div class="home-feature-name">Weekly Summary</div>
+          <div class="home-feature-desc">AI-powered performance insights</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('coach')">
+          <div class="home-feature-icon">🏋️</div>
+          <div class="home-feature-name">AI Coach</div>
+          <div class="home-feature-desc">Personalized program adjustments</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('calendar')">
+          <div class="home-feature-icon">📆</div>
+          <div class="home-feature-name">Calendar</div>
+          <div class="home-feature-desc">Weekly training schedule</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('history')">
+          <div class="home-feature-icon">📅</div>
+          <div class="home-feature-name">History</div>
+          <div class="home-feature-desc">Browse all past weeks</div>
+        </button>
+      </div>
+
+      <!-- Profile & Social -->
+      <div class="home-section-label">Profile & Social</div>
+      <div class="home-features-grid home-features-grid--3">
+        <button class="home-feature-card" onclick="dbSwitchTab('archetype')">
+          <div class="home-feature-icon">🧬</div>
+          <div class="home-feature-name">Archetype</div>
+          <div class="home-feature-desc">Discover your player DNA</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('moves')">
+          <div class="home-feature-icon">🤸</div>
+          <div class="home-feature-name">Pro Moves</div>
+          <div class="home-feature-desc">Learn signature moves</div>
+        </button>
+        <button class="home-feature-card" onclick="dbSwitchTab('social')">
+          <div class="home-feature-icon">🏆</div>
+          <div class="home-feature-name">Social Hub</div>
+          <div class="home-feature-desc">Connect with other players</div>
+        </button>
+      </div>
+
+    </div><!-- /home panel -->
+
+    <!-- Player context row (for Log Session panel) -->
+    <div class="db-context-row" id="db-context-row">
       <div class="db-field">
         <label class="db-label">👤 Player Name</label>
         <input class="db-input" id="db-player" type="text" value="Marcus R." />
@@ -338,7 +424,7 @@
     </div>
 
     <!-- ── TAB: LOG ── -->
-    <div class="db-panel active" id="db-panel-log">
+    <div class="db-panel" id="db-panel-log">
       <div class="db-layout">
 
         <!-- Input form -->

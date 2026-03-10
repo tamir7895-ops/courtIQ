@@ -96,6 +96,23 @@
           if (c) AvatarBuilder.drawMini(c, onboarding.avatar);
         }, 0);
       }
+
+      // Update compact topbar profile
+      var topbarName = document.getElementById('db-topbar-profile-name');
+      if (topbarName && data.name) topbarName.textContent = data.name;
+      var topbarAvatar = document.getElementById('db-topbar-avatar');
+      if (topbarAvatar) {
+        if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+          topbarAvatar.innerHTML = '<canvas id="topbar-mini-avatar" width="32" height="32" style="border-radius:50%;width:100%;height:100%"></canvas>';
+          setTimeout(function () {
+            var tc = document.getElementById('topbar-mini-avatar');
+            if (tc) AvatarBuilder.drawMini(tc, onboarding.avatar);
+          }, 0);
+        } else {
+          var initials = (data.name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          topbarAvatar.textContent = initials;
+        }
+      }
     },
 
     openEditor: function () {

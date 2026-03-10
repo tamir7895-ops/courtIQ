@@ -138,6 +138,10 @@
         dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       }
 
+      // Hide context row by default (only shows on log tab)
+      var contextRow = document.getElementById('db-context-row');
+      if (contextRow) contextRow.style.display = 'none';
+
       // Load profile → populate player name & position
       const profile = await DataService.getProfile();
       const positionMap = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward', PF: 'Power Forward', C: 'Center' };
@@ -157,6 +161,10 @@
           const playerName = profile.first_name || (onboarding && onboarding.name) || '';
           if (playerName) notifNameEl.value = playerName;
         }
+
+        // Update compact topbar profile name
+        const topbarName = document.getElementById('db-topbar-profile-name');
+        if (topbarName && profile.first_name) topbarName.textContent = profile.first_name;
       }
 
       // Load all weeks with sessions
@@ -272,11 +280,17 @@
     if (panel) panel.classList.add('active');
 
     // Update breadcrumb
+    // Show/hide context row (only for log panel)
+    var contextRow = document.getElementById('db-context-row');
+    if (contextRow) contextRow.style.display = (id === 'log') ? '' : 'none';
+
     var breadcrumbNames = {
-      log: 'Log Session', history: 'History', calendar: 'Calendar',
+      home: 'Home', log: 'Log Session', history: 'History', calendar: 'Calendar',
       drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
-      shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge'
+      shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge',
+      summary: 'Weekly Summary', coach: 'AI Coach', notifications: 'Notifications',
+      shots: 'Shot Tracker', social: 'Social Hub'
     };
     var bcEl = document.getElementById('db-breadcrumb-current');
     if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
