@@ -2,13 +2,15 @@
    SERVICE WORKER — CourtIQ PWA
    Cache-first for static assets, network-first for API calls.
    ============================================================ */
-const CACHE_NAME = 'courtiq-v2'; // bumped: security patch — XSS fixes (utils.js, ai-coach.js, feature-modals.js, player-profile.js)
+const CACHE_NAME = 'courtiq-v5';  // synced with root sw.js — added all missing CSS/JS files
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/dashboard.html',
+  // Styles
   '/styles/main.css',
   '/styles/animations.css',
+  '/styles/components.css',
   '/styles/drills.css',
   '/styles/workouts.css',
   '/styles/shot-tracker.css',
@@ -17,19 +19,42 @@ const STATIC_ASSETS = [
   '/styles/profile.css',
   '/styles/daily-workout.css',
   '/styles/gamification.css',
+  '/styles/dashboard-redesign.css',
+  '/styles/onboarding.css',
+  '/styles/archetype.css',
+  '/styles/social.css',
+  '/styles/shop.css',
+  '/styles/challenge.css',
+  // Core JS
+  '/js/utils.js',
   '/js/auth.js',
   '/js/nav.js',
+  '/js/supabase-client.js',
+  '/js/data-service.js',
+  '/js/animations.js',
+  '/js/sidebar.js',
+  '/js/sound-effects.js',
+  // Dashboard JS
   '/js/dashboard.js',
+  '/js/feature-modals.js',
+  '/js/feature-tabs.js',
+  '/js/pricing.js',
+  '/js/onboarding.js',
+  '/js/streak.js',
+  '/js/daily-challenge.js',
+  // Feature JS
   '/js/drill-engine.js',
+  '/js/drill-animations.js',
   '/js/shot-tracker.js',
   '/js/progress-charts.js',
   '/js/move-library.js',
+  '/js/move-animations.js',
   '/js/player-profile.js',
   '/js/daily-workout.js',
   '/js/gamification.js',
-  '/js/onboarding.js',
-  '/js/data-service.js',
-  '/js/animations.js',
+  '/js/archetype-engine.js',
+  '/js/social-hub.js',
+  '/js/ai-coach.js',
   '/manifest.json'
 ];
 
