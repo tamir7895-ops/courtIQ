@@ -159,7 +159,8 @@ Rules:
       ib.textContent=lvl+' Intensity';
       ib.style.cssText=`font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;background:rgba(${rgb},0.12);color:${hex};border:1px solid rgba(${rgb},0.3);`;
 
-      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${s}</div>`;
+      const _esc=typeof escapeHTML==='function'?escapeHTML:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${_esc(s)}</div>`;
       document.getElementById('coach-weak').innerHTML=(a.weak_areas||[]).map(row).join('');
       document.getElementById('coach-strong').innerHTML=(a.strong_areas||[]).map(row).join('');
       document.getElementById('coach-adjustments').innerHTML=(a.key_adjustments||[]).map(row).join('');
