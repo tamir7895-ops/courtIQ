@@ -400,3 +400,118 @@
     padding: 5px 8px;
   }
 }
+
+/* ══════════════════════════════════════════════════════════
+   QUICK ACTIONS ROW
+   ══════════════════════════════════════════════════════════ */
+.db-quick-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.db-qa-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 11px 6px;
+  background: var(--glass-bg, rgba(255,255,255,0.035));
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
+  border-radius: var(--r-md, 14px);
+  cursor: pointer;
+  transition: background 0.15s, transform 0.12s, border-color 0.15s;
+}
+
+.db-qa-btn:hover {
+  background: rgba(245,166,35,0.08);
+  border-color: rgba(245,166,35,0.28);
+  transform: translateY(-2px);
+}
+
+.db-qa-btn:active { transform: translateY(0); }
+
+.db-qa-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.db-qa-label {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-muted, rgba(240,237,230,0.6));
+  white-space: nowrap;
+}
+
+/* ══════════════════════════════════════════════════════════
+   SKILL STATS GRID (2×2)
+   ══════════════════════════════════════════════════════════ */
+.db-skill-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.db-skill-item {
+  background: var(--glass-bg, rgba(255,255,255,0.035));
+  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
+  border-radius: var(--r-sm, 10px);
+  padding: 9px 12px;
+}
+
+.db-skill-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.db-skill-label {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-muted, rgba(240,237,230,0.65));
+}
+
+.db-skill-pct {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--c-white, #f0ede6);
+}
+
+.db-skill-bar-bg {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+
+.db-skill-bar-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.db-skill-bar--shooting  { background: linear-gradient(90deg, #f5a623, #ff6b35); }
+.db-skill-bar--dribbling { background: linear-gradient(90deg, #3ecf8e, #0ea5e9); }
+.db-skill-bar--defense   { background: linear-gradient(90deg, #a78bfa, #818cf8); }
+.db-skill-bar--gameiq    { background: linear-gradient(90deg, #f472b6, #ec4899); }
+
+/* ── Responsive tweaks ─────────────────────────────────── */
+@media (max-width: 640px) {
+  .db-qa-label { font-size: 9px; }
+  .db-qa-btn   { padding: 9px 5px; }
+  .db-qa-icon  { font-size: 18px; }
+}
+
+@media (max-width: 400px) {
+  .db-quick-actions { gap: 5px; }
+  .db-skill-stats   { gap: 6px; }
+}
