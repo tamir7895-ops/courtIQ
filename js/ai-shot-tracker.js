@@ -46,6 +46,30 @@
   var RIM_MAX_WIDTH_FRAC   = 0.35;  // rim blob can't be more than 35% of frame width
   var RIM_SCAN_TOP_FRAC    = 0.75;  // scan top 75% of frame (rim can be lower in some angles)
 
+  /* ── Rim model (learned by rim-trainer tool) ───────────────
+     Loads courtiq-rim-model from localStorage and applies:
+     - rimModel.rxFracMean → overrides RIM_RX_FRAC default
+     - rimModel.{r,g,b}{Min,Max} → used by isRimColor() for learned color bounds
+     Gracefully ignores if missing/invalid.  */
+  var rimModel = null;
+  (function () {
+    try {
+      var _rm = localStorage.getItem('courtiq-rim-model');
+      if (_rm) {
+        var parsed = JSON.parse(_rm);
+        if (parsed && parsed.rxFracMean > 0.01 && parsed.rxFracMean < 0.30) {
+          rimModel = parsed;
+          RIM_RX_FRAC = rimModel.rxFracMean;
+          console.log('[AST rim-model] loaded — rxFrac=' + rimModel.rxFracMean.toFixed(3) +
+                      ' conf=' + (rimModel.confidence || 0).toFixed(2) +
+                      ' samples=' + (rimModel.sampleCount || 0));
+        }
+      }
+    } catch (e) {
+      console.warn('[AST rim-model] parse error:', e);
+    }
+  }());
+
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
   var phase = PHASE.IDLE;
