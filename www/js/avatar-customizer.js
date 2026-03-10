@@ -778,21 +778,22 @@
 
     var placeholder = document.querySelector('.profile-summary-avatar');
     if (placeholder && !placeholder.querySelector('img')) {
-      placeholder.innerHTML = '<img src="' + url + '" alt="Avatar" ' +
+      placeholder.innerHTML = '<img src="' + displayUrl + '" alt="Avatar" ' +
         'style="width:100%;height:100%;object-fit:cover;border-radius:50%;object-position:center top;" />';
       placeholder.style.cssText += ';padding:0;font-size:0;overflow:hidden;border-radius:50%';
     }
 
     var shopContainer = document.getElementById('shop-avatar-container');
     if (shopContainer) {
-      shopContainer.innerHTML = '<img src="' + url + '" alt="Avatar" ' +
+      shopContainer.innerHTML = '<img src="' + displayUrl + '" alt="Avatar" ' +
         'style="width:100%;height:100%;object-fit:contain;object-position:center top;" />';
     }
   }
 
   function replaceWithDiceBearImg(el, url, w, h) {
+    var displayUrl = getCachedAvatarDataUrl(url) || url; // use cache if warm
     var img = document.createElement('img');
-    img.src   = url;
+    img.src   = displayUrl;
     img.id    = el.id;
     img.alt   = 'Avatar';
     img.style.cssText = 'width:' + w + ';height:' + h + ';border-radius:50%;' +
