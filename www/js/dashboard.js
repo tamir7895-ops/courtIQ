@@ -118,6 +118,25 @@
                 }));
               }
             }
+
+            // ── Always sync avatar from cloud → works on ALL devices ──
+            // Catches avatar customizations made on any other device
+            if (userData.avatar) {
+              try {
+                const localOb = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+                if (JSON.stringify(localOb.avatar) !== JSON.stringify(userData.avatar)) {
+                  localOb.avatar = userData.avatar;
+                  localStorage.setItem('courtiq-onboarding-data', JSON.stringify(localOb));
+                }
+              } catch (e) { /* silent */ }
+            }
+
+            // ── Always sync player profile from cloud ──
+            if (userData.player_profile) {
+              try {
+                localStorage.setItem('courtiq-player-profile', JSON.stringify(userData.player_profile));
+              } catch (e) { /* silent */ }
+            }
           }
         } catch (e) { /* silently skip — user still gets localStorage version */ }
       }
