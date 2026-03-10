@@ -328,6 +328,66 @@
       </div>
     </div>
 
+    <!-- Quick Actions Row -->
+    <div class="db-quick-actions" id="db-quick-actions">
+      <button class="db-qa-btn" onclick="dbSwitchTabById('drills')">
+        <span class="db-qa-icon">🎯</span>
+        <span class="db-qa-label">Drills</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('workouts')">
+        <span class="db-qa-icon">🏀</span>
+        <span class="db-qa-label">Workouts</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('shots')">
+        <span class="db-qa-icon">🏹</span>
+        <span class="db-qa-label">Shot Tracker</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('summary')">
+        <span class="db-qa-icon">📊</span>
+        <span class="db-qa-label">Weekly Summary</span>
+      </button>
+    </div>
+
+    <!-- Skill Stats Grid (2×2) -->
+    <div class="db-skill-stats" id="db-skill-stats">
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🎯 Shooting</span>
+          <span class="db-skill-pct" id="stat-shooting">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--shooting" id="stat-shooting-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">⚡ Dribbling</span>
+          <span class="db-skill-pct" id="stat-dribbling">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--dribbling" id="stat-dribbling-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🛡️ Defense</span>
+          <span class="db-skill-pct" id="stat-defense">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--defense" id="stat-defense-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🧠 Game IQ</span>
+          <span class="db-skill-pct" id="stat-gameiq">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--gameiq" id="stat-gameiq-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Player context row -->
     <div class="db-context-row">
       <div class="db-field">
