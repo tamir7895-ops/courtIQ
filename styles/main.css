@@ -788,7 +788,7 @@
       padding: 32px 24px;
       text-align: center;
       position: relative;
-      overflow: hidden;
+      overflow: visible;
       background: var(--glass-bg);
       backdrop-filter: blur(var(--glass-blur));
       -webkit-backdrop-filter: blur(var(--glass-blur));
