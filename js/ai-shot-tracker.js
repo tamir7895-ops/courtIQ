@@ -607,9 +607,9 @@
 
     // ═══ Combine strategies: pick best candidate ═══
     var candidates = [];
-    if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color' });
-    if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light' });
-    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.85, src: 'edge' }); // raised from 0.65 — edge detection works for any rim color
+    if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color', blobW: colorCandidate.blobW });
+    if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light', blobW: lightCandidate.blobW });
+    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.85, src: 'edge', blobW: edgeCandidate.blobW }); // raised from 0.65 — edge detection works for any rim color
 
     // If multiple strategies agree on a similar position, boost confidence
     for (var ai = 0; ai < candidates.length; ai++) {
@@ -629,7 +629,7 @@
       }
     }
 
-    return best ? { cx: best.cx, cy: best.cy } : null;
+    return best ? { cx: best.cx, cy: best.cy, blobW: best.blobW } : null;
   }
 
   // Helper: generic color-based rim detection (used by both orange and light strategies)
