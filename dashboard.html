@@ -36,6 +36,7 @@
   <link rel="stylesheet" href="styles/components.css" />
   <link rel="stylesheet" href="styles/avatar-3d.css" />
   <link rel="stylesheet" href="styles/social.css" />
+  <link rel="stylesheet" href="styles/dashboard-redesign.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 </head>
@@ -245,49 +246,54 @@
       </div>
     </div>
 
-    <!-- Top widgets row -->
+    <!-- Compact Player Bar (replaces old profile-summary + xp-widget cards) -->
     <div class="db-top-widgets">
-      <!-- Player Profile Summary -->
-      <div class="profile-summary" id="profile-summary-card">
-        <!-- Skeleton shown while content loads -->
+    <div class="db-player-bar">
+
+      <!-- Left: Avatar + Profile pills -->
+      <div class="db-pbar-profile">
         <div class="skel-profile-wrap" id="skel-profile">
           <div class="skel-profile-row">
-            <div class="skel skel-circle skel-avatar"></div>
+            <div class="skel skel-circle" style="width:32px;height:32px;flex-shrink:0;"></div>
             <div class="skel-profile-text">
-              <div class="skel skel-line-lg" style="width:55%"></div>
-              <div class="skel skel-line"    style="width:40%"></div>
-              <div class="skel skel-line-sm" style="width:30%"></div>
+              <div class="skel skel-line" style="width:90px;"></div>
+              <div class="skel skel-line-sm" style="width:60px;"></div>
             </div>
           </div>
-          <div class="skel skel-line" style="width:70%"></div>
-          <div class="skel skel-line-sm" style="width:50%"></div>
         </div>
-        <div id="profile-summary-content"></div>
-        <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
-          <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
-        </div>
+        <div id="profile-summary-content" class="db-pbar-info"></div>
       </div>
 
-      <!-- XP / Level Widget -->
-      <div class="xp-widget" id="xp-widget">
+      <!-- Separator -->
+      <div class="db-pbar-sep" aria-hidden="true"></div>
+
+      <!-- Center: Level + XP bar -->
+      <div class="db-pbar-xp" id="xp-widget">
         <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
-        <div class="xp-info">
-          <div class="xp-info-top">
-            <div>
-              <span class="xp-rank" id="xp-rank">Rookie</span>
-              <span class="xp-rank-label">Level</span>
-            </div>
-            <div style="display:flex;align-items:center;gap:12px;">
-              <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
-              <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;cursor:default;"></div>
-            </div>
+        <div class="db-pbar-xp-inner">
+          <div class="db-pbar-level-row">
+            <span class="xp-rank" id="xp-rank">Rookie</span>
+            <span class="xp-rank-label">Level</span>
           </div>
-          <div class="xp-bar">
+          <div class="xp-bar db-pbar-xp-bar">
             <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
           </div>
         </div>
+        <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP</div>
       </div>
+
+      <!-- Right: Streak + action buttons -->
+      <div class="db-pbar-right">
+        <div id="db-streak-badge" style="display:none;font-size:11px;font-weight:800;padding:2px 9px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;"></div>
+        <button class="db-pbar-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()" title="Customize Avatar">
+          ✏️ <span>Avatar</span>
+        </button>
+        <button class="db-pbar-btn db-pbar-btn--ghost" id="profile-edit-btn" title="Edit Profile">
+          ⚙️ <span>Edit</span>
+        </button>
+      </div>
+
+    </div>
     </div>
 
     <!-- XP gain toast -->
@@ -318,6 +324,66 @@
         <div style="display:flex;gap:10px;">
           <div class="skel skel-rect" style="height:34px;flex:1;"></div>
           <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions Row -->
+    <div class="db-quick-actions" id="db-quick-actions">
+      <button class="db-qa-btn" onclick="dbSwitchTabById('drills')">
+        <span class="db-qa-icon">🎯</span>
+        <span class="db-qa-label">Drills</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('workouts')">
+        <span class="db-qa-icon">🏀</span>
+        <span class="db-qa-label">Workouts</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('shots')">
+        <span class="db-qa-icon">🏹</span>
+        <span class="db-qa-label">Shot Tracker</span>
+      </button>
+      <button class="db-qa-btn" onclick="dbSwitchTabById('summary')">
+        <span class="db-qa-icon">📊</span>
+        <span class="db-qa-label">Weekly Summary</span>
+      </button>
+    </div>
+
+    <!-- Skill Stats Grid (2×2) -->
+    <div class="db-skill-stats" id="db-skill-stats">
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🎯 Shooting</span>
+          <span class="db-skill-pct" id="stat-shooting">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--shooting" id="stat-shooting-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">⚡ Dribbling</span>
+          <span class="db-skill-pct" id="stat-dribbling">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--dribbling" id="stat-dribbling-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🛡️ Defense</span>
+          <span class="db-skill-pct" id="stat-defense">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--defense" id="stat-defense-bar" style="width:0%"></div>
+        </div>
+      </div>
+      <div class="db-skill-item">
+        <div class="db-skill-header">
+          <span class="db-skill-label">🧠 Game IQ</span>
+          <span class="db-skill-pct" id="stat-gameiq">–</span>
+        </div>
+        <div class="db-skill-bar-bg">
+          <div class="db-skill-bar-fill db-skill-bar--gameiq" id="stat-gameiq-bar" style="width:0%"></div>
         </div>
       </div>
     </div>
@@ -2526,6 +2592,61 @@ if ('serviceWorker' in navigator) {
   </div><!-- /ast-summary-view -->
 
 </div><!-- /ast-overlay -->
+
+<!-- ── Skill Stats Renderer ── -->
+<script>
+(function () {
+  function renderSkillStats() {
+    var xpData   = (typeof XPSystem !== 'undefined') ? XPSystem.load() : { xp: 0, history: [] };
+    var history  = xpData.history || [];
+    var totalXP  = xpData.xp || 0;
+
+    var shotEv     = history.filter(function(e) { return /shot|basket|scoring/i.test(e.reason); }).length;
+    var trainEv    = history.filter(function(e) { return /drill|session|workout|check/i.test(e.reason); }).length;
+    var challengeEv= history.filter(function(e) { return /daily|challenge|streak/i.test(e.reason); }).length;
+
+    var profile = (typeof PlayerProfile !== 'undefined') ? PlayerProfile.load() : null;
+    var sl   = profile ? (profile.skillLevel || '').toLowerCase() : '';
+    var base = sl.indexOf('adv') !== -1 ? 65 : sl.indexOf('int') !== -1 ? 45 : 30;
+
+    var gameiq    = (typeof XPSystem !== 'undefined') ? XPSystem.getProgress(totalXP) : Math.min(95, base + trainEv * 3);
+    var shooting  = Math.min(97, base + shotEv * 12 + trainEv * 2);
+    var dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3);
+    var defense   = Math.min(97, base + challengeEv * 6 + trainEv * 2);
+
+    if (totalXP === 0) { shooting = dribbling = defense = gameiq = 0; }
+
+    setStat('shooting',  shooting);
+    setStat('dribbling', dribbling);
+    setStat('defense',   defense);
+    setStat('gameiq',    gameiq);
+  }
+
+  function setStat(name, pct) {
+    var pctEl = document.getElementById('stat-' + name);
+    var barEl = document.getElementById('stat-' + name + '-bar');
+    if (pctEl) pctEl.textContent = pct > 0 ? pct + '%' : '–';
+    if (barEl) setTimeout(function() { barEl.style.width = pct + '%'; }, 150);
+  }
+
+  function init() {
+    renderSkillStats();
+    if (typeof XPSystem !== 'undefined' && XPSystem.render) {
+      var _origRender = XPSystem.render;
+      XPSystem.render = function() {
+        _origRender.apply(this, arguments);
+        renderSkillStats();
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 200);
+  }
+})();
+</script>
 
 </body>
 </html>
