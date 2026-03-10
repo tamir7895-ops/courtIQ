@@ -1262,10 +1262,19 @@
 
   /* ── Rim calibration ─────────────────────────────────────── */
 
-  function confirmRimAndStart(cx, cy) {
+  function confirmRimAndStart(cx, cy, detectedRx) {
     stopRimDetectTimer();
     autoRimCandidate = null;
-    rim = { cx: cx, cy: cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+    rimCandidateHistory = [];
+    // Use actual detected rim half-width if valid, else fall back to defaults
+    var rx = (detectedRx && detectedRx > W * 0.015 && detectedRx < W * 0.22)
+              ? detectedRx
+              : W * RIM_RX_FRAC;
+    var ry = rx * 0.38;   // rim ellipse ~2.6:1 aspect (perspective foreshortening)
+    rim = { cx: cx, cy: cy, rx: rx, ry: ry };
+    console.log('[AST rim] confirmed cx=' + Math.round(cx) + ' cy=' + Math.round(cy) +
+                ' rx=' + Math.round(rx) + ' ry=' + Math.round(ry) +
+                (detectedRx ? ' (measured)' : ' (default)'));
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
     showPhase('track');
