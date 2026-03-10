@@ -260,16 +260,33 @@
     <!-- ══ TAB: HOME ══ -->
     <div class="db-panel active" id="db-panel-home">
 
+      <!-- Animated background -->
+      <div class="home-bg">
+        <div class="home-bg-orb home-bg-orb--1"></div>
+        <div class="home-bg-orb home-bg-orb--2"></div>
+        <div class="home-bg-orb home-bg-orb--3"></div>
+        <div class="home-bg-court"></div>
+      </div>
+
       <!-- Hero welcome -->
       <div class="home-hero">
-        <div class="home-hero-text">
-          <h1 class="home-hero-title">Welcome to Court<span>IQ</span></h1>
-          <p class="home-hero-sub">Your AI-powered basketball training companion. Track sessions, get personalized drills, and level up your game.</p>
-        </div>
-        <div class="home-hero-stats">
-          <div class="db-week-pill">
-            <span id="db-week-label">Week 1</span>
-            <span id="db-session-count">0 sessions logged</span>
+        <div class="home-hero-badge">AI-POWERED TRAINING</div>
+        <h1 class="home-hero-title">
+          <span class="home-hero-title-line">Level Up Your</span>
+          <span class="home-hero-title-accent">Basketball Game</span>
+        </h1>
+        <p class="home-hero-sub">Track sessions, get AI-personalized drills, analyze your shooting, and compete with other players — all in one place.</p>
+        <div class="home-hero-actions">
+          <button class="home-hero-cta" onclick="dbSwitchTab('log')">
+            <span class="home-hero-cta-icon">🏀</span>
+            Start Training
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <div class="home-hero-stat-row">
+            <div class="home-hero-stat">
+              <div class="home-hero-stat-val" id="db-week-label">Week 1</div>
+              <div class="home-hero-stat-label" id="db-session-count">0 sessions logged</div>
+            </div>
           </div>
         </div>
       </div>
@@ -337,73 +354,116 @@
       </div>
 
       <!-- Quick Actions Grid -->
-      <div class="home-section-label">Quick Actions</div>
-      <div class="home-features-grid">
-        <button class="home-feature-card" onclick="dbSwitchTab('log')">
-          <div class="home-feature-icon">📋</div>
-          <div class="home-feature-name">Log Session</div>
-          <div class="home-feature-desc">Record today's training data</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('drills')">
-          <div class="home-feature-icon">🎯</div>
-          <div class="home-feature-name">Drills</div>
-          <div class="home-feature-desc">AI-generated drills for your position</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('workouts')">
-          <div class="home-feature-icon">🏀</div>
-          <div class="home-feature-name">Workouts</div>
-          <div class="home-feature-desc">Full workout programs</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('shots')">
-          <div class="home-feature-icon">🏹</div>
-          <div class="home-feature-name">Shot Tracker</div>
-          <div class="home-feature-desc">Track and analyze your shooting</div>
-        </button>
+      <div class="home-section">
+        <div class="home-section-label">
+          <span class="home-section-dot"></span>
+          Quick Actions
+        </div>
+        <div class="home-features-grid">
+          <button class="home-feature-card home-feature-card--primary" onclick="dbSwitchTab('log')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">📋</div>
+            <div class="home-feature-name">Log Session</div>
+            <div class="home-feature-desc">Record today's training data</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('drills')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🎯</div>
+            <div class="home-feature-name">Drills</div>
+            <div class="home-feature-desc">AI-generated drills for your position</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('workouts')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🏀</div>
+            <div class="home-feature-name">Workouts</div>
+            <div class="home-feature-desc">Full workout programs</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('shots')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🏹</div>
+            <div class="home-feature-name">Shot Tracker</div>
+            <div class="home-feature-desc">Track and analyze your shooting</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+        </div>
       </div>
 
       <!-- Analytics & Tools -->
-      <div class="home-section-label">Analytics & Tools</div>
-      <div class="home-features-grid">
-        <button class="home-feature-card" onclick="dbSwitchTab('summary')">
-          <div class="home-feature-icon">📊</div>
-          <div class="home-feature-name">Weekly Summary</div>
-          <div class="home-feature-desc">AI-powered performance insights</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('coach')">
-          <div class="home-feature-icon">🏋️</div>
-          <div class="home-feature-name">AI Coach</div>
-          <div class="home-feature-desc">Personalized program adjustments</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('calendar')">
-          <div class="home-feature-icon">📆</div>
-          <div class="home-feature-name">Calendar</div>
-          <div class="home-feature-desc">Weekly training schedule</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('history')">
-          <div class="home-feature-icon">📅</div>
-          <div class="home-feature-name">History</div>
-          <div class="home-feature-desc">Browse all past weeks</div>
-        </button>
+      <div class="home-section">
+        <div class="home-section-label">
+          <span class="home-section-dot home-section-dot--blue"></span>
+          Analytics & Tools
+        </div>
+        <div class="home-features-grid">
+          <button class="home-feature-card" onclick="dbSwitchTab('summary')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">📊</div>
+            <div class="home-feature-name">Weekly Summary</div>
+            <div class="home-feature-desc">AI-powered performance insights</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('coach')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🏋️</div>
+            <div class="home-feature-name">AI Coach</div>
+            <div class="home-feature-desc">Personalized program adjustments</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('calendar')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">📆</div>
+            <div class="home-feature-name">Calendar</div>
+            <div class="home-feature-desc">Weekly training schedule</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('history')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">📅</div>
+            <div class="home-feature-name">History</div>
+            <div class="home-feature-desc">Browse all past weeks</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+        </div>
       </div>
 
       <!-- Profile & Social -->
-      <div class="home-section-label">Profile & Social</div>
-      <div class="home-features-grid home-features-grid--3">
-        <button class="home-feature-card" onclick="dbSwitchTab('archetype')">
-          <div class="home-feature-icon">🧬</div>
-          <div class="home-feature-name">Archetype</div>
-          <div class="home-feature-desc">Discover your player DNA</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('moves')">
-          <div class="home-feature-icon">🤸</div>
-          <div class="home-feature-name">Pro Moves</div>
-          <div class="home-feature-desc">Learn signature moves</div>
-        </button>
-        <button class="home-feature-card" onclick="dbSwitchTab('social')">
-          <div class="home-feature-icon">🏆</div>
-          <div class="home-feature-name">Social Hub</div>
-          <div class="home-feature-desc">Connect with other players</div>
-        </button>
+      <div class="home-section">
+        <div class="home-section-label">
+          <span class="home-section-dot home-section-dot--purple"></span>
+          Profile & Social
+        </div>
+        <div class="home-features-grid home-features-grid--3">
+          <button class="home-feature-card" onclick="dbSwitchTab('archetype')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🧬</div>
+            <div class="home-feature-name">Archetype</div>
+            <div class="home-feature-desc">Discover your player DNA</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('moves')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🤸</div>
+            <div class="home-feature-name">Pro Moves</div>
+            <div class="home-feature-desc">Learn signature moves</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+          <button class="home-feature-card" onclick="dbSwitchTab('social')">
+            <div class="home-feature-glow"></div>
+            <div class="home-feature-icon">🏆</div>
+            <div class="home-feature-name">Social Hub</div>
+            <div class="home-feature-desc">Connect with other players</div>
+            <div class="home-feature-arrow">→</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Footer tagline -->
+      <div class="home-footer">
+        <div class="home-footer-line"></div>
+        <p class="home-footer-text">Court<span>IQ</span> — Train smarter. Play harder.</p>
       </div>
 
     </div><!-- /home panel -->
