@@ -1,17 +1,16 @@
 /* ============================================================
-   AVATAR CUSTOMIZER — js/avatar-customizer.js
-   DiceBear-based avatar creator.  Replaces the old 3-D system.
+   AVATAR CUSTOMIZER v2 — js/avatar-customizer.js
+   DiceBear avataaars · full-body portrait preview
    API: window.AvatarCustomizer.open()
    ============================================================ */
 (function () {
   'use strict';
 
-  /* ── DiceBear endpoint ──────────────────────────────────── */
   var BASE = 'https://api.dicebear.com/9.x/avataaars/png';
 
   /* ── Option tables ──────────────────────────────────────── */
   var SKIN_COLORS = [
-    { name: 'Pale',       id: 'pale',      hex: 'ffdbb4' },  /* schema: ffdbb4 */
+    { name: 'Pale',       id: 'pale',      hex: 'ffdbb4' },
     { name: 'Light',      id: 'light',     hex: 'edb98a' },
     { name: 'Mellow',     id: 'mellow',    hex: 'd08b5b' },
     { name: 'Brown',      id: 'brown',     hex: 'ae5d29' },
@@ -19,63 +18,145 @@
   ];
 
   var HAIR_COLORS = [
-    { name: 'Auburn',      id: 'auburn',     hex: 'a55728' },
-    { name: 'Black',       id: 'black',      hex: '2c1b18' },
-    { name: 'Blonde',      id: 'blonde',     hex: 'b58143' },
-    { name: 'Brown',       id: 'brown',      hex: '724133' },
-    { name: 'Pastel Pink', id: 'pastelPink', hex: 'f59797' }
+    { name: 'Auburn',   id: 'auburn',     hex: 'a55728' },
+    { name: 'Black',    id: 'black',      hex: '2c1b18' },
+    { name: 'Blonde',   id: 'blonde',     hex: 'b58143' },
+    { name: 'Brown',    id: 'brown',      hex: '724133' },
+    { name: 'Platinum', id: 'platinum',   hex: 'ecdcbf' },
+    { name: 'Red',      id: 'red',        hex: 'c93305' },
+    { name: 'Pink',     id: 'pastelPink', hex: 'f59797' },
+    { name: 'Silver',   id: 'silver',     hex: 'e8e1e1' }
   ];
 
-  /* top= values use DiceBear v9 avataaars schema identifiers */
+  var CLOTHES_COLORS = [
+    { name: 'Charcoal', id: 'charcoal', hex: '262e33' },
+    { name: 'Sky Blue', id: 'skyblue',  hex: '65c9ff' },
+    { name: 'Blue',     id: 'blue',     hex: '5199e4' },
+    { name: 'Navy',     id: 'navy',     hex: '25557c' },
+    { name: 'Mint',     id: 'mint',     hex: 'a7ffc4' },
+    { name: 'Pink',     id: 'pink',     hex: 'ffafb9' },
+    { name: 'Red',      id: 'red',      hex: 'ff5c5c' },
+    { name: 'White',    id: 'white',    hex: 'e6e6e6' }
+  ];
+
+  var BG_COLORS = [
+    { name: 'None',      id: 'none',   hex: '' },
+    { name: 'Sky Blue',  id: 'skyblue',hex: '65c9ff' },
+    { name: 'Pale Blue', id: 'pale',   hex: 'b1e2ff' },
+    { name: 'Mint',      id: 'mint',   hex: 'a7ffc4' },
+    { name: 'Pink',      id: 'pink',   hex: 'ffafb9' },
+    { name: 'Yellow',    id: 'yellow', hex: 'ffffb1' },
+    { name: 'Dark',      id: 'dark',   hex: '262e33' }
+  ];
+
   var HAIR_MALE = [
-    { name: 'Short',  id: 'shortHair', top: 'shortFlat'       },
-    { name: 'Curly',  id: 'curly',     top: 'shortCurly'      },
-    { name: 'Wavy',   id: 'wavy',      top: 'shortWaved'      },
-    { name: 'Bun',    id: 'bun',       top: 'bun'             },
-    { name: 'Hat',    id: 'hat',       top: 'hat'             },
-    { name: 'Hijab',  id: 'hijab',     top: 'hijab'           }
+    { name: 'Short Flat',  id: 'shortFlat',  top: 'shortFlat'        },
+    { name: 'Short Round', id: 'shortRound', top: 'shortRound'       },
+    { name: 'Short Curly', id: 'shortCurly', top: 'shortCurly'       },
+    { name: 'Short Wavy',  id: 'shortWaved', top: 'shortWaved'       },
+    { name: 'Caesar',      id: 'theCaesar',  top: 'theCaesar'        },
+    { name: 'Bun',         id: 'bun',        top: 'bun'              },
+    { name: 'Dreads',      id: 'dreads',     top: 'dreads01'         },
+    { name: 'Frizzle',     id: 'frizzle',    top: 'frizzle'          },
+    { name: 'Hat',         id: 'hat',        top: 'hat'              },
+    { name: 'Hijab',       id: 'hijab',      top: 'hijab'            }
   ];
 
   var HAIR_FEMALE = [
-    { name: 'Short',  id: 'shortHair', top: 'shortFlat'       },
-    { name: 'Long',   id: 'longHair',  top: 'straight02'      },
-    { name: 'Curly',  id: 'curly',     top: 'curly'           },
-    { name: 'Bun',    id: 'bun',       top: 'bun'             },
-    { name: 'Hat',    id: 'hat',       top: 'hat'             },
-    { name: 'Hijab',  id: 'hijab',     top: 'hijab'           }
+    { name: 'Short Flat',  id: 'shortFlat',  top: 'shortFlat'        },
+    { name: 'Long Str.',   id: 'straight01', top: 'straight01'       },
+    { name: 'Long Wavy',   id: 'straight02', top: 'straight02'       },
+    { name: 'Big Hair',    id: 'bigHair',    top: 'bigHair'          },
+    { name: 'Curly',       id: 'curly',      top: 'curly'            },
+    { name: 'Curvy',       id: 'curvy',      top: 'curvy'            },
+    { name: 'Long Bun',    id: 'bun',        top: 'bun'              },
+    { name: 'Frida',       id: 'frida',      top: 'frida'            },
+    { name: 'Hat',         id: 'hat',        top: 'hat'              },
+    { name: 'Hijab',       id: 'hijab',      top: 'hijab'            }
   ];
 
   var EYE_STYLES = [
-    { name: 'Default', id: 'default' },
-    { name: 'Happy',   id: 'happy'   },
-    { name: 'Wink',    id: 'wink'    },
-    { name: 'Squint',  id: 'squint'  }
+    { name: 'Default',   id: 'default'  },
+    { name: 'Happy',     id: 'happy'    },
+    { name: 'Wink',      id: 'wink'     },
+    { name: 'Squint',    id: 'squint'   },
+    { name: 'Surprised', id: 'surprised'},
+    { name: 'Eye Roll',  id: 'eyeRoll'  },
+    { name: 'Cry',       id: 'cry'      },
+    { name: 'Side',      id: 'side'     },
+    { name: 'X Dizzy',   id: 'xDizzy'  },
+    { name: 'Hearts',    id: 'hearts'   }
+  ];
+
+  var EYEBROW_STYLES = [
+    { name: 'Default',   id: 'default'              },
+    { name: 'Raised',    id: 'raisedExcited'        },
+    { name: 'Natural',   id: 'defaultNatural'       },
+    { name: 'Flat',      id: 'flatNatural'          },
+    { name: 'Frown',     id: 'frownNatural'         },
+    { name: 'Sad',       id: 'sadConcerned'         },
+    { name: 'Angry',     id: 'angryNatural'         },
+    { name: 'Up/Down',   id: 'upDown'               },
+    { name: 'Unibrow',   id: 'unibrowNatural'       }
+  ];
+
+  var MOUTH_STYLES = [
+    { name: 'Default',   id: 'default'   },
+    { name: 'Smile',     id: 'smile'     },
+    { name: 'Serious',   id: 'serious'   },
+    { name: 'Grimace',   id: 'grimace'   },
+    { name: 'Tongue',    id: 'tongue'    },
+    { name: 'Twinkle',   id: 'twinkle'   },
+    { name: 'Disbelief', id: 'disbelief' },
+    { name: 'Sad',       id: 'sad'       },
+    { name: 'Eating',    id: 'eating'    },
+    { name: 'Scream',    id: 'screamOpen'}
+  ];
+
+  var FACIAL_HAIR = [
+    { name: 'None',     id: 'none',           param: '' },
+    { name: 'Light',    id: 'beardLight',     param: 'beardLight'     },
+    { name: 'Medium',   id: 'beardMedium',    param: 'beardMedium'    },
+    { name: 'Majestic', id: 'beardMajestic',  param: 'beardMajestic'  },
+    { name: 'Fancy Moustache',  id: 'moustacheFancy',  param: 'moustacheFancy'  },
+    { name: 'Magnum',   id: 'moustacheMagnum',param: 'moustacheMagnum'}
   ];
 
   var CLOTHES = [
-    { name: 'Blazer',    id: 'blazerAndShirt' },
-    { name: 'Graphic',   id: 'graphicShirt'   },
-    { name: 'Hoodie',    id: 'hoodie'         },
-    { name: 'Overall',   id: 'overall'        },
-    { name: 'Crew Neck', id: 'shirtCrewNeck'  },
-    { name: 'V-Neck',    id: 'shirtVNeck'     }
+    { name: 'Blazer',    id: 'blazerAndShirt'  },
+    { name: 'Graphic',   id: 'graphicShirt'    },
+    { name: 'Hoodie',    id: 'hoodie'          },
+    { name: 'Overall',   id: 'overall'         },
+    { name: 'Crew Neck', id: 'shirtCrewNeck'   },
+    { name: 'V-Neck',    id: 'shirtVNeck'      },
+    { name: 'Sweater',   id: 'collarAndSweater'},
+    { name: 'Blazer+SW', id: 'blazerAndSweater'}
   ];
 
   var ACCESSORIES = [
-    { name: 'None',    id: 'none',           param: ''               },
-    { name: 'Glasses', id: 'prescription01', param: 'prescription01' }
+    { name: 'None',        id: 'none',          param: ''              },
+    { name: 'Glasses',     id: 'prescription01',param: 'prescription01'},
+    { name: 'Round',       id: 'round',         param: 'round'         },
+    { name: 'Sunglasses',  id: 'sunglasses',    param: 'sunglasses'    },
+    { name: 'Wayfarers',   id: 'wayfarers',     param: 'wayfarers'     }
   ];
 
-  /* ── Mutable editor state ───────────────────────────────── */
+  /* ── State ──────────────────────────────────────────────── */
   var st = {
-    gender:    null,
-    skin:      'light',
-    hair:      'shortHair',
-    hairColor: 'black',
-    eyes:      'default',
-    clothes:   'hoodie',
-    accessory: 'none',
-    tab:       'face'
+    gender:          null,
+    skin:            'light',
+    hair:            'shortFlat',
+    hairColor:       'black',
+    eyebrows:        'default',
+    eyes:            'default',
+    mouth:           'default',
+    facialHair:      'none',
+    facialHairColor: 'black',
+    clothes:         'hoodie',
+    clothesColor:    'skyblue',
+    accessory:       'none',
+    bgColor:         'none',
+    tab:             'face'
   };
 
   /* ── Helpers ────────────────────────────────────────────── */
@@ -98,27 +179,45 @@
     return s ? s.hex : arr[0].hex;
   }
 
-  function accessoryParam() {
-    var s = find(ACCESSORIES, function (a) { return a.id === st.accessory; });
-    return (s && s.param) ? s.param : '';
-  }
-
   function buildURL() {
+    var clothesHex = hexFor(CLOTHES_COLORS, st.clothesColor);
     var p = [
       'size=300',
       'skinColor='    + hexFor(SKIN_COLORS, st.skin),
       'top='          + topParam(),
       'hairColor='    + hexFor(HAIR_COLORS, st.hairColor),
+      'eyebrows='     + st.eyebrows,
       'eyes='         + st.eyes,
+      'mouth='        + st.mouth,
       'clothing='     + st.clothes,
-      'seed=courtiq-' + (st.gender || 'x') + '-' + st.hair
+      'clothesColor=' + clothesHex,
+      'seed=courtiq-' + (st.gender || 'x') + '-' + st.hair + '-' + st.skin
     ];
-    var acc = accessoryParam();
-    if (acc) p.push('accessories=' + acc);
+
+    /* accessories */
+    var accS = find(ACCESSORIES, function (a) { return a.id === st.accessory; });
+    if (accS && accS.param) p.push('accessories=' + accS.param);
+
+    /* facial hair (male) */
+    if (st.gender !== 'female') {
+      var fhS = find(FACIAL_HAIR, function (f) { return f.id === st.facialHair; });
+      if (fhS && fhS.param) {
+        p.push('facialHair=' + fhS.param);
+        p.push('facialHairColor=' + hexFor(HAIR_COLORS, st.facialHairColor));
+      }
+    }
+
+    /* background */
+    var bgS = find(BG_COLORS, function (b) { return b.id === st.bgColor; });
+    if (bgS && bgS.hex) {
+      p.push('backgroundColor=' + bgS.hex);
+      p.push('backgroundType=solid');
+    }
+
     return BASE + '?' + p.join('&');
   }
 
-  /* ── Preview refresh ────────────────────────────────────── */
+  /* ── Preview ────────────────────────────────────────────── */
   function refreshPreview() {
     var img  = document.getElementById('ac2-preview-img');
     var wrap = document.getElementById('ac2-preview-wrap');
@@ -132,128 +231,131 @@
 
   /* ── Modal HTML ─────────────────────────────────────────── */
   var MODAL_HTML = [
-    '<div class="ac2-modal" role="dialog" aria-modal="true" aria-label="Avatar Customizer">',
+    '<div class="ac2-modal" role="dialog" aria-modal="true">',
 
-      /* ─ Step 1 : Gender ─ */
-      '<div class="ac2-step" id="ac2-step-gender">',
-        '<div class="ac2-header">',
-          '<h2 class="ac2-title">Create Your Avatar</h2>',
-          '<button class="ac2-close-btn" id="ac2-close-gender" type="button" aria-label="Close">&#x2715;</button>',
-        '</div>',
-        '<p class="ac2-subtitle">Choose a style to begin</p>',
-        '<div class="ac2-gender-grid">',
-          '<button class="ac2-gender-card" data-gender="male" type="button">',
-            '<div class="ac2-gender-icon">',
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
-                '<circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
-              '</svg>',
-            '</div>',
-            '<span class="ac2-gender-label">Male</span>',
-          '</button>',
-          '<button class="ac2-gender-card" data-gender="female" type="button">',
-            '<div class="ac2-gender-icon">',
-              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
-                '<circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
-                '<path d="M8 12 Q12 16 16 12"/>',
-              '</svg>',
-            '</div>',
-            '<span class="ac2-gender-label">Female</span>',
-          '</button>',
-        '</div>',
+    /* Step 1 */
+    '<div class="ac2-step" id="ac2-step-gender">',
+      '<div class="ac2-header">',
+        '<h2 class="ac2-title">Create Your Avatar</h2>',
+        '<button class="ac2-close-btn" id="ac2-close-gender" type="button">&#x2715;</button>',
+      '</div>',
+      '<p class="ac2-subtitle">Choose your avatar style</p>',
+      '<div class="ac2-gender-grid">',
+        '<button class="ac2-gender-card" data-gender="male" type="button">',
+          '<div class="ac2-gender-icon">',
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/></svg>',
+          '</div>',
+          '<span class="ac2-gender-label">Male</span>',
+        '</button>',
+        '<button class="ac2-gender-card" data-gender="female" type="button">',
+          '<div class="ac2-gender-icon">',
+            '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/><path d="M8 13 Q12 18 16 13"/></svg>',
+          '</div>',
+          '<span class="ac2-gender-label">Female</span>',
+        '</button>',
+      '</div>',
+    '</div>',
+
+    /* Step 2 */
+    '<div class="ac2-step ac2-step--hidden" id="ac2-step-editor">',
+      '<div class="ac2-header">',
+        '<button class="ac2-back-btn" id="ac2-back" type="button">&#8592; Back</button>',
+        '<h2 class="ac2-title">Customize Avatar</h2>',
+        '<button class="ac2-close-btn" id="ac2-close-editor" type="button">&#x2715;</button>',
       '</div>',
 
-      /* ─ Step 2 : Editor ─ */
-      '<div class="ac2-step ac2-step--hidden" id="ac2-step-editor">',
-        '<div class="ac2-header">',
-          '<button class="ac2-back-btn" id="ac2-back" type="button">&#8592; Back</button>',
-          '<h2 class="ac2-title">Customize Avatar</h2>',
-          '<button class="ac2-close-btn" id="ac2-close-editor" type="button" aria-label="Close">&#x2715;</button>',
-        '</div>',
+      '<div class="ac2-editor-body">',
 
+        /* preview */
         '<div class="ac2-preview-wrap" id="ac2-preview-wrap">',
           '<div class="ac2-spinner" aria-hidden="true"></div>',
-          '<img class="ac2-preview-img" id="ac2-preview-img" alt="Avatar preview" width="300" height="300" />',
+          '<img class="ac2-preview-img" id="ac2-preview-img" alt="Avatar" width="300" height="300" />',
         '</div>',
 
+        /* tabs */
         '<nav class="ac2-tabs" id="ac2-tabs" role="tablist">',
-          '<button class="ac2-tab active" data-tab="face"        role="tab" type="button">Face</button>',
-          '<button class="ac2-tab"        data-tab="hair"        role="tab" type="button">Hair</button>',
-          '<button class="ac2-tab"        data-tab="eyes"        role="tab" type="button">Eyes</button>',
-          '<button class="ac2-tab"        data-tab="clothes"     role="tab" type="button">Clothes</button>',
-          '<button class="ac2-tab"        data-tab="accessories" role="tab" type="button">Accessories</button>',
+          '<button class="ac2-tab active" data-tab="face"    role="tab" type="button">Face</button>',
+          '<button class="ac2-tab"        data-tab="hair"    role="tab" type="button">Hair</button>',
+          '<button class="ac2-tab"        data-tab="eyes"    role="tab" type="button">Eyes</button>',
+          '<button class="ac2-tab"        data-tab="clothes" role="tab" type="button">Clothes</button>',
+          '<button class="ac2-tab"        data-tab="more"    role="tab" type="button">More</button>',
         '</nav>',
 
+        /* panel */
         '<div class="ac2-panel" id="ac2-panel"></div>',
 
-        '<div class="ac2-footer">',
-          '<button class="ac2-btn-ghost"   id="ac2-cancel" type="button">Cancel</button>',
-          '<button class="ac2-btn-primary" id="ac2-save"   type="button">Save Avatar</button>',
-        '</div>',
       '</div>',
+
+      '<div class="ac2-footer">',
+        '<button class="ac2-btn-ghost"   id="ac2-cancel" type="button">Cancel</button>',
+        '<button class="ac2-btn-primary" id="ac2-save"   type="button">Save Avatar</button>',
+      '</div>',
+    '</div>',
 
     '</div>'
   ].join('');
 
-  /* ── Inject overlay once ────────────────────────────────── */
-  function ensureModal() {
-    if (document.getElementById('ac2-overlay')) return;
-    var el = document.createElement('div');
-    el.id        = 'ac2-overlay';
-    el.className = 'ac2-overlay';
-    el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = MODAL_HTML;
-    document.body.appendChild(el);
-    wireOverlay(el);
-  }
-
-  /* ── Render panel content ───────────────────────────────── */
+  /* ── Panel rendering ────────────────────────────────────── */
   function renderPanel(tab) {
     var host = document.getElementById('ac2-panel');
     if (!host) return;
     var html = '';
 
     if (tab === 'face') {
-      html += section('Skin Color', swatches(SKIN_COLORS, 'skin', st.skin));
+      html += section('Skin Color',  swatchRow(SKIN_COLORS, 'skin', st.skin));
+      html += section('Eyebrows',    optGrid(EYEBROW_STYLES, 'eyebrows', st.eyebrows));
+      html += section('Mouth',       optGrid(MOUTH_STYLES,   'mouth',    st.mouth));
     }
 
     if (tab === 'hair') {
-      html += section('Style',      optGrid(hairList(),  'hair',      st.hair));
-      html += section('Color',      swatches(HAIR_COLORS, 'hairColor', st.hairColor));
+      html += section('Style',       optGrid(hairList(),    'hair',      st.hair));
+      html += section('Color',       swatchRow(HAIR_COLORS, 'hairColor', st.hairColor));
+      if (st.gender !== 'female') {
+        html += section('Facial Hair', optGrid(FACIAL_HAIR, 'facialHair', st.facialHair));
+        html += section('Beard Color', swatchRow(HAIR_COLORS, 'facialHairColor', st.facialHairColor));
+      }
     }
 
     if (tab === 'eyes') {
-      html += section('Eye Style',  optGrid(EYE_STYLES,  'eyes',      st.eyes));
+      html += section('Eye Style',   optGrid(EYE_STYLES, 'eyes', st.eyes));
     }
 
     if (tab === 'clothes') {
-      html += section('Shirt Style',optGrid(CLOTHES,     'clothes',   st.clothes));
+      html += section('Style',       optGrid(CLOTHES,         'clothes',     st.clothes));
+      html += section('Clothes Color', swatchRow(CLOTHES_COLORS, 'clothesColor', st.clothesColor));
     }
 
-    if (tab === 'accessories') {
-      html += section('Accessories',optGrid(ACCESSORIES, 'accessory', st.accessory));
+    if (tab === 'more') {
+      html += section('Accessories', optGrid(ACCESSORIES, 'accessory', st.accessory));
+      html += section('Background',  swatchRow(BG_COLORS,   'bgColor',  st.bgColor, true));
     }
 
     host.innerHTML = html;
 
-    /* wire option buttons */
-    var buttons = host.querySelectorAll('[data-prop]');
-    for (var i = 0; i < buttons.length; i++) {
-      buttons[i].addEventListener('click', onOption);
+    /* wire clicks */
+    var nodes = host.querySelectorAll('[data-prop]');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].addEventListener('click', onOptionClick);
     }
   }
 
   function section(label, inner) {
-    return '<div class="ac2-section"><div class="ac2-section-label">' + label + '</div>' + inner + '</div>';
+    return '<div class="ac2-section">' +
+      '<div class="ac2-section-label">' + label + '</div>' + inner +
+    '</div>';
   }
 
-  function swatches(arr, prop, current) {
+  function swatchRow(arr, prop, current, showNone) {
     var html = '<div class="ac2-swatch-row">';
     for (var i = 0; i < arr.length; i++) {
-      var c   = arr[i];
+      var c = arr[i];
       var sel = (c.id === current) ? ' ac2-swatch--sel' : '';
+      var style = c.hex
+        ? 'background:#' + c.hex
+        : 'background:repeating-conic-gradient(#555 0% 25%,#333 0% 50%) 0 0/10px 10px';
       html += '<button class="ac2-swatch' + sel + '"' +
         ' data-prop="' + prop + '" data-value="' + c.id + '"' +
-        ' style="background:#' + c.hex + '"' +
+        ' style="' + style + '"' +
         ' title="' + c.name + '" type="button">' +
         (c.id === current ? '<span class="ac2-check">&#x2713;</span>' : '') +
         '</button>';
@@ -264,7 +366,7 @@
   function optGrid(arr, prop, current) {
     var html = '<div class="ac2-opt-grid">';
     for (var i = 0; i < arr.length; i++) {
-      var o   = arr[i];
+      var o = arr[i];
       var sel = (o.id === current) ? ' ac2-opt--sel' : '';
       html += '<button class="ac2-opt' + sel + '"' +
         ' data-prop="' + prop + '" data-value="' + o.id + '"' +
@@ -273,38 +375,36 @@
     return html + '</div>';
   }
 
-  function onOption() {
+  function onOptionClick() {
     var prop = this.dataset.prop;
     var val  = this.dataset.value;
     st[prop] = val;
 
-    /* update selection UI without full re-render */
+    /* update selection state without full re-render */
     var siblings = document.querySelectorAll('#ac2-panel [data-prop="' + prop + '"]');
     for (var i = 0; i < siblings.length; i++) {
       var s   = siblings[i];
       var hit = (s.dataset.value === val);
       s.classList.toggle('ac2-swatch--sel', hit);
-      s.classList.toggle('ac2-opt--sel',    hit);
-      /* update checkmark for swatches */
+      s.classList.toggle('ac2-opt--sel', hit);
       if (s.classList.contains('ac2-swatch')) {
         s.innerHTML = hit ? '<span class="ac2-check">&#x2713;</span>' : '';
       }
     }
-
     refreshPreview();
   }
 
-  /* ── Tab switching ──────────────────────────────────────── */
+  /* ── Tabs ───────────────────────────────────────────────── */
   function activateTab(name) {
     st.tab = name;
-    var tabs = document.querySelectorAll('.ac2-tab');
+    var tabs = document.querySelectorAll('#ac2-tabs .ac2-tab');
     for (var i = 0; i < tabs.length; i++) {
       tabs[i].classList.toggle('active', tabs[i].dataset.tab === name);
     }
     renderPanel(name);
   }
 
-  /* ── Step navigation ────────────────────────────────────── */
+  /* ── Steps ──────────────────────────────────────────────── */
   function showGender() {
     document.getElementById('ac2-step-gender').classList.remove('ac2-step--hidden');
     document.getElementById('ac2-step-editor').classList.add('ac2-step--hidden');
@@ -317,26 +417,31 @@
     refreshPreview();
   }
 
-  /* ── Wire all event listeners ───────────────────────────── */
-  function wireOverlay(overlay) {
-    /* gender cards */
-    var cards = overlay.querySelectorAll('.ac2-gender-card');
+  /* ── Wire ───────────────────────────────────────────────── */
+  function ensureModal() {
+    if (document.getElementById('ac2-overlay')) return;
+    var el = document.createElement('div');
+    el.id = 'ac2-overlay';
+    el.className = 'ac2-overlay';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = MODAL_HTML;
+    document.body.appendChild(el);
+
+    /* gender */
+    var cards = el.querySelectorAll('.ac2-gender-card');
     for (var i = 0; i < cards.length; i++) {
       cards[i].addEventListener('click', function () {
         st.gender = this.dataset.gender;
-        st.hair   = hairList()[0].id;   /* reset hair to gender default */
+        st.hair   = hairList()[0].id;
         showEditor();
       });
     }
 
-    /* close / cancel */
-    var closeIds = ['ac2-close-gender', 'ac2-close-editor', 'ac2-cancel'];
-    for (var j = 0; j < closeIds.length; j++) {
-      var el = document.getElementById(closeIds[j]);
-      if (el) el.addEventListener('click', closeModal);
-    }
-
-    /* back */
+    /* close / cancel / back */
+    ['ac2-close-gender','ac2-close-editor','ac2-cancel'].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (b) b.addEventListener('click', closeModal);
+    });
     var back = document.getElementById('ac2-back');
     if (back) back.addEventListener('click', showGender);
 
@@ -345,44 +450,40 @@
     if (save) save.addEventListener('click', saveAvatar);
 
     /* tabs */
-    var tabBtns = overlay.querySelectorAll('.ac2-tab');
-    for (var k = 0; k < tabBtns.length; k++) {
-      tabBtns[k].addEventListener('click', function () { activateTab(this.dataset.tab); });
+    var tabBtns = el.querySelectorAll('.ac2-tab');
+    for (var j = 0; j < tabBtns.length; j++) {
+      tabBtns[j].addEventListener('click', function () { activateTab(this.dataset.tab); });
     }
 
     /* backdrop */
-    overlay.addEventListener('click', function (e) {
-      if (e.target === overlay) closeModal();
+    el.addEventListener('click', function (e) {
+      if (e.target === el) closeModal();
     });
   }
 
-  /* ── Open ───────────────────────────────────────────────── */
+  /* ── Open / Close ───────────────────────────────────────── */
   function openModal() {
     ensureModal();
-    /* reset state */
-    st.gender    = null;
-    st.skin      = 'light';
-    st.hair      = 'shortHair';
-    st.hairColor = 'black';
-    st.eyes      = 'default';
-    st.clothes   = 'hoodie';
-    st.accessory = 'none';
-    st.tab       = 'face';
-
+    /* reset */
+    Object.assign(st, {
+      gender: null, skin: 'light', hair: 'shortFlat', hairColor: 'black',
+      eyebrows: 'default', eyes: 'default', mouth: 'default',
+      facialHair: 'none', facialHairColor: 'black',
+      clothes: 'hoodie', clothesColor: 'skyblue',
+      accessory: 'none', bgColor: 'none', tab: 'face'
+    });
     showGender();
-
-    var overlay = document.getElementById('ac2-overlay');
-    overlay.classList.add('ac2-open');
-    overlay.setAttribute('aria-hidden', 'false');
+    var ov = document.getElementById('ac2-overlay');
+    ov.classList.add('ac2-open');
+    ov.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
   }
 
-  /* ── Close ──────────────────────────────────────────────── */
   function closeModal() {
-    var overlay = document.getElementById('ac2-overlay');
-    if (!overlay) return;
-    overlay.classList.remove('ac2-open');
-    overlay.setAttribute('aria-hidden', 'true');
+    var ov = document.getElementById('ac2-overlay');
+    if (!ov) return;
+    ov.classList.remove('ac2-open');
+    ov.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
   }
 
@@ -390,35 +491,70 @@
   function saveAvatar() {
     var url = buildURL();
     localStorage.setItem('courtiq_avatar_url', url);
-
-    updateSidebarAvatar(url);
+    injectAvatarImg(url);
     closeModal();
-
     if (typeof showToast === 'function') showToast('Avatar saved');
   }
 
-  /* ── Sidebar helper ─────────────────────────────────────── */
-  function updateSidebarAvatar(url) {
-    var el = document.getElementById('db-sidebar-avatar');
-    if (!el) return;
-    el.innerHTML = '<img src="' + url +
-      '" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
-    el.style.padding  = '0';
-    el.style.fontSize = '0';
-    el.style.lineHeight = '1';
+  /* ── Inject DiceBear img into all avatar slots ──────────── */
+  function injectAvatarImg(url) {
+    /* sidebar */
+    var sidebar = document.getElementById('db-sidebar-avatar');
+    if (sidebar) {
+      sidebar.innerHTML = '<img src="' + url + '" alt="Avatar" ' +
+        'style="width:100%;height:100%;object-fit:cover;border-radius:50%;object-position:center top;" />';
+      sidebar.style.cssText += ';padding:0;font-size:0;line-height:1';
+    }
+
+    /* profile mini avatar (canvas → img) */
+    var mini = document.getElementById('profile-mini-avatar');
+    if (mini) replaceWithDiceBearImg(mini, url, '48px', '48px');
+
+    /* profile summary avatar placeholder */
+    var placeholder = document.querySelector('.profile-summary-avatar');
+    if (placeholder && !placeholder.querySelector('img')) {
+      placeholder.innerHTML = '<img src="' + url + '" alt="Avatar" ' +
+        'style="width:100%;height:100%;object-fit:cover;border-radius:50%;object-position:center top;" />';
+      placeholder.style.cssText += ';padding:0;font-size:0;overflow:hidden;border-radius:50%';
+    }
   }
 
-  /* ── Restore saved avatar on load ───────────────────────── */
+  function replaceWithDiceBearImg(el, url, w, h) {
+    var img = document.createElement('img');
+    img.src   = url;
+    img.id    = el.id;
+    img.alt   = 'Avatar';
+    img.style.cssText = 'width:' + w + ';height:' + h + ';border-radius:50%;' +
+      'object-fit:cover;object-position:center top;flex-shrink:0;cursor:pointer;';
+    img.onclick = function () { openModal(); };
+    img.title   = 'Customize Avatar';
+    if (el.parentNode) el.parentNode.replaceChild(img, el);
+  }
+
+  /* ── Patch PlayerProfile.renderSummary ──────────────────── */
+  function patchPlayerProfile() {
+    if (typeof PlayerProfile === 'undefined' || !PlayerProfile.renderSummary) return;
+    var orig = PlayerProfile.renderSummary.bind(PlayerProfile);
+    PlayerProfile.renderSummary = function () {
+      orig();
+      var url = localStorage.getItem('courtiq_avatar_url');
+      if (!url) return;
+      setTimeout(function () { injectAvatarImg(url); }, 30);
+    };
+  }
+
+  /* ── Restore on load ────────────────────────────────────── */
   function restoreOnLoad() {
     var url = localStorage.getItem('courtiq_avatar_url');
-    if (url) updateSidebarAvatar(url);
+    if (url) injectAvatarImg(url);
+    patchPlayerProfile();
   }
 
   /* ── Escape key ─────────────────────────────────────────── */
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape') return;
-    var overlay = document.getElementById('ac2-overlay');
-    if (overlay && overlay.classList.contains('ac2-open')) closeModal();
+    var ov = document.getElementById('ac2-overlay');
+    if (ov && ov.classList.contains('ac2-open')) closeModal();
   });
 
   /* ── Boot ───────────────────────────────────────────────── */
@@ -428,6 +564,5 @@
     restoreOnLoad();
   }
 
-  /* ── Public API ─────────────────────────────────────────── */
   window.AvatarCustomizer = { open: openModal, close: closeModal };
 })();
