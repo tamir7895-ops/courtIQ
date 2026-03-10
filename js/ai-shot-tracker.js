@@ -716,7 +716,7 @@
 
       if (score > bestScore) {
         bestScore = score;
-        bestCandidate = { cx: cx, cy: cy, score: score };
+        bestCandidate = { cx: cx, cy: cy, score: score, blobW: blobW, blobH: blobH };
       }
     }
 
