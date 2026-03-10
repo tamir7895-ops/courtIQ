@@ -100,20 +100,21 @@
 
   function accessoryParam() {
     var s = find(ACCESSORIES, function (a) { return a.id === st.accessory; });
-    return s ? s.param : 'blank';
+    return (s && s.param) ? s.param : '';
   }
 
   function buildURL() {
     var p = [
       'size=300',
-      'skinColor='    + hexFor(SKIN_COLORS,  st.skin),
+      'skinColor='    + hexFor(SKIN_COLORS, st.skin),
       'top='          + topParam(),
-      'hairColor='    + hexFor(HAIR_COLORS,  st.hairColor),
+      'hairColor='    + hexFor(HAIR_COLORS, st.hairColor),
       'eyes='         + st.eyes,
       'clothing='     + st.clothes,
-      'accessories='  + accessoryParam(),
       'seed=courtiq-' + (st.gender || 'x') + '-' + st.hair
     ];
+    var acc = accessoryParam();
+    if (acc) p.push('accessories=' + acc);
     return BASE + '?' + p.join('&');
   }
 
