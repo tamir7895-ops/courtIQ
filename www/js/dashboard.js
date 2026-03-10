@@ -344,8 +344,13 @@
       try {
         var shopContainer = document.getElementById('shop-avatar-container');
         var obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-        if (shopContainer && typeof AvatarBridge !== 'undefined' && obData.avatar) {
-          AvatarBridge.render(shopContainer, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }), { width: 200, height: 280, interactive: true, animate: true });
+        if (shopContainer && typeof AvatarBuilder !== 'undefined' && obData.avatar) {
+          shopContainer.innerHTML = '';
+          var sc = document.createElement('canvas');
+          sc.width = 200; sc.height = 280;
+          sc.style.width = '100%'; sc.style.height = '100%';
+          shopContainer.appendChild(sc);
+          AvatarBuilder.draw(sc, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }));
         }
       } catch (e) {}
     }
