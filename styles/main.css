@@ -2545,7 +2545,7 @@
 
       .hero-content { grid-template-columns: 1fr; gap: 40px; padding: 48px 0 60px; }
       .hero-right { display: none; }
-      .hero-title { font-size: clamp(56px, 14vw, 88px); }
+      .hero-title { font-size: clamp(40px, 11vw, 72px); }
       .hero-subtitle { max-width: 100%; }
 
       .stats-bar-inner { grid-template-columns: repeat(2, 1fr); }
