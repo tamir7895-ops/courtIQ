@@ -26,23 +26,23 @@
     { name: 'Pastel Pink', id: 'pastelPink', hex: 'f59797' }
   ];
 
-  /* top= values differ slightly between genders for variety */
+  /* top= values use DiceBear v9 avataaars schema identifiers */
   var HAIR_MALE = [
-    { name: 'Short',  id: 'shortHair', top: 'shortHairShortFlat'    },
-    { name: 'Curly',  id: 'curly',     top: 'shortHairShortCurly'   },
-    { name: 'Wavy',   id: 'longHair',  top: 'shortHairShortWaved'   },
-    { name: 'Bun',    id: 'bun',       top: 'longHairBun'           },
-    { name: 'Hat',    id: 'hat',       top: 'hat'                   },
-    { name: 'Hijab',  id: 'hijab',     top: 'hijab'                 }
+    { name: 'Short',  id: 'shortHair', top: 'shortFlat'       },
+    { name: 'Curly',  id: 'curly',     top: 'shortCurly'      },
+    { name: 'Wavy',   id: 'wavy',      top: 'shortWaved'      },
+    { name: 'Bun',    id: 'bun',       top: 'bun'             },
+    { name: 'Hat',    id: 'hat',       top: 'hat'             },
+    { name: 'Hijab',  id: 'hijab',     top: 'hijab'           }
   ];
 
   var HAIR_FEMALE = [
-    { name: 'Short',  id: 'shortHair', top: 'shortHairShortFlat'    },
-    { name: 'Long',   id: 'longHair',  top: 'longHairStraight'      },
-    { name: 'Curly',  id: 'curly',     top: 'longHairCurly'         },
-    { name: 'Bun',    id: 'bun',       top: 'longHairBun'           },
-    { name: 'Hat',    id: 'hat',       top: 'hat'                   },
-    { name: 'Hijab',  id: 'hijab',     top: 'hijab'                 }
+    { name: 'Short',  id: 'shortHair', top: 'shortFlat'       },
+    { name: 'Long',   id: 'longHair',  top: 'straight02'      },
+    { name: 'Curly',  id: 'curly',     top: 'curly'           },
+    { name: 'Bun',    id: 'bun',       top: 'bun'             },
+    { name: 'Hat',    id: 'hat',       top: 'hat'             },
+    { name: 'Hijab',  id: 'hijab',     top: 'hijab'           }
   ];
 
   var EYE_STYLES = [
