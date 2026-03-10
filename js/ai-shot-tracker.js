@@ -366,9 +366,6 @@
     }
 
     // DIAG: log orange pixel count every 60 frames
-    if (frameCount % 60 === 0) {
-      console.log('[AST diag] color: orangePx=' + orangeX.length + ' roiW=' + roi.w + ' roiH=' + roi.h);
-    }
     if (orangeX.length < 8) return null;
 
     // Grid clustering
@@ -471,7 +468,6 @@
 
     // Hard cutoff: reject blobs too far below the rim (court floor)
     if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 4.5) {
-      console.log('[AST diag] ball blob at y=' + Math.round(bestBlob.y) + ' rejected (below rim+4.5ry=' + Math.round(rim.cy + rim.ry * 4.5) + ')');
       return null;
     }
 
@@ -856,9 +852,7 @@
 
     if (!ball) {
       disappearCount++;
-      if (frameCount % 60 === 0) {
-        console.log('[AST diag] processBall: NO BALL fc=' + frameCount + ' disappear=' + disappearCount + ' phase=' + shotPhase);
-      }
+
 
       // Ball disappeared near the rim — likely went through or bounced off
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
@@ -901,13 +895,7 @@
 
     disappearCount = 0;
 
-    // DIAG: log ball detection every 60 frames
-    if (frameCount % 60 === 0) {
-      console.log('[AST diag] ball: x=' + Math.round(ball.x) + ' y=' + Math.round(ball.y) +
-        ' score=' + (ball.score || 0).toFixed(2) +
-        ' phase=' + shotPhase + ' yVel=tbd' +
-        ' rim=' + (rim ? Math.round(rim.cx) + ',' + Math.round(rim.cy) : 'none'));
-    }
+
 
     // Track peak height
     if (ball.y < ballPeakY) ballPeakY = ball.y;
