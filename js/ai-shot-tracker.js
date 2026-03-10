@@ -119,9 +119,9 @@
 
   /* ── ROI helpers ────────────────────────────────────────────── */
   function getROI() {
-    // Before calibration, search most of the frame (exclude bottom 15% for overlays)
+    // Before calibration: only search upper 60% of frame (basket is never in lower half)
     if (!rim) {
-      return { x: 0, y: 0, w: W, h: Math.round(H * (1 - ROI_BOTTOM_MARGIN_FRAC)) };
+      return { x: 0, y: 0, w: W, h: Math.round(H * 0.60) };
     }
     // After calibration, focus on the area around the rim
     var roiTop = 0;
@@ -289,13 +289,15 @@
     var delta = max - min;
     if (delta < 18) return false;
     var s = delta / max;
-    if (s < 0.28) return false;
+    if (s < 0.38) return false;  // raised: excludes skin tone (s~0.25-0.37)
+    // Exclude skin tone: r dominant, g/b close together and r-g < 80
+    if (r > g && r > b && (r - g) < 80 && (g - b) < 30) return false;
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    return (h >= 10 && h <= 48) || h >= 342;
+    return (h >= 10 && h <= 48);  // removed h>=342 (catches skin pinkish-red)
   }
 
   function detectBallColor() {
