@@ -1052,6 +1052,7 @@
         ctx.stroke();
         ctx.shadowBlur = 0;
       } else {
+        // Rim ellipse
         ctx.strokeStyle = 'rgba(245,166,35,0.85)';
         ctx.lineWidth = 3;
         ctx.shadowColor = 'rgba(245,166,35,0.5)';
@@ -1060,6 +1061,33 @@
         ctx.ellipse(rim.cx, rim.cy, rim.rx, rim.ry, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
+
+        // Basket cylinder — dashed vertical lines showing the "made" zone below the rim
+        if (phase === PHASE.TRACKING) {
+          var netDepth = rim.ry * 8;
+          var cylTop  = rim.cy - rim.ry * 0.5;
+          var cylBot  = rim.cy + netDepth;
+          var cylL    = rim.cx - rim.rx * 1.15;
+          var cylR    = rim.cx + rim.rx * 1.15;
+          ctx.strokeStyle = 'rgba(245,166,35,0.30)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 5]);
+          // Left side line
+          ctx.beginPath();
+          ctx.moveTo(cylL, cylTop);
+          ctx.lineTo(cylL, cylBot);
+          ctx.stroke();
+          // Right side line
+          ctx.beginPath();
+          ctx.moveTo(cylR, cylTop);
+          ctx.lineTo(cylR, cylBot);
+          ctx.stroke();
+          // Bottom ellipse (net bottom)
+          ctx.beginPath();
+          ctx.ellipse(rim.cx, cylBot, rim.rx * 0.6, rim.ry * 0.6, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
 
       // Draw ROI boundary (subtle, only during tracking)
