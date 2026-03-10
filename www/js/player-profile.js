@@ -26,10 +26,15 @@
     save: function (data) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        return true;
       } catch (e) {
         return false;
       }
+      // Cloud sync — save player profile to Supabase
+      if (typeof window.currentUser !== 'undefined' && window.currentUser &&
+          typeof DataService !== 'undefined') {
+        DataService.saveUserData({ player_profile: data }).catch(function () {});
+      }
+      return true;
     },
 
     renderSummary: function () {
