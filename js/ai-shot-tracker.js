@@ -780,6 +780,32 @@
            Math.abs(x - rim.cx) < rim.rx * 6;
   }
 
+  /* ── Basket cylinder zone: expanded area below rim for ball-through detection ── */
+  // Returns true when ball center is within the "basket cylinder":
+  //   Horizontal: within rim opening ± 15% (calibration tolerance)
+  //   Vertical: from slightly above rim to net depth below (~8× rim half-height)
+  function ballInBasketZone(ball) {
+    if (!rim || !ball) return false;
+    var hOk = Math.abs(ball.x - rim.cx) < rim.rx * 1.15;
+    var vOk = ball.y >= rim.cy - rim.ry * 1.5 && ball.y <= rim.cy + rim.ry * 8;
+    return hOk && vOk;
+  }
+
+  // Returns true when ball has definitively passed down through the rim:
+  //   - Ball is currently in basket zone AND below rim face
+  //   - Recent history (last 7 frames) shows ball was above rim
+  function ballPassedThroughRim(ball) {
+    if (!ball || !rim) return false;
+    if (!ballInBasketZone(ball)) return false;
+    if (ball.y < rim.cy + rim.ry * 0.5) return false; // not yet below rim face
+    // Look back up to 7 frames for evidence ball came from above rim level
+    var hist = ballHistory;
+    for (var i = hist.length - 2; i >= 0 && i >= hist.length - 8; i--) {
+      if (hist[i] && hist[i].y < rim.cy - rim.ry * 0.3) return true;
+    }
+    return false;
+  }
+
   /* ── Shot detection state machine ───────────────────────────── */
   // Track the highest point the ball reached (for arc detection)
   var ballPeakY = Infinity;
