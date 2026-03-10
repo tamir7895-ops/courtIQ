@@ -762,9 +762,10 @@
 
   /* ── Inject DiceBear img into all avatar slots ───────────── */
   function injectAvatarImg(url) {
+    var displayUrl = getCachedAvatarDataUrl(url) || url; // use cache if warm
     var sidebar = document.getElementById('db-sidebar-avatar');
     if (sidebar) {
-      sidebar.innerHTML = '<img src="' + url + '" alt="Avatar" ' +
+      sidebar.innerHTML = '<img src="' + displayUrl + '" alt="Avatar" ' +
         'style="width:100%;height:100%;object-fit:cover;border-radius:50%;object-position:center top;" />';
       sidebar.style.cssText += ';padding:0;font-size:0;line-height:1';
     }
