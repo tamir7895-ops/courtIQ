@@ -1,264 +1,432 @@
 /* ============================================================
-   AVATAR CUSTOMIZER — /js/avatar-customizer.js
-   Modal overlay for full avatar editing from the dashboard.
-   Reads AvatarBuilder.CONFIG for options, checks AvatarShop
-   for ownership of premium items.
+   AVATAR CUSTOMIZER — js/avatar-customizer.js
+   DiceBear-based avatar creator.  Replaces the old 3-D system.
+   API: window.AvatarCustomizer.open()
    ============================================================ */
 (function () {
   'use strict';
 
-  var overlay, container, controlsEl;
-  var tempCfg = {};   // working copy while editing
-  var savedCfg = {};  // snapshot to revert on cancel
+  /* ── DiceBear endpoint ──────────────────────────────────── */
+  var BASE = 'https://api.dicebear.com/9.x/avataaars/png';
 
-  /* ── Helpers ─────────────────────────────────────────────── */
-  function capitalize(s) {
-    return s.charAt(0).toUpperCase() + s.slice(1);
+  /* ── Option tables ──────────────────────────────────────── */
+  var SKIN_COLORS = [
+    { name: 'Pale',       id: 'pale',      hex: 'ffdbac' },
+    { name: 'Light',      id: 'light',     hex: 'fddbb4' },
+    { name: 'Mellow',     id: 'mellow',    hex: 'edb98a' },
+    { name: 'Brown',      id: 'brown',     hex: 'd08b5b' },
+    { name: 'Dark Brown', id: 'darkBrown', hex: '614335' }
+  ];
+
+  var HAIR_COLORS = [
+    { name: 'Auburn',      id: 'auburn',     hex: 'a55728' },
+    { name: 'Black',       id: 'black',      hex: '2c1b18' },
+    { name: 'Blonde',      id: 'blonde',     hex: 'b58143' },
+    { name: 'Brown',       id: 'brown',      hex: '724133' },
+    { name: 'Pastel Pink', id: 'pastelPink', hex: 'f59797' }
+  ];
+
+  /* top= values differ slightly between genders for variety */
+  var HAIR_MALE = [
+    { name: 'Short',  id: 'shortHair', top: 'shortHairShortFlat'    },
+    { name: 'Curly',  id: 'curly',     top: 'shortHairShortCurly'   },
+    { name: 'Wavy',   id: 'longHair',  top: 'shortHairShortWaved'   },
+    { name: 'Bun',    id: 'bun',       top: 'longHairBun'           },
+    { name: 'Hat',    id: 'hat',       top: 'hat'                   },
+    { name: 'Hijab',  id: 'hijab',     top: 'hijab'                 }
+  ];
+
+  var HAIR_FEMALE = [
+    { name: 'Short',  id: 'shortHair', top: 'shortHairShortFlat'    },
+    { name: 'Long',   id: 'longHair',  top: 'longHairStraight'      },
+    { name: 'Curly',  id: 'curly',     top: 'longHairCurly'         },
+    { name: 'Bun',    id: 'bun',       top: 'longHairBun'           },
+    { name: 'Hat',    id: 'hat',       top: 'hat'                   },
+    { name: 'Hijab',  id: 'hijab',     top: 'hijab'                 }
+  ];
+
+  var EYE_STYLES = [
+    { name: 'Default', id: 'default' },
+    { name: 'Happy',   id: 'happy'   },
+    { name: 'Wink',    id: 'wink'    },
+    { name: 'Squint',  id: 'squint'  }
+  ];
+
+  var CLOTHES = [
+    { name: 'Blazer',    id: 'blazerShirt'   },
+    { name: 'Graphic',   id: 'graphicShirt'  },
+    { name: 'Hoodie',    id: 'hoodie'        },
+    { name: 'Overall',   id: 'overall'       },
+    { name: 'Crew Neck', id: 'shirtCrewNeck' },
+    { name: 'V-Neck',    id: 'shirtVNeck'    }
+  ];
+
+  var ACCESSORIES = [
+    { name: 'None',    id: 'none',           param: 'blank'          },
+    { name: 'Glasses', id: 'prescription01', param: 'prescription01' }
+  ];
+
+  /* ── Mutable editor state ───────────────────────────────── */
+  var st = {
+    gender:    null,
+    skin:      'light',
+    hair:      'shortHair',
+    hairColor: 'black',
+    eyes:      'default',
+    clothes:   'hoodie',
+    accessory: 'none',
+    tab:       'face'
+  };
+
+  /* ── Helpers ────────────────────────────────────────────── */
+  function find(arr, fn) {
+    for (var i = 0; i < arr.length; i++) { if (fn(arr[i])) return arr[i]; }
+    return null;
   }
 
-  function getOnboarding() {
-    try { return JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); }
-    catch (e) { return {}; }
+  function hairList() {
+    return st.gender === 'female' ? HAIR_FEMALE : HAIR_MALE;
   }
 
-  /* ── Open Modal ─────────────────────────────────────────── */
-  function open() {
-    overlay = document.getElementById('ac-overlay');
-    container = document.getElementById('ac-avatar-container');
-    controlsEl = document.getElementById('ac-controls');
-    if (!overlay) return;
+  function topParam() {
+    var s = find(hairList(), function (h) { return h.id === st.hair; });
+    return s ? s.top : hairList()[0].top;
+  }
 
-    // Load current avatar config
-    var ob = getOnboarding();
-    var avatar = ob.avatar || {};
-    var d = AvatarBuilder.defaults;
+  function hexFor(arr, id) {
+    var s = find(arr, function (x) { return x.id === id; });
+    return s ? s.hex : arr[0].hex;
+  }
 
-    savedCfg = {
-      skinTone:   avatar.skinTone   || d.skinTone,
-      hairStyle:  avatar.hairStyle  || d.hairStyle,
-      hairColor:  avatar.hairColor  || d.hairColor,
-      beardStyle: avatar.beardStyle || d.beardStyle,
-      bodyType:   avatar.bodyType   || d.bodyType,
-      accessory:  avatar.accessory  || 'none'
+  function accessoryParam() {
+    var s = find(ACCESSORIES, function (a) { return a.id === st.accessory; });
+    return s ? s.param : 'blank';
+  }
+
+  function buildURL() {
+    var p = [
+      'size=300',
+      'skinColor='    + hexFor(SKIN_COLORS,  st.skin),
+      'top='          + topParam(),
+      'hairColor='    + hexFor(HAIR_COLORS,  st.hairColor),
+      'eyes='         + st.eyes,
+      'clothing='     + st.clothes,
+      'accessories='  + accessoryParam(),
+      'seed=courtiq-' + (st.gender || 'x') + '-' + st.hair
+    ];
+    return BASE + '?' + p.join('&');
+  }
+
+  /* ── Preview refresh ────────────────────────────────────── */
+  function refreshPreview() {
+    var img  = document.getElementById('ac2-preview-img');
+    var wrap = document.getElementById('ac2-preview-wrap');
+    if (!img) return;
+    wrap && wrap.classList.add('ac2-loading');
+    img.onload = img.onerror = function () {
+      wrap && wrap.classList.remove('ac2-loading');
     };
-    tempCfg = JSON.parse(JSON.stringify(savedCfg));
+    img.src = buildURL();
+  }
 
-    renderControls();
+  /* ── Modal HTML ─────────────────────────────────────────── */
+  var MODAL_HTML = [
+    '<div class="ac2-modal" role="dialog" aria-modal="true" aria-label="Avatar Customizer">',
 
-    // Initialize 3D avatar via bridge
-    if (container && typeof AvatarBridge !== 'undefined') {
-      var drawCfg = JSON.parse(JSON.stringify(tempCfg));
-      drawCfg.position = ob.position || 'SG';
-      AvatarBridge.render(container, drawCfg, { width: 200, height: 280, interactive: true, animate: true });
-    } else {
-      redraw();
+      /* ─ Step 1 : Gender ─ */
+      '<div class="ac2-step" id="ac2-step-gender">',
+        '<div class="ac2-header">',
+          '<h2 class="ac2-title">Create Your Avatar</h2>',
+          '<button class="ac2-close-btn" id="ac2-close-gender" type="button" aria-label="Close">&#x2715;</button>',
+        '</div>',
+        '<p class="ac2-subtitle">Choose a style to begin</p>',
+        '<div class="ac2-gender-grid">',
+          '<button class="ac2-gender-card" data-gender="male" type="button">',
+            '<div class="ac2-gender-icon">',
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
+                '<circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+              '</svg>',
+            '</div>',
+            '<span class="ac2-gender-label">Male</span>',
+          '</button>',
+          '<button class="ac2-gender-card" data-gender="female" type="button">',
+            '<div class="ac2-gender-icon">',
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">',
+                '<circle cx="12" cy="7" r="4"/><path d="M5.5 20a6.5 6.5 0 0 1 13 0"/>',
+                '<path d="M8 12 Q12 16 16 12"/>',
+              '</svg>',
+            '</div>',
+            '<span class="ac2-gender-label">Female</span>',
+          '</button>',
+        '</div>',
+      '</div>',
+
+      /* ─ Step 2 : Editor ─ */
+      '<div class="ac2-step ac2-step--hidden" id="ac2-step-editor">',
+        '<div class="ac2-header">',
+          '<button class="ac2-back-btn" id="ac2-back" type="button">&#8592; Back</button>',
+          '<h2 class="ac2-title">Customize Avatar</h2>',
+          '<button class="ac2-close-btn" id="ac2-close-editor" type="button" aria-label="Close">&#x2715;</button>',
+        '</div>',
+
+        '<div class="ac2-preview-wrap" id="ac2-preview-wrap">',
+          '<div class="ac2-spinner" aria-hidden="true"></div>',
+          '<img class="ac2-preview-img" id="ac2-preview-img" alt="Avatar preview" width="300" height="300" />',
+        '</div>',
+
+        '<nav class="ac2-tabs" id="ac2-tabs" role="tablist">',
+          '<button class="ac2-tab active" data-tab="face"        role="tab" type="button">Face</button>',
+          '<button class="ac2-tab"        data-tab="hair"        role="tab" type="button">Hair</button>',
+          '<button class="ac2-tab"        data-tab="eyes"        role="tab" type="button">Eyes</button>',
+          '<button class="ac2-tab"        data-tab="clothes"     role="tab" type="button">Clothes</button>',
+          '<button class="ac2-tab"        data-tab="accessories" role="tab" type="button">Accessories</button>',
+        '</nav>',
+
+        '<div class="ac2-panel" id="ac2-panel"></div>',
+
+        '<div class="ac2-footer">',
+          '<button class="ac2-btn-ghost"   id="ac2-cancel" type="button">Cancel</button>',
+          '<button class="ac2-btn-primary" id="ac2-save"   type="button">Save Avatar</button>',
+        '</div>',
+      '</div>',
+
+    '</div>'
+  ].join('');
+
+  /* ── Inject overlay once ────────────────────────────────── */
+  function ensureModal() {
+    if (document.getElementById('ac2-overlay')) return;
+    var el = document.createElement('div');
+    el.id        = 'ac2-overlay';
+    el.className = 'ac2-overlay';
+    el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = MODAL_HTML;
+    document.body.appendChild(el);
+    wireOverlay(el);
+  }
+
+  /* ── Render panel content ───────────────────────────────── */
+  function renderPanel(tab) {
+    var host = document.getElementById('ac2-panel');
+    if (!host) return;
+    var html = '';
+
+    if (tab === 'face') {
+      html += section('Skin Color', swatches(SKIN_COLORS, 'skin', st.skin));
     }
 
-    overlay.classList.add('active');
+    if (tab === 'hair') {
+      html += section('Style',      optGrid(hairList(),  'hair',      st.hair));
+      html += section('Color',      swatches(HAIR_COLORS, 'hairColor', st.hairColor));
+    }
+
+    if (tab === 'eyes') {
+      html += section('Eye Style',  optGrid(EYE_STYLES,  'eyes',      st.eyes));
+    }
+
+    if (tab === 'clothes') {
+      html += section('Shirt Style',optGrid(CLOTHES,     'clothes',   st.clothes));
+    }
+
+    if (tab === 'accessories') {
+      html += section('Accessories',optGrid(ACCESSORIES, 'accessory', st.accessory));
+    }
+
+    host.innerHTML = html;
+
+    /* wire option buttons */
+    var buttons = host.querySelectorAll('[data-prop]');
+    for (var i = 0; i < buttons.length; i++) {
+      buttons[i].addEventListener('click', onOption);
+    }
+  }
+
+  function section(label, inner) {
+    return '<div class="ac2-section"><div class="ac2-section-label">' + label + '</div>' + inner + '</div>';
+  }
+
+  function swatches(arr, prop, current) {
+    var html = '<div class="ac2-swatch-row">';
+    for (var i = 0; i < arr.length; i++) {
+      var c   = arr[i];
+      var sel = (c.id === current) ? ' ac2-swatch--sel' : '';
+      html += '<button class="ac2-swatch' + sel + '"' +
+        ' data-prop="' + prop + '" data-value="' + c.id + '"' +
+        ' style="background:#' + c.hex + '"' +
+        ' title="' + c.name + '" type="button">' +
+        (c.id === current ? '<span class="ac2-check">&#x2713;</span>' : '') +
+        '</button>';
+    }
+    return html + '</div>';
+  }
+
+  function optGrid(arr, prop, current) {
+    var html = '<div class="ac2-opt-grid">';
+    for (var i = 0; i < arr.length; i++) {
+      var o   = arr[i];
+      var sel = (o.id === current) ? ' ac2-opt--sel' : '';
+      html += '<button class="ac2-opt' + sel + '"' +
+        ' data-prop="' + prop + '" data-value="' + o.id + '"' +
+        ' type="button">' + o.name + '</button>';
+    }
+    return html + '</div>';
+  }
+
+  function onOption() {
+    var prop = this.dataset.prop;
+    var val  = this.dataset.value;
+    st[prop] = val;
+
+    /* update selection UI without full re-render */
+    var siblings = document.querySelectorAll('#ac2-panel [data-prop="' + prop + '"]');
+    for (var i = 0; i < siblings.length; i++) {
+      var s   = siblings[i];
+      var hit = (s.dataset.value === val);
+      s.classList.toggle('ac2-swatch--sel', hit);
+      s.classList.toggle('ac2-opt--sel',    hit);
+      /* update checkmark for swatches */
+      if (s.classList.contains('ac2-swatch')) {
+        s.innerHTML = hit ? '<span class="ac2-check">&#x2713;</span>' : '';
+      }
+    }
+
+    refreshPreview();
+  }
+
+  /* ── Tab switching ──────────────────────────────────────── */
+  function activateTab(name) {
+    st.tab = name;
+    var tabs = document.querySelectorAll('.ac2-tab');
+    for (var i = 0; i < tabs.length; i++) {
+      tabs[i].classList.toggle('active', tabs[i].dataset.tab === name);
+    }
+    renderPanel(name);
+  }
+
+  /* ── Step navigation ────────────────────────────────────── */
+  function showGender() {
+    document.getElementById('ac2-step-gender').classList.remove('ac2-step--hidden');
+    document.getElementById('ac2-step-editor').classList.add('ac2-step--hidden');
+  }
+
+  function showEditor() {
+    document.getElementById('ac2-step-gender').classList.add('ac2-step--hidden');
+    document.getElementById('ac2-step-editor').classList.remove('ac2-step--hidden');
+    activateTab('face');
+    refreshPreview();
+  }
+
+  /* ── Wire all event listeners ───────────────────────────── */
+  function wireOverlay(overlay) {
+    /* gender cards */
+    var cards = overlay.querySelectorAll('.ac2-gender-card');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].addEventListener('click', function () {
+        st.gender = this.dataset.gender;
+        st.hair   = hairList()[0].id;   /* reset hair to gender default */
+        showEditor();
+      });
+    }
+
+    /* close / cancel */
+    var closeIds = ['ac2-close-gender', 'ac2-close-editor', 'ac2-cancel'];
+    for (var j = 0; j < closeIds.length; j++) {
+      var el = document.getElementById(closeIds[j]);
+      if (el) el.addEventListener('click', closeModal);
+    }
+
+    /* back */
+    var back = document.getElementById('ac2-back');
+    if (back) back.addEventListener('click', showGender);
+
+    /* save */
+    var save = document.getElementById('ac2-save');
+    if (save) save.addEventListener('click', saveAvatar);
+
+    /* tabs */
+    var tabBtns = overlay.querySelectorAll('.ac2-tab');
+    for (var k = 0; k < tabBtns.length; k++) {
+      tabBtns[k].addEventListener('click', function () { activateTab(this.dataset.tab); });
+    }
+
+    /* backdrop */
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) closeModal();
+    });
+  }
+
+  /* ── Open ───────────────────────────────────────────────── */
+  function openModal() {
+    ensureModal();
+    /* reset state */
+    st.gender    = null;
+    st.skin      = 'light';
+    st.hair      = 'shortHair';
+    st.hairColor = 'black';
+    st.eyes      = 'default';
+    st.clothes   = 'hoodie';
+    st.accessory = 'none';
+    st.tab       = 'face';
+
+    showGender();
+
+    var overlay = document.getElementById('ac2-overlay');
+    overlay.classList.add('ac2-open');
+    overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
   }
 
-  /* ── Render Pickers Dynamically ─────────────────────────── */
-  function renderControls() {
-    var C = AvatarBuilder.CONFIG;
-    var html = '';
-
-    // 1. Skin Tone — always free
-    html += pickerGroup('🎨 Skin Tone', renderSwatches(C.skinTones, 'skinTone', tempCfg.skinTone));
-
-    // 2. Hair Style — some shop-locked
-    html += pickerGroup('✂️ Hair Style', renderStyleBtns(C.hairStyles, 'hairStyle', tempCfg.hairStyle, 'hair'));
-
-    // 3. Hair Color — always free
-    html += pickerGroup('🎨 Hair Color', renderSwatches(C.hairColors, 'hairColor', tempCfg.hairColor));
-
-    // 4. Beard — some shop-locked
-    html += pickerGroup('🧔 Beard', renderStyleBtns(C.beardStyles, 'beardStyle', tempCfg.beardStyle, 'beard'));
-
-    // 5. Body Type — always free
-    html += pickerGroup('💪 Body Type', renderStyleBtns(C.bodyTypes, 'bodyType', tempCfg.bodyType, null));
-
-    // 6. Accessories — most shop-locked
-    html += pickerGroup('🎽 Accessories', renderStyleBtns(C.accessories, 'accessory', tempCfg.accessory, 'accessory'));
-
-    controlsEl.innerHTML = html;
-    wireEvents();
-  }
-
-  function pickerGroup(label, innerHtml) {
-    return '<div class="ac-picker-group">' +
-      '<div class="ac-picker-label">' + label + '</div>' +
-      '<div class="ac-picker-row">' + innerHtml + '</div>' +
-    '</div>';
-  }
-
-  /* Color swatches (skin tone, hair color) — always unlocked */
-  function renderSwatches(items, group, currentVal) {
-    var html = '';
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
-      var sel = (item.color === currentVal) ? ' selected' : '';
-      html += '<div class="ac-swatch' + sel + '" data-picker="' + group +
-        '" data-value="' + item.color + '" style="background:' + item.color +
-        '" title="' + item.name + '"></div>';
-    }
-    return html;
-  }
-
-  /* Style buttons — check ownership for shop-gated items */
-  function renderStyleBtns(items, group, currentVal, shopType) {
-    var html = '';
-    for (var i = 0; i < items.length; i++) {
-      var itemId = (typeof items[i] === 'string') ? items[i] : items[i].id;
-      var label = capitalize(itemId);
-      var sel = (itemId === currentVal) ? ' selected' : '';
-      var locked = false;
-
-      // Check shop ownership
-      if (shopType && typeof AvatarShop !== 'undefined' && AvatarShop.isFreeItem && AvatarShop.isOwned) {
-        var isFree = AvatarShop.isFreeItem(shopType, itemId);
-        var isOwned = AvatarShop.isOwned(itemId);
-        if (!isFree && !isOwned) locked = true;
-      }
-
-      var cls = 'ac-style-btn' + sel + (locked ? ' ac-style-btn--locked' : '');
-      html += '<button class="' + cls + '" data-picker="' + group +
-        '" data-value="' + itemId + '"' +
-        (locked ? ' data-locked="true" title="Buy in Shop to unlock"' : '') +
-        ' type="button">' + label + '</button>';
-    }
-    return html;
-  }
-
-  /* ── Wire Click Events ──────────────────────────────────── */
-  function wireEvents() {
-    // Swatches
-    var swatches = controlsEl.querySelectorAll('.ac-swatch');
-    for (var i = 0; i < swatches.length; i++) {
-      swatches[i].addEventListener('click', handleSwatchClick);
-    }
-    // Style buttons
-    var btns = controlsEl.querySelectorAll('.ac-style-btn');
-    for (var j = 0; j < btns.length; j++) {
-      btns[j].addEventListener('click', handleBtnClick);
-    }
-  }
-
-  function handleSwatchClick() {
-    var group = this.dataset.picker;
-    var siblings = controlsEl.querySelectorAll('.ac-swatch[data-picker="' + group + '"]');
-    for (var i = 0; i < siblings.length; i++) siblings[i].classList.remove('selected');
-    this.classList.add('selected');
-    tempCfg[group] = this.dataset.value;
-    redraw();
-  }
-
-  function handleBtnClick() {
-    if (this.dataset.locked === 'true') {
-      if (typeof showToast === 'function') showToast('Unlock in the Avatar Shop first', true);
-      return;
-    }
-    var group = this.dataset.picker;
-    var siblings = controlsEl.querySelectorAll('.ac-style-btn[data-picker="' + group + '"]');
-    for (var i = 0; i < siblings.length; i++) siblings[i].classList.remove('selected');
-    this.classList.add('selected');
-    tempCfg[group] = this.dataset.value;
-    redraw();
-  }
-
-  /* ── Live Preview ───────────────────────────────────────── */
-  function redraw() {
-    var ob = getOnboarding();
-    var drawCfg = JSON.parse(JSON.stringify(tempCfg));
-    drawCfg.position = ob.position || 'SG';
-
-    // Use 3D bridge if available
-    if (container && typeof AvatarBridge !== 'undefined') {
-      AvatarBridge.update(container, drawCfg);
-      return;
-    }
-
-    // Fallback to direct 2D
-    var canvas = container ? container.querySelector('canvas') : null;
-    if (canvas && typeof AvatarBuilder !== 'undefined') {
-      AvatarBuilder.draw(canvas, drawCfg);
-    }
+  /* ── Close ──────────────────────────────────────────────── */
+  function closeModal() {
+    var overlay = document.getElementById('ac2-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('ac2-open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
   }
 
   /* ── Save ───────────────────────────────────────────────── */
-  function save() {
-    try {
-      var ob = getOnboarding();
-      ob.avatar = JSON.parse(JSON.stringify(tempCfg));
-      localStorage.setItem('courtiq-onboarding-data', JSON.stringify(ob));
-    } catch (e) { /* silent */ }
+  function saveAvatar() {
+    var url = buildURL();
+    localStorage.setItem('courtiq_avatar_url', url);
 
-    // Re-render mini avatar everywhere
-    if (typeof PlayerProfile !== 'undefined' && PlayerProfile.renderSummary) {
-      PlayerProfile.renderSummary();
-    }
-    // Re-render shop preview if visible
-    var shopContainer = document.getElementById('shop-avatar-container');
-    if (shopContainer && typeof AvatarBridge !== 'undefined') {
-      var ob2 = getOnboarding();
-      if (ob2.avatar) AvatarBridge.update(shopContainer, Object.assign({}, ob2.avatar, { position: ob2.position || 'SG' }));
-    }
+    updateSidebarAvatar(url);
+    closeModal();
 
-    // Re-render sidebar mini avatar
-    var sidebarAvatar = document.getElementById('db-sidebar-avatar');
-    if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
-      var ob3 = getOnboarding();
-      if (ob3.avatar) AvatarBridge.renderMini(sidebarAvatar, ob3.avatar);
-    }
-
-    close();
-    if (typeof showToast === 'function') showToast('Avatar updated!');
+    if (typeof showToast === 'function') showToast('Avatar saved');
   }
 
-  /* ── Cancel ─────────────────────────────────────────────── */
-  function cancel() {
-    tempCfg = JSON.parse(JSON.stringify(savedCfg));
-    close();
+  /* ── Sidebar helper ─────────────────────────────────────── */
+  function updateSidebarAvatar(url) {
+    var el = document.getElementById('db-sidebar-avatar');
+    if (!el) return;
+    el.innerHTML = '<img src="' + url +
+      '" alt="Avatar" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
+    el.style.padding  = '0';
+    el.style.fontSize = '0';
+    el.style.lineHeight = '1';
   }
 
-  /* ── Close ──────────────────────────────────────────────── */
-  function close() {
-    if (!overlay) return;
-    overlay.classList.remove('active');
-    document.body.style.overflow = '';
-    // Dispose 3D scene to free GPU memory
-    if (container && typeof AvatarBridge !== 'undefined') {
-      AvatarBridge.dispose(container);
-    }
+  /* ── Restore saved avatar on load ───────────────────────── */
+  function restoreOnLoad() {
+    var url = localStorage.getItem('courtiq_avatar_url');
+    if (url) updateSidebarAvatar(url);
   }
 
-  /* ── Init ───────────────────────────────────────────────── */
-  function init() {
-    // Button wiring via delegation
-    document.addEventListener('click', function (e) {
-      if (e.target.id === 'ac-close' || e.target.id === 'ac-cancel') { cancel(); return; }
-      if (e.target.id === 'ac-save') { save(); return; }
-      // Backdrop click
-      if (e.target.id === 'ac-overlay') { cancel(); return; }
-    });
+  /* ── Escape key ─────────────────────────────────────────── */
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    var overlay = document.getElementById('ac2-overlay');
+    if (overlay && overlay.classList.contains('ac2-open')) closeModal();
+  });
 
-    // Escape key
-    document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape') {
-        var ov = document.getElementById('ac-overlay');
-        if (ov && ov.classList.contains('active')) cancel();
-      }
-    });
-  }
-
+  /* ── Boot ───────────────────────────────────────────────── */
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', restoreOnLoad);
   } else {
-    init();
+    restoreOnLoad();
   }
 
-  window.AvatarCustomizer = {
-    open: open,
-    close: close
-  };
+  /* ── Public API ─────────────────────────────────────────── */
+  window.AvatarCustomizer = { open: openModal, close: closeModal };
 })();
