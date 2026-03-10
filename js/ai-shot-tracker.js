@@ -963,10 +963,10 @@
     } else if (shotPhase === 'at_rim') {
       atRimFrames++;
       if (!insideRim(ball.x, ball.y)) {
-        if (ball.y > rim.cy + rim.ry * 0.3) {
-          commitShot(true, now);  // Exited below — made
+        if (ballPassedThroughRim(ball) || ball.y > rim.cy + rim.ry * 1.0) {
+          commitShot(true, now);  // Exited through/below rim — made
         } else {
-          commitShot(false, now); // Exited above/side — miss
+          commitShot(false, now); // Exited above or to the side — miss
         }
         shotPhase = 'idle';
         atRimFrames = 0;
