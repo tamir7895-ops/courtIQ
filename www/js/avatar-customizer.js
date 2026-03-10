@@ -98,29 +98,29 @@
     { name: 'Hijab',        id: 'hijab',             top: 'hijab',             xpRequired: 5 }
   ];
 
-  /* ── Female hair styles ──────────────────────────────────── */
+  /* ── Female hair styles (all verified valid in DiceBear v9) */
   var HAIR_FEMALE = [
-    { name: 'Bald',          id: 'noHair',        top: 'noHair'           },
-    { name: 'Short Flat',    id: 'shortFlat',     top: 'shortFlat'        },
-    { name: 'Short Round',   id: 'shortRound',    top: 'shortRound'       },
-    { name: 'Short Curly',   id: 'shortCurly',    top: 'shortCurly'       },
-    { name: 'Short Wavy',    id: 'shortWaved',    top: 'shortWaved'       },
-    { name: 'Big Hair',      id: 'bigHair',       top: 'bigHair'          },
-    { name: 'Bob',           id: 'bob',           top: 'bob'              },
-    { name: 'Curly',         id: 'curly',         top: 'curly'            },
-    { name: 'Curvy',         id: 'curvy',         top: 'curvy'            },
-    { name: 'Long Str.',     id: 'straight01',    top: 'straight01'       },
-    { name: 'Long Wavy',     id: 'straight02',    top: 'straight02'       },
-    { name: 'Str.+Strand',   id: 'strtStrand',    top: 'straightAndStrand'},
-    { name: 'Long Bun',      id: 'bun',           top: 'bun'              },
-    { name: 'Fro',           id: 'fro',           top: 'fro'              },
-    { name: '🏀 Headband',   id: 'froAndBand',    top: 'froAndBand',      xpRequired: 5 },
-    { name: 'Dreads',        id: 'dreads01',      top: 'dreads01'         },
-    { name: 'Frida',         id: 'frida',         top: 'frida'            },
-    { name: 'Long',          id: 'longNotToo',    top: 'longButNotTooLong'},
-    { name: 'Frizzle',       id: 'frizzle',       top: 'frizzle'          },
-    { name: 'Hat',           id: 'hat',           top: 'hat'              },
-    { name: 'Hijab',         id: 'hijab',         top: 'hijab'            }
+    { name: 'Bob',          id: 'bob',               top: 'bob'              },
+    { name: 'Curly',        id: 'curly',             top: 'curly'            },
+    { name: 'Curvy',        id: 'curvy',             top: 'curvy'            },
+    { name: 'Short Flat',   id: 'shortFlat',         top: 'shortFlat'        },
+    { name: 'Straight 1',   id: 'straight01',        top: 'straight01'       },
+    { name: 'Long Wavy',    id: 'straight02',        top: 'straight02'       },
+    { name: 'Str+Strand',   id: 'straightAndStrand', top: 'straightAndStrand'},
+    { name: 'Big Hair',     id: 'bigHair',           top: 'bigHair',         xpRequired: 3 },
+    { name: 'Long Hair',    id: 'longButNotTooLong', top: 'longButNotTooLong', xpRequired: 3 },
+    { name: 'Mia Wallace',  id: 'miaWallace',        top: 'miaWallace',      xpRequired: 3 },
+    { name: 'Frida',        id: 'frida',             top: 'frida',           xpRequired: 3 },
+    { name: 'Dreads 1',     id: 'dreads01',          top: 'dreads01',        xpRequired: 3 },
+    { name: 'Man Bun',      id: 'bun',               top: 'bun',             xpRequired: 3 },
+    { name: 'Shaved Sides', id: 'shavedSides',       top: 'shavedSides',     xpRequired: 3 },
+    { name: 'Short Round',  id: 'shortRound',        top: 'shortRound',      xpRequired: 3 },
+    { name: 'Short Wavy',   id: 'shortWaved',        top: 'shortWaved',      xpRequired: 3 },
+    { name: 'Short Curly',  id: 'shortCurly',        top: 'shortCurly',      xpRequired: 3 },
+    { name: 'Afro',         id: 'fro',               top: 'fro',             xpRequired: 5 },
+    { name: 'Sides',        id: 'sides',             top: 'sides',           xpRequired: 5 },
+    { name: '🧢 Cap',       id: 'hat',               top: 'hat',             xpRequired: 5 },
+    { name: 'Hijab',        id: 'hijab',             top: 'hijab',           xpRequired: 5 }
   ];
 
   /* ── Eyes ────────────────────────────────────────────────── */
