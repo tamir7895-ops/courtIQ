@@ -52,21 +52,26 @@
         return;
       }
 
+      // Escape user-controlled values before inserting into innerHTML
+      var _esc = typeof escapeHTML === 'function' ? escapeHTML : function(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      };
+
       var pills = '';
       if (data.position) {
-        pills += '<span class="profile-pill profile-pill--accent">' + data.position + '</span>';
+        pills += '<span class="profile-pill profile-pill--accent">' + _esc(data.position) + '</span>';
       }
       if (data.height) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Height</span> ' + data.height + '"</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Height</span> ' + _esc(data.height) + '"</span>';
       }
       if (data.age) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Age</span> ' + data.age + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Age</span> ' + _esc(data.age) + '</span>';
       }
       if (data.skillLevel) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Skill</span> ' + data.skillLevel + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Skill</span> ' + _esc(data.skillLevel) + '</span>';
       }
       if (data.primaryGoal) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Goal</span> ' + data.primaryGoal + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Goal</span> ' + _esc(data.primaryGoal) + '</span>';
       }
 
       // Check for onboarding avatar
@@ -76,7 +81,7 @@
       if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
         avatarHtml = '<canvas id="profile-mini-avatar" width="48" height="48" style="border-radius:50%;flex-shrink:0;cursor:pointer" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar"></canvas>';
       } else {
-        avatarHtml = '<div class="profile-summary-avatar">' + data.position + '</div>';
+        avatarHtml = '<div class="profile-summary-avatar">' + _esc(data.position) + '</div>';
       }
 
       // Add archetype badge if available
@@ -84,7 +89,7 @@
       if (onboarding && onboarding.archetype && typeof ArchetypeEngine !== 'undefined' && ArchetypeEngine.ARCHETYPES) {
         var arch = ArchetypeEngine.ARCHETYPES[onboarding.archetype];
         if (arch) {
-          archetypePill = '<span class="profile-pill profile-pill--accent">' + arch.icon + ' ' + arch.name + '</span>';
+          archetypePill = '<span class="profile-pill profile-pill--accent">' + _esc(arch.icon) + ' ' + _esc(arch.name) + '</span>';
         }
       }
 
