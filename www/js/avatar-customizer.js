@@ -45,14 +45,8 @@
 
     renderControls();
 
-    // Initialize 3D avatar via bridge
-    if (container && typeof AvatarBridge !== 'undefined') {
-      var drawCfg = JSON.parse(JSON.stringify(tempCfg));
-      drawCfg.position = ob.position || 'SG';
-      AvatarBridge.render(container, drawCfg, { width: 200, height: 280, interactive: true, animate: true });
-    } else {
-      redraw();
-    }
+    // Draw 2D canvas preview (Memoji style)
+    redraw();
 
     overlay.classList.add('active');
     document.body.style.overflow = 'hidden';
