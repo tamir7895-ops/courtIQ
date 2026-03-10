@@ -487,7 +487,18 @@
      ──────────────────────────────────────────────────────────── */
 
   // Strategy A: Orange/red rim color detection
+  // If a learned rim model is available (confidence > 0.5), checks its
+  // trained RGB bounds first before falling back to the heuristic range.
   function isRimColor(r, g, b) {
+    // ── Learned model bounds (from rim-trainer) ──
+    if (rimModel && (rimModel.confidence || 0) > 0.5) {
+      if (r >= rimModel.rMin && r <= rimModel.rMax &&
+          g >= rimModel.gMin && g <= rimModel.gMax &&
+          b >= rimModel.bMin && b <= rimModel.bMax) {
+        return true;
+      }
+    }
+    // ── Heuristic fallback ──
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
     if (max < 50) return false;
