@@ -53,6 +53,9 @@
   var autoRimCandidate = null;  // { cx, cy } — candidate from auto-detect
   var rimDetectTimer = null;
   var rimDetectTries = 0;
+  var rimCandidateHistory = [];   // multi-frame consensus buffer
+  var RIM_CONSENSUS_NEEDED = 3;   // require N consistent detections
+  var RIM_CONSENSUS_TOL    = 0.08; // max cx/cy drift (fraction of W)
 
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
