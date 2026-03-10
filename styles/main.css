@@ -763,6 +763,8 @@
       .hero-subtitle--centered { font-size: 17px; max-width: 100%; }
     }
     @media (max-width: 580px) {
+      .hero-title--centered { font-size: clamp(28px, 9.5vw, 42px); }
+      .hero-subtitle--centered { font-size: 15px; }
       .hero-cta-group--centered { flex-direction: column; width: 100%; }
       .hero-cta-group--centered .btn-primary,
       .hero-cta-group--centered .btn-secondary { width: 100%; justify-content: center; }
