@@ -147,6 +147,12 @@
       fill.style.width = pct + '%';
       fill.className = 'xp-bar-fill xp-bar-fill--' + level.cls;
     }
+
+    // Update compact topbar profile XP
+    var topbarXP = document.getElementById('db-topbar-profile-xp');
+    if (topbarXP) {
+      topbarXP.textContent = level.icon + ' ' + xp + ' XP — ' + level.name;
+    }
   }
 
   /* ── XP Toast ────────────────────────────────────────────── */
