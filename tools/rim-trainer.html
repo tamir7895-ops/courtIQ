@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CourtIQ — Rim Trainer</title>
+  <style>
+    :root {
+      --bg: #0d0f14;
+      --surface: #161920;
+      --card: #1e2230;
+      --border: #2a2f3e;
+      --accent: #f97316;
+      --accent2: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+      --purple: #a855f7;
+      --text: #e2e8f0;
+      --muted: #64748b;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      font-size: 14px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .header { margin-bottom: 24px; }
+    .header h1 { font-size: 22px; font-weight: 700; }
+    .header .badge {
+      background: var(--purple);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 99px;
+      margin-left: 8px;
+    }
+    .header p { color: var(--muted); font-size: 13px; margin-top: 6px; }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 1100px;
+    }
+
+    @media (max-width: 700px) {
+      .grid { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 14px;
+    }
+
+    .full-width { grid-column: 1 / -1; }
+
+    /* Status pill */
+    #statusPill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 24px;
+    }
+
+    .pill-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--muted);
+    }
+
+    .pill-dot.active {
+      background: var(--green);
+      box-shadow: 0 0 6px var(--green);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    /* Video list */
+    #videoList { display: flex; flex-direction: column; gap: 6px; max-height: 280px; overflow-y: auto; }
+
+    .video-item {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+
+    .video-item-wrap { display: flex; flex-direction: column; gap: 4px; }
+    .video-item-top { display: flex; align-items: center; gap: 8px; }
+    .vname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .vsize { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .vstatus { font-size: 11px; color: var(--muted); }
+    .vstatus.done { color: var(--green); }
+    .vstatus.active { color: var(--accent); }
+    .vbar { width: 100%; height: 3px; background: var(--border); border-radius: 2px; }
+    .vbar-fill { height: 100%; border-radius: 2px; background: var(--purple); transition: width .3s; }
+
+    /* Stats */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .stat-box {
+      background: var(--surface);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+    }
+
+    .stat-box .val {
+      font-size: 22px;
+      font-weight: 700;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-box .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+    }
+
+    .stat-box.green .val  { color: var(--green); }
+    .stat-box.orange .val { color: var(--accent); }
+    .stat-box.blue .val   { color: var(--accent2); }
+    .stat-box.purple .val { color: var(--purple); }
+    .stat-box.yellow .val { color: var(--yellow); }
+
+    /* Confidence bar */
+    .conf-bar-wrap { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+    .conf-row { display: flex; align-items: center; gap: 10px; }
+    .conf-label { font-size: 12px; width: 80px; color: var(--muted); }
+    .conf-bar-bg { flex: 1; height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+    .conf-bar-fill { height: 100%; border-radius: 4px; background: var(--purple); transition: width .5s; }
+    .conf-pct { font-size: 12px; width: 36px; text-align: right; color: var(--text); }
+
+    /* Model info box */
+    .model-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .model-box .mlabel { color: var(--muted); }
+    .model-box .mval   { color: var(--accent); font-weight: 600; }
+    .model-box .mgood  { color: var(--green); }
+    .model-box .mwarn  { color: var(--yellow); }
+
+    /* Buttons */
+    .btn {
+      border: none;
+      border-radius: 8px;
+      padding: 10px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity .15s, transform .1s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .btn-primary { background: var(--purple); color: #fff; }
+    .btn-danger  { background: var(--red);    color: #fff; }
+    .btn-muted   { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+
+    .btn-row { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+
+    /* Log */
+    #logBox {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      height: 240px;
+      overflow-y: auto;
+      padding: 10px 12px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .log-line { display: flex; gap: 8px; }
+    .log-time { color: var(--muted); white-space: nowrap; }
+    .log-msg  { flex: 1; }
+    .log-ok   .log-msg { color: var(--green); }
+    .log-warn .log-msg { color: var(--yellow); }
+    .log-err  .log-msg { color: var(--red); }
+    .log-info .log-msg { color: var(--accent2); }
+
+    .current-video-label { font-size: 12px; color: var(--muted); margin-top: 8px; }
+    .current-video-label span { color: var(--purple); }
+
+    .tip {
+      background: rgba(168,85,247,0.08);
+      border: 1px solid rgba(168,85,247,0.25);
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .tip strong { color: var(--text); }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div style="display:flex;align-items:center;gap:4px;">
+      <h1>🏀 CourtIQ — Rim Trainer</h1>
+      <span class="badge">BETA</span>
+    </div>
+    <p>
+      מאמן את המודל לזהות את הטבעת ולזהות מתי כדור עובר דרכה — ממשיך מה שהאימון הלילי למד על הכדור.
+    </p>
+  </div>
+
+  <div id="statusPill">
+    <div class="pill-dot" id="statusDot"></div>
+    <span id="statusText">מוכן</span>
+  </div>
+
+  <div class="tip">
+    <strong>איך זה עובד:</strong>
+    האלגוריתם סורק את 18 הסרטונים שהורדו אמש, מזהה בכל פריים את הטבעת האורנג׳ (צורה רחבה ואופקית),
+    לומד את הצבע, הגודל והמיקום שלה, ומוצא אירועים של כדור שעובר דרכה.
+    התוצאה נשמרת ב-localStorage כ-<code>courtiq-rim-model</code> ומשמשת אוטומטית ב-ai-shot-tracker.
+  </div>
+
+  <div class="grid">
+
+    <!-- Videos -->
+    <div class="card">
+      <h2>📹 סרטונים</h2>
+      <div id="videoList">
+        <div style="color:var(--muted);font-size:13px;padding:12px 0;">טוען רשימת סרטונים מהשרת...</div>
+      </div>
+      <div id="currentVideoLabel" class="current-video-label"></div>
+    </div>
+
+    <!-- Stats -->
+    <div class="card">
+      <h2>📊 סטטיסטיקות</h2>
+      <div class="stat-grid">
+        <div class="stat-box purple">
+          <div class="val" id="statRims">0</div>
+          <div class="lbl">טבעות זוהו</div>
+        </div>
+        <div class="stat-box green">
+          <div class="val" id="statGeoSamples">0</div>
+          <div class="lbl">דגימות גאומטריה</div>
+        </div>
+        <div class="stat-box orange">
+          <div class="val" id="statFrames">0</div>
+          <div class="lbl">פריימים עובדו</div>
+        </div>
+        <div class="stat-box yellow">
+          <div class="val" id="statShots">0</div>
+          <div class="lbl">אירועי זריקה</div>
+        </div>
+      </div>
+
+      <div class="conf-bar-wrap">
+        <div style="font-size:12px; color:var(--muted); font-weight:600; margin-bottom:4px;">ביטחון מודל טבעת</div>
+        <div class="conf-row">
+          <div class="conf-label">צבע טבעת</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="confRimFill" style="width:0%"></div></div>
+          <div class="conf-pct" id="confRimPct">0%</div>
+        </div>
+        <div class="conf-row">
+          <div class="conf-label">גאומטריה</div>
+          <div class="conf-bar-bg"><div class="conf-bar-fill" id="confGeoFill" style="width:0%; background:var(--green)"></div></div>
+          <div class="conf-pct" id="confGeoPct">0%</div>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btnStart">▶ התחל אימון טבעת</button>
+        <button class="btn btn-danger"  id="btnStop" disabled>■ עצור</button>
+        <button class="btn btn-muted"   id="btnClearModel">🗑 מחק מודל</button>
+      </div>
+    </div>
+
+    <!-- Current model -->
+    <div class="card">
+      <h2>🧠 מודל טבעת נוכחי</h2>
+      <div id="modelBox" class="model-box">
+        <div class="mlabel">טוען...</div>
+      </div>
+    </div>
+
+    <!-- Log -->
+    <div class="card full-width">
+      <h2>🖥 לוג בזמן אמת</h2>
+      <div id="logBox"></div>
+    </div>
+
+  </div>
+
+  <!-- Hidden processing elements -->
+  <canvas id="extractCanvas" style="display:none"></canvas>
+  <video  id="extractVideo"  style="display:none" muted playsinline></video>
+
+  <script src="rim-trainer.js"></script>
+</body>
+</html>
