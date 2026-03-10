@@ -293,10 +293,11 @@
 }
 
 /* ════════════════════════════════════════════════════════════
-   PANEL HOST (scrollable options area)
+   PANEL HOST (only scrollable zone)
    ════════════════════════════════════════════════════════════ */
 .ac2-panel {
   flex: 1;
+  min-height: 0;       /* required for flex scroll child */
   overflow-y: auto;
   overflow-x: hidden;
   overscroll-behavior: contain;
