@@ -239,7 +239,7 @@
     const d = w.days;
     if (!d || d.length === 0) return { shooting_pct:0, dribbling_min:0, vertical_in:0, sprint_sec:0, shots_made:0 };
     return {
-      shooting_pct: Math.round(dbMean(d, r => (r.shots_made/r.shots_attempted)*100)),
+      shooting_pct: Math.round(dbMean(d, r => r.shots_attempted > 0 ? (r.shots_made/r.shots_attempted)*100 : 0)),
       dribbling_min: +dbMean(d, r => r.dribbling_min).toFixed(1),
       vertical_in:   +dbMean(d, r => r.vertical_in).toFixed(1),
       sprint_sec:    +dbMean(d, r => r.sprint_sec).toFixed(2),
@@ -354,7 +354,7 @@
       return;
     }
     list.innerHTML = dbSessions.map((s, i) => {
-      const pct = Math.round((s.shots_made / s.shots_attempted) * 100);
+      const pct = s.shots_attempted > 0 ? Math.round((s.shots_made / s.shots_attempted) * 100) : 0;
       const bc  = pct >= 65 ? '#56d364' : pct >= 50 ? '#f5a623' : '#f85149';
       return `
         <div class="db-session-card">
@@ -654,7 +654,7 @@
             </div>
             <div class="db-day-bars">
               ${w.days.map(d => {
-                const pct = Math.round((d.shots_made/d.shots_attempted)*100);
+                const pct = d.shots_attempted > 0 ? Math.round((d.shots_made/d.shots_attempted)*100) : 0;
                 const bc  = pct>=65?'rgba(86,211,100,0.45)':pct>=50?'rgba(245,166,35,0.45)':'rgba(248,81,73,0.4)';
                 return `<div class="db-day-bar-wrap"><div class="db-day-bar-bg"><div class="db-day-bar-fill" style="height:${pct}%;background:${bc}"></div></div><div class="db-day-bar-label">${d.day}</div></div>`;
               }).join('')}

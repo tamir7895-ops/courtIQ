@@ -55,18 +55,24 @@ function broadcast(event, data) {
 const LIVE_SCRIPT = `
 <script>
 (function(){
-  var src = new EventSource('/__live');
-  src.addEventListener('reload', function(){ location.reload(); });
-  src.addEventListener('css', function(e){
-    var file = JSON.parse(e.data).file;
-    document.querySelectorAll('link[rel="stylesheet"]').forEach(function(el){
-      if(el.href && el.href.indexOf(file) !== -1){
-        var url = el.href.split('?')[0];
-        el.href = url + '?t=' + Date.now();
-      }
+  var src;
+  function connect(){
+    src = new EventSource('/__live');
+    src.addEventListener('reload', function(){ location.reload(); });
+    src.addEventListener('css', function(e){
+      var file = JSON.parse(e.data).file;
+      document.querySelectorAll('link[rel="stylesheet"]').forEach(function(el){
+        if(el.href && el.href.indexOf(file) !== -1){
+          var url = el.href.split('?')[0];
+          el.href = url + '?t=' + Date.now();
+        }
+      });
     });
-  });
-  src.onerror = function(){ setTimeout(function(){ location.reload(); }, 1500); };
+    src.onerror = function(){
+      if(src.readyState === 2) setTimeout(connect, 3000);
+    };
+  }
+  connect();
 })();
 </script>`;
 
