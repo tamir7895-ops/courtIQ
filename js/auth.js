@@ -113,9 +113,6 @@
       return;
     }
 
-    // Clear any stale local session so it doesn't interfere (no network call)
-    try { await sb.auth.signOut({ scope: 'local' }); } catch(_) {}
-
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Request timed out. Please try again.')), 10000));
     let result;
     try {
@@ -129,9 +126,15 @@
       return;
     }
 
-    const { error } = result;
+    const { data: signInData, error } = result;
     if (error) {
       showAuthError(error.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+      return;
+    }
+
+    if (!signInData || !signInData.session) {
+      showAuthError('Sign in failed — no session created. Please try again.');
       if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
       return;
     }
@@ -158,7 +161,7 @@
     const btn = document.getElementById('su-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating account\u2026'; }
 
-    const { error } = await sb.auth.signUp({
+    const { data: signUpData, error } = await sb.auth.signUp({
       email,
       password: pass,
       options: {
@@ -169,6 +172,18 @@
     if (error) {
       showAuthError(error.message);
       if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      return;
+    }
+
+    // If session is null, Supabase requires email confirmation before sign-in
+    if (!signUpData || !signUpData.session) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      const el = document.getElementById('auth-error');
+      el.textContent = '\u2709 Check your email to confirm your account, then sign in.';
+      el.style.color = '#a8e063';
+      el.style.background = 'rgba(168,224,99,0.08)';
+      el.style.borderColor = 'rgba(168,224,99,0.2)';
+      el.style.display = 'block';
       return;
     }
 
