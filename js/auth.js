@@ -113,6 +113,9 @@
       return;
     }
 
+    // Clear any stale local session so it doesn't interfere (no network call)
+    try { await sb.auth.signOut({ scope: 'local' }); } catch(_) {}
+
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Request timed out. Please try again.')), 10000));
     let result;
     try {
