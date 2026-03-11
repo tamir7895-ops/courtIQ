@@ -107,8 +107,23 @@
     const btn = document.querySelector('#pane-signin .auth-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Signing in\u2026'; }
 
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    // Clear any stale session before signing in
+    try { await sb.auth.signOut(); } catch(e) { /* ignore */ }
 
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Request timed out. Please try again.')), 10000));
+    let result;
+    try {
+      result = await Promise.race([
+        sb.auth.signInWithPassword({ email, password: pass }),
+        timeout
+      ]);
+    } catch(e) {
+      showAuthError(e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+      return;
+    }
+
+    const { error } = result;
     if (error) {
       showAuthError(error.message);
       if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
