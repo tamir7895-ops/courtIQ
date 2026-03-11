@@ -107,8 +107,11 @@
     const btn = document.querySelector('#pane-signin .auth-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Signing in\u2026'; }
 
-    // Clear any stale session before signing in
-    try { await sb.auth.signOut(); } catch(e) { /* ignore */ }
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+      return;
+    }
 
     const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Request timed out. Please try again.')), 10000));
     let result;
