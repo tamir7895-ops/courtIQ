@@ -871,7 +871,10 @@
             <div class="daily-workout-title">🏀 Today's Workout</div>
             <div class="daily-workout-date" id="daily-workout-date"></div>
           </div>
-          <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="night-training-trigger" onclick="NightTraining.open()">🌙 Night Training</button>
+            <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          </div>
         </div>
         <div class="daily-workout-grid" id="daily-workout-grid"></div>
         <div class="daily-workout-totals" id="daily-workout-totals"></div>
@@ -2650,6 +2653,29 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     NIGHT TRAINING OVERLAY
+     ═══════════════════════════════════════════════════════ -->
+<div class="nt-overlay" id="nt-overlay">
+  <div class="nt-modal">
+    <div class="nt-modal-header">
+      <div class="nt-stars" id="nt-stars"></div>
+      <div class="nt-badge">🌙 Night Session</div>
+      <div class="nt-title">Night Training</div>
+      <div class="nt-subtitle">Technical work designed for evening recovery &amp; skill refinement</div>
+      <button class="nt-close" id="nt-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="nt-body">
+      <div class="nt-grid" id="nt-grid"></div>
+      <div class="nt-footer">
+        <div class="nt-totals" id="nt-totals"></div>
+        <button class="nt-start-btn" onclick="NightTraining.close()">&#x2713; Let's Get to Work</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/night-training.js"></script>
 
 </body>
 </html>
