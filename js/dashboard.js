@@ -53,6 +53,53 @@
         const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
         sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
       }
+
+      // Populate topbar profile widget
+      var pwName = document.getElementById('db-pw-name');
+      var pwAvatar = document.getElementById('db-pw-avatar');
+      var pwBadge = document.getElementById('db-pw-badge');
+      var homeGreeting = document.getElementById('db-home-greeting');
+
+      var obData = {};
+      try { obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+
+      if (pwName) {
+        pwName.textContent = name || 'Player';
+      }
+      if (pwAvatar) {
+        if (typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          try { AvatarBridge.renderMini(pwAvatar, obData.avatar); } catch(e) {
+            var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+            pwAvatar.textContent = initials;
+          }
+        } else {
+          var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          pwAvatar.textContent = initials;
+        }
+      }
+      if (pwBadge && typeof GamificationEngine !== 'undefined') {
+        var ge = GamificationEngine.state || {};
+        pwBadge.textContent = ge.rank || 'Rookie';
+      }
+      if (homeGreeting) {
+        var firstName = (name || 'Player').split(' ')[0];
+        // Build greeting safely using textContent + DOM
+        homeGreeting.textContent = '';
+        homeGreeting.appendChild(document.createTextNode('Hey, '));
+        var strong = document.createElement('strong');
+        strong.textContent = firstName;
+        homeGreeting.appendChild(strong);
+        homeGreeting.appendChild(document.createTextNode('!'));
+      }
+
+      // Set home date pill
+      var datePill = document.getElementById('db-home-date');
+      if (datePill) {
+        var d = new Date();
+        var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        datePill.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+      }
     }
 
     // Also update old nav elements (backwards compat)
