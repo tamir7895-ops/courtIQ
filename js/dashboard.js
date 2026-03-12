@@ -159,6 +159,69 @@
         }
       }
 
+      // ── Populate new dashboard home elements ──────────────
+      (function populateNewDashboard() {
+        var ob = null;
+        try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch(e) {}
+        var pName = (profile && profile.first_name) || (ob && ob.name) || 'Player';
+        var pLevel = 'Rookie';
+        var pXP = 0;
+        if (typeof XPSystem !== 'undefined') {
+          var xpData = null;
+          try { xpData = JSON.parse(localStorage.getItem('courtiq-xp')); } catch(e) {}
+          pXP = (xpData && xpData.total) || 0;
+          var lvl = XPSystem.getLevel(pXP);
+          if (lvl) pLevel = lvl.name || 'Rookie';
+        }
+
+        // Welcome hero name
+        var welcomeNameEl = document.getElementById('db-welcome-name');
+        if (welcomeNameEl) welcomeNameEl.textContent = pName;
+
+        // Profile mini widget
+        var miniName = document.getElementById('db-profile-mini-name');
+        var miniLevel = document.getElementById('db-profile-mini-level');
+        var miniAvatar = document.getElementById('db-profile-mini-avatar');
+        if (miniName) miniName.textContent = pName;
+        if (miniLevel) miniLevel.textContent = pLevel;
+        if (miniAvatar) {
+          var initials = pName.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+          miniAvatar.textContent = initials;
+        }
+
+        // Stat cards
+        var statXP = document.getElementById('db-stat-xp');
+        if (statXP) statXP.textContent = pXP + ' XP';
+
+        var statStreak = document.getElementById('db-stat-streak');
+        if (statStreak) {
+          var streakData = null;
+          try { streakData = JSON.parse(localStorage.getItem('courtiq-streak')); } catch(e) {}
+          statStreak.textContent = (streakData && streakData.current) || 0;
+        }
+
+        // Skills circles — read from onboarding data
+        var skills = (ob && ob.skills) || {};
+        var skillMap = {
+          shooting: (skills.shooting || 5) * 10,
+          dribbling: (skills.dribbling || 5) * 10,
+          defense: (skills.defense || 5) * 10,
+          gameiq: (skills.gameIQ || skills.gameiq || 5) * 10
+        };
+        var circumference = 2 * Math.PI * 34; // r=34
+
+        Object.keys(skillMap).forEach(function(key) {
+          var pct = skillMap[key];
+          var pctEl = document.getElementById('stat-' + key);
+          var circleEl = document.getElementById('stat-' + key + '-circle');
+          if (pctEl) pctEl.textContent = pct + '%';
+          if (circleEl) {
+            var offset = circumference - (pct / 100) * circumference;
+            setTimeout(function() { circleEl.style.strokeDashoffset = offset; }, 300);
+          }
+        });
+      })();
+
       // Load all weeks with sessions
       const weeks = await DataService.getWeeks();
 
@@ -328,7 +391,10 @@
     const weekNum = document.getElementById('db-week-num');
     if (weekLabel) weekLabel.textContent = 'Week ' + wn;
     if (weekNum) weekNum.textContent = wn;
-    document.getElementById('db-session-count').textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var scEl = document.getElementById('db-session-count');
+    if (scEl) scEl.textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var statSessions = document.getElementById('db-stat-sessions');
+    if (statSessions) statSessions.textContent = dbSessions.length;
     const dayLabel = DB_DAYS[dbSessions.length] || 'Extra Day';
     document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
     const rem = Math.max(0, 5 - dbSessions.length);

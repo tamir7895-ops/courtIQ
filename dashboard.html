@@ -126,15 +126,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Training</div>
         <button class="db-sidebar-item active" data-tab="log">
-          <span class="db-sidebar-icon">📋</span>
+          <span class="db-sidebar-icon" data-icon="log"></span>
           <span class="db-sidebar-text">Log Session</span>
         </button>
         <button class="db-sidebar-item" data-tab="drills">
-          <span class="db-sidebar-icon">🎯</span>
+          <span class="db-sidebar-icon" data-icon="drills"></span>
           <span class="db-sidebar-text">Drills</span>
         </button>
         <button class="db-sidebar-item" data-tab="workouts">
-          <span class="db-sidebar-icon">🏀</span>
+          <span class="db-sidebar-icon" data-icon="workouts"></span>
           <span class="db-sidebar-text">Workouts</span>
         </button>
       </div>
@@ -142,15 +142,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Analytics</div>
         <button class="db-sidebar-item" data-tab="summary">
-          <span class="db-sidebar-icon">📊</span>
+          <span class="db-sidebar-icon" data-icon="summary"></span>
           <span class="db-sidebar-text">Weekly Summary</span>
         </button>
         <button class="db-sidebar-item" data-tab="history">
-          <span class="db-sidebar-icon">📅</span>
+          <span class="db-sidebar-icon" data-icon="history"></span>
           <span class="db-sidebar-text">History</span>
         </button>
         <button class="db-sidebar-item" data-tab="shots">
-          <span class="db-sidebar-icon">🏹</span>
+          <span class="db-sidebar-icon" data-icon="shots"></span>
           <span class="db-sidebar-text">Shot Tracker</span>
         </button>
       </div>
@@ -158,15 +158,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">AI Coach</div>
         <button class="db-sidebar-item" data-tab="coach">
-          <span class="db-sidebar-icon">🏋️</span>
+          <span class="db-sidebar-icon" data-icon="coach"></span>
           <span class="db-sidebar-text">AI Coach</span>
         </button>
         <button class="db-sidebar-item" data-tab="calendar">
-          <span class="db-sidebar-icon">📆</span>
+          <span class="db-sidebar-icon" data-icon="calendar"></span>
           <span class="db-sidebar-text">Calendar</span>
         </button>
         <button class="db-sidebar-item" data-tab="notifications">
-          <span class="db-sidebar-icon">🔔</span>
+          <span class="db-sidebar-icon" data-icon="notifications"></span>
           <span class="db-sidebar-text">Notifications</span>
         </button>
       </div>
@@ -174,15 +174,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Profile</div>
         <button class="db-sidebar-item" data-tab="archetype">
-          <span class="db-sidebar-icon">🧬</span>
+          <span class="db-sidebar-icon" data-icon="archetype"></span>
           <span class="db-sidebar-text">Archetype</span>
         </button>
         <button class="db-sidebar-item" data-tab="shop">
-          <span class="db-sidebar-icon">🛍️</span>
+          <span class="db-sidebar-icon" data-icon="shop"></span>
           <span class="db-sidebar-text">Shop</span>
         </button>
         <button class="db-sidebar-item" data-tab="moves">
-          <span class="db-sidebar-icon">🤸</span>
+          <span class="db-sidebar-icon" data-icon="moves"></span>
           <span class="db-sidebar-text">Pro Moves</span>
         </button>
       </div>
@@ -191,7 +191,7 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Social</div>
         <button class="db-sidebar-item" data-tab="social">
-          <span class="db-sidebar-icon">🏆</span>
+          <span class="db-sidebar-icon" data-icon="social"></span>
           <span class="db-sidebar-text">Social Hub</span>
         </button>
       </div>
@@ -233,22 +233,49 @@
       </div>
     </div>
 
-    <!-- Dashboard header -->
-    <div class="db-main-header">
-      <div>
-        <h1 class="db-main-title">Dashboard</h1>
-        <p class="db-main-subtitle">Track your progress and train smarter with AI</p>
+    <!-- Welcome Hero -->
+    <div class="db-welcome-hero">
+      <div class="db-court-bg" aria-hidden="true"></div>
+      <div class="db-welcome-content">
+        <h1 class="db-welcome-title">Hey, <span id="db-welcome-name">Player</span>!</h1>
+        <p class="db-welcome-sub">Ready to level up your game today?</p>
       </div>
-      <div class="db-main-header-right">
-        <div class="db-week-pill">
-          <span id="db-week-label">Week 1</span>
-          <span id="db-session-count">0 sessions logged</span>
+      <div class="db-profile-mini" id="db-profile-mini">
+        <div class="db-profile-mini-avatar" id="db-profile-mini-avatar"></div>
+        <div class="db-profile-mini-info">
+          <span class="db-profile-mini-name" id="db-profile-mini-name">Player</span>
+          <span class="db-profile-mini-level" id="db-profile-mini-level">Rookie</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="db-stats-row">
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="sessions"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-sessions">0</span>
+          <span class="db-stat-label">Sessions This Week</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="streak"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-streak">0</span>
+          <span class="db-stat-label">Day Streak</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="xp"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-xp">0 XP</span>
+          <span class="db-stat-label">Total XP</span>
         </div>
       </div>
     </div>
 
     <!-- Compact Player Bar (replaces old profile-summary + xp-widget cards) -->
-    <div class="db-top-widgets">
+    <div class="db-top-widgets" style="display:none">
     <div class="db-player-bar">
 
       <!-- Left: Avatar + Profile pills -->
@@ -329,80 +356,74 @@
       </div>
     </div>
 
-    <!-- Quick Actions Row -->
-    <div class="db-quick-actions" id="db-quick-actions">
-      <button class="db-qa-btn" onclick="dbSwitchTabById('drills')">
-        <span class="db-qa-icon">🎯</span>
-        <span class="db-qa-label">Drills</span>
+    <!-- Quick Actions Grid -->
+    <div class="db-quick-grid" id="db-quick-actions">
+      <button class="db-quick-card" onclick="dbSwitchTabById('drills')">
+        <div class="db-quick-card-icon" data-icon="drills"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Drills</span>
+          <span class="db-quick-card-desc">Practice fundamentals</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('workouts')">
-        <span class="db-qa-icon">🏀</span>
-        <span class="db-qa-label">Workouts</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('workouts')">
+        <div class="db-quick-card-icon" data-icon="workouts"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Workouts</span>
+          <span class="db-quick-card-desc">Full training sessions</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('shots')">
-        <span class="db-qa-icon">🏹</span>
-        <span class="db-qa-label">Shot Tracker</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('shots')">
+        <div class="db-quick-card-icon" data-icon="shots"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Shot Tracker</span>
+          <span class="db-quick-card-desc">Log your shooting</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('summary')">
-        <span class="db-qa-icon">📊</span>
-        <span class="db-qa-label">Weekly Summary</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('summary')">
+        <div class="db-quick-card-icon" data-icon="summary"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Weekly Summary</span>
+          <span class="db-quick-card-desc">AI performance report</span>
+        </div>
       </button>
     </div>
 
-    <!-- Skill Stats Grid (2×2) -->
-    <div class="db-skill-stats" id="db-skill-stats">
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🎯 Shooting</span>
-          <span class="db-skill-pct" id="stat-shooting">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--shooting" id="stat-shooting-bar" style="width:0%"></div>
-        </div>
+    <!-- Skills Overview -->
+    <div class="db-skills-circle-grid" id="db-skill-stats">
+      <div class="db-skill-circle" data-skill="shooting">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--shooting" id="stat-shooting-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-shooting">–</span>
+        <span class="db-skill-circle-name">Shooting</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">⚡ Dribbling</span>
-          <span class="db-skill-pct" id="stat-dribbling">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--dribbling" id="stat-dribbling-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="dribbling">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--dribbling" id="stat-dribbling-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-dribbling">–</span>
+        <span class="db-skill-circle-name">Dribbling</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🛡️ Defense</span>
-          <span class="db-skill-pct" id="stat-defense">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--defense" id="stat-defense-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="defense">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--defense" id="stat-defense-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-defense">–</span>
+        <span class="db-skill-circle-name">Defense</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🧠 Game IQ</span>
-          <span class="db-skill-pct" id="stat-gameiq">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--gameiq" id="stat-gameiq-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="gameiq">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--gameiq" id="stat-gameiq-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-gameiq">–</span>
+        <span class="db-skill-circle-name">Game IQ</span>
       </div>
     </div>
 
-    <!-- Player context row -->
-    <div class="db-context-row">
-      <div class="db-field">
-        <label class="db-label">👤 Player Name</label>
-        <input class="db-input" id="db-player" type="text" value="Marcus R." />
-      </div>
-      <div class="db-field">
-        <label class="db-label">🏀 Position</label>
-        <select class="db-input" id="db-position">
-          <option>Point Guard</option><option>Shooting Guard</option>
-          <option>Small Forward</option><option>Power Forward</option><option>Center</option>
-        </select>
-      </div>
-    </div>
 
     <!-- ── TAB: LOG ── -->
     <div class="db-panel active" id="db-panel-log">
@@ -415,28 +436,28 @@
           <div class="db-fields">
             <div class="db-row-2">
               <div class="db-field">
-                <label class="db-label">🎯 Shots Made</label>
+                <label class="db-label">Shots Made</label>
                 <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
               </div>
               <div class="db-field">
-                <label class="db-label">⚪ Shots Attempted</label>
+                <label class="db-label">Shots Attempted</label>
                 <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
               </div>
             </div>
             <div class="db-field">
-              <label class="db-label">⚡ Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
+              <label class="db-label">Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
               <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
             </div>
             <div class="db-field">
-              <label class="db-label">↑ Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
+              <label class="db-label">Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
               <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
             </div>
             <div class="db-field">
-              <label class="db-label">🏃 Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
+              <label class="db-label">Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
               <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
             </div>
             <div class="db-field">
-              <label class="db-label">📝 Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
+              <label class="db-label">Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
               <textarea class="db-input" id="db-notes" rows="2" placeholder="Felt strong today, nailed catch-and-shoot…"></textarea>
             </div>
             <div class="db-error" id="db-error"></div>

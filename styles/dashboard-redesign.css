@@ -1,244 +1,312 @@
-/* ══════════════════════════════════════════════════════════
-   DASHBOARD REDESIGN v1
-   - Compact player bar (replaces 2 large cards)
-   - Slim Daily Challenge banner
-   - Mobile-first responsive
-   ══════════════════════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════════════════════════════
+   COURTIQ DASHBOARD REDESIGN v2
+   A basketball-themed design system built on glass morphism + amber accents.
 
-/* ── Neutralise the old separate card styles ───────────── */
-.db-top-widgets { display: block !important; }
+   Sections:
+     1. Compact Profile Mini Widget
+     2. Welcome Hero Section
+     3. Quick Actions 2x2 Grid
+     4. Daily Challenge Card (restyled)
+     5. Skills Circle Grid
+     6. Stats Summary Row
+     7. Basketball Decorative Elements (court bg, net divider, texture)
+     8. Custom SVG Icon System
+     9. Sidebar Icon Overrides
+    10. Animations & Keyframes
+    11. Responsive Breakpoints (640px, 400px)
+
+   Color tokens (from main.css):
+     --c-bg:       #0e1014
+     --c-surface:  #161921
+     --c-surface2: #1e2129
+     --c-amber:    #f5a623
+     --c-white:    #f0ede6
+     --c-muted:    rgba(240,237,230,0.45)
+     --glass-bg:   rgba(22,25,33,0.7)
+     --glass-border: rgba(255,255,255,0.08)
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+
+/* ──────────────────────────────────────────────────────────────────────────────
+   0. NEUTRALISE OLD STYLES
+   ────────────────────────────────────────────────────────────────────────────── */
+.db-top-widgets  { display: block !important; }
 .profile-summary { display: none !important; }
-.xp-widget      { background: none !important; border: none !important;
+.xp-widget       { background: none !important; border: none !important;
                    padding: 0 !important; margin: 0 !important;
                    backdrop-filter: none !important; }
+/* Hide old player bar if it still exists */
+.db-player-bar   { display: none !important; }
 
-/* ══════════════════════════════════════════════════════════
-   COMPACT PLAYER BAR
-   ══════════════════════════════════════════════════════════ */
-.db-player-bar {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  background: var(--glass-bg, rgba(255,255,255,0.035));
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
-  border-radius: var(--r-md, 14px);
-  padding: 10px 16px;
-  margin-bottom: 16px;
-  min-height: 52px;
-  overflow: hidden;
-  position: relative;
-}
 
-/* Subtle left accent line */
-.db-player-bar::before {
-  content: '';
-  position: absolute;
-  left: 0; top: 0; bottom: 0;
-  width: 3px;
-  background: var(--c-amber, #f5a623);
-  border-radius: 3px 0 0 3px;
-}
-
-/* ── Left: profile section ──────────────────────────────── */
-.db-pbar-profile {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex: 0 0 auto;
-  min-width: 0;
-}
-
-/* Make avatar small inside bar */
-.db-player-bar .profile-summary-info {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-}
-
-.db-player-bar .profile-summary-avatar,
-.db-player-bar #profile-mini-avatar {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 12px !important;
-  border-width: 1.5px !important;
-  flex-shrink: 0;
-}
-
-.db-player-bar .profile-summary-pills {
-  display: flex;
-  gap: 5px;
-  flex-wrap: nowrap;
-  overflow: hidden;
-}
-
-.db-player-bar .profile-pill {
-  font-size: 11px !important;
-  padding: 2px 8px !important;
-  white-space: nowrap;
-}
-
-/* Keep max 2 pills */
-.db-player-bar .profile-pill:nth-child(n+3) {
-  display: none;
-}
-
-/* Skeleton in player bar */
-.db-player-bar .skel-profile-wrap {
-  display: flex !important;
-  flex-direction: row !important;
-  align-items: center !important;
-  gap: 10px;
-  padding: 0;
-  width: 180px;
-}
-
-.db-player-bar .skel-profile-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.db-player-bar .skel-profile-text {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 120px;
-}
-
-/* ── Separator ──────────────────────────────────────────── */
-.db-pbar-sep {
-  width: 1px;
-  height: 28px;
-  background: rgba(255,255,255,0.08);
-  margin: 0 14px;
-  flex-shrink: 0;
-}
-
-/* ── Center: XP section ─────────────────────────────────── */
-.db-pbar-xp {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
-}
-
-.db-pbar-xp .xp-badge {
-  width: 26px !important;
-  height: 26px !important;
-  font-size: 13px !important;
-  border-width: 1.5px !important;
-  flex-shrink: 0;
-}
-
-.db-pbar-xp-inner {
-  flex: 1;
-  min-width: 0;
-}
-
-.db-pbar-level-row {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-bottom: 4px;
-}
-
-.db-pbar-level-row .xp-rank {
-  font-size: 12px !important;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-}
-
-.db-pbar-level-row .xp-rank-label {
-  font-size: 9px !important;
-  color: var(--c-muted, rgba(240,237,230,0.55));
-}
-
-.db-pbar-xp-bar {
-  height: 4px !important;
-  border-radius: 2px !important;
-  background: rgba(255,255,255,0.07) !important;
-}
-
-.db-pbar-xp-bar .xp-bar-fill {
-  height: 100% !important;
-  border-radius: 2px !important;
-}
-
-.db-pbar-xp .xp-numbers {
-  font-size: 10px !important;
-  white-space: nowrap;
-  flex-shrink: 0;
-  color: var(--c-dimmer, rgba(240,237,230,0.35));
-}
-
-.db-pbar-xp .xp-numbers strong {
-  color: var(--c-muted, rgba(240,237,230,0.60));
-}
-
-/* ── Right: streak + action buttons ────────────────────── */
-.db-pbar-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-  margin-left: 12px;
-}
-
-.db-pbar-btn {
+/* ══════════════════════════════════════════════════════════════════════════════
+   1. COMPACT PROFILE MINI WIDGET
+   Fixed in the top-right of the main content area.
+   Shows avatar, name, level badge inline on a glass pill.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-profile-mini {
+  position: fixed;
+  top: 16px;
+  right: 24px;
+  z-index: 900;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 5px 10px;
-  background: rgba(245,166,35,0.08);
-  border: 1px solid rgba(245,166,35,0.22);
-  border-radius: 8px;
-  color: var(--c-amber, #f5a623);
-  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
+  gap: 8px;
+  padding: 5px 14px 5px 5px;
+  background: rgba(22, 25, 33, 0.78);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 999px;
   cursor: pointer;
-  white-space: nowrap;
-  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  transition: background 0.2s, box-shadow 0.2s, transform 0.15s;
+  animation: dbFadeInDown 0.4s ease-out both;
 }
 
-.db-pbar-btn:hover {
-  background: rgba(245,166,35,0.15);
-  box-shadow: 0 2px 10px rgba(245,166,35,0.15);
+.db-profile-mini:hover {
+  background: rgba(22, 25, 33, 0.92);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(245, 166, 35, 0.15);
   transform: translateY(-1px);
 }
 
-.db-pbar-btn:active { transform: translateY(0); }
-
-.db-pbar-btn--ghost {
-  background: rgba(255,255,255,0.04);
-  border-color: rgba(255,255,255,0.10);
-  color: var(--c-muted, rgba(240,237,230,0.65));
+.db-profile-mini__avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1.5px solid var(--c-amber, #f5a623);
+  object-fit: cover;
+  background: var(--c-surface2, #1e2129);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--c-amber, #f5a623);
+  flex-shrink: 0;
 }
 
-.db-pbar-btn--ghost:hover {
-  background: rgba(255,255,255,0.09);
+.db-profile-mini__name {
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: 12px;
+  font-weight: 600;
   color: var(--c-white, #f0ede6);
-  box-shadow: none;
+  white-space: nowrap;
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* ══════════════════════════════════════════════════════════
-   SLIM DAILY CHALLENGE BANNER
-   ══════════════════════════════════════════════════════════ */
+.db-profile-mini__badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  background: rgba(245, 166, 35, 0.14);
+  border: 1px solid rgba(245, 166, 35, 0.3);
+  border-radius: 999px;
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--c-amber, #f5a623);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   2. WELCOME HERO SECTION
+   Big greeting + motivational subtitle with decorative court arc background.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-welcome-hero {
+  position: relative;
+  padding: 40px 32px 36px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  background: var(--glass-bg, rgba(22, 25, 33, 0.7));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  overflow: hidden;
+  animation: dbFadeInUp 0.5s ease-out both;
+}
+
+/* Animated gradient accent bar across the top */
+.db-welcome-hero::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent 0%, #f5a623 30%, #ff6b35 60%, #f5a623 80%, transparent 100%);
+  background-size: 200% 100%;
+  animation: dbShimmer 4s ease-in-out infinite;
+}
+
+/* Decorative half-court arc SVG */
+.db-welcome-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -60px;
+  right: -40px;
+  width: 260px;
+  height: 260px;
+  border: 2px solid rgba(245, 166, 35, 0.06);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: dbCourtArcDraw 1.5s ease-out 0.3s both;
+}
+
+.db-welcome-hero__greeting {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--c-white, #f0ede6);
+  letter-spacing: -0.01em;
+  line-height: 1.1;
+  margin-bottom: 6px;
+}
+
+.db-welcome-hero__greeting span {
+  color: var(--c-amber, #f5a623);
+}
+
+.db-welcome-hero__subtitle {
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: 14px;
+  color: var(--c-muted, rgba(240, 237, 230, 0.45));
+  font-weight: 400;
+  max-width: 400px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   3. QUICK ACTIONS 2x2 GRID
+   Large cards with SVG icons, labels, and brief stat/description.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-quick-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.db-quick-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 120px;
+  padding: 18px;
+  background: var(--glass-bg, rgba(22, 25, 33, 0.7));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  cursor: pointer;
+  transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.22s ease,
+              border-color 0.22s ease;
+  overflow: hidden;
+  animation: dbFadeInUp 0.5s ease-out both;
+}
+
+.db-quick-card:nth-child(1) { animation-delay: 0.05s; }
+.db-quick-card:nth-child(2) { animation-delay: 0.10s; }
+.db-quick-card:nth-child(3) { animation-delay: 0.15s; }
+.db-quick-card:nth-child(4) { animation-delay: 0.20s; }
+
+/* Amber glow on hover */
+.db-quick-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 166, 35, 0.25);
+  box-shadow: 0 8px 32px rgba(245, 166, 35, 0.10),
+              0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.db-quick-card:active {
+  transform: translateY(-1px);
+}
+
+/* Subtle basketball seam accent line on left */
+.db-quick-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 12px;
+  bottom: 12px;
+  width: 3px;
+  background: var(--c-amber, #f5a623);
+  border-radius: 0 3px 3px 0;
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+
+.db-quick-card:hover::before {
+  opacity: 1;
+}
+
+.db-quick-card__icon {
+  width: 36px;
+  height: 36px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+
+.db-quick-card__icon .db-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.db-quick-card__label {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 15px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white, #f0ede6);
+  margin-bottom: 3px;
+}
+
+.db-quick-card__desc {
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: 11px;
+  color: var(--c-muted, rgba(240, 237, 230, 0.45));
+  line-height: 1.35;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   4. DAILY CHALLENGE CARD (restyled)
+   Full-width banner with gradient left border and basketball icon.
+   ══════════════════════════════════════════════════════════════════════════════ */
 .dc-card {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
-  gap: 12px !important;
-  padding: 10px 16px 10px 20px !important;
-  margin-bottom: 16px !important;
-  border-radius: var(--r-md, 14px) !important;
+  gap: 14px !important;
+  padding: 14px 20px 14px 22px !important;
+  margin-bottom: 20px !important;
+  border-radius: 14px !important;
+  background: var(--glass-bg, rgba(22, 25, 33, 0.7)) !important;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)) !important;
+  position: relative;
+  overflow: hidden;
+  animation: dbFadeInUp 0.5s ease-out 0.25s both;
+}
+
+/* Gradient left accent border */
+.dc-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, #f5a623 0%, #ff6b35 50%, #f5a623 100%);
+  border-radius: 4px 0 0 4px;
 }
 
 .dc-card .dc-header {
@@ -255,42 +323,766 @@
   gap: 10px;
 }
 
-/* Hide verbose description */
-.dc-card .dc-desc {
-  display: none !important;
-}
+.dc-card .dc-desc  { display: none !important; }
+.dc-card .dc-streak { display: none !important; }
 
-/* Hide streak row */
-.dc-card .dc-streak {
-  display: none !important;
-}
-
-/* Smaller icon */
 .dc-icon {
-  width: 32px !important;
-  height: 32px !important;
-  font-size: 16px !important;
-  border-radius: 8px !important;
+  width: 36px !important;
+  height: 36px !important;
+  font-size: 18px !important;
+  border-radius: 10px !important;
+  background: rgba(245, 166, 35, 0.1) !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .dc-name {
   font-size: 14px !important;
+  font-weight: 700;
   line-height: 1.2;
 }
 
 .dc-label {
   font-size: 9px !important;
-  margin-bottom: 1px !important;
+  margin-bottom: 2px !important;
+  color: var(--c-amber, #f5a623);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
 }
 
-/* Smaller CTA button */
 .dc-complete-btn,
 .dc-done-badge {
-  padding: 6px 14px !important;
+  padding: 7px 16px !important;
   font-size: 11px !important;
+  border-radius: 8px;
 }
 
-/* Slim skeleton DC banner */
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   5. SKILLS CIRCLE GRID
+   Circular progress indicators instead of flat bars. 4 in a row.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-skills-circle-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: dbFadeInUp 0.5s ease-out 0.3s both;
+}
+
+.db-skill-circle {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 8px;
+  background: var(--glass-bg, rgba(22, 25, 33, 0.7));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 14px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.db-skill-circle:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  transform: translateY(-2px);
+}
+
+/* The circular SVG container */
+.db-skill-circle__ring {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.db-skill-circle__ring svg {
+  width: 56px;
+  height: 56px;
+  transform: rotate(-90deg);
+}
+
+.db-skill-circle__ring svg circle {
+  fill: none;
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.db-skill-circle__ring svg .ring-bg {
+  stroke: rgba(255, 255, 255, 0.06);
+}
+
+.db-skill-circle__ring svg .ring-fill {
+  stroke-dasharray: 151; /* 2 * PI * 24 (r=24) */
+  stroke-dashoffset: 151;
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* Color variants for each skill */
+.db-skill-circle--shooting .ring-fill  { stroke: #f5a623; }
+.db-skill-circle--dribbling .ring-fill { stroke: #3ecf8e; }
+.db-skill-circle--defense .ring-fill   { stroke: #a78bfa; }
+.db-skill-circle--gameiq .ring-fill    { stroke: #f472b6; }
+
+/* Percentage label centered inside ring */
+.db-skill-circle__pct {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-white, #f0ede6);
+}
+
+.db-skill-circle__label {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-muted, rgba(240, 237, 230, 0.45));
+  text-align: center;
+  line-height: 1.2;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   6. STATS SUMMARY ROW
+   3 compact metric cards: Sessions, Streak, XP.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+  animation: dbFadeInUp 0.5s ease-out 0.35s both;
+}
+
+.db-stat-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px 12px;
+  background: var(--glass-bg, rgba(22, 25, 33, 0.7));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  text-align: center;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.db-stat-card:hover {
+  border-color: rgba(245, 166, 35, 0.18);
+  transform: translateY(-2px);
+}
+
+.db-stat-card__value {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-amber, #f5a623);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.db-stat-card__label {
+  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted, rgba(240, 237, 230, 0.45));
+}
+
+.db-stat-card__sub {
+  font-family: var(--font-body, 'Barlow', sans-serif);
+  font-size: 10px;
+  color: rgba(240, 237, 230, 0.3);
+  margin-top: 2px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   7. BASKETBALL DECORATIVE ELEMENTS
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 7a. Court Lines Background ──────────────────────────────────────────── */
+.db-court-bg {
+  position: relative;
+}
+
+/* Half-court arc rendered with radial-gradient + border */
+.db-court-bg::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 400px;
+  height: 400px;
+  border: 1.5px solid rgba(245, 166, 35, 0.04);
+  border-radius: 50%;
+  pointer-events: none;
+  animation: dbCourtArcDraw 2s ease-out both;
+}
+
+/* Free throw line */
+.db-court-bg::after {
+  content: '';
+  position: absolute;
+  bottom: 20%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 160px;
+  height: 1px;
+  background: rgba(245, 166, 35, 0.04);
+  pointer-events: none;
+}
+
+
+/* ── 7b. Basketball Texture (seam accents on cards) ──────────────────────── */
+/* Applied via modifier class on any card that wants the basketball seam */
+.db-seam-accent {
+  position: relative;
+}
+
+.db-seam-accent::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border: 1.5px solid rgba(245, 166, 35, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+  opacity: 0.5;
+}
+
+
+/* ── 7c. Net Pattern Section Divider ─────────────────────────────────────── */
+.db-net-divider {
+  position: relative;
+  height: 20px;
+  margin: 8px 0;
+  overflow: hidden;
+  opacity: 0.4;
+}
+
+.db-net-divider::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Crosshatch pattern via repeating gradients */
+  background:
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 6px,
+      rgba(245, 166, 35, 0.06) 6px,
+      rgba(245, 166, 35, 0.06) 7px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 6px,
+      rgba(245, 166, 35, 0.06) 6px,
+      rgba(245, 166, 35, 0.06) 7px
+    );
+}
+
+/* Fade edges of the net divider */
+.db-net-divider::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg,
+    var(--c-bg, #0e1014) 0%,
+    transparent 15%,
+    transparent 85%,
+    var(--c-bg, #0e1014) 100%
+  );
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   8. CUSTOM SVG ICON SYSTEM
+   All icons as inline SVG data URIs. Amber (#f5a623) stroke on transparent.
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Base icon class */
+.db-icon {
+  display: inline-flex;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* ── Sidebar Icons ───────────────────────────────────────────────────────── */
+
+/* Log Session: clipboard with basketball */
+.db-icon--log-session {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h6v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V2z'/%3E%3Cpath d='M7 4H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3Cpath d='M8.5 13c0-1.93 1.57-3.5 3.5-3.5s3.5 1.57 3.5 3.5'/%3E%3Cline x1='12' y1='9.5' x2='12' y2='16.5'/%3E%3C/svg%3E");
+}
+
+/* Drills: target/crosshair */
+.db-icon--drills {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Ccircle cx='12' cy='12' r='1.5'/%3E%3Cline x1='12' y1='2' x2='12' y2='5'/%3E%3Cline x1='12' y1='19' x2='12' y2='22'/%3E%3Cline x1='2' y1='12' x2='5' y2='12'/%3E%3Cline x1='19' y1='12' x2='22' y2='12'/%3E%3C/svg%3E");
+}
+
+/* Workouts: basketball with motion lines */
+.db-icon--workouts {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='12' r='6'/%3E%3Cpath d='M8 12c0-3.31 2.69-6 6-6'/%3E%3Cpath d='M20 12c0 3.31-2.69 6-6 6'/%3E%3Cline x1='14' y1='6' x2='14' y2='18'/%3E%3Cline x1='3' y1='8' x2='6' y2='8'/%3E%3Cline x1='2' y1='12' x2='6' y2='12'/%3E%3Cline x1='3' y1='16' x2='6' y2='16'/%3E%3C/svg%3E");
+}
+
+/* Weekly Summary: bar chart */
+.db-icon--weekly {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='12' width='4' height='9' rx='1'/%3E%3Crect x='10' y='7' width='4' height='14' rx='1'/%3E%3Crect x='17' y='3' width='4' height='18' rx='1'/%3E%3Cline x1='2' y1='22' x2='22' y2='22'/%3E%3C/svg%3E");
+}
+
+/* History: calendar */
+.db-icon--history {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Ccircle cx='8' cy='15' r='1' fill='%23f5a623'/%3E%3Ccircle cx='12' cy='15' r='1' fill='%23f5a623'/%3E%3Ccircle cx='16' cy='15' r='1' fill='%23f5a623'/%3E%3C/svg%3E");
+}
+
+/* Shot Tracker: basketball going into hoop */
+.db-icon--shot-tracker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='16' rx='6' ry='2'/%3E%3Cline x1='6' y1='16' x2='6' y2='20'/%3E%3Cline x1='18' y1='16' x2='18' y2='20'/%3E%3Cpath d='M8 18l2 2M16 18l-2 2M10 17l1 2M14 17l-1 2'/%3E%3Ccircle cx='12' cy='8' r='3.5'/%3E%3Cpath d='M8.5 8h7'/%3E%3Cpath d='M12 4.5v7'/%3E%3Cpath d='M14 4l1-2'/%3E%3C/svg%3E");
+}
+
+/* AI Coach: brain with circuit lines */
+.db-icon--ai-coach {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3C8 3 5 6 5 9c0 2 .8 3.5 2 4.5V16h10v-2.5c1.2-1 2-2.5 2-4.5 0-3-3-6-7-6z'/%3E%3Cpath d='M9 16v2a3 3 0 006 0v-2'/%3E%3Cpath d='M8 9.5c1.5 0 2.5 1 4 1s2.5-1 4-1'/%3E%3Ccircle cx='9' cy='8' r='0.5' fill='%23f5a623'/%3E%3Ccircle cx='15' cy='8' r='0.5' fill='%23f5a623'/%3E%3Cline x1='9' y1='8' x2='7' y2='6'/%3E%3Cline x1='15' y1='8' x2='17' y2='6'/%3E%3Cline x1='12' y1='7' x2='12' y2='4'/%3E%3C/svg%3E");
+}
+
+/* Calendar: calendar with basketball */
+.db-icon--calendar {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Ccircle cx='12' cy='16' r='3'/%3E%3Cpath d='M9 16h6'/%3E%3Cpath d='M12 13v6'/%3E%3C/svg%3E");
+}
+
+/* Notifications: bell */
+.db-icon--notifications {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 01-3.46 0'/%3E%3Ccircle cx='18' cy='4' r='2.5' fill='%23f5a623' stroke='none' opacity='0.6'/%3E%3C/svg%3E");
+}
+
+/* Archetype: DNA helix */
+.db-icon--archetype {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3c0 4 3 5 6 6s6 2 6 6'/%3E%3Cpath d='M18 3c0 4-3 5-6 6s-6 2-6 6'/%3E%3Cline x1='7' y1='7' x2='17' y2='7'/%3E%3Cline x1='7' y1='12' x2='17' y2='12'/%3E%3Cline x1='7' y1='17' x2='17' y2='17'/%3E%3Cpath d='M6 15c0 3 2.5 6 6 6'/%3E%3Cpath d='M18 15c0 3-2.5 6-6 6'/%3E%3C/svg%3E");
+}
+
+/* Shop: basketball jersey */
+.db-icon--shop {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 2L2 6v2l3 1v12h14V9l3-1V6L17.5 2z'/%3E%3Cpath d='M9 2c0 1.66 1.34 3 3 3s3-1.34 3-3'/%3E%3Ctext x='10' y='16' font-size='7' font-weight='bold' fill='%23f5a623' font-family='sans-serif'>23%3C/text%3E%3C/svg%3E");
+}
+
+/* Pro Moves: player silhouette dribbling */
+.db-icon--pro-moves {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='4' r='2.5'/%3E%3Cpath d='M11 9l-3 5 3 2v5'/%3E%3Cpath d='M11 9h4l2 4'/%3E%3Cpath d='M11 9l-4-1'/%3E%3Cpath d='M15 13l2 1v5'/%3E%3Ccircle cx='7' cy='19' r='2'/%3E%3Cpath d='M7 17v-1'/%3E%3C/svg%3E");
+}
+
+/* Social Hub: trophy */
+.db-icon--social {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2h8v9a4 4 0 01-8 0V2z'/%3E%3Cpath d='M8 4H5a2 2 0 00-2 2v1a3 3 0 003 3h2'/%3E%3Cpath d='M16 4h3a2 2 0 012 2v1a3 3 0 01-3 3h-2'/%3E%3Cline x1='12' y1='15' x2='12' y2='18'/%3E%3Cpath d='M8 22h8'/%3E%3Cpath d='M10 18h4v4h-4z'/%3E%3C/svg%3E");
+}
+
+
+/* ── Quick Action Card Icons (larger, detailed) ──────────────────────────── */
+
+/* QA Drills: target with basketball */
+.db-icon--qa-drills {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='6'/%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M12 2v4'/%3E%3Cpath d='M12 18v4'/%3E%3Cpath d='M2 12h4'/%3E%3Cpath d='M18 12h4'/%3E%3Ccircle cx='18' cy='6' r='3' stroke-dasharray='2 1'/%3E%3Cpath d='M15.8 6h4.4M18 3.8v4.4'/%3E%3C/svg%3E");
+}
+
+/* QA Workouts: player dunking silhouette */
+.db-icon--qa-workouts {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='10' cy='4' r='2.5'/%3E%3Cpath d='M7 10l-2 5h3l1 6h3l1-6 3-2'/%3E%3Cpath d='M7 10l3-3h4l3 1'/%3E%3Cpath d='M17 8v2'/%3E%3Crect x='15' y='10' width='6' height='1' rx='0.5'/%3E%3Cpath d='M15 11v4h6v-4'/%3E%3Cpath d='M16 15l1 2M20 15l-1 2'/%3E%3C/svg%3E");
+}
+
+/* QA Shot Tracker: hoop with ball trajectory arc */
+.db-icon--qa-shot-tracker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='16' cy='11' rx='5' ry='1.5'/%3E%3Cline x1='11' y1='11' x2='11' y2='16'/%3E%3Cline x1='21' y1='11' x2='21' y2='16'/%3E%3Cpath d='M13 13l1.5 2M19 13l-1.5 2M15 12l0.5 2M17 12l-0.5 2'/%3E%3Cpath d='M4 18Q6 6 14 8' stroke-dasharray='3 2'/%3E%3Ccircle cx='4' cy='18' r='2.5'/%3E%3Cpath d='M1.5 18h5M4 15.5v5'/%3E%3C/svg%3E");
+}
+
+/* QA Weekly: stats chart rising */
+.db-icon--qa-weekly {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='3 20 7 14 11 16 15 8 21 4'/%3E%3Cpath d='M17 4h4v4'/%3E%3Crect x='3' y='17' width='3' height='5' rx='0.5' fill='rgba(245,166,35,0.15)'/%3E%3Crect x='8' y='14' width='3' height='8' rx='0.5' fill='rgba(245,166,35,0.2)'/%3E%3Crect x='13' y='10' width='3' height='12' rx='0.5' fill='rgba(245,166,35,0.25)'/%3E%3Crect x='18' y='6' width='3' height='16' rx='0.5' fill='rgba(245,166,35,0.3)'/%3E%3C/svg%3E");
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   9. SIDEBAR ICON OVERRIDES
+   Replace emoji text in sidebar items with SVG backgrounds.
+   Uses data-tab attribute selectors from the sidebar HTML.
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-sidebar-icon {
+  font-size: 0 !important;    /* hide emoji text */
+  width: 20px;
+  height: 20px;
+  display: inline-flex;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  flex-shrink: 0;
+}
+
+/* Map each sidebar tab to its icon */
+[data-tab="home"] .db-sidebar-icon,
+.db-sidebar-icon--home {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9.5L12 3l9 6.5V20a2 2 0 01-2 2H5a2 2 0 01-2-2V9.5z'/%3E%3Cpath d='M9 22V12h6v10'/%3E%3C/svg%3E");
+}
+
+[data-tab="log-session"] .db-sidebar-icon,
+.db-sidebar-icon--log-session {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9 2h6v3a1 1 0 01-1 1h-4a1 1 0 01-1-1V2z'/%3E%3Cpath d='M7 4H6a2 2 0 00-2 2v14a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1'/%3E%3Ccircle cx='12' cy='13' r='3.5'/%3E%3Cline x1='12' y1='9.5' x2='12' y2='16.5'/%3E%3C/svg%3E");
+}
+
+[data-tab="drills"] .db-sidebar-icon,
+.db-sidebar-icon--drills {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Ccircle cx='12' cy='12' r='1.5'/%3E%3Cline x1='12' y1='2' x2='12' y2='5'/%3E%3Cline x1='12' y1='19' x2='12' y2='22'/%3E%3Cline x1='2' y1='12' x2='5' y2='12'/%3E%3Cline x1='19' y1='12' x2='22' y2='12'/%3E%3C/svg%3E");
+}
+
+[data-tab="workouts"] .db-sidebar-icon,
+.db-sidebar-icon--workouts {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='12' r='6'/%3E%3Cpath d='M8 12c0-3.31 2.69-6 6-6'/%3E%3Cpath d='M20 12c0 3.31-2.69 6-6 6'/%3E%3Cline x1='14' y1='6' x2='14' y2='18'/%3E%3Cline x1='3' y1='8' x2='6' y2='8'/%3E%3Cline x1='2' y1='12' x2='6' y2='12'/%3E%3Cline x1='3' y1='16' x2='6' y2='16'/%3E%3C/svg%3E");
+}
+
+[data-tab="weekly-summary"] .db-sidebar-icon,
+.db-sidebar-icon--weekly {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='12' width='4' height='9' rx='1'/%3E%3Crect x='10' y='7' width='4' height='14' rx='1'/%3E%3Crect x='17' y='3' width='4' height='18' rx='1'/%3E%3Cline x1='2' y1='22' x2='22' y2='22'/%3E%3C/svg%3E");
+}
+
+[data-tab="session-history"] .db-sidebar-icon,
+.db-sidebar-icon--history {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Ccircle cx='8' cy='15' r='1' fill='%23f5a623'/%3E%3Ccircle cx='12' cy='15' r='1' fill='%23f5a623'/%3E%3Ccircle cx='16' cy='15' r='1' fill='%23f5a623'/%3E%3C/svg%3E");
+}
+
+[data-tab="shot-tracker"] .db-sidebar-icon,
+.db-sidebar-icon--shot-tracker {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cellipse cx='12' cy='16' rx='6' ry='2'/%3E%3Cline x1='6' y1='16' x2='6' y2='20'/%3E%3Cline x1='18' y1='16' x2='18' y2='20'/%3E%3Cpath d='M8 18l2 2M16 18l-2 2'/%3E%3Ccircle cx='12' cy='8' r='3.5'/%3E%3Cpath d='M8.5 8h7'/%3E%3Cpath d='M12 4.5v7'/%3E%3C/svg%3E");
+}
+
+[data-tab="ai-coach"] .db-sidebar-icon,
+.db-sidebar-icon--ai-coach {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3C8 3 5 6 5 9c0 2 .8 3.5 2 4.5V16h10v-2.5c1.2-1 2-2.5 2-4.5 0-3-3-6-7-6z'/%3E%3Cpath d='M9 16v2a3 3 0 006 0v-2'/%3E%3Cpath d='M8 9.5c1.5 0 2.5 1 4 1s2.5-1 4-1'/%3E%3Ccircle cx='9' cy='8' r='0.5' fill='%23f5a623'/%3E%3Ccircle cx='15' cy='8' r='0.5' fill='%23f5a623'/%3E%3C/svg%3E");
+}
+
+[data-tab="calendar"] .db-sidebar-icon,
+.db-sidebar-icon--calendar {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3Ccircle cx='12' cy='16' r='3'/%3E%3Cpath d='M9 16h6'/%3E%3Cpath d='M12 13v6'/%3E%3C/svg%3E");
+}
+
+[data-tab="notifications"] .db-sidebar-icon,
+.db-sidebar-icon--notifications {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9'/%3E%3Cpath d='M13.73 21a2 2 0 01-3.46 0'/%3E%3C/svg%3E");
+}
+
+[data-tab="archetype"] .db-sidebar-icon,
+.db-sidebar-icon--archetype {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 3c0 4 3 5 6 6s6 2 6 6'/%3E%3Cpath d='M18 3c0 4-3 5-6 6s-6 2-6 6'/%3E%3Cline x1='7' y1='7' x2='17' y2='7'/%3E%3Cline x1='7' y1='12' x2='17' y2='12'/%3E%3Cline x1='7' y1='17' x2='17' y2='17'/%3E%3C/svg%3E");
+}
+
+[data-tab="shop"] .db-sidebar-icon,
+.db-sidebar-icon--shop {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6.5 2L2 6v2l3 1v12h14V9l3-1V6L17.5 2z'/%3E%3Cpath d='M9 2c0 1.66 1.34 3 3 3s3-1.34 3-3'/%3E%3C/svg%3E");
+}
+
+[data-tab="pro-moves"] .db-sidebar-icon,
+[data-tab="move-library"] .db-sidebar-icon,
+.db-sidebar-icon--pro-moves {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='14' cy='4' r='2.5'/%3E%3Cpath d='M11 9l-3 5 3 2v5'/%3E%3Cpath d='M11 9h4l2 4'/%3E%3Cpath d='M11 9l-4-1'/%3E%3Cpath d='M15 13l2 1v5'/%3E%3Ccircle cx='7' cy='19' r='2'/%3E%3C/svg%3E");
+}
+
+[data-tab="social"] .db-sidebar-icon,
+[data-tab="social-hub"] .db-sidebar-icon,
+.db-sidebar-icon--social {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2h8v9a4 4 0 01-8 0V2z'/%3E%3Cpath d='M8 4H5a2 2 0 00-2 2v1a3 3 0 003 3h2'/%3E%3Cpath d='M16 4h3a2 2 0 012 2v1a3 3 0 01-3 3h-2'/%3E%3Cline x1='12' y1='15' x2='12' y2='18'/%3E%3Cpath d='M8 22h8'/%3E%3Cpath d='M10 18h4v4h-4z'/%3E%3C/svg%3E");
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   10. ANIMATIONS & KEYFRAMES
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* Fade in from below (stagger via animation-delay on elements) */
+@keyframes dbFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Fade in from above (for profile widget) */
+@keyframes dbFadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Shimmer gradient for the hero accent bar */
+@keyframes dbShimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Court arc drawing effect */
+@keyframes dbCourtArcDraw {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.7);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* Welcome hero court arc variant */
+.db-welcome-hero::after {
+  animation-name: dbHeroArcDraw;
+}
+
+@keyframes dbHeroArcDraw {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Skill circle fill animation — triggered by JS adding .is-visible */
+.db-skill-circle.is-visible .ring-fill {
+  transition: stroke-dashoffset 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s;
+}
+
+/* Quick card hover bounce */
+.db-quick-card:hover {
+  animation: dbQuickBounce 0.35s ease-out;
+}
+
+@keyframes dbQuickBounce {
+  0%   { transform: translateY(0); }
+  40%  { transform: translateY(-6px); }
+  70%  { transform: translateY(-3px); }
+  100% { transform: translateY(-4px); }
+}
+
+/* Stagger utility classes for JS-driven entrance */
+.db-stagger-1 { animation-delay: 0.05s; }
+.db-stagger-2 { animation-delay: 0.10s; }
+.db-stagger-3 { animation-delay: 0.15s; }
+.db-stagger-4 { animation-delay: 0.20s; }
+.db-stagger-5 { animation-delay: 0.25s; }
+.db-stagger-6 { animation-delay: 0.30s; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   11. RESPONSIVE BREAKPOINTS
+   ══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Medium: 640px ───────────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+
+  /* Profile mini adjusts */
+  .db-profile-mini {
+    top: 10px;
+    right: 12px;
+    padding: 4px 10px 4px 4px;
+  }
+
+  .db-profile-mini__name {
+    max-width: 70px;
+    font-size: 11px;
+  }
+
+  /* Welcome hero shrinks */
+  .db-welcome-hero {
+    padding: 28px 20px 24px;
+  }
+
+  .db-welcome-hero__greeting {
+    font-size: 24px;
+  }
+
+  .db-welcome-hero__subtitle {
+    font-size: 12px;
+  }
+
+  .db-welcome-hero::after {
+    width: 180px;
+    height: 180px;
+    bottom: -40px;
+    right: -30px;
+  }
+
+  /* Quick grid: 2 columns stays, cards shrink */
+  .db-quick-grid {
+    gap: 8px;
+  }
+
+  .db-quick-card {
+    min-height: 100px;
+    padding: 14px;
+  }
+
+  .db-quick-card__label {
+    font-size: 13px;
+  }
+
+  /* Skills: 2x2 grid */
+  .db-skills-circle-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Stats: stack to single column */
+  .db-stats-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .db-stat-card {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 12px 16px;
+  }
+
+  .db-stat-card__value {
+    font-size: 22px;
+    margin-bottom: 0;
+  }
+
+  .db-stat-card__label {
+    order: -1;
+  }
+
+  /* DC card wraps */
+  .dc-card {
+    flex-wrap: wrap !important;
+  }
+
+  .dc-card .dc-header {
+    flex: 1 1 100%;
+  }
+
+  .dc-card .dc-body {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+
+
+/* ── Small: 400px ────────────────────────────────────────────────────────── */
+@media (max-width: 400px) {
+
+  /* Profile mini: hide name, show only avatar + badge */
+  .db-profile-mini__name {
+    display: none;
+  }
+
+  /* Welcome hero: compact */
+  .db-welcome-hero {
+    padding: 22px 16px 20px;
+    margin-bottom: 14px;
+  }
+
+  .db-welcome-hero__greeting {
+    font-size: 20px;
+  }
+
+  .db-welcome-hero::after {
+    display: none;
+  }
+
+  /* Quick grid: single column */
+  .db-quick-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .db-quick-card {
+    min-height: 80px;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .db-quick-card__icon {
+    margin-bottom: 0;
+  }
+
+  /* Skills: single column */
+  .db-skills-circle-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .db-skill-circle {
+    padding: 12px 6px;
+  }
+
+  .db-skill-circle__ring {
+    width: 44px;
+    height: 44px;
+  }
+
+  .db-skill-circle__ring svg {
+    width: 44px;
+    height: 44px;
+  }
+
+  .db-skill-circle__pct {
+    font-size: 11px;
+  }
+
+  /* Stats row single column */
+  .db-stats-row {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+
+  /* Net divider smaller */
+  .db-net-divider {
+    height: 14px;
+    margin: 6px 0;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   LEGACY COMPATIBILITY
+   Keep old quick actions row hidden if still in DOM
+   ══════════════════════════════════════════════════════════════════════════════ */
+.db-quick-actions { display: none !important; }
+.db-skill-stats   { display: none !important; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════
+   SKELETON LOADING STATES
+   Placeholders shown before data loads.
+   ══════════════════════════════════════════════════════════════════════════════ */
 .skel-dc-wrap {
   display: flex !important;
   flex-direction: row !important;
@@ -307,211 +1099,14 @@
   gap: 10px;
 }
 
-/* ══════════════════════════════════════════════════════════
-   SLIM DASHBOARD MAIN HEADER
-   ══════════════════════════════════════════════════════════ */
-.db-main-header {
-  margin-bottom: 14px !important;
+/* Pulse animation for skeleton elements */
+@keyframes dbSkelPulse {
+  0%, 100% { opacity: 0.4; }
+  50%      { opacity: 0.15; }
 }
 
-.db-main-title {
-  font-size: 26px !important;
-}
-
-.db-main-subtitle {
-  font-size: 12px !important;
-  margin-top: 1px !important;
-}
-
-/* ══════════════════════════════════════════════════════════
-   MOBILE — ≤ 640px : stack player bar into 2 rows
-   ══════════════════════════════════════════════════════════ */
-@media (max-width: 640px) {
-  .db-player-bar {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 10px;
-    padding: 12px 14px;
-  }
-
-  /* Horizontal sep becomes vertical divider */
-  .db-pbar-sep {
-    width: 100%;
-    height: 1px;
-    margin: 0;
-  }
-
-  .db-pbar-profile {
-    width: 100%;
-    justify-content: space-between;
-  }
-
-  .db-pbar-xp {
-    width: 100%;
-  }
-
-  .db-pbar-right {
-    margin-left: 0;
-    justify-content: flex-end;
-  }
-
-  /* DC banner wraps on mobile */
-  .dc-card {
-    flex-wrap: wrap !important;
-  }
-
-  .dc-card .dc-header {
-    flex: 1 1 100%;
-  }
-
-  .dc-card .dc-body {
-    width: 100%;
-    justify-content: flex-end;
-  }
-
-  .db-main-title {
-    font-size: 20px !important;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════
-   MOBILE — ≤ 400px : ultra compact
-   ══════════════════════════════════════════════════════════ */
-@media (max-width: 400px) {
-  .db-pbar-right {
-    flex-wrap: wrap;
-    gap: 6px;
-  }
-
-  /* Show only 1 pill on tiny screens */
-  .db-player-bar .profile-pill:nth-child(n+2) {
-    display: none;
-  }
-
-  .db-pbar-xp .xp-numbers {
-    display: none !important;
-  }
-
-  .db-pbar-btn span {
-    display: none;
-  }
-
-  .db-pbar-btn {
-    padding: 5px 8px;
-  }
-}
-
-/* ══════════════════════════════════════════════════════════
-   QUICK ACTIONS ROW
-   ══════════════════════════════════════════════════════════ */
-.db-quick-actions {
-  display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
-}
-
-.db-qa-btn {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 5px;
-  padding: 11px 6px;
-  background: var(--glass-bg, rgba(255,255,255,0.035));
-  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
-  border-radius: var(--r-md, 14px);
-  cursor: pointer;
-  transition: background 0.15s, transform 0.12s, border-color 0.15s;
-}
-
-.db-qa-btn:hover {
-  background: rgba(245,166,35,0.08);
-  border-color: rgba(245,166,35,0.28);
-  transform: translateY(-2px);
-}
-
-.db-qa-btn:active { transform: translateY(0); }
-
-.db-qa-icon {
-  font-size: 20px;
-  line-height: 1;
-}
-
-.db-qa-label {
-  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--c-muted, rgba(240,237,230,0.6));
-  white-space: nowrap;
-}
-
-/* ══════════════════════════════════════════════════════════
-   SKILL STATS GRID (2×2)
-   ══════════════════════════════════════════════════════════ */
-.db-skill-stats {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.db-skill-item {
-  background: var(--glass-bg, rgba(255,255,255,0.035));
-  border: 1px solid var(--glass-border, rgba(255,255,255,0.07));
-  border-radius: var(--r-sm, 10px);
-  padding: 9px 12px;
-}
-
-.db-skill-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  margin-bottom: 6px;
-}
-
-.db-skill-label {
-  font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-  color: var(--c-muted, rgba(240,237,230,0.65));
-}
-
-.db-skill-pct {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--c-white, #f0ede6);
-}
-
-.db-skill-bar-bg {
-  height: 4px;
-  border-radius: 2px;
-  background: rgba(255,255,255,0.07);
-  overflow: hidden;
-}
-
-.db-skill-bar-fill {
-  height: 100%;
-  border-radius: 2px;
-  transition: width 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-}
-
-.db-skill-bar--shooting  { background: linear-gradient(90deg, #f5a623, #ff6b35); }
-.db-skill-bar--dribbling { background: linear-gradient(90deg, #3ecf8e, #0ea5e9); }
-.db-skill-bar--defense   { background: linear-gradient(90deg, #a78bfa, #818cf8); }
-.db-skill-bar--gameiq    { background: linear-gradient(90deg, #f472b6, #ec4899); }
-
-/* ── Responsive tweaks ─────────────────────────────────── */
-@media (max-width: 640px) {
-  .db-qa-label { font-size: 9px; }
-  .db-qa-btn   { padding: 9px 5px; }
-  .db-qa-icon  { font-size: 18px; }
-}
-
-@media (max-width: 400px) {
-  .db-quick-actions { gap: 5px; }
-  .db-skill-stats   { gap: 6px; }
+.db-skel-block {
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 6px;
+  animation: dbSkelPulse 1.5s ease-in-out infinite;
 }
