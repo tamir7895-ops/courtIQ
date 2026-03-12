@@ -53,6 +53,8 @@
 .daily-workout-refresh:hover {
   border-color: var(--c-amber);
   color: var(--c-amber);
+  box-shadow: 0 0 12px rgba(245,166,35,0.12);
+  transform: translateY(-1px);
 }
 
 /* Grid */
@@ -89,8 +91,26 @@
   transition: var(--transition);
 }
 
+.dw-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.dw-card:hover::after {
+  opacity: 1;
+}
+
 .dw-card:hover {
-  border-color: rgba(245,166,35,0.2);
+  border-color: rgba(245,166,35,0.18);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
 }
 
 .dw-card:hover::before {

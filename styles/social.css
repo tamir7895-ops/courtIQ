@@ -66,6 +66,26 @@
   border-radius: var(--r-lg);
   padding: 24px 28px;
   margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sh-create-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.sh-create-card:hover {
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-create-card:hover::before {
+  opacity: 1;
 }
 .sh-card-title {
   font-family: var(--font-display);
@@ -132,7 +152,8 @@
 }
 .sh-create-btn:hover {
   background: rgba(245,166,35,0.18);
-  box-shadow: 0 2px 12px rgba(245,166,35,0.15);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  transform: translateY(-1px);
 }
 
 /* Generated link box */
@@ -180,6 +201,26 @@
   border-radius: var(--r-lg);
   padding: 24px 28px;
   margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sh-accept-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.sh-accept-card:hover {
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-accept-card:hover::before {
+  opacity: 1;
 }
 .sh-accept-row {
   display: flex;

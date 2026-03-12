@@ -123,10 +123,13 @@
   padding: 40px 32px 36px;
   margin-bottom: 20px;
   border-radius: 18px;
-  background: var(--glass-bg, rgba(22, 25, 33, 0.7));
-  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  background: linear-gradient(135deg, rgba(22,25,33,0.85) 0%, rgba(22,25,33,0.65) 50%, rgba(30,28,35,0.7) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(245,166,35,0.08);
   overflow: hidden;
   animation: dbFadeInUp 0.5s ease-out both;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 
 /* Animated gradient accent bar across the top */
@@ -250,9 +253,14 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 166, 35, 0.12);
+  background: linear-gradient(135deg, rgba(245,166,35,0.15), rgba(245,166,35,0.08));
   border-radius: 10px;
   flex-shrink: 0;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.db-quick-card:hover .db-quick-card-icon {
+  box-shadow: 0 0 16px rgba(245,166,35,0.2);
+  transform: scale(1.05);
 }
 
 /* Quick-card SVG icons via data-icon */
@@ -404,8 +412,9 @@
 }
 
 .db-skill-circle:hover {
-  border-color: rgba(255, 255, 255, 0.14);
+  border-color: rgba(245,166,35,0.18);
   transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25), 0 0 16px rgba(245,166,35,0.05);
 }
 
 /* The SVG ring */
@@ -429,10 +438,10 @@
 }
 
 /* Color variants for each skill — r=34 so circumference = 213.6 */
-.db-skill-progress--shooting  { stroke: #f5a623; }
-.db-skill-progress--dribbling { stroke: #3ecf8e; }
-.db-skill-progress--defense   { stroke: #a78bfa; }
-.db-skill-progress--gameiq    { stroke: #f472b6; }
+.db-skill-progress--shooting  { stroke: #f5a623; filter: drop-shadow(0 0 6px rgba(245,166,35,0.35)); }
+.db-skill-progress--dribbling { stroke: #3ecf8e; filter: drop-shadow(0 0 6px rgba(62,207,142,0.35)); }
+.db-skill-progress--defense   { stroke: #a78bfa; filter: drop-shadow(0 0 6px rgba(167,139,250,0.35)); }
+.db-skill-progress--gameiq    { stroke: #f472b6; filter: drop-shadow(0 0 6px rgba(244,114,182,0.35)); }
 
 /* Percentage label below ring */
 .db-skill-circle-pct {
@@ -481,7 +490,22 @@
 .db-stat-card:hover {
   border-color: rgba(245, 166, 35, 0.18);
   transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 16px rgba(245,166,35,0.05);
 }
+.db-stat-card {
+  position: relative;
+  overflow: hidden;
+}
+.db-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.db-stat-card:hover::before { opacity: 1; }
 
 .db-stat-icon {
   width: 36px;
@@ -490,8 +514,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 166, 35, 0.1);
+  background: linear-gradient(135deg, rgba(245,166,35,0.14), rgba(245,166,35,0.06));
   border-radius: 10px;
+  transition: box-shadow 0.25s ease, transform 0.25s ease;
+}
+.db-stat-card:hover .db-stat-icon {
+  box-shadow: 0 0 12px rgba(245,166,35,0.15);
+  transform: scale(1.05);
 }
 
 .db-stat-icon[data-icon]::before {

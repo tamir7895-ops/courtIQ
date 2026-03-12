@@ -12,6 +12,7 @@
   display: none;
   overflow-y: auto;
   overflow-x: hidden;
+  backdrop-filter: blur(2px);
 }
 .ob-overlay.active {
   display: block;
@@ -163,7 +164,8 @@
 }
 .ob-input {
   width: 100%;
-  background: #1c1e23;
+  background: rgba(28,30,35,0.85);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 8px;
   color: #f0ede6;
@@ -176,6 +178,7 @@
 .ob-input:focus {
   border-color: rgba(245,166,35,0.45);
   background: rgba(245,166,35,0.04);
+  box-shadow: 0 0 12px rgba(245,166,35,0.12);
 }
 .ob-input::placeholder {
   color: rgba(240,237,230,0.22);
@@ -189,7 +192,8 @@
 .ob-hand-btn {
   flex: 1;
   padding: 12px;
-  background: #1c1e23;
+  background: rgba(28,30,35,0.85);
+  backdrop-filter: blur(8px);
   border: 1px solid rgba(255,255,255,0.07);
   border-radius: 8px;
   color: rgba(240,237,230,0.45);
@@ -200,6 +204,11 @@
   letter-spacing: 0.06em;
   cursor: pointer;
   transition: all 0.25s ease;
+}
+.ob-hand-btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(245,166,35,0.25);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.1);
 }
 .ob-hand-btn.selected {
   background: rgba(245,166,35,0.1);
@@ -216,7 +225,8 @@
   margin-top: 8px;
 }
 .ob-position-card {
-  background: #1c1e23;
+  background: rgba(28,30,35,0.85);
+  backdrop-filter: blur(8px);
   border: 2px solid rgba(255,255,255,0.07);
   border-radius: 14px;
   padding: 18px 8px;
@@ -225,8 +235,9 @@
   transition: all 0.25s ease;
 }
 .ob-position-card:hover {
-  border-color: rgba(245,166,35,0.3);
-  transform: translateY(-2px);
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(245,166,35,0.12);
 }
 .ob-position-card.selected {
   background: rgba(245,166,35,0.08);
@@ -272,7 +283,8 @@
   gap: 10px;
 }
 .ob-choice {
-  background: #1c1e23;
+  background: rgba(28,30,35,0.85);
+  backdrop-filter: blur(8px);
   border: 2px solid rgba(255,255,255,0.07);
   border-radius: 12px;
   padding: 16px;
@@ -283,6 +295,8 @@
 .ob-choice:hover {
   border-color: rgba(245,166,35,0.25);
   background: rgba(245,166,35,0.03);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 18px rgba(245,166,35,0.1);
 }
 .ob-choice.selected {
   background: rgba(245,166,35,0.08);

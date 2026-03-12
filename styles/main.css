@@ -114,6 +114,10 @@
     body {
       background: #0e1014;
       background-color: #0e1014;     /* belt-and-suspenders — no white ever */
+      background-image:
+        radial-gradient(ellipse 80% 50% at 20% 0%, rgba(245,166,35,0.04) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 100%, rgba(76,163,255,0.03) 0%, transparent 55%);
+      background-attachment: fixed;
       color: var(--c-white);
       font-family: var(--font-body);
       font-size: 16px;
@@ -2606,13 +2610,14 @@
       position: fixed;
       top: 0; left: 0; bottom: 0;
       width: 260px;
-      background: linear-gradient(180deg, var(--c-surface) 0%, #13161c 100%);
-      border-right: 1px solid rgba(245,166,35,0.06);
+      background: linear-gradient(180deg, #161921 0%, #10131a 100%);
+      border-right: 1px solid rgba(245,166,35,0.08);
       display: flex;
       flex-direction: column;
       z-index: 100;
       transition: width 0.3s cubic-bezier(0.4,0,0.2,1);
       overflow: hidden;
+      box-shadow: 4px 0 24px rgba(0,0,0,0.3);
     }
     .db-sidebar.collapsed { width: 72px; }
 
@@ -2699,15 +2704,18 @@
       white-space: nowrap;
     }
     .db-sidebar-item:hover {
-      background: rgba(255,255,255,0.04);
+      background: rgba(255,255,255,0.05);
       color: var(--c-white);
+      border-color: rgba(255,255,255,0.04);
+      transform: translateX(2px);
     }
     .db-sidebar-item.active {
-      background: var(--c-amber-dim);
-      border-color: rgba(245,166,35,0.2);
+      background: linear-gradient(135deg, rgba(245,166,35,0.14) 0%, rgba(245,166,35,0.06) 100%);
+      border-color: rgba(245,166,35,0.22);
       color: var(--c-amber);
       font-weight: 600;
       position: relative;
+      box-shadow: 0 0 20px rgba(245,166,35,0.06);
     }
     .db-sidebar-item.active::before {
       content: '';
@@ -2716,8 +2724,9 @@
       top: 4px;
       bottom: 4px;
       width: 3px;
-      background: var(--c-amber);
+      background: linear-gradient(180deg, var(--c-amber), #e09020);
       border-radius: 0 3px 3px 0;
+      box-shadow: 0 0 8px rgba(245,166,35,0.4);
     }
     .db-sidebar-icon {
       width: 24px;
@@ -2742,11 +2751,12 @@
     .db-sidebar-avatar {
       width: 36px; height: 36px;
       border-radius: 50%;
-      background: var(--c-amber-dim);
-      border: 1px solid rgba(245,166,35,0.3);
+      background: linear-gradient(135deg, rgba(245,166,35,0.15), rgba(245,166,35,0.08));
+      border: 1.5px solid rgba(245,166,35,0.35);
       display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 0 12px rgba(245,166,35,0.1);
       font-family: var(--font-display);
       font-size: 13px;
       font-weight: 800;
@@ -2946,7 +2956,24 @@
       border-radius: var(--r-lg);
       padding: 28px;
       box-shadow: var(--shadow-card);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
     }
+    .db-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .db-card:hover {
+      border-color: rgba(245,166,35,0.15);
+      box-shadow: var(--shadow-card), 0 0 30px rgba(245,166,35,0.04);
+    }
+    .db-card:hover::before { opacity: 1; }
     .db-card-title {
       font-family: var(--font-display);
       font-size: 22px;
@@ -3004,9 +3031,14 @@
       border-radius: var(--r-md);
       padding: 14px 16px;
       margin-bottom: 10px;
-      transition: var(--transition);
+      transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+      position: relative;
     }
-    .db-session-card:hover { border-color: rgba(245,166,35,0.2); }
+    .db-session-card:hover {
+      border-color: rgba(245,166,35,0.2);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+    }
     .db-session-day {
       font-family: var(--font-display);
       font-size: 18px;
