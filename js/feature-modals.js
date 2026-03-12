@@ -665,5 +665,3 @@
       else if (document.getElementById('sidebar')?.classList.contains('open')) closeSidebar();
     }
   });
-
-  /* ══════════════════════════════════════════════════════════════
