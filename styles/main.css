@@ -3855,3 +3855,22 @@
 
     /* ─── AUTH MODAL ACCESSIBILITY FIX ────────────────────────── */
     .auth-overlay:focus-within .auth-modal { outline: none; }
+
+/* ══════════════════════════════════════════════════════════
+   HOME SCREEN ACTIVE STATE
+   When home panel is active, hide sidebar and expand main
+   ══════════════════════════════════════════════════════════ */
+.db-layout-root.db-home-active .db-sidebar { display: none; }
+.db-layout-root.db-home-active .db-sidebar-mobile-toggle { display: none; }
+.db-layout-root.db-home-active .db-sidebar-overlay { display: none; }
+.db-layout-root.db-home-active .db-main { margin-left: 0 !important; }
+
+/* Hide shared widgets on home panel — they have home-specific versions */
+.db-layout-root.db-home-active .db-main-header,
+.db-layout-root.db-home-active .db-player-bar,
+.db-layout-root.db-home-active .db-top-widgets,
+.db-layout-root.db-home-active .dc-card,
+.db-layout-root.db-home-active .db-quick-actions,
+.db-layout-root.db-home-active .db-skill-stats,
+.db-layout-root.db-home-active .db-context-row,
+.db-layout-root.db-home-active .db-breadcrumb { display: none !important; }

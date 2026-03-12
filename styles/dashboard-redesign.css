@@ -515,3 +515,336 @@
   .db-quick-actions { gap: 5px; }
   .db-skill-stats   { gap: 6px; }
 }
+
+/* ══════════════════════════════════════════════════════════
+   HOME PANEL
+   ══════════════════════════════════════════════════════════ */
+
+/* ── Hero Greeting ── */
+.db-home-hero {
+  text-align: center;
+  padding: 32px 0 24px;
+}
+.db-home-greeting {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--c-white, #f0ede6);
+  margin: 0 0 6px;
+}
+.db-home-greeting strong {
+  color: var(--c-amber, #f5a623);
+}
+.db-home-subtitle {
+  font-size: 14px;
+  color: var(--c-muted, rgba(240,237,230,0.5));
+  margin: 0 0 12px;
+}
+.db-home-date-pill {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-amber, #f5a623);
+  background: rgba(245,166,35,0.1);
+  border: 1px solid rgba(245,166,35,0.2);
+  border-radius: 100px;
+  padding: 4px 14px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+/* ── Quick Stats Row ── */
+.db-home-stats-row {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 28px;
+}
+.db-home-stat {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+.db-home-stat-icon {
+  color: var(--c-amber, #f5a623);
+  flex-shrink: 0;
+}
+.db-home-stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.db-home-stat-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--c-white, #f0ede6);
+  line-height: 1;
+}
+.db-home-stat-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--c-muted, rgba(240,237,230,0.5));
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ── Navigation Cards Grid ── */
+.db-home-nav-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+.db-home-nav-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+  padding: 18px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+.db-home-nav-card:hover {
+  border-color: rgba(245,166,35,0.28);
+  background: rgba(245,166,35,0.08);
+  transform: translateY(-2px);
+}
+.db-home-nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(245,166,35,0.1);
+  color: var(--c-amber, #f5a623);
+  flex-shrink: 0;
+}
+.db-home-nav-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.db-home-nav-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-white, #f0ede6);
+}
+.db-home-nav-sub {
+  font-size: 11px;
+  color: var(--c-muted, rgba(240,237,230,0.5));
+}
+.db-home-nav-arrow {
+  font-size: 22px;
+  color: var(--c-muted, rgba(240,237,230,0.3));
+  flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════
+   DONUT CHARTS
+   ══════════════════════════════════════════════════════════ */
+.db-donuts-row {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+.db-donut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.db-donut-ring {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--skill-color, #f5a623) 0% var(--pct, 0%),
+    rgba(255,255,255,0.07) var(--pct, 0%) 100%
+  );
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.db-donut-ring::before {
+  content: '';
+  position: absolute;
+  inset: 8px;
+  border-radius: 50%;
+  background: var(--c-bg, #0e1014);
+}
+.db-donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1;
+}
+.db-donut-center svg {
+  width: 24px;
+  height: 24px;
+}
+
+/* Skill colors */
+.db-donut[data-skill="shooting"] { --skill-color: #f5a623; }
+.db-donut[data-skill="shooting"] .db-donut-center svg { stroke: #f5a623; }
+
+.db-donut[data-skill="dribbling"] { --skill-color: #3ecf8e; }
+.db-donut[data-skill="dribbling"] .db-donut-center svg { stroke: #3ecf8e; }
+
+.db-donut[data-skill="defense"] { --skill-color: #a78bfa; }
+.db-donut[data-skill="defense"] .db-donut-center svg { stroke: #a78bfa; }
+
+.db-donut[data-skill="gameiq"] { --skill-color: #f472b6; }
+.db-donut[data-skill="gameiq"] .db-donut-center svg { stroke: #f472b6; }
+
+.db-donut-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-white, #f0ede6);
+  margin-top: 2px;
+}
+.db-donut-name {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--c-muted, rgba(240,237,230,0.5));
+  text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════════
+   PROFILE WIDGET (topbar)
+   ══════════════════════════════════════════════════════════ */
+.db-profile-widget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(255,255,255,0.035);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 20px;
+  padding: 4px 10px 4px 4px;
+  cursor: pointer;
+  transition: filter 0.2s;
+  color: inherit;
+  font: inherit;
+}
+.db-profile-widget:hover {
+  filter: brightness(1.15);
+}
+.db-profile-widget-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(245,166,35,0.15);
+  color: var(--c-amber, #f5a623);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+.db-profile-widget-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--c-white, #f0ede6);
+  max-width: 100px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.db-profile-widget-badge {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--c-amber, #f5a623);
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.25);
+  border-radius: 100px;
+  padding: 2px 8px;
+  white-space: nowrap;
+}
+
+/* ── Sidebar Home separator ── */
+.db-sidebar-home-sep {
+  height: 1px;
+  background: rgba(255,255,255,0.07);
+  margin: 8px 16px 12px;
+}
+.db-sidebar.collapsed .db-sidebar-home-sep {
+  margin: 8px 8px 12px;
+}
+
+/* ══════════════════════════════════════════════════════════
+   HOME PANEL RESPONSIVE
+   ══════════════════════════════════════════════════════════ */
+
+/* Tablet + small desktop */
+@media (max-width: 1024px) {
+  .db-home-nav-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .db-home-hero { padding: 20px 0 16px; }
+  .db-home-greeting { font-size: 26px; }
+
+  .db-home-stats-row {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 4px;
+  }
+  .db-home-stats-row::-webkit-scrollbar { display: none; }
+  .db-home-stat { min-width: 140px; flex: 0 0 auto; }
+
+  .db-donuts-row {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    justify-items: center;
+  }
+  .db-donut-ring { width: 64px; height: 64px; }
+  .db-donut-ring::before { inset: 6px; }
+  .db-donut-center svg { width: 20px; height: 20px; }
+
+  .db-home-nav-grid { grid-template-columns: 1fr; }
+
+  .db-profile-widget-name { display: none; }
+}
+
+/* Ultra-small */
+@media (max-width: 400px) {
+  .db-donut-ring { width: 56px; height: 56px; }
+  .db-donut-ring::before { inset: 5px; }
+  .db-donut-center svg { width: 18px; height: 18px; }
+  .db-donut-label { font-size: 14px; }
+
+  .db-profile-widget-badge { display: inline; }
+  .db-topbar-date { display: none; }
+}
