@@ -15,7 +15,17 @@
      AUTH GUARD — redirect if not logged in
   ══════════════════════════════════════════════════════════════ */
   (async function authGuard() {
-    const { data: { session } } = await sb.auth.getSession();
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (e) {
+      console.warn('Session load failed, clearing stale auth:', e);
+      await sb.auth.signOut();
+      window.location.href = 'index.html';
+      return;
+    }
     if (!session) {
       window.location.href = 'index.html';
       return;
@@ -52,6 +62,53 @@
       } else if (sidebarAvatar && typeof name === 'string') {
         const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
         sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
+      }
+
+      // Populate topbar profile widget
+      var pwName = document.getElementById('db-pw-name');
+      var pwAvatar = document.getElementById('db-pw-avatar');
+      var pwBadge = document.getElementById('db-pw-badge');
+      var homeGreeting = document.getElementById('db-home-greeting');
+
+      var obData = {};
+      try { obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+
+      if (pwName) {
+        pwName.textContent = name || 'Player';
+      }
+      if (pwAvatar) {
+        if (typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          try { AvatarBridge.renderMini(pwAvatar, obData.avatar); } catch(e) {
+            var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+            pwAvatar.textContent = initials;
+          }
+        } else {
+          var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          pwAvatar.textContent = initials;
+        }
+      }
+      if (pwBadge && typeof GamificationEngine !== 'undefined') {
+        var ge = GamificationEngine.state || {};
+        pwBadge.textContent = ge.rank || 'Rookie';
+      }
+      if (homeGreeting) {
+        var firstName = (name || 'Player').split(' ')[0];
+        // Build greeting safely using textContent + DOM
+        homeGreeting.textContent = '';
+        homeGreeting.appendChild(document.createTextNode('Hey, '));
+        var strong = document.createElement('strong');
+        strong.textContent = firstName;
+        homeGreeting.appendChild(strong);
+        homeGreeting.appendChild(document.createTextNode('!'));
+      }
+
+      // Set home date pill
+      var datePill = document.getElementById('db-home-date');
+      if (datePill) {
+        var d = new Date();
+        var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        datePill.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
       }
     }
 
@@ -159,6 +216,69 @@
         }
       }
 
+      // ── Populate new dashboard home elements ──────────────
+      (function populateNewDashboard() {
+        var ob = null;
+        try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch(e) {}
+        var pName = (profile && profile.first_name) || (ob && ob.name) || 'Player';
+        var pLevel = 'Rookie';
+        var pXP = 0;
+        if (typeof XPSystem !== 'undefined') {
+          var xpData = null;
+          try { xpData = JSON.parse(localStorage.getItem('courtiq-xp')); } catch(e) {}
+          pXP = (xpData && xpData.total) || 0;
+          var lvl = XPSystem.getLevel(pXP);
+          if (lvl) pLevel = lvl.name || 'Rookie';
+        }
+
+        // Welcome hero name
+        var welcomeNameEl = document.getElementById('db-welcome-name');
+        if (welcomeNameEl) welcomeNameEl.textContent = pName;
+
+        // Profile mini widget
+        var miniName = document.getElementById('db-profile-mini-name');
+        var miniLevel = document.getElementById('db-profile-mini-level');
+        var miniAvatar = document.getElementById('db-profile-mini-avatar');
+        if (miniName) miniName.textContent = pName;
+        if (miniLevel) miniLevel.textContent = pLevel;
+        if (miniAvatar) {
+          var initials = pName.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+          miniAvatar.textContent = initials;
+        }
+
+        // Stat cards
+        var statXP = document.getElementById('db-stat-xp');
+        if (statXP) statXP.textContent = pXP + ' XP';
+
+        var statStreak = document.getElementById('db-stat-streak');
+        if (statStreak) {
+          var streakData = null;
+          try { streakData = JSON.parse(localStorage.getItem('courtiq-streak')); } catch(e) {}
+          statStreak.textContent = (streakData && streakData.current) || 0;
+        }
+
+        // Skills circles — read from onboarding data
+        var skills = (ob && ob.skills) || {};
+        var skillMap = {
+          shooting: (skills.shooting || 5) * 10,
+          dribbling: (skills.dribbling || 5) * 10,
+          defense: (skills.defense || 5) * 10,
+          gameiq: (skills.gameIQ || skills.gameiq || 5) * 10
+        };
+        var circumference = 2 * Math.PI * 34; // r=34
+
+        Object.keys(skillMap).forEach(function(key) {
+          var pct = skillMap[key];
+          var pctEl = document.getElementById('stat-' + key);
+          var circleEl = document.getElementById('stat-' + key + '-circle');
+          if (pctEl) pctEl.textContent = pct + '%';
+          if (circleEl) {
+            var offset = circumference - (pct / 100) * circumference;
+            setTimeout(function() { circleEl.style.strokeDashoffset = offset; }, 300);
+          }
+        });
+      })();
+
       // Load all weeks with sessions
       const weeks = await DataService.getWeeks();
 
@@ -239,7 +359,7 @@
     const d = w.days;
     if (!d || d.length === 0) return { shooting_pct:0, dribbling_min:0, vertical_in:0, sprint_sec:0, shots_made:0 };
     return {
-      shooting_pct: Math.round(dbMean(d, r => (r.shots_made/r.shots_attempted)*100)),
+      shooting_pct: Math.round(dbMean(d, r => r.shots_attempted > 0 ? (r.shots_made/r.shots_attempted)*100 : 0)),
       dribbling_min: +dbMean(d, r => r.dribbling_min).toFixed(1),
       vertical_in:   +dbMean(d, r => r.vertical_in).toFixed(1),
       sprint_sec:    +dbMean(d, r => r.sprint_sec).toFixed(2),
@@ -271,8 +391,19 @@
     const panel = document.getElementById('db-panel-' + id);
     if (panel) panel.classList.add('active');
 
+    // Toggle home-active state: hide sidebar on home, show on others
+    var layoutRoot = document.querySelector('.db-layout-root');
+    if (layoutRoot) {
+      if (id === 'home') {
+        layoutRoot.classList.add('db-home-active');
+      } else {
+        layoutRoot.classList.remove('db-home-active');
+      }
+    }
+
     // Update breadcrumb
     var breadcrumbNames = {
+      home: 'Home', summary: 'Weekly Summary', shots: 'Shot Tracker', coach: 'AI Coach',
       log: 'Log Session', history: 'History', calendar: 'Calendar',
       drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
@@ -280,6 +411,13 @@
     };
     var bcEl = document.getElementById('db-breadcrumb-current');
     if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
+
+    // Hide breadcrumb on home panel
+    var topbar = document.getElementById('db-topbar');
+    if (topbar) {
+      var bc = topbar.querySelector('.db-breadcrumb');
+      if (bc) bc.style.display = (id === 'home') ? 'none' : '';
+    }
 
     // GSAP tab animation (graceful fallback)
     if (panel && window.CourtIQAnimations && CourtIQAnimations.tabIn) {
@@ -328,7 +466,10 @@
     const weekNum = document.getElementById('db-week-num');
     if (weekLabel) weekLabel.textContent = 'Week ' + wn;
     if (weekNum) weekNum.textContent = wn;
-    document.getElementById('db-session-count').textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var scEl = document.getElementById('db-session-count');
+    if (scEl) scEl.textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var statSessions = document.getElementById('db-stat-sessions');
+    if (statSessions) statSessions.textContent = dbSessions.length;
     const dayLabel = DB_DAYS[dbSessions.length] || 'Extra Day';
     document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
     const rem = Math.max(0, 5 - dbSessions.length);
@@ -354,7 +495,7 @@
       return;
     }
     list.innerHTML = dbSessions.map((s, i) => {
-      const pct = Math.round((s.shots_made / s.shots_attempted) * 100);
+      const pct = s.shots_attempted > 0 ? Math.round((s.shots_made / s.shots_attempted) * 100) : 0;
       const bc  = pct >= 65 ? '#56d364' : pct >= 50 ? '#f5a623' : '#f85149';
       return `
         <div class="db-session-card">
@@ -654,7 +795,7 @@
             </div>
             <div class="db-day-bars">
               ${w.days.map(d => {
-                const pct = Math.round((d.shots_made/d.shots_attempted)*100);
+                const pct = d.shots_attempted > 0 ? Math.round((d.shots_made/d.shots_attempted)*100) : 0;
                 const bc  = pct>=65?'rgba(86,211,100,0.45)':pct>=50?'rgba(245,166,35,0.45)':'rgba(248,81,73,0.4)';
                 return `<div class="db-day-bar-wrap"><div class="db-day-bar-bg"><div class="db-day-bar-fill" style="height:${pct}%;background:${bc}"></div></div><div class="db-day-bar-label">${d.day}</div></div>`;
               }).join('')}
@@ -1112,6 +1253,11 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
         overlay.classList.remove('visible');
       });
     }
+  })();
+
+  // Default to home panel on page load
+  (function() {
+    dbSwitchTab('home', null);
   })();
 
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */

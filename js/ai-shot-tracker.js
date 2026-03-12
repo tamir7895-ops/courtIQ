@@ -60,9 +60,6 @@
         if (parsed && parsed.rxFracMean > 0.01 && parsed.rxFracMean < 0.30) {
           rimModel = parsed;
           RIM_RX_FRAC = rimModel.rxFracMean;
-          console.log('[AST rim-model] loaded — rxFrac=' + rimModel.rxFracMean.toFixed(3) +
-                      ' conf=' + (rimModel.confidence || 0).toFixed(2) +
-                      ' samples=' + (rimModel.sampleCount || 0));
         }
       }
     } catch (e) {
@@ -254,19 +251,7 @@
           }
         }
 
-        // DIAG: log all predictions every 60 frames
-        if (frameCount % 60 === 0) {
-          var roi = getROI();
-          var predSummary = preds.map(function(p) {
-            return p.class + '(' + p.score.toFixed(2) + ')@[' + Math.round(p.bbox[0]) + ',' + Math.round(p.bbox[1]) + ']';
-          });
-          console.log('[AST diag] frame=' + frameCount + ' ts=' + (video ? video.currentTime.toFixed(2) : '?') +
-            ' preds=[' + predSummary.join(', ') + ']' +
-            ' persons=' + personBoxes.length +
-            ' roi=y0-' + Math.round(roi.h) +
-            ' rim=' + (rim ? Math.round(rim.cx) + ',' + Math.round(rim.cy) : 'none') +
-            ' mlReady=' + mlReady);
-        }
+
 
         // Second pass: find best ball detection
         for (var i = 0; i < preds.length; i++) {
@@ -366,9 +351,6 @@
     }
 
     // DIAG: log orange pixel count every 60 frames
-    if (frameCount % 60 === 0) {
-      console.log('[AST diag] color: orangePx=' + orangeX.length + ' roiW=' + roi.w + ' roiH=' + roi.h);
-    }
     if (orangeX.length < 8) return null;
 
     // Grid clustering
@@ -471,7 +453,6 @@
 
     // Hard cutoff: reject blobs too far below the rim (court floor)
     if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 4.5) {
-      console.log('[AST diag] ball blob at y=' + Math.round(bestBlob.y) + ' rejected (below rim+4.5ry=' + Math.round(rim.cy + rim.ry * 4.5) + ')');
       return null;
     }
 
@@ -856,9 +837,7 @@
 
     if (!ball) {
       disappearCount++;
-      if (frameCount % 60 === 0) {
-        console.log('[AST diag] processBall: NO BALL fc=' + frameCount + ' disappear=' + disappearCount + ' phase=' + shotPhase);
-      }
+
 
       // Ball disappeared near the rim — likely went through or bounced off
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
@@ -901,13 +880,7 @@
 
     disappearCount = 0;
 
-    // DIAG: log ball detection every 60 frames
-    if (frameCount % 60 === 0) {
-      console.log('[AST diag] ball: x=' + Math.round(ball.x) + ' y=' + Math.round(ball.y) +
-        ' score=' + (ball.score || 0).toFixed(2) +
-        ' phase=' + shotPhase + ' yVel=tbd' +
-        ' rim=' + (rim ? Math.round(rim.cx) + ',' + Math.round(rim.cy) : 'none'));
-    }
+
 
     // Track peak height
     if (ball.y < ballPeakY) ballPeakY = ball.y;
@@ -1187,10 +1160,7 @@
     ctx.drawImage(video, 0, 0, W, H);
     frameCount++;
 
-    // DIAG: heartbeat log
-    if (frameCount === 1 || frameCount % 60 === 0) {
-      console.log('[AST diag] frameLoop fc=' + frameCount + ' phase=' + phase + ' isDetecting=' + isDetecting + ' ts=' + (video ? video.currentTime.toFixed(2) : '?'));
-    }
+
 
     if (phase === PHASE.TRACKING) processBall(lastBall);
     drawOverlay(lastBall);
@@ -1218,7 +1188,6 @@
         lastBall = ball;
         isDetecting = false;
       }).catch(function(e) {
-        console.log('[AST diag] detectBallAsync ERROR: ' + e);
         isDetecting = false;
       });
     }
@@ -1367,9 +1336,6 @@
               : W * RIM_RX_FRAC;
     var ry = rx * 0.38;   // rim ellipse ~2.6:1 aspect (perspective foreshortening)
     rim = { cx: cx, cy: cy, rx: rx, ry: ry };
-    console.log('[AST rim] confirmed cx=' + Math.round(cx) + ' cy=' + Math.round(cy) +
-                ' rx=' + Math.round(rx) + ' ry=' + Math.round(ry) +
-                (detectedRx ? ' (measured)' : ' (default)'));
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
     showPhase('track');
@@ -1388,7 +1354,6 @@
       video.onseeked = function onConfirmSeek() {
         video.onseeked = null;
         video.play().catch(function (e) {
-          console.log('[AST diag] video.play() blocked: ' + e.message + ' — retrying with mute');
           video.muted = true;
           video.play().catch(function () {});
         });
@@ -1773,7 +1738,6 @@
     // Initialize adaptive learning system if available
     if (window.AdaptiveLearning) {
       window.AdaptiveLearning.init();
-      console.log('[AST] AdaptiveLearning initialized');
     }
 
     var launchBtn = document.getElementById('ast-launch-btn');

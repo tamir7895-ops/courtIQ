@@ -691,6 +691,91 @@
   transform: translateY(-4px) !important;
 }
 
+/* ─── CARD ENTRANCE STAGGER ──────────────────────────────────── */
+@keyframes card-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.db-card,
+.st-card,
+.dw-card,
+.mv-card,
+.wkt-card,
+.db-kpi,
+.db-session-card,
+.profile-summary,
+.xp-widget {
+  animation: card-rise 0.5s var(--ease-out-expo) both;
+}
+.db-card:nth-child(1), .db-kpi:nth-child(1), .dw-card:nth-child(1) { animation-delay: 0.05s; }
+.db-card:nth-child(2), .db-kpi:nth-child(2), .dw-card:nth-child(2) { animation-delay: 0.1s; }
+.db-card:nth-child(3), .db-kpi:nth-child(3), .dw-card:nth-child(3) { animation-delay: 0.15s; }
+.db-card:nth-child(4), .db-kpi:nth-child(4), .dw-card:nth-child(4) { animation-delay: 0.2s; }
+
+/* ─── PULSE GLOW (for active/live indicators) ────────────────── */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(245,166,35,0.3); }
+  50%      { box-shadow: 0 0 12px 4px rgba(245,166,35,0.15); }
+}
+.xp-badge--all-star,
+.xp-badge--mvp {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+/* ─── PROGRESS BAR FILL ANIMATION ────────────────────────────── */
+@keyframes bar-fill-sweep {
+  from { width: 0; }
+}
+.xp-bar-fill,
+.db-session-bar-fill {
+  animation: bar-fill-sweep 1s var(--ease-out-expo) both;
+}
+
+/* ─── FLOATING SUBTLE MOTION (for hero elements) ─────────────── */
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+
+/* ─── AMBER BORDER PULSE (for focused/selected elements) ─────── */
+@keyframes amber-border-breathe {
+  0%, 100% { border-color: rgba(245,166,35,0.15); }
+  50%      { border-color: rgba(245,166,35,0.3); }
+}
+
+/* ─── SIDEBAR ITEM ACTIVE INDICATOR GLOW ─────────────────────── */
+.db-sidebar-item.active::before {
+  animation: amber-border-breathe 3s ease-in-out infinite;
+  box-shadow: 0 0 8px rgba(245,166,35,0.4);
+}
+
+/* ─── SKILL CIRCLE DRAW-IN ───────────────────────────────────── */
+@keyframes circle-draw {
+  from { stroke-dashoffset: 213.6; }
+}
+.db-skill-progress {
+  animation: circle-draw 1.2s var(--ease-out-expo) both;
+}
+.db-skill-circle:nth-child(1) .db-skill-progress { animation-delay: 0.1s; }
+.db-skill-circle:nth-child(2) .db-skill-progress { animation-delay: 0.2s; }
+.db-skill-circle:nth-child(3) .db-skill-progress { animation-delay: 0.3s; }
+.db-skill-circle:nth-child(4) .db-skill-progress { animation-delay: 0.4s; }
+
+/* ─── STAT NUMBER COUNT ENTRANCE ─────────────────────────────── */
+@keyframes num-pop {
+  0%   { opacity: 0; transform: scale(0.8) translateY(6px); }
+  60%  { transform: scale(1.04) translateY(-1px); }
+  100% { opacity: 1; transform: scale(1) translateY(0); }
+}
+.db-stat-value,
+.db-kpi-val,
+.workouts-stat-num {
+  animation: num-pop 0.6s var(--ease-out-expo) both;
+}
+.db-stat-card:nth-child(1) .db-stat-value { animation-delay: 0.1s; }
+.db-stat-card:nth-child(2) .db-stat-value { animation-delay: 0.2s; }
+.db-stat-card:nth-child(3) .db-stat-value { animation-delay: 0.3s; }
+
 /* ─── REDUCED MOTION SAFETY ───────────────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
   #cursor, #cursor-ring { display: none !important; }
@@ -702,8 +787,28 @@
   .scroll-indicator,
   .stats-bar-number,
   #hero-particles,
-  .hero-title em { animation: none !important; }
+  .hero-title em,
+  .db-card,
+  .st-card,
+  .dw-card,
+  .mv-card,
+  .wkt-card,
+  .db-kpi,
+  .db-session-card,
+  .profile-summary,
+  .xp-widget,
+  .xp-badge--all-star,
+  .xp-badge--mvp,
+  .xp-bar-fill,
+  .db-session-bar-fill,
+  .db-skill-progress,
+  .db-stat-value,
+  .db-kpi-val,
+  .workouts-stat-num { animation: none !important; }
   .hero-left > * { opacity: 1 !important; transform: none !important; }
   .hero-right    { opacity: 1 !important; transform: none !important; }
+  .db-card, .st-card, .dw-card, .mv-card, .wkt-card,
+  .db-kpi, .db-session-card, .profile-summary, .xp-widget,
+  .db-stat-value, .db-kpi-val, .workouts-stat-num { opacity: 1 !important; transform: none !important; }
 }
 

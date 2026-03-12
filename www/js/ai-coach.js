@@ -55,8 +55,13 @@ Output updated weekly schedule in the same JSON format as the original program.`
       return;
     }
     coachLoading = true;
-    const player    = document.getElementById('db-player')?.value||'Athlete';
-    const position  = document.getElementById('db-position')?.value||'Point Guard';
+    // Sanitize inputs before embedding in AI prompt (SEC-10: prevent prompt injection)
+    const _sp = typeof sanitizePromptStr === 'function' ? sanitizePromptStr
+      : function(s,n){return String(s||'').replace(/[\x00-\x1F\x7F]/g,' ').replace(/\s+/g,' ').trim().slice(0,n||200);};
+    const _VALID_POS = ['Point Guard','Shooting Guard','Small Forward','Power Forward','Center'];
+    const player    = _sp(document.getElementById('db-player')?.value||'Athlete', 60);
+    const _posRaw   = _sp(document.getElementById('db-position')?.value||'Point Guard', 30);
+    const position  = _VALID_POS.includes(_posRaw) ? _posRaw : 'Point Guard';
     const equipment = coachGetEquipment();
     const weekNum   = dbWeeks.length+1;
     const btn = document.getElementById('coach-gen-btn');
@@ -159,7 +164,8 @@ Rules:
       ib.textContent=lvl+' Intensity';
       ib.style.cssText=`font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;background:rgba(${rgb},0.12);color:${hex};border:1px solid rgba(${rgb},0.3);`;
 
-      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${s}</div>`;
+      const _esc=typeof escapeHTML==='function'?escapeHTML:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${_esc(s)}</div>`;
       document.getElementById('coach-weak').innerHTML=(a.weak_areas||[]).map(row).join('');
       document.getElementById('coach-strong').innerHTML=(a.strong_areas||[]).map(row).join('');
       document.getElementById('coach-adjustments').innerHTML=(a.key_adjustments||[]).map(row).join('');
@@ -187,31 +193,41 @@ Rules:
     const icolor={Low:'#56d364',Medium:'#f5a623',High:'#f85149',Max:'#bc8cff'};
     const cicon={increased:'▲',decreased:'▼',unchanged:'→'};
     const ccolor={increased:'#f85149',decreased:'#56d364',unchanged:'var(--c-muted)'};
+    // Use global escapeHTML if available, else inline fallback
+    const _esc=typeof escapeHTML==='function'?escapeHTML:s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Allowlist for intensity keys (prevents CSS injection via day.intensity)
+    const safeIntensity=v=>(['Low','Medium','High','Max'].includes(v)?v:'Medium');
+    // Allowlist for intensity_change keys
+    const safeChange=v=>(['increased','decreased','unchanged'].includes(v)?v:'unchanged');
 
     c.innerHTML=days.map(day=>{
-      const rgb=imap[day.intensity]||'245,166,35';
-      const hex=icolor[day.intensity]||'#f5a623';
-      const drills=(day.drills||[]).map((d,i)=>`
+      const intKey=safeIntensity(day.intensity);
+      const rgb=imap[intKey];
+      const hex=icolor[intKey];
+      const drills=(day.drills||[]).map((d,i)=>{
+        const chKey=safeChange(d.intensity_change);
+        return `
         <div class="coach-drill-row">
           <div class="coach-drill-num">${String(i+1).padStart(2,'0')}</div>
           <div class="coach-drill-info">
-            <div class="coach-drill-name">${d.name||''}</div>
-            <div class="coach-drill-meta">${d.sets||''} sets · ${d.reps_or_duration||''} · <span style="color:${ccolor[d.intensity_change]||'var(--c-muted)'};">${cicon[d.intensity_change]||'→'} ${d.intensity_change||''}</span></div>
-            ${d.reason?`<div style="font-size:11px;color:var(--c-dimmer);margin-top:2px;font-style:italic;">${d.reason}</div>`:''}
-            ${d.alternative_if_no_equipment?`<div class="coach-drill-alt">🔄 Alt: ${d.alternative_if_no_equipment}</div>`:''}
+            <div class="coach-drill-name">${_esc(d.name)}</div>
+            <div class="coach-drill-meta">${_esc(d.sets)} sets · ${_esc(d.reps_or_duration)} · <span style="color:${ccolor[chKey]};">${cicon[chKey]} ${_esc(d.intensity_change)}</span></div>
+            ${d.reason?`<div style="font-size:11px;color:var(--c-dimmer);margin-top:2px;font-style:italic;">${_esc(d.reason)}</div>`:''}
+            ${d.alternative_if_no_equipment?`<div class="coach-drill-alt">🔄 Alt: ${_esc(d.alternative_if_no_equipment)}</div>`:''}
           </div>
-          <span class="coach-focus-tag">${d.focus_area||''}</span>
-        </div>`).join('<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>');
+          <span class="coach-focus-tag">${_esc(d.focus_area)}</span>
+        </div>`;
+      }).join('<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>');
       return `
         <div class="coach-day-card">
           <div class="coach-day-header">
-            <div class="coach-day-name">${day.day}</div>
-            <div style="font-size:12px;color:var(--c-muted);flex:1;padding-left:10px;">${day.focus||''} · ${day.total_minutes||'—'} min</div>
-            <span class="coach-intensity-chip" style="background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${day.intensity}</span>
+            <div class="coach-day-name">${_esc(day.day)}</div>
+            <div style="font-size:12px;color:var(--c-muted);flex:1;padding-left:10px;">${_esc(day.focus)} · ${_esc(day.total_minutes||'—')} min</div>
+            <span class="coach-intensity-chip" style="background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${_esc(intKey)}</span>
           </div>
           <div class="coach-day-body">
             ${drills}
-            ${day.coach_note?`<div class="coach-day-note">"${day.coach_note}"</div>`:''}
+            ${day.coach_note?`<div class="coach-day-note">"${_esc(day.coach_note)}"</div>`:''}
           </div>
         </div>`;
     }).join('');

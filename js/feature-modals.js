@@ -1,3 +1,4 @@
+  /* ══════════════════════════════════════════════════════════════
      FEATURE MODALS — each plan feature opens a live demo
   ══════════════════════════════════════════════════════════════ */
 
@@ -664,5 +665,3 @@
       else if (document.getElementById('sidebar')?.classList.contains('open')) closeSidebar();
     }
   });
-
-  /* ══════════════════════════════════════════════════════════════

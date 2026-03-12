@@ -107,14 +107,27 @@
     const btn = document.querySelector('#pane-signin .auth-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Signing in\u2026'; }
 
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+      return;
+    }
+
     try {
       const result = await Promise.race([
         sb.auth.signInWithPassword({ email, password: pass }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please check your internet connection and try again.')), 15000))
       ]);
 
-      if (result.error) {
-        showAuthError(result.error.message);
+      const { data: signInData, error } = result;
+      if (error) {
+        showAuthError(error.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+        return;
+      }
+
+      if (!signInData || !signInData.session) {
+        showAuthError('Sign in failed — no session created. Please try again.');
         if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
         return;
       }
@@ -145,6 +158,12 @@
     const btn = document.getElementById('su-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating account\u2026'; }
 
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      return;
+    }
+
     try {
       const result = await Promise.race([
         sb.auth.signUp({
@@ -157,9 +176,22 @@
         new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please check your internet connection and try again.')), 15000))
       ]);
 
-      if (result.error) {
-        showAuthError(result.error.message);
+      const { data: signUpData, error } = result;
+      if (error) {
+        showAuthError(error.message);
         if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+        return;
+      }
+
+      // If session is null, Supabase requires email confirmation before sign-in
+      if (!signUpData || !signUpData.session) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+        const el = document.getElementById('auth-error');
+        el.textContent = '\u2709 Check your email to confirm your account, then sign in.';
+        el.style.color = '#a8e063';
+        el.style.background = 'rgba(168,224,99,0.08)';
+        el.style.borderColor = 'rgba(168,224,99,0.2)';
+        el.style.display = 'block';
         return;
       }
 
@@ -198,7 +230,16 @@
 
   // On landing page: check if already logged in, update nav
   (async function checkExistingSession() {
-    const { data: { session } } = await sb.auth.getSession();
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (e) {
+      console.warn('Stale session cleared:', e);
+      await sb.auth.signOut();
+      return;
+    }
     if (session) {
       // Update nav buttons if on landing page
       const navBtns = document.querySelector('.nav-buttons');

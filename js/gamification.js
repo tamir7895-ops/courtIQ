@@ -9,11 +9,11 @@
 
   var LS_KEY = 'courtiq-xp';
 
-  var LEVELS = [
-    { name: 'Rookie',   icon: '🏀', threshold: 0,    cls: 'rookie' },
-    { name: 'Hooper',   icon: '⚡', threshold: 200,  cls: 'hooper' },
+  var LEVELS = window.COURTIQ_LEVELS || [
+    { name: 'Rookie',   icon: '🏀', threshold: 0,    cls: 'rookie'   },
+    { name: 'Hooper',   icon: '⚡', threshold: 200,  cls: 'hooper'   },
     { name: 'All-Star', icon: '⭐', threshold: 600,  cls: 'all-star' },
-    { name: 'MVP',      icon: '👑', threshold: 1500, cls: 'mvp' }
+    { name: 'MVP',      icon: '👑', threshold: 1500, cls: 'mvp'      }
   ];
 
   var XP_REWARDS = {

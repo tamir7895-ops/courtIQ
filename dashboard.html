@@ -2,6 +2,7 @@
 <html lang="en" style="background:#0e1014;">
 <head>
   <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com; img-src 'self' data: https://api.dicebear.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; object-src 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0e1014" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
@@ -36,9 +37,9 @@
   <link rel="stylesheet" href="styles/components.css" />
   <link rel="stylesheet" href="styles/avatar-3d.css" />
   <link rel="stylesheet" href="styles/social.css" />
-  <link rel="stylesheet" href="styles/dashboard-redesign.css" />
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="styles/dashboard-redesign.css?v=2" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
 </head>
 <body class="is-dashboard">
 
@@ -122,18 +123,26 @@
     </div>
 
     <nav class="db-sidebar-nav" role="navigation" aria-label="Dashboard navigation">
+      <!-- Home (standalone, above groups) -->
+      <button class="db-sidebar-item db-sidebar-item--home" data-tab="home">
+        <span class="db-sidebar-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span class="db-sidebar-text">Home</span>
+      </button>
+      <div class="db-sidebar-home-sep" aria-hidden="true"></div>
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Training</div>
         <button class="db-sidebar-item active" data-tab="log">
-          <span class="db-sidebar-icon">📋</span>
+          <span class="db-sidebar-icon" data-icon="log"></span>
           <span class="db-sidebar-text">Log Session</span>
         </button>
         <button class="db-sidebar-item" data-tab="drills">
-          <span class="db-sidebar-icon">🎯</span>
+          <span class="db-sidebar-icon" data-icon="drills"></span>
           <span class="db-sidebar-text">Drills</span>
         </button>
         <button class="db-sidebar-item" data-tab="workouts">
-          <span class="db-sidebar-icon">🏀</span>
+          <span class="db-sidebar-icon" data-icon="workouts"></span>
           <span class="db-sidebar-text">Workouts</span>
         </button>
       </div>
@@ -141,15 +150,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Analytics</div>
         <button class="db-sidebar-item" data-tab="summary">
-          <span class="db-sidebar-icon">📊</span>
+          <span class="db-sidebar-icon" data-icon="summary"></span>
           <span class="db-sidebar-text">Weekly Summary</span>
         </button>
         <button class="db-sidebar-item" data-tab="history">
-          <span class="db-sidebar-icon">📅</span>
+          <span class="db-sidebar-icon" data-icon="history"></span>
           <span class="db-sidebar-text">History</span>
         </button>
         <button class="db-sidebar-item" data-tab="shots">
-          <span class="db-sidebar-icon">🏹</span>
+          <span class="db-sidebar-icon" data-icon="shots"></span>
           <span class="db-sidebar-text">Shot Tracker</span>
         </button>
       </div>
@@ -157,15 +166,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">AI Coach</div>
         <button class="db-sidebar-item" data-tab="coach">
-          <span class="db-sidebar-icon">🏋️</span>
+          <span class="db-sidebar-icon" data-icon="coach"></span>
           <span class="db-sidebar-text">AI Coach</span>
         </button>
         <button class="db-sidebar-item" data-tab="calendar">
-          <span class="db-sidebar-icon">📆</span>
+          <span class="db-sidebar-icon" data-icon="calendar"></span>
           <span class="db-sidebar-text">Calendar</span>
         </button>
         <button class="db-sidebar-item" data-tab="notifications">
-          <span class="db-sidebar-icon">🔔</span>
+          <span class="db-sidebar-icon" data-icon="notifications"></span>
           <span class="db-sidebar-text">Notifications</span>
         </button>
       </div>
@@ -173,15 +182,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Profile</div>
         <button class="db-sidebar-item" data-tab="archetype">
-          <span class="db-sidebar-icon">🧬</span>
+          <span class="db-sidebar-icon" data-icon="archetype"></span>
           <span class="db-sidebar-text">Archetype</span>
         </button>
         <button class="db-sidebar-item" data-tab="shop">
-          <span class="db-sidebar-icon">🛍️</span>
+          <span class="db-sidebar-icon" data-icon="shop"></span>
           <span class="db-sidebar-text">Shop</span>
         </button>
         <button class="db-sidebar-item" data-tab="moves">
-          <span class="db-sidebar-icon">🤸</span>
+          <span class="db-sidebar-icon" data-icon="moves"></span>
           <span class="db-sidebar-text">Pro Moves</span>
         </button>
       </div>
@@ -190,7 +199,7 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Social</div>
         <button class="db-sidebar-item" data-tab="social">
-          <span class="db-sidebar-icon">🏆</span>
+          <span class="db-sidebar-icon" data-icon="social"></span>
           <span class="db-sidebar-text">Social Hub</span>
         </button>
       </div>
@@ -229,25 +238,57 @@
       </div>
       <div class="db-topbar-right">
         <span class="db-topbar-date" id="db-topbar-date"></span>
+        <button class="db-profile-widget" id="db-profile-widget" aria-label="Open profile" onclick="if(document.getElementById('profile-modal-overlay'))document.getElementById('profile-modal-overlay').classList.add('active');">
+          <div class="db-profile-widget-avatar" id="db-pw-avatar"></div>
+          <span class="db-profile-widget-name" id="db-pw-name"></span>
+          <span class="db-profile-widget-badge" id="db-pw-badge">Rookie</span>
+        </button>
       </div>
     </div>
 
-    <!-- Dashboard header -->
-    <div class="db-main-header">
-      <div>
-        <h1 class="db-main-title">Dashboard</h1>
-        <p class="db-main-subtitle">Track your progress and train smarter with AI</p>
+    <!-- Welcome Hero -->
+    <div class="db-welcome-hero">
+      <div class="db-court-bg" aria-hidden="true"></div>
+      <div class="db-welcome-content">
+        <h1 class="db-welcome-title">Hey, <span id="db-welcome-name">Player</span>!</h1>
+        <p class="db-welcome-sub">Ready to level up your game today?</p>
       </div>
-      <div class="db-main-header-right">
-        <div class="db-week-pill">
-          <span id="db-week-label">Week 1</span>
-          <span id="db-session-count">0 sessions logged</span>
+      <div class="db-profile-mini" id="db-profile-mini">
+        <div class="db-profile-mini-avatar" id="db-profile-mini-avatar"></div>
+        <div class="db-profile-mini-info">
+          <span class="db-profile-mini-name" id="db-profile-mini-name">Player</span>
+          <span class="db-profile-mini-level" id="db-profile-mini-level">Rookie</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="db-stats-row">
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="sessions"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-sessions">0</span>
+          <span class="db-stat-label">Sessions This Week</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="streak"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-streak">0</span>
+          <span class="db-stat-label">Day Streak</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="xp"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-xp">0 XP</span>
+          <span class="db-stat-label">Total XP</span>
         </div>
       </div>
     </div>
 
     <!-- Compact Player Bar (replaces old profile-summary + xp-widget cards) -->
-    <div class="db-top-widgets">
+    <div class="db-top-widgets" style="display:none">
     <div class="db-player-bar">
 
       <!-- Left: Avatar + Profile pills -->
@@ -328,83 +369,214 @@
       </div>
     </div>
 
-    <!-- Quick Actions Row -->
-    <div class="db-quick-actions" id="db-quick-actions">
-      <button class="db-qa-btn" onclick="dbSwitchTabById('drills')">
-        <span class="db-qa-icon">🎯</span>
-        <span class="db-qa-label">Drills</span>
+    <!-- Quick Actions Grid -->
+    <div class="db-quick-grid" id="db-quick-actions">
+      <button class="db-quick-card" onclick="dbSwitchTabById('drills')">
+        <div class="db-quick-card-icon" data-icon="drills"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Drills</span>
+          <span class="db-quick-card-desc">Practice fundamentals</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('workouts')">
-        <span class="db-qa-icon">🏀</span>
-        <span class="db-qa-label">Workouts</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('workouts')">
+        <div class="db-quick-card-icon" data-icon="workouts"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Workouts</span>
+          <span class="db-quick-card-desc">Full training sessions</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('shots')">
-        <span class="db-qa-icon">🏹</span>
-        <span class="db-qa-label">Shot Tracker</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('shots')">
+        <div class="db-quick-card-icon" data-icon="shots"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Shot Tracker</span>
+          <span class="db-quick-card-desc">Log your shooting</span>
+        </div>
       </button>
-      <button class="db-qa-btn" onclick="dbSwitchTabById('summary')">
-        <span class="db-qa-icon">📊</span>
-        <span class="db-qa-label">Weekly Summary</span>
+      <button class="db-quick-card" onclick="dbSwitchTabById('summary')">
+        <div class="db-quick-card-icon" data-icon="summary"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Weekly Summary</span>
+          <span class="db-quick-card-desc">AI performance report</span>
+        </div>
       </button>
     </div>
 
-    <!-- Skill Stats Grid (2×2) -->
-    <div class="db-skill-stats" id="db-skill-stats">
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🎯 Shooting</span>
-          <span class="db-skill-pct" id="stat-shooting">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--shooting" id="stat-shooting-bar" style="width:0%"></div>
-        </div>
+    <!-- Skills Overview -->
+    <div class="db-skills-circle-grid" id="db-skill-stats">
+      <div class="db-skill-circle" data-skill="shooting">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--shooting" id="stat-shooting-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-shooting">–</span>
+        <span class="db-skill-circle-name">Shooting</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">⚡ Dribbling</span>
-          <span class="db-skill-pct" id="stat-dribbling">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--dribbling" id="stat-dribbling-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="dribbling">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--dribbling" id="stat-dribbling-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-dribbling">–</span>
+        <span class="db-skill-circle-name">Dribbling</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🛡️ Defense</span>
-          <span class="db-skill-pct" id="stat-defense">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--defense" id="stat-defense-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="defense">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--defense" id="stat-defense-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-defense">–</span>
+        <span class="db-skill-circle-name">Defense</span>
       </div>
-      <div class="db-skill-item">
-        <div class="db-skill-header">
-          <span class="db-skill-label">🧠 Game IQ</span>
-          <span class="db-skill-pct" id="stat-gameiq">–</span>
-        </div>
-        <div class="db-skill-bar-bg">
-          <div class="db-skill-bar-fill db-skill-bar--gameiq" id="stat-gameiq-bar" style="width:0%"></div>
-        </div>
+      <div class="db-skill-circle" data-skill="gameiq">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--gameiq" id="stat-gameiq-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-gameiq">–</span>
+        <span class="db-skill-circle-name">Game IQ</span>
       </div>
     </div>
 
-    <!-- Player context row -->
-    <div class="db-context-row">
-      <div class="db-field">
-        <label class="db-label">👤 Player Name</label>
-        <input class="db-input" id="db-player" type="text" value="Marcus R." />
+
+    <!-- ── TAB: HOME ── -->
+    <div class="db-panel active" id="db-panel-home">
+
+      <!-- 1.1 Hero Greeting -->
+      <div class="db-home-hero">
+        <h1 class="db-home-greeting" id="db-home-greeting">Hey, <strong>Player</strong>!</h1>
+        <p class="db-home-subtitle">Ready to level up your game today?</p>
+        <div class="db-home-date-pill" id="db-home-date"></div>
       </div>
-      <div class="db-field">
-        <label class="db-label">🏀 Position</label>
-        <select class="db-input" id="db-position">
-          <option>Point Guard</option><option>Shooting Guard</option>
-          <option>Small Forward</option><option>Power Forward</option><option>Center</option>
-        </select>
+
+      <!-- 1.2 Quick Stats Row -->
+      <div class="db-home-stats-row">
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-sessions">0</span>
+            <span class="db-home-stat-label">Sessions This Week</span>
+          </div>
+        </div>
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-streak">0</span>
+            <span class="db-home-stat-label">Day Streak</span>
+          </div>
+        </div>
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-xp">0</span>
+            <span class="db-home-stat-label">Total XP</span>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- 1.3 Skill Donut Charts -->
+      <div class="db-donuts-row" id="db-donuts-row">
+        <div class="db-donut" data-skill="shooting" data-pct="0" role="img" aria-label="Shooting: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">SHOOTING</div>
+        </div>
+        <div class="db-donut" data-skill="dribbling" data-pct="0" role="img" aria-label="Dribbling: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">DRIBBLING</div>
+        </div>
+        <div class="db-donut" data-skill="defense" data-pct="0" role="img" aria-label="Defense: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">DEFENSE</div>
+        </div>
+        <div class="db-donut" data-skill="gameiq" data-pct="0" role="img" aria-label="Game IQ: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">GAME IQ</div>
+        </div>
+      </div>
+
+      <!-- 1.4 Navigation Cards Grid -->
+      <div class="db-home-nav-grid">
+        <button class="db-home-nav-card" onclick="dbSwitchTab('drills')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Drills</span>
+            <span class="db-home-nav-sub">Practice fundamentals</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('workouts')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Workouts</span>
+            <span class="db-home-nav-sub">Full training sessions</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('shots')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Shot Tracker</span>
+            <span class="db-home-nav-sub">Log your shooting</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('summary')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Weekly Summary</span>
+            <span class="db-home-nav-sub">AI performance report</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('coach')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">AI Coach</span>
+            <span class="db-home-nav-sub">Get personalized tips</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('moves')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Pro Moves</span>
+            <span class="db-home-nav-sub">Learn new techniques</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+      </div>
+
+    </div><!-- /db-panel-home -->
 
     <!-- ── TAB: LOG ── -->
-    <div class="db-panel active" id="db-panel-log">
+    <div class="db-panel" id="db-panel-log">
       <div class="db-layout">
 
         <!-- Input form -->
@@ -414,28 +586,28 @@
           <div class="db-fields">
             <div class="db-row-2">
               <div class="db-field">
-                <label class="db-label">🎯 Shots Made</label>
+                <label class="db-label">Shots Made</label>
                 <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
               </div>
               <div class="db-field">
-                <label class="db-label">⚪ Shots Attempted</label>
+                <label class="db-label">Shots Attempted</label>
                 <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
               </div>
             </div>
             <div class="db-field">
-              <label class="db-label">⚡ Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
+              <label class="db-label">Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
               <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
             </div>
             <div class="db-field">
-              <label class="db-label">↑ Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
+              <label class="db-label">Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
               <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
             </div>
             <div class="db-field">
-              <label class="db-label">🏃 Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
+              <label class="db-label">Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
               <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
             </div>
             <div class="db-field">
-              <label class="db-label">📝 Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
+              <label class="db-label">Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
               <textarea class="db-input" id="db-notes" rows="2" placeholder="Felt strong today, nailed catch-and-shoot…"></textarea>
             </div>
             <div class="db-error" id="db-error"></div>
@@ -870,7 +1042,10 @@
             <div class="daily-workout-title">🏀 Today's Workout</div>
             <div class="daily-workout-date" id="daily-workout-date"></div>
           </div>
-          <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="night-training-trigger" onclick="NightTraining.open()">🌙 Night Training</button>
+            <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          </div>
         </div>
         <div class="daily-workout-grid" id="daily-workout-grid"></div>
         <div class="daily-workout-totals" id="daily-workout-totals"></div>
@@ -2323,10 +2498,12 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" integrity="sha384-RRHfJ6w1mTlKUBMYT/hvnRiOzEB/vyRV3DrQOseb6oYfvaZSfdd0byS4bHps0k2R" crossorigin="anonymous"></script>
 <script src="js/orbit-controls-lite.js"></script>
 <script src="js/gsap-animations.js"></script>
+<!-- Security utilities — load first so escapeHTML is available to all scripts -->
+<script src="js/utils.js"></script>
 <script src="js/supabase-client.js"></script>
 <script src="js/data-service.js"></script>
 <script src="js/nav.js"></script>
@@ -2357,8 +2534,8 @@
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
 <!-- TF.js + COCO-SSD for AI ball detection -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" integrity="sha384-xc4sZTUOM2obsQR75Be0zGbt7Gb6mOVFJN4yBm30Xn0YQLDWIY+yrtFmLmIank6w" crossorigin="anonymous" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" integrity="sha384-7qLdgfEQyO9ZQi9ArRHigK+IBto4XPk468jAqc+fnsXaZIcMAhQeLwzggRK7aESl" crossorigin="anonymous" defer></script>
 <!-- Shot Tracking Module (Capacitor/web rewrite) -->
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="js/ai-shot-tracker.js" defer></script>
@@ -2370,7 +2547,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
   });
 }
 </script>
@@ -2620,17 +2797,95 @@ if ('serviceWorker' in navigator) {
     setStat('dribbling', dribbling);
     setStat('defense',   defense);
     setStat('gameiq',    gameiq);
+
+    // Update home panel quick stats
+    updateHomeStats(totalXP);
   }
 
   function setStat(name, pct) {
+    // Legacy linear bars
     var pctEl = document.getElementById('stat-' + name);
     var barEl = document.getElementById('stat-' + name + '-bar');
-    if (pctEl) pctEl.textContent = pct > 0 ? pct + '%' : '–';
+    if (pctEl) pctEl.textContent = pct > 0 ? pct + '%' : '\u2013';
     if (barEl) setTimeout(function() { barEl.style.width = pct + '%'; }, 150);
+
+    // Donut chart update
+    var donut = document.querySelector('.db-donut[data-skill="' + name + '"]');
+    if (donut) {
+      donut.setAttribute('data-pct', pct);
+      donut.setAttribute('aria-label', name.charAt(0).toUpperCase() + name.slice(1) + ': ' + pct + '%');
+      var label = donut.querySelector('.db-donut-label');
+      if (label) label.textContent = pct > 0 ? pct + '%' : '0%';
+      if (!_skipDonutAnim) animateDonut(donut, pct);
+    }
   }
 
+  // requestAnimationFrame donut animation
+  function animateDonut(donut, targetPct) {
+    var ring = donut.querySelector('.db-donut-ring');
+    if (!ring) return;
+    var start = null;
+    var duration = 800;
+    var from = 0;
+
+    function step(timestamp) {
+      if (!start) start = timestamp;
+      var progress = Math.min((timestamp - start) / duration, 1);
+      // Ease out cubic
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = from + (targetPct - from) * eased;
+      ring.style.setProperty('--pct', current + '%');
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function updateHomeStats(totalXP) {
+    // Sessions this week
+    var sessEl = document.getElementById('db-home-sessions');
+    if (sessEl) {
+      var countEl = document.getElementById('db-session-count');
+      var count = 0;
+      if (countEl) {
+        var match = countEl.textContent.match(/(\d+)/);
+        if (match) count = parseInt(match[1], 10);
+      }
+      sessEl.textContent = count;
+    }
+
+    // Streak
+    var streakEl = document.getElementById('db-home-streak');
+    if (streakEl) {
+      var badge = document.getElementById('db-streak-badge');
+      var streak = 0;
+      if (badge && badge.textContent) {
+        var m = badge.textContent.match(/(\d+)/);
+        if (m) streak = parseInt(m[1], 10);
+      }
+      streakEl.textContent = streak;
+    }
+
+    // XP
+    var xpEl = document.getElementById('db-home-xp');
+    if (xpEl) xpEl.textContent = totalXP || 0;
+  }
+
+  var _skipDonutAnim = true; // Skip animation during first renderSkillStats
+
   function init() {
+    _skipDonutAnim = true;
     renderSkillStats();
+    _skipDonutAnim = false;
+
+    // Stagger donut animations on initial load
+    var donuts = document.querySelectorAll('.db-donut');
+    donuts.forEach(function(d, i) {
+      var pct = parseInt(d.getAttribute('data-pct') || '0', 10);
+      setTimeout(function() { animateDonut(d, pct); }, i * 100);
+    });
+
     if (typeof XPSystem !== 'undefined' && XPSystem.render) {
       var _origRender = XPSystem.render;
       XPSystem.render = function() {
@@ -2647,6 +2902,29 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
+
+<!-- ═══════════════════════════════════════════════════════
+     NIGHT TRAINING OVERLAY
+     ═══════════════════════════════════════════════════════ -->
+<div class="nt-overlay" id="nt-overlay">
+  <div class="nt-modal">
+    <div class="nt-modal-header">
+      <div class="nt-stars" id="nt-stars"></div>
+      <div class="nt-badge">🌙 Night Session</div>
+      <div class="nt-title">Night Training</div>
+      <div class="nt-subtitle">Technical work designed for evening recovery &amp; skill refinement</div>
+      <button class="nt-close" id="nt-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="nt-body">
+      <div class="nt-grid" id="nt-grid"></div>
+      <div class="nt-footer">
+        <div class="nt-totals" id="nt-totals"></div>
+        <button class="nt-start-btn" onclick="NightTraining.close()">&#x2713; Let's Get to Work</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/night-training.js"></script>
 
 </body>
 </html>

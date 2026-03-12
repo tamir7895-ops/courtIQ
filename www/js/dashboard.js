@@ -30,12 +30,18 @@
       const name = session.user.user_metadata?.first_name || session.user.email;
       sidebarName.textContent = name;
 
-      // Render 3D mini avatar in sidebar
-      if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
+      // Render 2D Memoji-style mini avatar in sidebar
+      if (sidebarAvatar) {
         try {
           var obSidebar = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-          if (obSidebar.avatar) {
-            AvatarBridge.renderMini(sidebarAvatar, obSidebar.avatar);
+          if (obSidebar.avatar && typeof AvatarBuilder !== 'undefined') {
+            sidebarAvatar.innerHTML = '';
+            var miniC = document.createElement('canvas');
+            miniC.width = 48; miniC.height = 48;
+            miniC.style.width = '100%'; miniC.style.height = '100%';
+            miniC.style.borderRadius = '50%';
+            sidebarAvatar.appendChild(miniC);
+            AvatarBuilder.drawMini(miniC, obSidebar.avatar);
           } else {
             // No avatar data yet — show initials
             if (typeof name === 'string') {
@@ -117,6 +123,25 @@
                   primaryGoal: ob.goals ? ob.goals[0] : ''
                 }));
               }
+            }
+
+            // ── Always sync avatar from cloud → works on ALL devices ──
+            // Catches avatar customizations made on any other device
+            if (userData.avatar) {
+              try {
+                const localOb = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+                if (JSON.stringify(localOb.avatar) !== JSON.stringify(userData.avatar)) {
+                  localOb.avatar = userData.avatar;
+                  localStorage.setItem('courtiq-onboarding-data', JSON.stringify(localOb));
+                }
+              } catch (e) { /* silent */ }
+            }
+
+            // ── Always sync player profile from cloud ──
+            if (userData.player_profile) {
+              try {
+                localStorage.setItem('courtiq-player-profile', JSON.stringify(userData.player_profile));
+              } catch (e) { /* silent */ }
             }
           }
         } catch (e) { /* silently skip — user still gets localStorage version */ }
@@ -319,8 +344,13 @@
       try {
         var shopContainer = document.getElementById('shop-avatar-container');
         var obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-        if (shopContainer && typeof AvatarBridge !== 'undefined' && obData.avatar) {
-          AvatarBridge.render(shopContainer, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }), { width: 200, height: 280, interactive: true, animate: true });
+        if (shopContainer && typeof AvatarBuilder !== 'undefined' && obData.avatar) {
+          shopContainer.innerHTML = '';
+          var sc = document.createElement('canvas');
+          sc.width = 200; sc.height = 280;
+          sc.style.width = '100%'; sc.style.height = '100%';
+          shopContainer.appendChild(sc);
+          AvatarBuilder.draw(sc, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }));
         }
       } catch (e) {}
     }

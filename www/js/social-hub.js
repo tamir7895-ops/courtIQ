@@ -12,8 +12,8 @@
   var LS_ACTIVE_CHALLENGE = 'courtiq-active-challenge';
   var currentTheme = 'dark';
 
-  /* Mirrors gamification.js LEVELS */
-  var LEVELS = [
+  // Single source of truth lives in utils.js (COURTIQ_LEVELS).
+  var LEVELS = window.COURTIQ_LEVELS || [
     { name: 'Rookie',   icon: '🏀', threshold: 0    },
     { name: 'Hooper',   icon: '⚡', threshold: 200  },
     { name: 'All-Star', icon: '⭐', threshold: 600  },

@@ -55,8 +55,13 @@ Output updated weekly schedule in the same JSON format as the original program.`
       return;
     }
     coachLoading = true;
-    const player    = document.getElementById('db-player')?.value||'Athlete';
-    const position  = document.getElementById('db-position')?.value||'Point Guard';
+    // Sanitize inputs before embedding in AI prompt (SEC-10: prevent prompt injection)
+    const _sp = typeof sanitizePromptStr === 'function' ? sanitizePromptStr
+      : function(s,n){return String(s||'').replace(/[\x00-\x1F\x7F]/g,' ').replace(/\s+/g,' ').trim().slice(0,n||200);};
+    const _VALID_POS = ['Point Guard','Shooting Guard','Small Forward','Power Forward','Center'];
+    const player    = _sp(document.getElementById('db-player')?.value||'Athlete', 60);
+    const _posRaw   = _sp(document.getElementById('db-position')?.value||'Point Guard', 30);
+    const position  = _VALID_POS.includes(_posRaw) ? _posRaw : 'Point Guard';
     const equipment = coachGetEquipment();
     const weekNum   = dbWeeks.length+1;
     const btn = document.getElementById('coach-gen-btn');
