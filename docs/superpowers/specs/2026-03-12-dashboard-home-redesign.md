@@ -108,7 +108,7 @@ Structure per donut:
 - Percentages computed in `dashboard.js` (lines 2613-2622):
   - `shooting = Math.min(97, base + shotEv * 12 + trainEv * 2)`
   - `dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3)`
-  - `defense = Math.min(97, base + challengeEv * 5 + trainEv * 3)`
+  - `defense = Math.min(97, base + challengeEv * 6 + trainEv * 2)`
   - `gameiq = Math.min(97, base + trainEv * 3 + challengeEv * 2)`
 - Existing `setStat(name, pct)` function will be extended to also update donut `--pct`
 
@@ -162,7 +162,7 @@ New flow:
 ### Sidebar Modifications
 - Add "Home" item at top of sidebar (house icon), above the "Training" group
 - Home item click: switch to home panel + hide sidebar
-- CSS class `.db-home-active` on `.db-layout`:
+- CSS class `.db-home-active` on `.db-layout-root`:
   - Hides `.db-sidebar` via `display: none`
   - `.db-main` expands to full width (remove `margin-left`)
 - **Mobile:** Home item appears in the sidebar overlay drawer (same as other items). No separate bottom nav needed — the home screen IS the primary mobile landing.
