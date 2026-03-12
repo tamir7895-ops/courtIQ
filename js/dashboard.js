@@ -15,7 +15,17 @@
      AUTH GUARD — redirect if not logged in
   ══════════════════════════════════════════════════════════════ */
   (async function authGuard() {
-    const { data: { session } } = await sb.auth.getSession();
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (e) {
+      console.warn('Session load failed, clearing stale auth:', e);
+      await sb.auth.signOut();
+      window.location.href = 'index.html';
+      return;
+    }
     if (!session) {
       window.location.href = 'index.html';
       return;
