@@ -218,7 +218,16 @@
 
   // On landing page: check if already logged in, update nav
   (async function checkExistingSession() {
-    const { data: { session } } = await sb.auth.getSession();
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (e) {
+      console.warn('Stale session cleared:', e);
+      await sb.auth.signOut();
+      return;
+    }
     if (session) {
       // Update nav buttons if on landing page
       const navBtns = document.querySelector('.nav-buttons');
