@@ -29,7 +29,11 @@ Restructure the CourtIQ dashboard from a sidebar-first layout to a **home-screen
 - **Sessions This Week** — calendar icon + count
 - **Day Streak** — fire/lightning icon + count
 - **Total XP** — star icon + number
-- Reuses existing stat data from `dashboard.js`
+- **Data sources** (existing in `dashboard.js` lines 2590-2650):
+  - Sessions: `sessionCount` variable, computed from Supabase `training_sessions` table
+  - Streak: `currentStreak` variable, computed from consecutive daily sessions
+  - XP: `totalXP` from `gamification.js` → `GamificationEngine.state.xp`
+- **Empty state** (new user, no data): show "0" for all values, not hidden
 
 #### 1.3 Skill Donut Charts
 - 4 donut charts in a horizontal row (flex, wraps on mobile)
@@ -46,7 +50,8 @@ Restructure the CourtIQ dashboard from a sidebar-first layout to a **home-screen
   5. **AI Coach** — "Get personalized tips" → `data-tab="coach"`
   6. **Pro Moves** — "Learn new techniques" → `data-tab="moves"`
 - Each card: icon (SVG/emoji) + title + subtitle + arrow indicator
-- Glass morphism background, hover: amber border glow + translateY(-2px)
+- Glass morphism: `background: rgba(255,255,255,0.035)`, `backdrop-filter: blur(12px)`, `border: 1px solid rgba(255,255,255,0.07)`
+- Hover: `border-color: rgba(245,166,35,0.28)`, `background: rgba(245,166,35,0.08)`, `translateY(-2px)`
 - Click handler: switch to target tab + show sidebar
 
 ---
@@ -92,9 +97,20 @@ Structure per donut:
 - Game IQ: `#f472b6 → #ec4899` (pink)
 
 ### Animation
-- On load: `--pct` transitions from `0%` to actual value
-- Duration: 0.8s with cubic-bezier easing (matches existing bar animation)
-- Staggered: 100ms delay between each donut
+- **Mechanism:** JS `requestAnimationFrame` loop increments `--pct` from 0 to target value
+  - `conic-gradient` does not support CSS transitions, so JS animation is required
+  - Use `requestAnimationFrame` with eased interpolation (cubic-bezier approximation)
+- Duration: 0.8s total per donut
+- Staggered: 100ms delay between each donut start
+- **Empty state:** Show 0% ring (fully gray) with icon still visible
+
+### Data Sources
+- Percentages computed in `dashboard.js` (lines 2613-2622):
+  - `shooting = Math.min(97, base + shotEv * 12 + trainEv * 2)`
+  - `dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3)`
+  - `defense = Math.min(97, base + challengeEv * 5 + trainEv * 3)`
+  - `gameiq = Math.min(97, base + trainEv * 3 + challengeEv * 2)`
+- Existing `setStat(name, pct)` function will be extended to also update donut `--pct`
 
 ### Sizing
 - Desktop: 80px diameter
@@ -113,7 +129,7 @@ Structure per donut:
 
 ### Content
 - Avatar: 28px circle (reuses existing mini avatar system)
-- Player name: 12px, truncated if long
+- Player name: 12px, `max-width: 100px`, `overflow: hidden`, `text-overflow: ellipsis`, `white-space: nowrap`
 - Level badge: pill with rank name (Rookie/Hooper/All-Star/MVP), styled with amber accent
 
 ### Interaction
@@ -144,15 +160,20 @@ New flow:
 ```
 
 ### Sidebar Modifications
-- Add "Home" item at top of sidebar (house icon)
+- Add "Home" item at top of sidebar (house icon), above the "Training" group
 - Home item click: switch to home panel + hide sidebar
-- CSS class `.db-home-active` on `<body>` or `.db-layout`:
-  - Hides sidebar
-  - Main content expands to full width
+- CSS class `.db-home-active` on `.db-layout`:
+  - Hides `.db-sidebar` via `display: none`
+  - `.db-main` expands to full width (remove `margin-left`)
+- **Mobile:** Home item appears in the sidebar overlay drawer (same as other items). No separate bottom nav needed — the home screen IS the primary mobile landing.
 
 ### Breadcrumb
-- Home panel: hide breadcrumb (not needed)
+- Home panel: hide breadcrumb element (`display: none`) — the `switchTab` function must special-case `"home"` to hide the breadcrumb container
 - Feature panels: show breadcrumb as today ("Dashboard / Drills")
+- Add `"home": "Home"` to the `breadcrumbNames` map (even though it's hidden, for consistency)
+
+### Tabs Not on Home Screen
+- Tabs `log`, `history`, `calendar`, `notifications`, `archetype`, `shop`, `social` are intentionally NOT on the home nav cards — they are accessible only via the sidebar on feature pages. The home screen highlights the 6 most-used features.
 
 ---
 
@@ -167,9 +188,21 @@ New flow:
 
 No new files needed.
 
+### CSS Organization Rule
+- `dashboard-redesign.css`: all new component styles (home panel, nav cards, donuts, profile widget)
+- `main.css`: only layout-level changes (`.db-home-active` sidebar toggle, topbar flex adjustment)
+
 ---
 
-## 6. Responsive Behavior
+## 6. Accessibility
+
+- Donut charts: each `.db-donut` gets `role="img"` and `aria-label="Shooting: 57%"`
+- Nav cards: use `<button>` elements (not `<div>`) with descriptive text
+- Profile widget: `<button>` with `aria-label="Open profile"`
+
+---
+
+## 7. Responsive Behavior
 
 ### Desktop (>1024px)
 - Home: full-width content, no sidebar
@@ -186,7 +219,7 @@ No new files needed.
 - Home: full-width, nav cards single column
 - Donuts: 2x2 grid
 - Profile widget: avatar only (hide name on very small screens)
-- Quick stats: stack or scroll horizontal
+- Quick stats: horizontal scroll (`overflow-x: auto`, `flex-wrap: nowrap`)
 
 ### Ultra-small (<=400px)
 - Nav cards: single column
