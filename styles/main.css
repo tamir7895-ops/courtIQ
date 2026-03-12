@@ -3925,3 +3925,12 @@
 .db-layout-root.db-home-active .db-skill-stats,
 .db-layout-root.db-home-active .db-context-row,
 .db-layout-root.db-home-active .db-breadcrumb { display: none !important; }
+
+/* Hide shared home-screen widgets on ALL feature panels —
+   db-panel-home has its own versions of these elements */
+.db-main-inner > .db-welcome-hero,
+.db-main-inner > .db-stats-row,
+.db-main-inner > .db-quick-grid,
+.db-main-inner > .db-skills-circle-grid,
+.db-main-inner > .db-top-widgets,
+.db-main-inner > .dc-card { display: none !important; }
