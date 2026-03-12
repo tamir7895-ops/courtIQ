@@ -53,6 +53,53 @@
         const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
         sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
       }
+
+      // Populate topbar profile widget
+      var pwName = document.getElementById('db-pw-name');
+      var pwAvatar = document.getElementById('db-pw-avatar');
+      var pwBadge = document.getElementById('db-pw-badge');
+      var homeGreeting = document.getElementById('db-home-greeting');
+
+      var obData = {};
+      try { obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+
+      if (pwName) {
+        pwName.textContent = name || 'Player';
+      }
+      if (pwAvatar) {
+        if (typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          try { AvatarBridge.renderMini(pwAvatar, obData.avatar); } catch(e) {
+            var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+            pwAvatar.textContent = initials;
+          }
+        } else {
+          var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          pwAvatar.textContent = initials;
+        }
+      }
+      if (pwBadge && typeof GamificationEngine !== 'undefined') {
+        var ge = GamificationEngine.state || {};
+        pwBadge.textContent = ge.rank || 'Rookie';
+      }
+      if (homeGreeting) {
+        var firstName = (name || 'Player').split(' ')[0];
+        // Build greeting safely using textContent + DOM
+        homeGreeting.textContent = '';
+        homeGreeting.appendChild(document.createTextNode('Hey, '));
+        var strong = document.createElement('strong');
+        strong.textContent = firstName;
+        homeGreeting.appendChild(strong);
+        homeGreeting.appendChild(document.createTextNode('!'));
+      }
+
+      // Set home date pill
+      var datePill = document.getElementById('db-home-date');
+      if (datePill) {
+        var d = new Date();
+        var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        datePill.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
+      }
     }
 
     // Also update old nav elements (backwards compat)
@@ -334,8 +381,19 @@
     const panel = document.getElementById('db-panel-' + id);
     if (panel) panel.classList.add('active');
 
+    // Toggle home-active state: hide sidebar on home, show on others
+    var layoutRoot = document.querySelector('.db-layout-root');
+    if (layoutRoot) {
+      if (id === 'home') {
+        layoutRoot.classList.add('db-home-active');
+      } else {
+        layoutRoot.classList.remove('db-home-active');
+      }
+    }
+
     // Update breadcrumb
     var breadcrumbNames = {
+      home: 'Home', summary: 'Weekly Summary', shots: 'Shot Tracker', coach: 'AI Coach',
       log: 'Log Session', history: 'History', calendar: 'Calendar',
       drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
@@ -343,6 +401,13 @@
     };
     var bcEl = document.getElementById('db-breadcrumb-current');
     if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
+
+    // Hide breadcrumb on home panel
+    var topbar = document.getElementById('db-topbar');
+    if (topbar) {
+      var bc = topbar.querySelector('.db-breadcrumb');
+      if (bc) bc.style.display = (id === 'home') ? 'none' : '';
+    }
 
     // GSAP tab animation (graceful fallback)
     if (panel && window.CourtIQAnimations && CourtIQAnimations.tabIn) {
@@ -1178,6 +1243,11 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
         overlay.classList.remove('visible');
       });
     }
+  })();
+
+  // Default to home panel on page load
+  (function() {
+    dbSwitchTab('home', null);
   })();
 
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
