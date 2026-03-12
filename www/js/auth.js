@@ -107,16 +107,24 @@
     const btn = document.querySelector('#pane-signin .auth-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Signing in\u2026'; }
 
-    const { error } = await sb.auth.signInWithPassword({ email, password: pass });
+    try {
+      const result = await Promise.race([
+        sb.auth.signInWithPassword({ email, password: pass }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please check your internet connection and try again.')), 15000))
+      ]);
 
-    if (error) {
-      showAuthError(error.message);
+      if (result.error) {
+        showAuthError(result.error.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
+        return;
+      }
+
+      showAuthSuccess('signin', email);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    } catch (err) {
+      showAuthError(err.message || 'Sign in failed. Please try again.');
       if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
-      return;
     }
-
-    showAuthSuccess('signin', email);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
   }
 
   async function submitSignUp() {
@@ -137,22 +145,30 @@
     const btn = document.getElementById('su-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating account\u2026'; }
 
-    const { error } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: { first_name: first, position: position }
+    try {
+      const result = await Promise.race([
+        sb.auth.signUp({
+          email,
+          password: pass,
+          options: {
+            data: { first_name: first, position: position }
+          }
+        }),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Connection timed out. Please check your internet connection and try again.')), 15000))
+      ]);
+
+      if (result.error) {
+        showAuthError(result.error.message);
+        if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+        return;
       }
-    });
 
-    if (error) {
-      showAuthError(error.message);
+      showAuthSuccess('signup', first);
+      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    } catch (err) {
+      showAuthError(err.message || 'Sign up failed. Please try again.');
       if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
-      return;
     }
-
-    showAuthSuccess('signup', first);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
   }
 
   async function signOut() {
