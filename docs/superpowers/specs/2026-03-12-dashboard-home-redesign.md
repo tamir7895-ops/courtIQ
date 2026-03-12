@@ -109,7 +109,7 @@ Structure per donut:
   - `shooting = Math.min(97, base + shotEv * 12 + trainEv * 2)`
   - `dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3)`
   - `defense = Math.min(97, base + challengeEv * 6 + trainEv * 2)`
-  - `gameiq = Math.min(97, base + trainEv * 3 + challengeEv * 2)`
+  - `gameiq = XPSystem.getProgress(totalXP)` (primary), fallback: `Math.min(95, base + trainEv * 3)`
 - Existing `setStat(name, pct)` function will be extended to also update donut `--pct`
 
 ### Sizing

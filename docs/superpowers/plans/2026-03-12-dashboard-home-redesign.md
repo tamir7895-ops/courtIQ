@@ -883,7 +883,7 @@ Replace the entire inline script block (lines 2597-2648) with:
       donut.setAttribute('aria-label', name.charAt(0).toUpperCase() + name.slice(1) + ': ' + pct + '%');
       var label = donut.querySelector('.db-donut-label');
       if (label) label.textContent = pct > 0 ? pct + '%' : '0%';
-      animateDonut(donut, pct);
+      if (!_skipDonutAnim) animateDonut(donut, pct);
     }
   }
 
@@ -939,8 +939,12 @@ Replace the entire inline script block (lines 2597-2648) with:
     if (xpEl) xpEl.textContent = totalXP || 0;
   }
 
+  var _skipDonutAnim = true; // Skip animation during first renderSkillStats
+
   function init() {
+    _skipDonutAnim = true;
     renderSkillStats();
+    _skipDonutAnim = false;
 
     // Stagger donut animations on initial load
     var donuts = document.querySelectorAll('.db-donut');
