@@ -67,7 +67,7 @@
   <div class="container">
     <div class="nav-inner">
       <!-- Logo -->
-      <a href="/" class="nav-logo" aria-label="CourtIQ - Home">
+      <a href="index.html" class="nav-logo" aria-label="CourtIQ - Home">
         <img src="assets/logo-icon.svg" alt="" class="nav-logo-icon" aria-hidden="true" width="36" height="36">
         Court<span>IQ</span>
       </a>
@@ -1490,7 +1490,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
   });
 }
 </script>

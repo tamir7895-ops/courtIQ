@@ -1,61 +1,64 @@
 /* ============================================================
    SERVICE WORKER — CourtIQ PWA
    Cache-first for static assets, network-first for API calls.
+
+   IMPORTANT: All paths are relative (no leading /) so this works
+   on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v6';  // bumped: force cache clear after site recovery
+const CACHE_NAME = 'courtiq-v7';  // bumped: fix paths for GitHub Pages
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/dashboard.html',
+  './',
+  './index.html',
+  './dashboard.html',
   // Styles
-  '/styles/main.css',
-  '/styles/animations.css',
-  '/styles/components.css',
-  '/styles/drills.css',
-  '/styles/workouts.css',
-  '/styles/shot-tracker.css',
-  '/styles/charts.css',
-  '/styles/move-library.css',
-  '/styles/profile.css',
-  '/styles/daily-workout.css',
-  '/styles/gamification.css',
-  '/styles/dashboard-redesign.css',
-  '/styles/onboarding.css',
-  '/styles/archetype.css',
-  '/styles/social.css',
-  '/styles/shop.css',
-  '/styles/challenge.css',
+  './styles/main.css',
+  './styles/animations.css',
+  './styles/components.css',
+  './styles/drills.css',
+  './styles/workouts.css',
+  './styles/shot-tracker.css',
+  './styles/charts.css',
+  './styles/move-library.css',
+  './styles/profile.css',
+  './styles/daily-workout.css',
+  './styles/gamification.css',
+  './styles/dashboard-redesign.css',
+  './styles/onboarding.css',
+  './styles/archetype.css',
+  './styles/social.css',
+  './styles/shop.css',
+  './styles/challenge.css',
   // Core JS
-  '/js/utils.js',
-  '/js/auth.js',
-  '/js/nav.js',
-  '/js/supabase-client.js',
-  '/js/data-service.js',
-  '/js/animations.js',
-  '/js/sidebar.js',
-  '/js/sound-effects.js',
+  './js/utils.js',
+  './js/auth.js',
+  './js/nav.js',
+  './js/supabase-client.js',
+  './js/data-service.js',
+  './js/animations.js',
+  './js/sidebar.js',
+  './js/sound-effects.js',
   // Dashboard JS
-  '/js/dashboard.js',
-  '/js/feature-modals.js',
-  '/js/feature-tabs.js',
-  '/js/pricing.js',
-  '/js/onboarding.js',
-  '/js/streak.js',
-  '/js/daily-challenge.js',
+  './js/dashboard.js',
+  './js/feature-modals.js',
+  './js/feature-tabs.js',
+  './js/pricing.js',
+  './js/onboarding.js',
+  './js/streak.js',
+  './js/daily-challenge.js',
   // Feature JS
-  '/js/drill-engine.js',
-  '/js/drill-animations.js',
-  '/js/shot-tracker.js',
-  '/js/progress-charts.js',
-  '/js/move-library.js',
-  '/js/move-animations.js',
-  '/js/player-profile.js',
-  '/js/daily-workout.js',
-  '/js/gamification.js',
-  '/js/archetype-engine.js',
-  '/js/social-hub.js',
-  '/js/ai-coach.js',
-  '/manifest.json'
+  './js/drill-engine.js',
+  './js/drill-animations.js',
+  './js/shot-tracker.js',
+  './js/progress-charts.js',
+  './js/move-library.js',
+  './js/move-animations.js',
+  './js/player-profile.js',
+  './js/daily-workout.js',
+  './js/gamification.js',
+  './js/archetype-engine.js',
+  './js/social-hub.js',
+  './js/ai-coach.js',
+  './manifest.json'
 ];
 
 /* ── Install: cache static shell ─────────────────────────── */
@@ -88,7 +91,6 @@ self.addEventListener('fetch', function (event) {
   var url = event.request.url;
 
   // DEVELOPMENT: always go to network for localhost — never cache local files
-  // This ensures edited files load immediately without stale SW caching.
   if (url.includes('127.0.0.1') || url.includes('localhost')) {
     event.respondWith(fetch(event.request));
     return;
