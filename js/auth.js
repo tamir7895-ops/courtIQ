@@ -161,14 +161,26 @@
     const btn = document.getElementById('su-submit');
     if (btn) { btn.disabled = true; btn.textContent = 'Creating account\u2026'; }
 
-    const { data: signUpData, error } = await sb.auth.signUp({
-      email,
-      password: pass,
-      options: {
-        data: { first_name: first, position: position }
-      }
-    });
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      return;
+    }
 
+    const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('Request timed out. Please try again.')), 10000));
+    let result;
+    try {
+      result = await Promise.race([
+        sb.auth.signUp({ email, password: pass, options: { data: { first_name: first, position: position } } }),
+        timeout
+      ]);
+    } catch (e) {
+      showAuthError(e.message);
+      if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
+      return;
+    }
+
+    const { data: signUpData, error } = result;
     if (error) {
       showAuthError(error.message);
       if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
