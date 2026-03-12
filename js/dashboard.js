@@ -271,8 +271,19 @@
     const panel = document.getElementById('db-panel-' + id);
     if (panel) panel.classList.add('active');
 
+    // Toggle home-active state: hide sidebar on home, show on others
+    var layoutRoot = document.querySelector('.db-layout-root');
+    if (layoutRoot) {
+      if (id === 'home') {
+        layoutRoot.classList.add('db-home-active');
+      } else {
+        layoutRoot.classList.remove('db-home-active');
+      }
+    }
+
     // Update breadcrumb
     var breadcrumbNames = {
+      home: 'Home', summary: 'Weekly Summary', shots: 'Shot Tracker', coach: 'AI Coach',
       log: 'Log Session', history: 'History', calendar: 'Calendar',
       drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
@@ -280,6 +291,13 @@
     };
     var bcEl = document.getElementById('db-breadcrumb-current');
     if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
+
+    // Hide breadcrumb on home panel
+    var topbar = document.getElementById('db-topbar');
+    if (topbar) {
+      var bc = topbar.querySelector('.db-breadcrumb');
+      if (bc) bc.style.display = (id === 'home') ? 'none' : '';
+    }
 
     // GSAP tab animation (graceful fallback)
     if (panel && window.CourtIQAnimations && CourtIQAnimations.tabIn) {
