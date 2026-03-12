@@ -69,7 +69,7 @@
   transform: translateY(-1px);
 }
 
-.db-profile-mini__avatar {
+.db-profile-mini-avatar {
   width: 28px;
   height: 28px;
   border-radius: 50%;
@@ -85,7 +85,7 @@
   flex-shrink: 0;
 }
 
-.db-profile-mini__name {
+.db-profile-mini-name {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: 12px;
   font-weight: 600;
@@ -96,7 +96,7 @@
   text-overflow: ellipsis;
 }
 
-.db-profile-mini__badge {
+.db-profile-mini-level {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -156,7 +156,7 @@
   animation: dbCourtArcDraw 1.5s ease-out 0.3s both;
 }
 
-.db-welcome-hero__greeting {
+.db-welcome-title {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
   font-size: 32px;
   font-weight: 800;
@@ -166,11 +166,11 @@
   margin-bottom: 6px;
 }
 
-.db-welcome-hero__greeting span {
+.db-welcome-title span {
   color: var(--c-amber, #f5a623);
 }
 
-.db-welcome-hero__subtitle {
+.db-welcome-sub {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: 14px;
   color: var(--c-muted, rgba(240, 237, 230, 0.45));
@@ -243,24 +243,42 @@
   opacity: 1;
 }
 
-.db-quick-card__icon {
-  width: 36px;
-  height: 36px;
+.db-quick-card-icon {
+  width: 40px;
+  height: 40px;
   margin-bottom: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(245, 166, 35, 0.1);
+  background: rgba(245, 166, 35, 0.12);
   border-radius: 10px;
   flex-shrink: 0;
 }
 
-.db-quick-card__icon .db-icon {
-  width: 22px;
-  height: 22px;
+/* Quick-card SVG icons via data-icon */
+.db-quick-card-icon[data-icon]::before {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 24px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.db-quick-card-icon[data-icon="drills"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='12' y1='2' x2='12' y2='6'/%3E%3Cline x1='12' y1='18' x2='12' y2='22'/%3E%3Cline x1='2' y1='12' x2='6' y2='12'/%3E%3Cline x1='18' y1='12' x2='22' y2='12'/%3E%3C/svg%3E");
+}
+.db-quick-card-icon[data-icon="workouts"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 3c0 0-2.5 3-2.5 6s2.5 3 2.5 6 2.5 6 2.5 6'/%3E%3Cpath d='M12 3c0 0 2.5 3 2.5 6s-2.5 3-2.5 6-2.5 6-2.5 6'/%3E%3C/svg%3E");
+}
+.db-quick-card-icon[data-icon="shots"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3Cline x1='12' y1='2' x2='12' y2='5'/%3E%3Cline x1='12' y1='19' x2='12' y2='22'/%3E%3Cline x1='2' y1='12' x2='5' y2='12'/%3E%3Cline x1='19' y1='12' x2='22' y2='12'/%3E%3C/svg%3E");
+}
+.db-quick-card-icon[data-icon="summary"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='3' width='7' height='9' rx='1'/%3E%3Crect x='14' y='3' width='7' height='5' rx='1'/%3E%3Crect x='14' y='12' width='7' height='9' rx='1'/%3E%3Crect x='3' y='16' width='7' height='5' rx='1'/%3E%3C/svg%3E");
 }
 
-.db-quick-card__label {
+.db-quick-card-label {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
   font-size: 15px;
   font-weight: 700;
@@ -270,7 +288,7 @@
   margin-bottom: 3px;
 }
 
-.db-quick-card__desc {
+.db-quick-card-desc {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: 11px;
   color: var(--c-muted, rgba(240, 237, 230, 0.45));
@@ -378,6 +396,7 @@
   align-items: center;
   gap: 8px;
   padding: 16px 8px;
+  position: relative;
   background: var(--glass-bg, rgba(22, 25, 33, 0.7));
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
   border-radius: 14px;
@@ -389,56 +408,43 @@
   transform: translateY(-2px);
 }
 
-/* The circular SVG container */
-.db-skill-circle__ring {
-  position: relative;
-  width: 56px;
-  height: 56px;
-}
-
-.db-skill-circle__ring svg {
-  width: 56px;
-  height: 56px;
+/* The SVG ring */
+.db-skill-svg {
+  width: 80px;
+  height: 80px;
   transform: rotate(-90deg);
 }
 
-.db-skill-circle__ring svg circle {
+.db-skill-track {
   fill: none;
-  stroke-width: 4;
-  stroke-linecap: round;
-}
-
-.db-skill-circle__ring svg .ring-bg {
   stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 5;
 }
 
-.db-skill-circle__ring svg .ring-fill {
-  stroke-dasharray: 151; /* 2 * PI * 24 (r=24) */
-  stroke-dashoffset: 151;
+.db-skill-progress {
+  fill: none;
+  stroke-width: 5;
+  stroke-linecap: round;
   transition: stroke-dashoffset 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-/* Color variants for each skill */
-.db-skill-circle--shooting .ring-fill  { stroke: #f5a623; }
-.db-skill-circle--dribbling .ring-fill { stroke: #3ecf8e; }
-.db-skill-circle--defense .ring-fill   { stroke: #a78bfa; }
-.db-skill-circle--gameiq .ring-fill    { stroke: #f472b6; }
+/* Color variants for each skill — r=34 so circumference = 213.6 */
+.db-skill-progress--shooting  { stroke: #f5a623; }
+.db-skill-progress--dribbling { stroke: #3ecf8e; }
+.db-skill-progress--defense   { stroke: #a78bfa; }
+.db-skill-progress--gameiq    { stroke: #f472b6; }
 
-/* Percentage label centered inside ring */
-.db-skill-circle__pct {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+/* Percentage label below ring */
+.db-skill-circle-pct {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 14px;
+  font-size: 18px;
   font-weight: 800;
   color: var(--c-white, #f0ede6);
 }
 
-.db-skill-circle__label {
+.db-skill-circle-name {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -462,14 +468,13 @@
 
 .db-stat-card {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  padding: 16px 12px;
+  gap: 12px;
+  padding: 16px 14px;
   background: var(--glass-bg, rgba(22, 25, 33, 0.7));
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
-  text-align: center;
   transition: border-color 0.2s, transform 0.2s;
 }
 
@@ -478,16 +483,51 @@
   transform: translateY(-2px);
 }
 
-.db-stat-card__value {
+.db-stat-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(245, 166, 35, 0.1);
+  border-radius: 10px;
+}
+
+.db-stat-icon[data-icon]::before {
+  content: '';
+  display: block;
+  width: 20px;
+  height: 20px;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.db-stat-icon[data-icon="sessions"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='18' rx='2'/%3E%3Cline x1='16' y1='2' x2='16' y2='6'/%3E%3Cline x1='8' y1='2' x2='8' y2='6'/%3E%3Cline x1='3' y1='10' x2='21' y2='10'/%3E%3C/svg%3E");
+}
+.db-stat-icon[data-icon="streak"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M13 2L3 14h9l-1 8 10-12h-9l1-8z'/%3E%3C/svg%3E");
+}
+.db-stat-icon[data-icon="xp"]::before {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23f5a623' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolygon points='12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'/%3E%3C/svg%3E");
+}
+
+.db-stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.db-stat-value {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
-  font-size: 26px;
+  font-size: 22px;
   font-weight: 800;
   color: var(--c-amber, #f5a623);
   line-height: 1;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
-.db-stat-card__label {
+.db-stat-label {
   font-family: var(--font-display, 'Barlow Condensed', sans-serif);
   font-size: 10px;
   font-weight: 600;
@@ -496,7 +536,7 @@
   color: var(--c-muted, rgba(240, 237, 230, 0.45));
 }
 
-.db-stat-card__sub {
+.db-stat-sub {
   font-family: var(--font-body, 'Barlow', sans-serif);
   font-size: 10px;
   color: rgba(240, 237, 230, 0.3);
@@ -873,7 +913,7 @@
 }
 
 /* Skill circle fill animation — triggered by JS adding .is-visible */
-.db-skill-circle.is-visible .ring-fill {
+.db-skill-circle.is-visible .db-skill-progress {
   transition: stroke-dashoffset 1.2s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s;
 }
 
@@ -912,7 +952,7 @@
     padding: 4px 10px 4px 4px;
   }
 
-  .db-profile-mini__name {
+  .db-profile-mini-name {
     max-width: 70px;
     font-size: 11px;
   }
@@ -922,11 +962,11 @@
     padding: 28px 20px 24px;
   }
 
-  .db-welcome-hero__greeting {
+  .db-welcome-title {
     font-size: 24px;
   }
 
-  .db-welcome-hero__subtitle {
+  .db-welcome-sub {
     font-size: 12px;
   }
 
@@ -947,7 +987,7 @@
     padding: 14px;
   }
 
-  .db-quick-card__label {
+  .db-quick-card-label {
     font-size: 13px;
   }
 
@@ -969,12 +1009,12 @@
     padding: 12px 16px;
   }
 
-  .db-stat-card__value {
+  .db-stat-value {
     font-size: 22px;
     margin-bottom: 0;
   }
 
-  .db-stat-card__label {
+  .db-stat-label {
     order: -1;
   }
 
@@ -998,7 +1038,7 @@
 @media (max-width: 400px) {
 
   /* Profile mini: hide name, show only avatar + badge */
-  .db-profile-mini__name {
+  .db-profile-mini-name {
     display: none;
   }
 
@@ -1008,7 +1048,7 @@
     margin-bottom: 14px;
   }
 
-  .db-welcome-hero__greeting {
+  .db-welcome-title {
     font-size: 20px;
   }
 
@@ -1029,7 +1069,7 @@
     gap: 14px;
   }
 
-  .db-quick-card__icon {
+  .db-quick-card-icon {
     margin-bottom: 0;
   }
 
@@ -1043,18 +1083,13 @@
     padding: 12px 6px;
   }
 
-  .db-skill-circle__ring {
-    width: 44px;
-    height: 44px;
+  .db-skill-svg {
+    width: 60px;
+    height: 60px;
   }
 
-  .db-skill-circle__ring svg {
-    width: 44px;
-    height: 44px;
-  }
-
-  .db-skill-circle__pct {
-    font-size: 11px;
+  .db-skill-circle-pct {
+    font-size: 14px;
   }
 
   /* Stats row single column */
