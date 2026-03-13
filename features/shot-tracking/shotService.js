@@ -148,11 +148,87 @@
     }
   }
 
+  /* ── Fetch sessions ─────────────────────────────────────────── */
+  async function fetchSessions(userId, limit) {
+    var client = getClient();
+    limit = limit || 20;
+    var res = await client
+      .from('ai_shot_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('session_date', { ascending: false })
+      .limit(limit);
+    if (res.error) { console.error('Failed to fetch sessions:', res.error); return []; }
+    return res.data || [];
+  }
+
+  /* ── Fetch shots for a session ──────────────────────────────── */
+  async function fetchSessionShots(sessionId) {
+    var client = getClient();
+    var res = await client
+      .from('ai_shots')
+      .select('*')
+      .eq('session_id', sessionId)
+      .order('shot_number', { ascending: true });
+    if (res.error) { console.error('Failed to fetch shots:', res.error); return []; }
+    return res.data || [];
+  }
+
+  /* ── Fetch zone history ─────────────────────────────────────── */
+  async function fetchZoneHistory(userId, period) {
+    var client = getClient();
+    period = period || 'week';
+    var query = client.from('ai_shots').select('shot_zone, shot_result').eq('user_id', userId);
+    if (period !== 'all') {
+      var cutoff = new Date();
+      if (period === 'week') cutoff.setDate(cutoff.getDate() - 7);
+      else if (period === 'month') cutoff.setDate(cutoff.getDate() - 30);
+      query = query.gte('timestamp', cutoff.toISOString());
+    }
+    var res = await query;
+    if (res.error) { console.error('Failed to fetch zone history:', res.error); return null; }
+    var zones = {
+      paint:      { made: 0, total: 0, pct: 0 },
+      midrange:   { made: 0, total: 0, pct: 0 },
+      threePoint: { made: 0, total: 0, pct: 0 },
+      freeThrow:  { made: 0, total: 0, pct: 0 }
+    };
+    (res.data || []).forEach(function (shot) {
+      var zone = shot.shot_zone || 'midrange';
+      if (!zones[zone]) return;
+      zones[zone].total++;
+      if (shot.shot_result === 'made') zones[zone].made++;
+    });
+    Object.keys(zones).forEach(function (z) {
+      zones[z].pct = zones[z].total > 0
+        ? Math.round((zones[z].made / zones[z].total) * 1000) / 10
+        : 0;
+    });
+    return zones;
+  }
+
+  /* ── Delete session + its shots ─────────────────────────────── */
+  async function deleteSession(sessionId) {
+    var client = getClient();
+    try {
+      await client.from('ai_shots').delete().eq('session_id', sessionId);
+      await client.from('ai_shot_sessions').delete().eq('id', sessionId);
+      return true;
+    } catch (err) {
+      console.error('Failed to delete session:', err);
+      return false;
+    }
+  }
+
   /* ── Expose globally ────────────────────────────────────────── */
   window.ShotService = {
-    saveSession: saveSession,
-    saveShots:   saveShots,
-    grantXP:     grantXP
+    saveSession:       saveSession,
+    saveShots:         saveShots,
+    grantXP:           grantXP,
+    fetchSessions:     fetchSessions,
+    fetchSessionShots: fetchSessionShots,
+    fetchZoneHistory:  fetchZoneHistory,
+    deleteSession:     deleteSession
   };
 
 })();
