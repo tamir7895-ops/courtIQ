@@ -323,6 +323,10 @@
     _maxRetries: 3,
     _colorOnlyMode: false,
     _mlMissCount: 0,
+    _frameCount: 0,
+    _detectorType: 'none',   // 'mediapipe' | 'none'
+    _procW: 0,
+    _procH: 0,
 
     init: function () {
       var self = this;
@@ -330,6 +334,8 @@
       self._mlFailed = false;
       self._colorOnlyMode = false;
       self._mlMissCount = 0;
+      self._frameCount = 0;
+      self._detectorType = 'none';
 
       // Create internal canvas for color detection
       if (!self._canvas) {
@@ -349,56 +355,42 @@
     _tryLoadModel: function (resolve) {
       var self = this;
 
-      if (typeof tf === 'undefined' || typeof cocoSsd === 'undefined') {
-        console.warn('TF.js or COCO-SSD not available — using color-only detection');
+      /* Guard: MediaPipe globals must be available from vision_bundle.mjs CDN */
+      if (typeof FilesetResolver === 'undefined' || typeof ObjectDetector === 'undefined') {
+        console.warn('[ShotDetection] MediaPipe not available — color-only mode');
         self._colorOnlyMode = true;
+        self._detectorType = 'none';
         self._setStatus('color-only');
-        resolve(true); // Resolve true — color detection still works
+        resolve(true);
         return;
       }
 
-      tf.ready().then(function () {
-        return cocoSsd.load({ base: 'mobilenet_v2' });
-      }).then(function (model) {
-        self.model = model;
+      self._setStatus('loading');
+
+      FilesetResolver.forVisionTasks(
+        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+      ).then(function (vision) {
+        return ObjectDetector.createFromOptions(vision, {
+          baseOptions: {
+            modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/float16/1/efficientdet_lite0.tflite',
+            delegate: 'GPU'
+          },
+          scoreThreshold: 0.2,
+          runningMode: 'VIDEO',
+          categoryAllowlist: ['sports ball', 'orange', 'frisbee']
+        });
+      }).then(function (detector) {
+        self.model = detector;
+        self._detectorType = 'mediapipe';
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
-        console.warn('ML model load attempt failed:', err);
-        self._mlRetries++;
-        if (self._mlRetries < self._maxRetries) {
-          // Retry with exponential backoff
-          var delay = Math.pow(2, self._mlRetries) * 1000;
-          console.log('Retrying ML model in ' + delay + 'ms (attempt ' + (self._mlRetries + 1) + ')');
-          self._setStatus('retrying');
-          setTimeout(function () {
-            self._tryLoadModel(resolve);
-          }, delay);
-        } else {
-          // Fall back to lighter model
-          console.warn('Trying lite model...');
-          self._tryLiteModel(resolve);
-        }
-      });
-    },
-
-    _tryLiteModel: function (resolve) {
-      var self = this;
-      if (typeof cocoSsd === 'undefined') {
+        console.warn('[ShotDetection] MediaPipe load failed — color-only mode:', err);
+        self._mlFailed = true;        /* keep existing flag for backward compat */
         self._colorOnlyMode = true;
+        self._detectorType = 'none';
         self._setStatus('color-only');
-        resolve(true);
-        return;
-      }
-      cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
-        self.model = model;
-        self._setStatus('ready');
-        resolve(true);
-      }).catch(function () {
-        console.warn('All ML models failed — using color-only detection');
-        self._colorOnlyMode = true;
-        self._setStatus('color-only');
-        resolve(true); // Still resolve true — color works
+        resolve(true); /* resolve true — color detection still works */
       });
     },
 
