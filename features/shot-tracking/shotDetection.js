@@ -526,36 +526,48 @@
       }
     },
 
-    _findMLBall: function (predictions, vw, vh) {
+    _findMLBall: function (result, vw, vh) {
+      /* MediaPipe result format:
+         { detections: [{ categories: [{categoryName, score}], boundingBox: {originX, originY, width, height} }] }
+      */
+      if (!result || !result.detections || !result.detections.length) return null;
+
       var frameArea = vw * vh;
       var minArea = frameArea * BALL_MIN_AREA_FRAC;
       var maxArea = frameArea * BALL_MAX_AREA_FRAC;
-      var bestBall = null;
+      var bestDet = null;
       var bestScore = 0;
-      var ballClasses = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7, 'apple': 0.45, 'bowl': 0.3, 'clock': 0.2 };
+      var ballWeights = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7 };
 
-      for (var i = 0; i < predictions.length; i++) {
-        var p = predictions[i];
-        var classWeight = ballClasses[p.class];
-        if (!classWeight) continue;
-        var adjScore = p.score * classWeight;
+      for (var i = 0; i < result.detections.length; i++) {
+        var det = result.detections[i];
+        if (!det.categories || !det.categories.length) continue;
+
+        var cat = det.categories[0];
+        var weight = ballWeights[cat.categoryName];
+        if (!weight) continue;
+
+        var adjScore = cat.score * weight;
         if (adjScore <= BALL_CONFIDENCE || adjScore <= bestScore) continue;
 
-        var area = p.bbox[2] * p.bbox[3];
+        var bb = det.boundingBox;
+        var area = bb.width * bb.height;
         if (area < minArea || area > maxArea) continue;
 
-        // Shape check
-        var bboxAspect = Math.max(p.bbox[2], p.bbox[3]) / Math.min(p.bbox[2], p.bbox[3]);
-        if (bboxAspect > 3.0) continue;
+        /* Shape check — ball should be roughly circular */
+        var aspect = Math.max(bb.width, bb.height) / (Math.min(bb.width, bb.height) || 1);
+        if (aspect > 3.0) continue;
 
-        bestBall = p;
+        bestDet = det;
         bestScore = adjScore;
       }
 
-      if (!bestBall) return null;
+      if (!bestDet) return null;
+
+      var finalBb = bestDet.boundingBox;
       return {
-        x: bestBall.bbox[0] + bestBall.bbox[2] / 2,
-        y: bestBall.bbox[1] + bestBall.bbox[3] / 2
+        x: finalBb.originX + finalBb.width / 2,
+        y: finalBb.originY + finalBb.height / 2
       };
     },
 
