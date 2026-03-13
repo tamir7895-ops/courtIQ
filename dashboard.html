@@ -2533,11 +2533,12 @@
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
 <!-- MediaPipe Tasks Vision — ES module shim: assigns FilesetResolver + ObjectDetector to window
-     so non-module IIFE scripts (shotDetection.js) can access them via typeof guards.
+     so non-module IIFE scripts can access them via typeof guards (shotDetection.js migrated in
+     the same commit — consumer code no longer references tf/cocoSsd after Task 2).
      IMPORTANT: module scripts share the same deferred-script execution queue as classic
-     defer scripts and execute in document order. Placing this tag BEFORE the shot-tracking
-     defer script tags guarantees it runs first. If vision_bundle.mjs is not yet loaded
-     when shotDetection.js runs, _tryLoadModel falls back to color-only mode safely. -->
+     defer scripts and execute in document order after HTML parsing completes (HTML spec §8.1.6).
+     Placing this tag BEFORE the shot-tracking defer script tags guarantees it runs first.
+     If vision_bundle.mjs is not yet loaded, _tryLoadModel falls back to color-only mode safely. -->
 <script type="module">
   import { FilesetResolver, ObjectDetector }
     from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs';
