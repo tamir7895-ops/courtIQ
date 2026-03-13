@@ -61,8 +61,9 @@ js/ai-shot-tracker.js  → window.AIShotTracker  (orchestrator + UI, keep existi
 
 MediaPipe CDN (add to dashboard.html `<head>`, after existing TF.js tags):
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.js"></script>
 ```
+**Note:** Do NOT use `defer` — deferred scripts execute in unpredictable order relative to the ast-*.js modules. Load synchronously so MediaPipe globals are available when `ast-ball.js` parses. `ast-ball.js` must NOT reference any MediaPipe globals at top-level scope — only inside function bodies (lazy load on first `open()` call).
 
 ---
 
@@ -131,11 +132,27 @@ detectML(canvas) →
 
 **Model loading:** lazy load MediaPipe on first `open()` call, not on page load. Show `🧠 Loading AI...` status. If model fails to load → silently continue with color-only mode.
 
+**AdaptiveLearning integration** (must be preserved — called from `ast-ball.js` and `ast-classifier.js`):
+```javascript
+// ast-classifier.js — after shot scored:
+if (window.AdaptiveLearning && AdaptiveLearning.onShotCompleted) {
+  AdaptiveLearning.onShotCompleted({ result: 'made'|'missed', trajectory: history });
+}
+```
+
+**AdaptiveLearning integration** (ast-ball.js):
+```javascript
+// After every ball detection result:
+if (window.AdaptiveLearning && AdaptiveLearning.onBallDetected) {
+  AdaptiveLearning.onBallDetected(result);
+}
+```
+
 **Public API:**
 ```javascript
 window.ASTBall = {
   init(canvas),
-  detect(frameCount) → Promise<{x,y,size}|null>,
+  detect() → Promise<{x,y,size}|null>,   // frame counter maintained internally
   setPersonBoxes(boxes),
   setROI(roi)
 }
@@ -162,7 +179,7 @@ window.ASTTracker = {
   getVelocity(),
   isMovingUp(),
   isNearRim(rim),
-  isLost()                  // true if no update for >10 frames
+  isLost()                  // true if last update was >600ms ago (wall-clock, not frame count)
 }
 ```
 
@@ -215,28 +232,43 @@ Manages session state and all integrations. Extracted from current `saveSession(
 { attempts, made, streak, maxStreak, startTime, shots: [{t, result}] }
 ```
 
-**On session end — integrations (unchanged from current):**
+**On session end — integrations (use existing guard pattern from ai-shot-tracker.js):**
 ```javascript
 // 1. localStorage (same format, same key)
-localStorage.setItem('courtiq-shot-sessions', JSON.stringify(existing))
+try {
+  var existing = JSON.parse(localStorage.getItem('courtiq-shot-sessions') || '[]');
+  existing.unshift(s);
+  if (existing.length > 50) existing = existing.slice(0, 50);
+  localStorage.setItem('courtiq-shot-sessions', JSON.stringify(existing));
+  if (window.ShotTracker && window.ShotTracker.renderHistory) {
+    window.ShotTracker.renderHistory(existing);  // 2. update manual tracker UI
+  }
+} catch (e) { /* silent */ }
 
-// 2. Update manual tracker UI
-window.ShotTracker.renderHistory(existing)
-
-// 3. Supabase (non-blocking)
-DataService.addShotSession(s).catch(function(){})
+// 3. Supabase (non-blocking — guard required, unauthenticated users must be skipped)
+if (window.currentUser && typeof DataService !== 'undefined') {
+  DataService.addShotSession(s).catch(function(){});
+}
 
 // 4. XP
-XPSystem.grantXP(xp, 'AI Shot Tracking Session')
+if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
+  XPSystem.grantXP(xp, 'AI Shot Tracking Session');
+}
 
-// 5. Toast
-showToast('🏀 AI session saved! +' + xp + ' XP')
+// 5. Toast — showToast is IIFE-scoped in nav.js, must use typeof guard
+if (typeof showToast === 'function') {
+  showToast('🏀 AI session saved! +' + xp + ' XP');
+}
 
 // 6. Charts
-ProgressCharts.refresh()
+if (typeof ProgressCharts !== 'undefined' && ProgressCharts.refresh) {
+  ProgressCharts.refresh();
+}
 ```
 
-**XP formula (unchanged):** 10 base + (made × 5)
+**XP formula:** use the full formula from existing `calcXP()` in `ai-shot-tracker.js`:
+`25 base + (made × 2) + streak bonuses + accuracy bonus + volume bonus`.
+Do NOT simplify — the existing formula must be copied verbatim into `ast-session.js`.
 
 **Public API:**
 ```javascript
