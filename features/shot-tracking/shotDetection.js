@@ -2,13 +2,13 @@
    SHOT DETECTION — ML + Color Fallback Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
-   v3 — Added color-based fallback when COCO-SSD misses,
-        ML model retry with backoff, combined scoring,
-        wider detection tolerances.
+   v4 — Replaced COCO-SSD / TF.js with MediaPipe Tasks Vision
+        (efficientdet_lite0, 3 MB). Color detection is primary;
+        MediaPipe runs every 5th frame as secondary confirmation.
+        Falls back to color-only mode if MediaPipe unavailable.
 
    Runs entirely in-browser using:
-     - @tensorflow/tfjs (CDN, optional)
-     - @tensorflow-models/coco-ssd (CDN, optional)
+     - @mediapipe/tasks-vision ObjectDetector (CDN, optional)
      - Canvas color analysis (always available)
    ══════════════════════════════════════════════════════════════ */
 (function () {
@@ -20,7 +20,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.15; // Very low — COCO-SSD struggles with basketballs
+  var BALL_CONFIDENCE      = 0.20; // Minimum MediaPipe score threshold (scoreThreshold in createFromOptions)
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
 
@@ -319,8 +319,6 @@
     onStatusChange: null,
     _isDetecting: false,
     _mlFailed: false,
-    _mlRetries: 0,
-    _maxRetries: 3,
     _colorOnlyMode: false,
     _mlMissCount: 0,
     _frameCount: 0,
@@ -364,8 +362,6 @@
         resolve(true);
         return;
       }
-
-      self._setStatus('loading');
 
       FilesetResolver.forVisionTasks(
         'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
