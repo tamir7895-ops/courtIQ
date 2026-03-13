@@ -411,6 +411,7 @@
       this.stats = { made: 0, attempts: 0 };
       this.lastShotTime = 0;
       this._mlMissCount = 0;
+      this._frameCount = 0;
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -447,9 +448,20 @@
       var vw = this.videoEl.videoWidth;
       var vh = this.videoEl.videoHeight;
       if (vw < 10 || vh < 10) return false;
-      if (this._canvas.width !== vw) this._canvas.width = vw;
-      if (this._canvas.height !== vh) this._canvas.height = vh;
-      this._ctx.drawImage(this.videoEl, 0, 0, vw, vh);
+
+      /* Downscale to max 480px wide for processing performance */
+      var maxW = 480;
+      var scale = vw > maxW ? maxW / vw : 1;
+      var pw = Math.floor(vw * scale);
+      var ph = Math.floor(vh * scale);
+
+      if (this._canvas.width !== pw) this._canvas.width = pw;
+      if (this._canvas.height !== ph) this._canvas.height = ph;
+      this._ctx.drawImage(this.videoEl, 0, 0, pw, ph);
+
+      /* Store processed dimensions for downstream use */
+      this._procW = pw;
+      this._procH = ph;
       return true;
     },
 
@@ -463,67 +475,48 @@
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
 
-      // Always draw to canvas for color detection
+      /* ── Draw to processing canvas ──────────────────────────── */
       var canvasReady = self._drawToCanvas();
+      /* Read processing dims AFTER _drawToCanvas sets them */
+      var pw = self._procW || vw;
+      var ph = self._procH || vh;
 
-      if (self.model && !self._colorOnlyMode) {
-        // ML + color hybrid detection
-        self.model.detect(self.videoEl).then(function (predictions) {
-          self._isDetecting = false;
-          if (!self.isRunning) return;
-
-          var mlBall = self._findMLBall(predictions, vw, vh);
-
-          // If ML missed, try color + TL verification
-          if (!mlBall && canvasReady) {
-            self._mlMissCount++;
-            var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
-            if (colorBall) {
-              /* Verify with Transfer Learning if available */
-              var tlResult = window.AdaptiveLearning
-                ? window.AdaptiveLearning.verifyWithTL(self._canvas, colorBall.x, colorBall.y)
-                : null;
-              if (!tlResult || tlResult.isBall || tlResult.score > 0.3) {
-                self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
-              } else {
-                self._processNoBall();
-              }
-            } else {
-              self._processNoBall();
-            }
-          } else if (mlBall) {
-            self._mlMissCount = 0;
-            self._processBallDetection(mlBall.x, mlBall.y, vw, vh);
-          } else {
-            self._processNoBall();
-          }
-
-          self._scheduleDetection();
-        }).catch(function (err) {
-          self._isDetecting = false;
-          console.error('ML detection error:', err);
-          // Try color fallback on ML error
-          if (canvasReady) {
-            var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
-            if (colorBall) {
-              self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
-            }
-          }
-          self._scheduleDetection();
-        });
-      } else {
-        // Color-only mode
-        if (canvasReady) {
-          var colorBall = detectBallByColor(self._canvas, self._ctx, vw, vh);
-          if (colorBall) {
-            self._processBallDetection(colorBall.x, colorBall.y, vw, vh);
-          } else {
-            self._processNoBall();
-          }
-        }
-        self._isDetecting = false;
-        self._scheduleDetection();
+      /* ── Color detection (primary, every frame) ─────────────── */
+      var colorBall = null;
+      if (canvasReady) {
+        colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
       }
+
+      /* ── MediaPipe detection (secondary, every 5th frame) ───── */
+      var mlBall = null;
+      self._frameCount++;
+      if (self.model && !self._colorOnlyMode && canvasReady && self._frameCount % 5 === 0) {
+        try {
+          var result = self.model.detectForVideo(self._canvas, performance.now());
+          mlBall = self._findMLBall(result, pw, ph);
+        } catch (e) {
+          /* MediaPipe error — silent, color takes over */
+        }
+      }
+
+      /* Scale ball positions from processing canvas back to video coords */
+      var scaleX = pw > 0 ? vw / pw : 1;
+      var scaleY = ph > 0 ? vh / ph : 1;
+
+      /* ── Fusion: ML position wins when available ────────────── */
+      if (mlBall) {
+        self._mlMissCount = 0;
+        self._processBallDetection(mlBall.x * scaleX, mlBall.y * scaleY, vw, vh);
+      } else if (colorBall) {
+        self._mlMissCount++;
+        self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+      } else {
+        self._mlMissCount++;
+        self._processNoBall();
+      }
+
+      self._isDetecting = false;
+      self._scheduleDetection();
     },
 
     _findMLBall: function (result, vw, vh) {
@@ -579,8 +572,13 @@
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
 
       /* Feed to adaptive learning (Level 1 + 3) */
+      /* cx/cy are in video coords — convert to processing canvas space for pixel sampling */
       if (window.AdaptiveLearning && this._canvas && this._ctx) {
-        window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, cx, cy);
+        var cvW = (this._procW > 0) ? this._procW : vw;
+        var cvH = (this._procH > 0) ? this._procH : vh;
+        var canvasX = (vw > 0 && cvW > 0) ? cx * cvW / vw : cx;
+        var canvasY = (vh > 0 && cvH > 0) ? cy * cvH / vh : cy;
+        window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, canvasX, canvasY);
       }
 
       this._analyzeShotState(vw, vh, normX, normY);
