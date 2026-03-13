@@ -2532,9 +2532,19 @@
 <script src="js/avatar-shop.js"></script>
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
-<!-- TF.js + COCO-SSD for AI ball detection -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" integrity="sha384-xc4sZTUOM2obsQR75Be0zGbt7Gb6mOVFJN4yBm30Xn0YQLDWIY+yrtFmLmIank6w" crossorigin="anonymous" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" integrity="sha384-7qLdgfEQyO9ZQi9ArRHigK+IBto4XPk468jAqc+fnsXaZIcMAhQeLwzggRK7aESl" crossorigin="anonymous" defer></script>
+<!-- MediaPipe Tasks Vision — ES module shim: assigns FilesetResolver + ObjectDetector to window
+     so non-module IIFE scripts can access them via typeof guards (shotDetection.js migrated in
+     the same commit — consumer code no longer references tf/cocoSsd after Task 2).
+     IMPORTANT: module scripts share the same deferred-script execution queue as classic
+     defer scripts and execute in document order after HTML parsing completes (HTML spec §8.1.6).
+     Placing this tag BEFORE the shot-tracking defer script tags guarantees it runs first.
+     If vision_bundle.mjs is not yet loaded, _tryLoadModel falls back to color-only mode safely. -->
+<script type="module">
+  import { FilesetResolver, ObjectDetector }
+    from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs';
+  window.FilesetResolver = FilesetResolver;
+  window.ObjectDetector  = ObjectDetector;
+</script>
 <!-- Shot Tracking Module (Capacitor/web rewrite) -->
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="features/shot-tracking/shotDetection.js" defer></script>
