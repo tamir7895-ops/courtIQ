@@ -59,6 +59,7 @@
   var animFrame = null;
   var mode = 'camera';
   var videoUrl = null;
+  var sessionTimer = null;
 
   /* ── ML state ─────────────────────────────────────────────── */
   var tfModel     = null;
@@ -1069,6 +1070,64 @@
     }
   }
 
+  /* ── Live timer ──────────────────────────────────────────── */
+  function startSessionTimer() {
+    stopSessionTimer();
+    updateTimerDisplay();
+    sessionTimer = setInterval(updateTimerDisplay, 1000);
+  }
+
+  function stopSessionTimer() {
+    if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
+  }
+
+  function updateTimerDisplay() {
+    var el = document.getElementById('ast-timer');
+    if (!el || !session.startTime) return;
+    var elapsed = Math.floor((Date.now() - session.startTime) / 1000);
+    var m = Math.floor(elapsed / 60);
+    var s = elapsed % 60;
+    el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /* ── AI Session History ─────────────────────────────────── */
+  function renderAIHistory() {
+    var list = document.getElementById('ast-history-list');
+    if (!list) return;
+    var sessions = [];
+    try {
+      var raw = localStorage.getItem('courtiq-shot-sessions');
+      if (raw) sessions = JSON.parse(raw);
+    } catch (e) { return; }
+
+    var aiSessions = sessions.filter(function (s) { return s.session_type === 'ai_tracking'; });
+
+    if (aiSessions.length === 0) {
+      list.innerHTML = '<div class="ast-hist-empty">No AI tracking sessions yet. Start one above!</div>';
+      return;
+    }
+
+    var show = aiSessions.slice(0, 10);
+    // Data is from localStorage (user's own saved data), not external input
+    list.innerHTML = show.map(function (s) {
+      var d = new Date(s.date);
+      var dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      var total = (s.fg_made || 0) + (s.fg_missed || 0);
+      var made = s.fg_made || 0;
+      var pct = total > 0 ? Math.round((made / total) * 100) : 0;
+      var pctClass = pct >= 65 ? 'ast-hist-good' : pct >= 50 ? 'ast-hist-ok' : 'ast-hist-low';
+      return '<div class="ast-hist-card">' +
+        '<div class="ast-hist-date">' + dateStr + '</div>' +
+        '<div class="ast-hist-stats">' +
+          '<span class="ast-hist-pct ' + pctClass + '">' + pct + '%</span>' +
+          '<span class="ast-hist-detail">' + made + '/' + total + ' shots</span>' +
+          (s.max_streak ? '<span class="ast-hist-streak">' + s.max_streak + ' streak</span>' : '') +
+        '</div>' +
+        '<div class="ast-hist-badge">AI</div>' +
+      '</div>';
+    }).join('');
+  }
+
   function flashResult(made) {
     var el = document.getElementById('ast-flash');
     if (!el) return;
@@ -1192,6 +1251,7 @@
     rim = { cx: cx, cy: cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
+    startSessionTimer();
     showPhase('track');
 
     // Update status message
@@ -1315,8 +1375,13 @@
     autoRimCandidate = null;
     calibMode = 'auto';
     stopRimDetectTimer();
+    stopSessionTimer();
     rimDetectTries = 0;
     resetKalman();
+
+    // Reset timer display
+    var timerEl = document.getElementById('ast-timer');
+    if (timerEl) timerEl.textContent = '00:00';
 
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
@@ -1342,7 +1407,16 @@
   function openOverlayVideo() {
     mode = 'video';
     var fileInput = document.getElementById('ast-file-input');
-    if (fileInput) { fileInput.value = ''; fileInput.click(); }
+    if (!fileInput) return;
+
+    // On iOS Capacitor, remove capture attribute so it opens the gallery
+    // (capture="environment" forces the native camera, not file picker)
+    if (window.Capacitor) {
+      fileInput.removeAttribute('capture');
+    }
+
+    fileInput.value = '';
+    fileInput.click();
   }
 
   function startVideo(file) {
@@ -1408,6 +1482,7 @@
   /* ── Stop → Summary ───────────────────────────────────────── */
   function stopSession() {
     stopCamera();
+    stopSessionTimer();
     phase = PHASE.SUMMARY;
     buildSummary();
   }
@@ -1521,6 +1596,7 @@
       existing.unshift(s);
       if (existing.length > 50) existing = existing.slice(0, 50);
       localStorage.setItem('courtiq-shot-sessions', JSON.stringify(existing));
+      renderAIHistory();
       if (window.ShotTracker && window.ShotTracker.renderHistory) {
         window.ShotTracker.renderHistory(existing);
       }
@@ -1548,6 +1624,7 @@
   /* ── Close overlay ────────────────────────────────────────── */
   function closeOverlay() {
     stopCamera();
+    stopSessionTimer();
     var overlay = document.getElementById('ast-overlay');
     if (overlay) overlay.classList.remove('ast-visible');
     document.body.style.overflow = '';
@@ -1612,6 +1689,9 @@
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     });
 
+    var closeSumBtn = document.getElementById('ast-close-btn-sum');
+    if (closeSumBtn) closeSumBtn.addEventListener('click', closeOverlay);
+
     var cvs = document.getElementById('ast-canvas');
     if (cvs) {
       cvs.addEventListener('click', onCanvasTap);
@@ -1646,6 +1726,9 @@
         showCalibState('manual');
       }
     });
+
+    // Render AI session history on load
+    renderAIHistory();
 
     /* ── Live camera calibration buttons ─────────────────── */
     bindBtn('ast-lcalib-ready', function () {

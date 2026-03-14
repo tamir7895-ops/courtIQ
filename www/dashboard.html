@@ -1280,7 +1280,7 @@
           <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
         </div>
       </div>
-      <input type="file" accept="video/*" id="ast-file-input" style="display:none">
+      <input type="file" accept="video/*" id="ast-file-input" capture="environment" style="display:none">
 
       <!-- Court Size Preset -->
       <div class="ast-settings-card">
@@ -2517,10 +2517,12 @@ if ('serviceWorker' in navigator) {
 
       <!-- Top bar -->
       <div class="ast-topbar">
-        <button class="ast-close-btn" id="ast-close-btn">✕ Close</button>
-        <div class="ast-topbar-title">AI Shot Tracker</div>
-        <span class="ast-ml-status" id="ast-ml-status" style="display:none;"></span>
-        <button class="ast-stop-btn" id="ast-stop-btn">⏹ Stop</button>
+        <button class="ast-close-btn" id="ast-close-btn">✕</button>
+        <div class="ast-topbar-center">
+          <div class="ast-timer" id="ast-timer">00:00</div>
+          <span class="ast-ml-status" id="ast-ml-status" style="display:none;"></span>
+        </div>
+        <button class="ast-stop-btn" id="ast-stop-btn">Stop</button>
       </div>
 
       <!-- ═══ CALIBRATION: VIDEO MODE ═══ -->
@@ -2668,6 +2670,7 @@ if ('serviceWorker' in navigator) {
   <div class="ast-summary-view" id="ast-summary-view" style="display:none;">
     <div class="ast-sum-header">
       <div class="ast-sum-title">Session Summary</div>
+      <button class="ast-close-btn-sum" id="ast-close-btn-sum">✕</button>
     </div>
     <div class="ast-sum-content" id="ast-sum-content">
       <!-- Built by buildSummary() in ai-shot-tracker.js -->
