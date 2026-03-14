@@ -1341,9 +1341,10 @@
 
   function openOverlayVideo() {
     mode = 'video';
-    openOverlayBase();
+    /* File picker is triggered natively by the <label for="ast-file-input">.
+       We just set the mode; the change handler on ast-file-input does the rest. */
     var fileInput = document.getElementById('ast-file-input');
-    if (fileInput) { fileInput.value = ''; fileInput.click(); }
+    if (fileInput) fileInput.value = '';
   }
 
   function startVideo(file) {
@@ -1567,12 +1568,8 @@
     if (fileInput) {
       fileInput.addEventListener('change', function (e) {
         var file = e.target.files && e.target.files[0];
-        if (!file) {
-          /* User cancelled file picker — close overlay if it was pre-opened */
-          if (mode === 'video' && phase === PHASE.IDLE) closeOverlay();
-          return;
-        }
-        startVideo(file);
+        if (!file) return;
+        if (openOverlayBase()) startVideo(file);
       });
     }
 

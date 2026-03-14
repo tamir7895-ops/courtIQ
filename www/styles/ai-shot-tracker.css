@@ -4,52 +4,51 @@
 
 /* ── Launch banner card ───────────────────────────────────── */
 .ast-launch-card {
-  background: linear-gradient(135deg,
-    rgba(245,166,35,0.08) 0%,
-    rgba(59,158,255,0.06) 100%);
-  border: 1px solid rgba(245,166,35,0.25);
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
   border-radius: var(--r-lg);
-  padding: 24px 28px;
+  padding: 28px;
   margin-bottom: 24px;
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  box-shadow: var(--shadow-card);
 }
 
 .ast-launch-icon {
-  font-size: 42px;
-  flex-shrink: 0;
+  font-size: 36px;
   line-height: 1;
-}
-
-.ast-launch-text {
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 12px;
 }
 
 .ast-launch-title {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 22px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: var(--c-white);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .ast-launch-sub {
   font-size: 13px;
   color: var(--c-muted);
   line-height: 1.5;
+  margin-bottom: 20px;
+}
+
+.ast-launch-btns {
+  display: flex;
+  gap: 12px;
 }
 
 .ast-launch-btn {
-  flex-shrink: 0;
+  flex: 1;
   background: var(--c-amber);
   color: #0c0d0f;
   border: none;
   border-radius: var(--r-sm);
-  padding: 13px 22px;
+  padding: 14px 20px;
   font-family: var(--font-display);
   font-size: 15px;
   font-weight: 800;
@@ -58,6 +57,7 @@
   cursor: pointer;
   transition: var(--transition);
   white-space: nowrap;
+  text-align: center;
 }
 
 .ast-launch-btn:hover {
@@ -69,14 +69,6 @@
   transform: translateY(0);
 }
 
-/* ── Two-button group on launch card ─────────────────────── */
-.ast-launch-btns {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
 .ast-launch-btn-upload {
   background: transparent;
   color: var(--c-amber);
@@ -85,20 +77,6 @@
 
 .ast-launch-btn-upload:hover {
   background: rgba(245,166,35,0.1);
-}
-
-@media (max-width: 600px) {
-  .ast-launch-card {
-    flex-direction: column;
-    text-align: center;
-  }
-  .ast-launch-btns {
-    width: 100%;
-    flex-direction: row;
-  }
-  .ast-launch-btn {
-    flex: 1;
-  }
 }
 
 /* ── Fullscreen overlay ───────────────────────────────────── */

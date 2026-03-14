@@ -1124,16 +1124,14 @@
       <!-- AI Tracking Banner -->
       <div class="ast-launch-card">
         <div class="ast-launch-icon">📷</div>
-        <div class="ast-launch-text">
-          <div class="ast-launch-title">AI Shot Tracker</div>
-          <div class="ast-launch-sub">Auto-detect made &amp; missed shots — use your live camera or upload a video from your gallery.</div>
-        </div>
+        <div class="ast-launch-title">AI Shot Tracker</div>
+        <div class="ast-launch-sub">Auto-detect made &amp; missed shots — use your live camera or upload a video from your gallery.</div>
         <div class="ast-launch-btns">
           <button class="ast-launch-btn" id="ast-launch-btn">📷 Live Camera</button>
-          <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
+          <label class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn" for="ast-file-input">🎬 Upload Video</label>
         </div>
       </div>
-      <input type="file" accept="video/*" id="ast-file-input" style="display:none">
+      <input type="file" accept="video/*" id="ast-file-input" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0;pointer-events:none;">
 
       <!-- Court Size Preset -->
       <div class="ast-settings-card">
