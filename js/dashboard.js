@@ -21,10 +21,41 @@
       if (error) throw error;
       session = data.session;
     } catch (e) {
-      console.warn('Session load failed, clearing stale auth:', e);
-      await sb.auth.signOut();
-      window.location.href = 'index.html';
-      return;
+      // Distinguish network errors from genuine auth failures.
+      // A "Failed to fetch" / TypeError means the token-refresh network
+      // call failed (CDN hiccup, offline, etc.) — the stored session is
+      // still valid. We recover it directly from localStorage so the user
+      // is never kicked out due to a transient network problem.
+      const isNetworkError = e instanceof TypeError ||
+        (e && typeof e.message === 'string' &&
+          /fetch|network|load/i.test(e.message));
+
+      if (isNetworkError) {
+        console.warn('Token refresh failed (network error) — recovering session from cache:', e);
+        try {
+          // Supabase v2 key: sb-<project-ref>-auth-token
+          const cacheKey = Object.keys(localStorage)
+            .find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (cacheKey) {
+            const stored = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            // stored can be the session object directly or wrapped in {currentSession}
+            session = stored?.currentSession ?? stored;
+          }
+        } catch (_) { /* ignore parse errors */ }
+
+        if (!session || !session.user) {
+          // No cached session either — send to login
+          window.location.href = 'index.html';
+          return;
+        }
+        // Cached session recovered — continue loading dashboard
+      } else {
+        // Genuine auth error (refresh token revoked/expired) — sign out cleanly
+        console.warn('Session load failed, clearing stale auth:', e);
+        await sb.auth.signOut();
+        window.location.href = 'index.html';
+        return;
+      }
     }
     if (!session) {
       window.location.href = 'index.html';

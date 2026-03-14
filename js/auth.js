@@ -236,8 +236,16 @@
       if (error) throw error;
       session = data.session;
     } catch (e) {
-      console.warn('Stale session cleared:', e);
-      await sb.auth.signOut();
+      // Network errors (Failed to fetch) are not auth failures.
+      // Only sign out on genuine auth errors.
+      const isNetworkError = e instanceof TypeError ||
+        (e && typeof e.message === 'string' && /fetch|network|load/i.test(e.message));
+      if (!isNetworkError) {
+        console.warn('Stale session cleared:', e);
+        await sb.auth.signOut();
+      } else {
+        console.warn('Session check skipped (network error):', e);
+      }
       return;
     }
     if (session) {
