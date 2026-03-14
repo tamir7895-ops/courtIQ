@@ -287,16 +287,19 @@
       videoEl.src = videoFileUrl;
       videoEl.loop  = false;
       videoEl.muted = true;
-      videoEl.play().catch(function () {});
+      // Show first frame during calibration so user can see the court and tap the rim.
+      // Video will start playing from the beginning when tracking phase begins.
       videoEl.addEventListener('loadedmetadata', function onMeta() {
         videoEl.removeEventListener('loadedmetadata', onMeta);
         resizeCanvas();
+        videoEl.currentTime = 0.01; // Decode first frame for calibration reference
       });
       // Auto-advance to summary when file finishes playing
       videoEl.addEventListener('ended', function onEnd() {
         videoEl.removeEventListener('ended', onEnd);
         if (phase === 'tracking') enterSummaryPhase();
       });
+      videoEl.load();
       return;
     }
 
@@ -507,6 +510,12 @@
       elapsedSec++;
       els.timer.textContent = formatTime(elapsedSec);
     }, 1000);
+
+    // For file upload mode — play video from the beginning
+    if (videoFileUrl && videoEl) {
+      videoEl.currentTime = 0;
+      videoEl.play().catch(function () {});
+    }
 
     // Configure detection engine
     var engine = window.ShotDetectionEngine;
