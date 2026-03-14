@@ -288,47 +288,37 @@
       videoEl.muted   = true;
       videoEl.preload = 'auto';
 
-      // Set source FIRST, then add listeners, then load
-      videoEl.src = videoFileUrl;
-
-      // Error handler — only fires for actual media errors
-      function onVideoError() {
+      // Add ALL listeners BEFORE setting src (prevents missing fast errors)
+      function onVideoError(evt) {
+        // Ignore errors when src is empty (cleanup reset)
+        if (!videoEl.src || videoEl.src === window.location.href) return;
         videoEl.removeEventListener('error', onVideoError);
         var err = videoEl.error;
-        console.error('Video load error:', err ? 'code=' + err.code + ' msg=' + err.message : 'unknown');
-        alert('Could not load video (error ' + (err ? err.code : '?') + '). Try MP4 (H.264) format.');
+        var code = err ? err.code : '?';
+        var msg  = err ? err.message : 'unknown';
+        console.error('Video load error: code=' + code + ' msg=' + msg);
+        // Only show alert for real media errors (code 4 = unsupported format)
+        if (code === 4) {
+          alert('Video format not supported. Please use MP4 (H.264).');
+        } else {
+          alert('Could not load video (error ' + code + '). Try a different file.');
+        }
         closeScreen();
       }
       videoEl.addEventListener('error', onVideoError);
+
+      // When we have enough data to display a frame
+      videoEl.addEventListener('canplay', function onCanPlay() {
+        videoEl.removeEventListener('canplay', onCanPlay);
+        resizeCanvas();
+        console.log('Video canplay — ready for calibration');
+      });
 
       // Resize canvas once metadata is available
       videoEl.addEventListener('loadedmetadata', function onMeta() {
         videoEl.removeEventListener('loadedmetadata', onMeta);
         resizeCanvas();
-        // Seek to 0.5s to skip potential black intro frames
-        videoEl.currentTime = 0.5;
-      });
-
-      // After seeking — check if frame is visible, if black seek further
-      videoEl.addEventListener('seeked', function onSeeked() {
-        videoEl.removeEventListener('seeked', onSeeked);
-        try {
-          var tc = document.createElement('canvas');
-          tc.width = 16; tc.height = 9;
-          var tctx = tc.getContext('2d');
-          tctx.drawImage(videoEl, 0, 0, 16, 9);
-          var px = tctx.getImageData(0, 0, 16, 9).data;
-          var sum = 0;
-          for (var i = 0; i < px.length; i += 4) {
-            sum += px[i] + px[i+1] + px[i+2];
-          }
-          var avg = sum / (16 * 9 * 3);
-          if (avg < 10 && videoEl.currentTime < 3) {
-            videoEl.currentTime += 1;
-          }
-        } catch (e) {
-          // Canvas sampling failed — just show whatever frame we have
-        }
+        console.log('Video metadata loaded: ' + videoEl.videoWidth + 'x' + videoEl.videoHeight);
       });
 
       // Auto-advance to summary when file finishes playing
@@ -337,8 +327,9 @@
         if (phase === 'tracking') enterSummaryPhase();
       });
 
-      // Start loading
-      videoEl.load();
+      // Now set the source — this triggers loading automatically
+      videoEl.src = videoFileUrl;
+      // Do NOT call videoEl.load() — setting src is sufficient
       return;
     }
 
@@ -377,9 +368,10 @@
       stream = null;
     }
     if (videoEl) {
+      videoEl.pause();
+      videoEl.removeAttribute('src');
       videoEl.srcObject = null;
-      videoEl.src = '';
-      videoEl.load(); // reset the media element
+      // Do NOT call videoEl.load() — it fires error events on empty src
     }
     if (videoFileUrl) {
       URL.revokeObjectURL(videoFileUrl);
