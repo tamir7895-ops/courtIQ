@@ -32,6 +32,7 @@
   /* ── State ──────────────────────────────────────────────────── */
   var phase = 'idle'; // idle | rimlock | threept | tracking | summary
   var stream = null;
+  var videoFileUrl = null; // set when opening from a local video file (upload mode)
   var videoEl, canvasEl, canvasCtx;
   var overlayAnimFrame = null;
 
@@ -281,6 +282,25 @@
      CAMERA
      ══════════════════════════════════════════════════════════════ */
   function startCamera() {
+    // ── File-upload mode ─────────────────────────────────────────
+    if (videoFileUrl) {
+      videoEl.src = videoFileUrl;
+      videoEl.loop  = false;
+      videoEl.muted = true;
+      videoEl.play().catch(function () {});
+      videoEl.addEventListener('loadedmetadata', function onMeta() {
+        videoEl.removeEventListener('loadedmetadata', onMeta);
+        resizeCanvas();
+      });
+      // Auto-advance to summary when file finishes playing
+      videoEl.addEventListener('ended', function onEnd() {
+        videoEl.removeEventListener('ended', onEnd);
+        if (phase === 'tracking') enterSummaryPhase();
+      });
+      return;
+    }
+
+    // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
     var constraints = {
@@ -314,7 +334,15 @@
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
     }
-    if (videoEl) videoEl.srcObject = null;
+    if (videoEl) {
+      videoEl.srcObject = null;
+      videoEl.src = '';
+      videoEl.load(); // reset the media element
+    }
+    if (videoFileUrl) {
+      URL.revokeObjectURL(videoFileUrl);
+      videoFileUrl = null;
+    }
   }
 
   function resizeCanvas() {
@@ -1175,11 +1203,35 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     VIDEO UPLOAD ENTRY POINT
+     ══════════════════════════════════════════════════════════════ */
+  /**
+   * Open the shot tracker using a local video file instead of the live camera.
+   * The detection engine processes frames just like live camera mode.
+   * The session auto-advances to Summary when the video finishes playing.
+   *
+   * @param {File} file  A video File object from an <input type="file"> element.
+   */
+  function openFromFile(file) {
+    if (!file || !file.type.startsWith('video/')) {
+      alert('Please select a valid video file.');
+      return;
+    }
+    // Revoke any previous object URL to free memory
+    if (videoFileUrl) {
+      URL.revokeObjectURL(videoFileUrl);
+    }
+    videoFileUrl = URL.createObjectURL(file);
+    openScreen();
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      EXPOSE GLOBALLY
      ══════════════════════════════════════════════════════════════ */
   window.ShotTrackingScreen = {
-    open:  openScreen,
-    close: closeScreen
+    open:         openScreen,
+    close:        closeScreen,
+    openFromFile: openFromFile
   };
 
 })();

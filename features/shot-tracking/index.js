@@ -44,11 +44,32 @@
     }
 
     // Also hook into the existing AI Shot Tracker launch card if present
-    var astLaunchBtn = document.querySelector('.ast-launch-btn');
+    var astLaunchBtn = document.getElementById('ast-launch-btn');
     if (astLaunchBtn) {
       astLaunchBtn.addEventListener('click', function (e) {
         e.preventDefault();
         launch();
+      });
+    }
+
+    // Upload Video button — opens file picker, then launches from file
+    var astUploadBtn = document.getElementById('ast-upload-btn');
+    var astFileInput = document.getElementById('ast-file-input');
+    if (astUploadBtn && astFileInput) {
+      astUploadBtn.addEventListener('click', function (e) {
+        e.preventDefault();
+        astFileInput.click();
+      });
+      astFileInput.addEventListener('change', function (e) {
+        var file = e.target.files && e.target.files[0];
+        // Reset so the same file can be re-selected next time
+        astFileInput.value = '';
+        if (!file) return;
+        if (!window.ShotTrackingScreen || !window.ShotTrackingScreen.openFromFile) {
+          console.error('ShotTrackingScreen.openFromFile not available');
+          return;
+        }
+        window.ShotTrackingScreen.openFromFile(file);
       });
     }
   }
