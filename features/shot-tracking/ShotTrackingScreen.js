@@ -284,30 +284,69 @@
   function startCamera() {
     // ── File-upload mode ─────────────────────────────────────────
     if (videoFileUrl) {
-      videoEl.src = videoFileUrl;
+      // Disable autoplay — we control playback manually
+      videoEl.autoplay = false;
+      videoEl.removeAttribute('autoplay');
       videoEl.loop  = false;
       videoEl.muted = true;
+      videoEl.playsInline = true;
       videoEl.preload = 'auto';
+
+      // Error handler
+      videoEl.addEventListener('error', function onErr() {
+        videoEl.removeEventListener('error', onErr);
+        console.error('Video load error:', videoEl.error);
+        alert('Could not load video. Try a different file format (MP4/MOV).');
+        closeScreen();
+      });
+
       // Resize canvas once metadata is available
       videoEl.addEventListener('loadedmetadata', function onMeta() {
         videoEl.removeEventListener('loadedmetadata', onMeta);
         resizeCanvas();
       });
-      // Pause on first decoded frame — user sees the court for calibration
-      videoEl.addEventListener('loadeddata', function onData() {
-        videoEl.removeEventListener('loadeddata', onData);
-        videoEl.pause();
+
+      // Once enough data is buffered — seek past black intro, pause for calibration
+      videoEl.addEventListener('canplay', function onCanPlay() {
+        videoEl.removeEventListener('canplay', onCanPlay);
+        // Seek to 0.5s to skip potential black intro frames
+        videoEl.currentTime = 0.5;
       });
+
+      videoEl.addEventListener('seeked', function onSeeked() {
+        videoEl.removeEventListener('seeked', onSeeked);
+        // Now we have a real frame — keep video paused for calibration
+        // (video was never played, so it's paused with this frame shown)
+        // Scan for brightness: if still black, seek further
+        var tc = document.createElement('canvas');
+        tc.width = 16; tc.height = 9;
+        var tctx = tc.getContext('2d');
+        tctx.drawImage(videoEl, 0, 0, 16, 9);
+        var px = tctx.getImageData(0, 0, 16, 9).data;
+        var sum = 0;
+        for (var i = 0; i < px.length; i += 4) {
+          sum += px[i] + px[i+1] + px[i+2];
+        }
+        var avg = sum / (16 * 9 * 3);
+        if (avg < 10 && videoEl.currentTime < 3) {
+          // Still black — try 1s further
+          videoEl.currentTime += 1;
+          videoEl.addEventListener('seeked', function onSeeked2() {
+            videoEl.removeEventListener('seeked', onSeeked2);
+            // Accept whatever frame we get at this point
+          });
+        }
+      });
+
       // Auto-advance to summary when file finishes playing
       videoEl.addEventListener('ended', function onEnd() {
         videoEl.removeEventListener('ended', onEnd);
         if (phase === 'tracking') enterSummaryPhase();
       });
-      // play() triggers frame decode; autoplay+muted works without user gesture
-      videoEl.play().catch(function (err) {
-        console.warn('Video autoplay blocked, seeking to first frame:', err);
-        videoEl.currentTime = 0.01;
-      });
+
+      // Set source — this triggers loading (preload=auto)
+      videoEl.src = videoFileUrl;
+      videoEl.load();
       return;
     }
 
