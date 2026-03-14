@@ -284,52 +284,52 @@
   function startCamera() {
     // ── File-upload mode ─────────────────────────────────────────
     if (videoFileUrl) {
-      videoEl.loop    = false;
-      videoEl.muted   = true;
-      videoEl.preload = 'auto';
+      // Create a FRESH video element to avoid any stale state
+      var freshVideo = document.createElement('video');
+      freshVideo.id          = 'st-video';
+      freshVideo.playsInline = true;
+      freshVideo.muted       = true;
+      freshVideo.loop        = false;
+      freshVideo.preload     = 'auto';
+      freshVideo.setAttribute('playsinline', '');
+      freshVideo.setAttribute('muted', '');
+      freshVideo.style.cssText = 'width:100%;height:100%;object-fit:cover;background:#000;';
 
-      // Add ALL listeners BEFORE setting src (prevents missing fast errors)
-      function onVideoError(evt) {
-        // Ignore errors when src is empty (cleanup reset)
-        if (!videoEl.src || videoEl.src === window.location.href) return;
-        videoEl.removeEventListener('error', onVideoError);
-        var err = videoEl.error;
-        var code = err ? err.code : '?';
-        var msg  = err ? err.message : 'unknown';
-        console.error('Video load error: code=' + code + ' msg=' + msg);
-        // Only show alert for real media errors (code 4 = unsupported format)
-        if (code === 4) {
-          alert('Video format not supported. Please use MP4 (H.264).');
-        } else {
-          alert('Could not load video (error ' + code + '). Try a different file.');
-        }
-        closeScreen();
-      }
-      videoEl.addEventListener('error', onVideoError);
+      // Replace old video element in the DOM
+      var wrap = videoEl.parentNode;
+      wrap.replaceChild(freshVideo, videoEl);
+      videoEl = freshVideo;
+      els.video = freshVideo;
 
-      // When we have enough data to display a frame
-      videoEl.addEventListener('canplay', function onCanPlay() {
-        videoEl.removeEventListener('canplay', onCanPlay);
+      // When ready — play briefly then pause to show a visible frame
+      freshVideo.oncanplay = function () {
+        freshVideo.oncanplay = null;
         resizeCanvas();
-        console.log('Video canplay — ready for calibration');
-      });
-
-      // Resize canvas once metadata is available
-      videoEl.addEventListener('loadedmetadata', function onMeta() {
-        videoEl.removeEventListener('loadedmetadata', onMeta);
-        resizeCanvas();
-        console.log('Video metadata loaded: ' + videoEl.videoWidth + 'x' + videoEl.videoHeight);
-      });
+        // Play briefly to decode a frame, then pause for calibration
+        freshVideo.play().then(function () {
+          setTimeout(function () {
+            if (phase === 'rimlock' || phase === 'threept') {
+              freshVideo.pause();
+            }
+          }, 200);
+        }).catch(function () {
+          // Autoplay blocked — that's fine, browser shows poster frame
+        });
+      };
 
       // Auto-advance to summary when file finishes playing
-      videoEl.addEventListener('ended', function onEnd() {
-        videoEl.removeEventListener('ended', onEnd);
+      freshVideo.onended = function () {
         if (phase === 'tracking') enterSummaryPhase();
-      });
+      };
 
-      // Now set the source — this triggers loading automatically
-      videoEl.src = videoFileUrl;
-      // Do NOT call videoEl.load() — setting src is sufficient
+      // Log errors but do NOT block — let the user retry or cancel
+      freshVideo.onerror = function () {
+        var err = freshVideo.error;
+        console.warn('Video error:', err ? 'code=' + err.code + ' ' + err.message : 'unknown');
+      };
+
+      // Set the source — this triggers loading
+      freshVideo.src = videoFileUrl;
       return;
     }
 
@@ -1253,15 +1253,20 @@
    * @param {File} file  A video File object from an <input type="file"> element.
    */
   function openFromFile(file) {
-    if (!file || !file.type.startsWith('video/')) {
-      alert('Please select a valid video file.');
+    if (!file) {
+      alert('Please select a video file.');
       return;
     }
+    // Accept any file — let the browser decide if it can play it
+    console.log('Opening video file:', file.name, file.type, (file.size / 1048576).toFixed(1) + ' MB');
+
     // Revoke any previous object URL to free memory
     if (videoFileUrl) {
       URL.revokeObjectURL(videoFileUrl);
+      videoFileUrl = null;
     }
     videoFileUrl = URL.createObjectURL(file);
+    console.log('Blob URL created:', videoFileUrl);
     openScreen();
   }
 
