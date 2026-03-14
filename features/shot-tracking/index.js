@@ -33,20 +33,14 @@
   /**
    * Wire up any existing dashboard launch buttons.
    * Looks for elements with data-action="launch-shot-tracker".
+   * NOTE: Do NOT hook into .ast-launch-btn or #ast-launch-btn / #ast-upload-btn
+   * — those are handled by the legacy ai-shot-tracker.js which manages the
+   * overlay, camera, and upload video flows.
    */
   function bindLaunchButtons() {
     var buttons = document.querySelectorAll('[data-action="launch-shot-tracker"]');
     for (var i = 0; i < buttons.length; i++) {
       buttons[i].addEventListener('click', function (e) {
-        e.preventDefault();
-        launch();
-      });
-    }
-
-    // Also hook into the existing AI Shot Tracker launch card if present
-    var astLaunchBtn = document.querySelector('.ast-launch-btn');
-    if (astLaunchBtn) {
-      astLaunchBtn.addEventListener('click', function (e) {
         e.preventDefault();
         launch();
       });
