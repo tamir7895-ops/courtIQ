@@ -1246,6 +1246,9 @@
   /* ── Rim calibration ─────────────────────────────────────── */
 
   function confirmRimAndStart(cx, cy) {
+    // Guard against double-call from concurrent ML + color detection
+    if (phase === PHASE.TRACKING) return;
+
     stopRimDetectTimer();
     autoRimCandidate = null;
     rim = { cx: cx, cy: cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
@@ -1263,6 +1266,8 @@
     }
 
     if (mode === 'video' && video) {
+      // Clear any stale onseeked handler from rim detection before seeking
+      video.onseeked = null;
       // Reset to beginning and play
       video.currentTime = 0;
       video.play();
@@ -1281,7 +1286,7 @@
     var scaleX = W / rect.width;
     var scaleY = H / rect.height;
 
-    var src = e.touches ? e.touches[0] : e;
+    var src = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
     var tapX = (src.clientX - rect.left) * scaleX;
     var tapY = (src.clientY - rect.top)  * scaleY;
 
@@ -1429,11 +1434,7 @@
 
     loadMLModel();
 
-    video.srcObject = null;
-    video.src = videoUrl;
-    video.loop = false;
-    video.playbackRate = 1;
-
+    // Set up all event handlers BEFORE setting src to avoid race conditions
     video.onloadedmetadata = function () {
       W = video.videoWidth  || 1280;
       H = video.videoHeight || 720;
@@ -1476,6 +1477,12 @@
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     };
 
+    // Now set source properties — handlers are already attached
+    video.srcObject = null;
+    video.autoplay = false; // Don't auto-play uploaded videos (need seek-pause for calibration)
+    video.src = videoUrl;
+    video.loop = false;
+    video.playbackRate = 1;
     video.load();
   }
 

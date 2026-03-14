@@ -1209,6 +1209,92 @@
     }
   }
 
+  /* ── Live timer ──────────────────────────────────────────── */
+  var sessionTimer = null;
+  function startSessionTimer() {
+    stopSessionTimer();
+    updateTimerDisplay();
+    sessionTimer = setInterval(updateTimerDisplay, 1000);
+  }
+  function stopSessionTimer() {
+    if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
+  }
+  function updateTimerDisplay() {
+    var el = document.getElementById('ast-timer');
+    if (!el || !session.startTime) return;
+    var elapsed = Math.floor((Date.now() - session.startTime) / 1000);
+    var m = Math.floor(elapsed / 60);
+    var s = elapsed % 60;
+    el.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /* ── AI Session History ─────────────────────────────────── */
+  function renderAIHistory() {
+    var list = document.getElementById('ast-history-list');
+    if (!list) return;
+    var sessions = [];
+    try {
+      var raw = localStorage.getItem('courtiq-shot-sessions');
+      if (raw) sessions = JSON.parse(raw);
+    } catch (e) { return; }
+
+    var aiSessions = sessions.filter(function (s) { return s.session_type === 'ai_tracking'; });
+
+    if (aiSessions.length === 0) {
+      // Safe: static string, no user input
+      list.textContent = '';
+      var emptyDiv = document.createElement('div');
+      emptyDiv.className = 'ast-hist-empty';
+      emptyDiv.textContent = 'No AI tracking sessions yet. Start one above!';
+      list.appendChild(emptyDiv);
+      return;
+    }
+
+    list.textContent = '';
+    var show = aiSessions.slice(0, 10);
+    show.forEach(function (s) {
+      var d = new Date(s.date);
+      var dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+      var total = (s.fg_made || 0) + (s.fg_missed || 0);
+      var made = s.fg_made || 0;
+      var pct = total > 0 ? Math.round((made / total) * 100) : 0;
+      var pctClass = pct >= 65 ? 'ast-hist-good' : pct >= 50 ? 'ast-hist-ok' : 'ast-hist-low';
+
+      var card = document.createElement('div');
+      card.className = 'ast-hist-card';
+
+      var dateEl = document.createElement('div');
+      dateEl.className = 'ast-hist-date';
+      dateEl.textContent = dateStr;
+      card.appendChild(dateEl);
+
+      var stats = document.createElement('div');
+      stats.className = 'ast-hist-stats';
+      var pctSpan = document.createElement('span');
+      pctSpan.className = 'ast-hist-pct ' + pctClass;
+      pctSpan.textContent = pct + '%';
+      stats.appendChild(pctSpan);
+      var detailSpan = document.createElement('span');
+      detailSpan.className = 'ast-hist-detail';
+      detailSpan.textContent = made + '/' + total + ' shots';
+      stats.appendChild(detailSpan);
+      if (s.max_streak) {
+        var streakSpan = document.createElement('span');
+        streakSpan.className = 'ast-hist-streak';
+        streakSpan.textContent = s.max_streak + ' streak';
+        stats.appendChild(streakSpan);
+      }
+      card.appendChild(stats);
+
+      var badge = document.createElement('div');
+      badge.className = 'ast-hist-badge';
+      badge.textContent = 'AI';
+      card.appendChild(badge);
+
+      list.appendChild(card);
+    });
+  }
+
   function flashResult(made) {
     var el = document.getElementById('ast-flash');
     if (!el) return;
@@ -1327,6 +1413,9 @@
   /* ── Rim calibration ─────────────────────────────────────── */
 
   function confirmRimAndStart(cx, cy, detectedRx) {
+    // Guard against double-call from concurrent ML + color detection
+    if (phase === PHASE.TRACKING) return;
+
     stopRimDetectTimer();
     autoRimCandidate = null;
     rimCandidateHistory = [];
@@ -1338,6 +1427,7 @@
     rim = { cx: cx, cy: cy, rx: rx, ry: ry };
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
+    startSessionTimer();
     showPhase('track');
 
     // Update status message
@@ -1373,7 +1463,7 @@
     var scaleX = W / rect.width;
     var scaleY = H / rect.height;
 
-    var src = e.touches ? e.touches[0] : e;
+    var src = (e.changedTouches && e.changedTouches[0]) || (e.touches && e.touches[0]) || e;
     var tapX = (src.clientX - rect.left) * scaleX;
     var tapY = (src.clientY - rect.top)  * scaleY;
 
@@ -1494,8 +1584,13 @@
     autoRimCandidate = null;
     calibMode = 'auto';
     stopRimDetectTimer();
+    stopSessionTimer();
     rimDetectTries = 0;
     resetKalman();
+
+    // Reset timer display
+    var timerEl = document.getElementById('ast-timer');
+    if (timerEl) timerEl.textContent = '00:00';
 
     var cameraView  = document.getElementById('ast-camera-view');
     var summaryView = document.getElementById('ast-summary-view');
@@ -1521,7 +1616,14 @@
   function openOverlayVideo() {
     mode = 'video';
     var fileInput = document.getElementById('ast-file-input');
-    if (fileInput) { fileInput.value = ''; fileInput.click(); }
+    if (!fileInput) return;
+    // On iOS Capacitor, remove capture attribute so it opens the gallery
+    // (capture="environment" forces the native camera, not file picker)
+    if (window.Capacitor) {
+      fileInput.removeAttribute('capture');
+    }
+    fileInput.value = '';
+    fileInput.click();
   }
 
   function startVideo(file) {
@@ -1534,11 +1636,7 @@
 
     loadMLModel();
 
-    video.srcObject = null;
-    video.src = videoUrl;
-    video.loop = false;
-    video.playbackRate = 1;
-
+    // Set up all event handlers BEFORE setting src to avoid race conditions
     video.onloadedmetadata = function () {
       W = video.videoWidth  || 1280;
       H = video.videoHeight || 720;
@@ -1581,12 +1679,19 @@
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     };
 
+    // Now set source properties — handlers are already attached
+    video.srcObject = null;
+    video.autoplay = false; // Don't auto-play uploaded videos (need seek-pause for calibration)
+    video.src = videoUrl;
+    video.loop = false;
+    video.playbackRate = 1;
     video.load();
   }
 
   /* ── Stop → Summary ───────────────────────────────────────── */
   function stopSession() {
     stopCamera();
+    stopSessionTimer();
     phase = PHASE.SUMMARY;
     buildSummary();
   }
@@ -1700,6 +1805,7 @@
       existing.unshift(s);
       if (existing.length > 50) existing = existing.slice(0, 50);
       localStorage.setItem('courtiq-shot-sessions', JSON.stringify(existing));
+      renderAIHistory();
       if (window.ShotTracker && window.ShotTracker.renderHistory) {
         window.ShotTracker.renderHistory(existing);
       }
@@ -1727,6 +1833,7 @@
   /* ── Close overlay ────────────────────────────────────────── */
   function closeOverlay() {
     stopCamera();
+    stopSessionTimer();
     var overlay = document.getElementById('ast-overlay');
     if (overlay) overlay.classList.remove('ast-visible');
     document.body.style.overflow = '';
@@ -1857,6 +1964,12 @@
         showCalibState('manual');
       }
     });
+
+    var closeSumBtn = document.getElementById('ast-close-btn-sum');
+    if (closeSumBtn) closeSumBtn.addEventListener('click', closeOverlay);
+
+    // Render AI session history on load
+    renderAIHistory();
   }
 
   function bindBtn(id, fn) {
