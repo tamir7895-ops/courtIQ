@@ -71,7 +71,7 @@
     screen.innerHTML = [
       /* Video + Canvas layer */
       '<div class="st-video-wrap">',
-        '<video id="st-video" autoplay playsinline muted></video>',
+        '<video id="st-video" playsinline muted></video>',
         '<canvas id="st-canvas"></canvas>',
       '</div>',
 
@@ -284,57 +284,50 @@
   function startCamera() {
     // ── File-upload mode ─────────────────────────────────────────
     if (videoFileUrl) {
-      // Disable autoplay — we control playback manually
-      videoEl.autoplay = false;
-      videoEl.removeAttribute('autoplay');
-      videoEl.loop  = false;
-      videoEl.muted = true;
-      videoEl.playsInline = true;
+      videoEl.loop    = false;
+      videoEl.muted   = true;
       videoEl.preload = 'auto';
 
-      // Error handler
-      videoEl.addEventListener('error', function onErr() {
-        videoEl.removeEventListener('error', onErr);
-        console.error('Video load error:', videoEl.error);
-        alert('Could not load video. Try a different file format (MP4/MOV).');
+      // Set source FIRST, then add listeners, then load
+      videoEl.src = videoFileUrl;
+
+      // Error handler — only fires for actual media errors
+      function onVideoError() {
+        videoEl.removeEventListener('error', onVideoError);
+        var err = videoEl.error;
+        console.error('Video load error:', err ? 'code=' + err.code + ' msg=' + err.message : 'unknown');
+        alert('Could not load video (error ' + (err ? err.code : '?') + '). Try MP4 (H.264) format.');
         closeScreen();
-      });
+      }
+      videoEl.addEventListener('error', onVideoError);
 
       // Resize canvas once metadata is available
       videoEl.addEventListener('loadedmetadata', function onMeta() {
         videoEl.removeEventListener('loadedmetadata', onMeta);
         resizeCanvas();
-      });
-
-      // Once enough data is buffered — seek past black intro, pause for calibration
-      videoEl.addEventListener('canplay', function onCanPlay() {
-        videoEl.removeEventListener('canplay', onCanPlay);
         // Seek to 0.5s to skip potential black intro frames
         videoEl.currentTime = 0.5;
       });
 
+      // After seeking — check if frame is visible, if black seek further
       videoEl.addEventListener('seeked', function onSeeked() {
         videoEl.removeEventListener('seeked', onSeeked);
-        // Now we have a real frame — keep video paused for calibration
-        // (video was never played, so it's paused with this frame shown)
-        // Scan for brightness: if still black, seek further
-        var tc = document.createElement('canvas');
-        tc.width = 16; tc.height = 9;
-        var tctx = tc.getContext('2d');
-        tctx.drawImage(videoEl, 0, 0, 16, 9);
-        var px = tctx.getImageData(0, 0, 16, 9).data;
-        var sum = 0;
-        for (var i = 0; i < px.length; i += 4) {
-          sum += px[i] + px[i+1] + px[i+2];
-        }
-        var avg = sum / (16 * 9 * 3);
-        if (avg < 10 && videoEl.currentTime < 3) {
-          // Still black — try 1s further
-          videoEl.currentTime += 1;
-          videoEl.addEventListener('seeked', function onSeeked2() {
-            videoEl.removeEventListener('seeked', onSeeked2);
-            // Accept whatever frame we get at this point
-          });
+        try {
+          var tc = document.createElement('canvas');
+          tc.width = 16; tc.height = 9;
+          var tctx = tc.getContext('2d');
+          tctx.drawImage(videoEl, 0, 0, 16, 9);
+          var px = tctx.getImageData(0, 0, 16, 9).data;
+          var sum = 0;
+          for (var i = 0; i < px.length; i += 4) {
+            sum += px[i] + px[i+1] + px[i+2];
+          }
+          var avg = sum / (16 * 9 * 3);
+          if (avg < 10 && videoEl.currentTime < 3) {
+            videoEl.currentTime += 1;
+          }
+        } catch (e) {
+          // Canvas sampling failed — just show whatever frame we have
         }
       });
 
@@ -344,8 +337,7 @@
         if (phase === 'tracking') enterSummaryPhase();
       });
 
-      // Set source — this triggers loading (preload=auto)
-      videoEl.src = videoFileUrl;
+      // Start loading
       videoEl.load();
       return;
     }
