@@ -287,19 +287,27 @@
       videoEl.src = videoFileUrl;
       videoEl.loop  = false;
       videoEl.muted = true;
-      // Show first frame during calibration so user can see the court and tap the rim.
-      // Video will start playing from the beginning when tracking phase begins.
+      videoEl.preload = 'auto';
+      // Resize canvas once metadata is available
       videoEl.addEventListener('loadedmetadata', function onMeta() {
         videoEl.removeEventListener('loadedmetadata', onMeta);
         resizeCanvas();
-        videoEl.currentTime = 0.01; // Decode first frame for calibration reference
+      });
+      // Pause on first decoded frame — user sees the court for calibration
+      videoEl.addEventListener('loadeddata', function onData() {
+        videoEl.removeEventListener('loadeddata', onData);
+        videoEl.pause();
       });
       // Auto-advance to summary when file finishes playing
       videoEl.addEventListener('ended', function onEnd() {
         videoEl.removeEventListener('ended', onEnd);
         if (phase === 'tracking') enterSummaryPhase();
       });
-      videoEl.load();
+      // play() triggers frame decode; autoplay+muted works without user gesture
+      videoEl.play().catch(function (err) {
+        console.warn('Video autoplay blocked, seeking to first frame:', err);
+        videoEl.currentTime = 0.01;
+      });
       return;
     }
 
