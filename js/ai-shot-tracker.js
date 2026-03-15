@@ -21,8 +21,8 @@
   var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.015;   // raised — avoid triggering on micro-jitter (was 0.008)
-  var VEL_FALL_FRAC  = 0.015;   // raised — avoid false descend triggers (was 0.008)
+  var VEL_RISE_FRAC  = 0.010;   // lowered — detect ball ascending earlier in trajectory
+  var VEL_FALL_FRAC  = 0.010;   // lowered — detect ball descending more reliably
   var TELEPORT_FRAC  = 0.30;    // increased — allow bigger jumps (low FPS video)
   var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
@@ -36,8 +36,8 @@
      - Horizontally: full width (ball can come from any angle)
      - Vertically: from top of frame down to rim + some margin below
      - Excludes bottom 15% of frame (video overlays/watermarks)  */
-  var ROI_BOTTOM_MARGIN_FRAC = 0.10; // ignore bottom 10% of frame (only watermarks)
-  var ROI_BELOW_RIM_FRAC = 0.30;     // search 30% below rim — cuts off deep court floor at 45%
+  var ROI_BOTTOM_MARGIN_FRAC = 0.05; // ignore bottom 5% of frame (only watermarks)
+  var ROI_BELOW_RIM_FRAC = 0.70;     // search 70% below rim — need to see ball in flight early
 
   /* ── Rim auto-detection constants ────────────────────────── */
   var RIM_DETECT_INTERVAL  = 600;   // ms between auto-detect attempts
@@ -164,13 +164,14 @@
   function isInsidePersonBox(x, y) {
     for (var i = 0; i < personBoxes.length; i++) {
       var pb = personBoxes[i];
-      // Shrink sides by 10% to allow ball near hands, but keep top (face/head) fully excluded
-      var shrinkSide = 0.10;
-      var shrinkBottom = 0.15;
+      // Shrink aggressively — ball is often at hands/edges of person box
+      var shrinkSide = 0.25;    // 25% inset from sides (ball at hands)
+      var shrinkBottom = 0.30;  // 30% inset from bottom (legs area, not holding ball)
+      var shrinkTop = 0.15;     // 15% inset from top (allow ball above head)
       var px = pb.x + pb.w * shrinkSide;
-      var py = pb.y;  // no shrink at top — fully exclude face/head
+      var py = pb.y + pb.h * shrinkTop;
       var pw = pb.w * (1 - 2 * shrinkSide);
-      var ph = pb.h * (1 - shrinkBottom);
+      var ph = pb.h * (1 - shrinkTop - shrinkBottom);
       if (x >= px && x <= px + pw && y >= py && y <= py + ph) return true;
     }
     return false;
@@ -320,7 +321,7 @@
     if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
       var roi0 = getROI();
       var learned = window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, roi0.w, Math.min(roi0.h, rim ? Math.round(rim.cy + rim.ry * 4.5) : roi0.h));
-      if (learned && !(rim && learned.y > rim.cy + rim.ry * 4.5)) {
+      if (learned && !(rim && learned.y > rim.cy + rim.ry * 12)) {
         return { x: learned.x, y: learned.y, size: learned.w * learned.h, score: learned.score };
       }
     }
@@ -452,7 +453,8 @@
     }
 
     // Hard cutoff: reject blobs too far below the rim (court floor)
-    if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 4.5) {
+    // Generous limit — need to see ball during player's shooting motion
+    if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 12) {
       return null;
     }
 
@@ -923,7 +925,7 @@
         if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 3.5) {
           // Check if the ball arced high enough to be a real shot
           var arcHeight = ballStartY - ballPeakY;
-          if (arcHeight > H * 0.07) { // raised minimum arc — avoids counting dribbles/hops as shots
+          if (arcHeight > H * 0.04) { // lowered — catches shots from more camera angles
             commitShot(false, now);
           }
         }
