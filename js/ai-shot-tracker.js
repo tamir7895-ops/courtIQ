@@ -133,7 +133,7 @@
   var disappearCount = 0;
   var shotPhase = 'idle';
   var atRimFrames = 0;
-  var atRimMaxFrames = 18;
+  var atRimMaxFrames = 10;
   var cooldownUntil = 0;
 
   var session = {
@@ -357,25 +357,29 @@
         setRimFromML(mlHoopDetection);
       } else if (rim && mlHoopDetection.score > 0.50 && phase === PHASE.TRACKING) {
         // Smoothly update rim position during tracking
-        rim.cx = rim.cx * 0.8 + mlHoopDetection.cx * 0.2;
-        rim.cy = rim.cy * 0.8 + mlHoopDetection.cy * 0.2;
-        rim.rx = rim.rx * 0.8 + (mlHoopDetection.w / 2) * 0.2;
-        rim.ry = rim.ry * 0.8 + (mlHoopDetection.h / 2) * 0.2;
+        var adjCy = mlHoopDetection.cy + mlHoopDetection.h * 0.2;
+        rim.cx = rim.cx * 0.85 + mlHoopDetection.cx * 0.15;
+        rim.cy = rim.cy * 0.85 + adjCy * 0.15;
+        rim.rx = rim.rx * 0.85 + (mlHoopDetection.w * 0.6 / 2) * 0.15;
+        rim.ry = rim.ry * 0.85 + (mlHoopDetection.h * 0.4 / 2) * 0.15;
       }
     }
   }
 
   // Set rim position from ML hoop detection
   function setRimFromML(hoop) {
-    var newRx = hoop.w / 2;
-    var newRy = hoop.h / 2;
+    // ML bounding box includes backboard — rim opening is ~60% of box width, lower edge
+    var newRx = (hoop.w * 0.6) / 2;
+    var newRy = (hoop.h * 0.4) / 2;
+    // Rim is at the bottom of the hoop bounding box
+    var rimCy = hoop.cy + hoop.h * 0.2;
     // Ensure minimum rim size
     newRx = Math.max(newRx, W * 0.02);
     newRy = Math.max(newRy, H * 0.01);
 
-    rim = { cx: hoop.cx, cy: hoop.cy, rx: newRx, ry: newRy };
+    rim = { cx: hoop.cx, cy: rimCy, rx: newRx, ry: newRy };
     console.log('[AST] Rim set from ML hoop: cx=' + Math.round(hoop.cx) +
-                ' cy=' + Math.round(hoop.cy) + ' rx=' + Math.round(newRx) +
+                ' cy=' + Math.round(rimCy) + ' rx=' + Math.round(newRx) +
                 ' ry=' + Math.round(newRy) + ' score=' + hoop.score.toFixed(2));
 
     if (phase === PHASE.CALIBRATING) {
@@ -920,9 +924,12 @@
   /* ── Rim geometry ───────────────────────────────────────────── */
   function insideRim(x, y) {
     if (!rim) return false;
-    var dx = (x - rim.cx) / rim.rx;
-    var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.2;  // slightly forgiving to handle rim calibration error (was 1.5)
+    // ML hoop box includes some backboard — use 70% of detected size for the actual rim opening
+    var effRx = rim.rx * 0.7;
+    var effRy = rim.ry * 0.7;
+    var dx = (x - rim.cx) / effRx;
+    var dy = (y - rim.cy) / effRy;
+    return dx * dx + dy * dy <= 1.0;
   }
 
   function inApproachZone(x, y) {
@@ -938,8 +945,8 @@
   //   Vertical: from slightly above rim to net depth below (~8× rim half-height)
   function ballInBasketZone(ball) {
     if (!rim || !ball) return false;
-    var hOk = Math.abs(ball.x - rim.cx) < rim.rx * 1.15;
-    var vOk = ball.y >= rim.cy - rim.ry * 1.5 && ball.y <= rim.cy + rim.ry * 8;
+    var hOk = Math.abs(ball.x - rim.cx) < rim.rx * 1.5;
+    var vOk = ball.y >= rim.cy - rim.ry * 2 && ball.y <= rim.cy + rim.ry * 8;
     return hOk && vOk;
   }
 
@@ -949,10 +956,10 @@
   function ballPassedThroughRim(ball) {
     if (!ball || !rim) return false;
     if (!ballInBasketZone(ball)) return false;
-    if (ball.y < rim.cy + rim.ry * 0.5) return false; // not yet below rim face
-    // Look back up to 7 frames for evidence ball came from above rim level
+    if (ball.y < rim.cy) return false; // not yet at/below rim face
+    // Look back up to 12 frames for evidence ball came from above rim level
     var hist = ballHistory;
-    for (var i = hist.length - 2; i >= 0 && i >= hist.length - 8; i--) {
+    for (var i = hist.length - 2; i >= 0 && i >= hist.length - 14; i--) {
       if (hist[i] && hist[i].y < rim.cy - rim.ry * 0.3) return true;
     }
     return false;
@@ -989,17 +996,17 @@
         nearRimFrames = 0;
         ballPeakY = Infinity;
       } else if (shotPhase === 'near_rim' && disappearCount >= DISAPPEAR_GRACE) {
-        // Ball was near rim and disappeared — only count as swish if we saw it there for multiple frames
-        // (guard against brief tracking loss triggering false swish)
-        if (nearRimFrames >= 3) {
-          var lastValid = getLastValidBalls(3);
+        // Ball was near rim and disappeared — likely went through (swish) or bounced off
+        if (nearRimFrames >= 2) {
+          var lastValid = getLastValidBalls(5);
           if (lastValid.length >= 2) {
             var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
-            var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
-            var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
-            if (wasDescending && wasNearRimX && wasBelowRimLevel) {
-              commitShot(true, now);  // Likely swish — confirmed near rim for several frames
-            } else if (wasNearRimX && nearRimFrames >= 5) {
+            var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2.5;
+            var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry * 2;
+            var wasAboveRimRecently = lastValid.some(function(b) { return b.y < rim.cy; });
+            if (wasDescending && wasNearRimX && (wasBelowRimLevel || wasAboveRimRecently)) {
+              commitShot(true, now);  // Likely swish — ball descended near rim and vanished
+            } else if (wasNearRimX && nearRimFrames >= 4) {
               commitShot(false, now); // Near rim for a while but didn't go through
             }
           }
@@ -1026,15 +1033,17 @@
       if (ballHistory[i]) recent.unshift(ballHistory[i]);
     }
     var yVel = 0;
-    if (recent.length >= 3) {
-      var lookback = Math.min(8, recent.length - 1);
+    if (recent.length >= 2) {
+      // Use shorter lookback (4 frames) for faster velocity response
+      var lookback = Math.min(4, recent.length - 1);
       var old = recent[recent.length - 1 - lookback];
       yVel = (ball.y - old.y) / H;
     }
 
     // Check proximity to rim area (wider than insideRim)
-    var nearRim = rim && Math.abs(ball.x - rim.cx) < rim.rx * 2.5 &&
-                  Math.abs(ball.y - rim.cy) < rim.ry * 3;
+    // With ML-accurate rim, we can use tighter but more reliable zones
+    var nearRim = rim && Math.abs(ball.x - rim.cx) < rim.rx * 3.0 &&
+                  Math.abs(ball.y - rim.cy) < rim.ry * 4;
 
     if (shotPhase === 'idle') {
       if (yVel < -VEL_RISE_FRAC) {
@@ -1043,9 +1052,14 @@
         ballStartY = ball.y;
       }
       // Also detect ball already descending near rim (missed the ascent)
-      if (yVel > VEL_FALL_FRAC && nearRim && ball.y < rim.cy) {
+      if (yVel > VEL_FALL_FRAC && nearRim && ball.y < rim.cy + rim.ry * 2) {
         shotPhase = 'near_rim';
         nearRimFrames = 1;
+      }
+      // Direct entry: ball suddenly appears inside or near rim zone (e.g. fast shot)
+      if (rim && insideRim(ball.x, ball.y)) {
+        shotPhase = 'at_rim';
+        atRimFrames = 1;
       }
     } else if (shotPhase === 'ascending') {
       if (insideRim(ball.x, ball.y) || ballInBasketZone(ball)) {
@@ -1107,17 +1121,27 @@
     } else if (shotPhase === 'at_rim') {
       atRimFrames++;
       if (!insideRim(ball.x, ball.y)) {
-        if (ballPassedThroughRim(ball) || ball.y > rim.cy + rim.ry * 1.0) {
+        if (ballPassedThroughRim(ball) || ball.y > rim.cy + rim.ry * 0.5) {
           commitShot(true, now);  // Exited through/below rim — made
+        } else if (ball.y < rim.cy - rim.ry * 2) {
+          commitShot(false, now); // Exited well above rim — miss (bounce out)
         } else {
-          commitShot(false, now); // Exited above or to the side — miss
+          // Exited to the side — check if ball went below rim at any point
+          var wentBelow = checkExitedBelow();
+          commitShot(wentBelow, now);
         }
         shotPhase = 'idle';
         atRimFrames = 0;
         nearRimFrames = 0;
         ballPeakY = Infinity;
       } else if (atRimFrames > atRimMaxFrames) {
-        commitShot(false, now);
+        // Ball "stuck" at rim too long — likely phantom from Kalman coast
+        // Only count if ball score is still decent (real detection, not phantom)
+        if (ball.score > 0.15) {
+          // Real ball lingering — check if it's below rim center
+          commitShot(ball.y > rim.cy, now);
+        }
+        // Otherwise silently reset — phantom detection, not a real shot
         shotPhase = 'idle';
         atRimFrames = 0;
         nearRimFrames = 0;
@@ -1315,6 +1339,18 @@
     if (phase === PHASE.TRACKING) processBall(lastBall);
     drawOverlay(lastBall);
 
+    // While ML inference is running, use Kalman prediction to maintain tracking
+    // But decay score quickly to prevent phantom balls
+    if (isDetecting && lastBall) {
+      var predX = kalmanPredict(kalX);
+      var predY = kalmanPredict(kalY);
+      if (predX !== null && predY !== null && lastBall.score > 0.08) {
+        lastBall = { x: predX, y: predY, size: lastBall.size, score: lastBall.score * 0.75 };
+      } else {
+        lastBall = null; // score too low — stop coasting
+      }
+    }
+
     if (!isDetecting) {
       isDetecting = true;
       detectBallAsync().then(function (raw) {
@@ -1326,6 +1362,7 @@
             window.AdaptiveLearning.onBallDetected(canvas, ctx, ball.x, ball.y);
           }
         } else if (raw) {
+          // Raw detection exists but teleported — use Kalman prediction instead
           var predX = kalmanPredict(kalX);
           var predY = kalmanPredict(kalY);
           if (predX !== null && predY !== null) {
@@ -1334,6 +1371,13 @@
             ball = lastBall;
           }
           resetKalman();
+        } else if (lastBall && lastBall.score > 0.15) {
+          // No detection at all — coast on Kalman for 2-3 frames max
+          var predX2 = kalmanPredict(kalX);
+          var predY2 = kalmanPredict(kalY);
+          if (predX2 !== null && predY2 !== null) {
+            ball = { x: predX2, y: predY2, size: lastBall.size, score: lastBall.score * 0.5 };
+          }
         }
         lastBall = ball;
         isDetecting = false;
