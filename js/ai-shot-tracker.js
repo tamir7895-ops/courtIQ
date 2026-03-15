@@ -1679,6 +1679,17 @@
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     };
 
+    video.onerror = function () {
+      console.error('[AST] Video load error:', video.error);
+      var errEl = document.getElementById('ast-error');
+      if (errEl) {
+        errEl.textContent = 'Video failed to load. Try a different file.';
+        errEl.style.display = '';
+      }
+      var mlStatus = document.getElementById('ast-ml-status');
+      if (mlStatus) { mlStatus.textContent = 'Video error'; mlStatus.style.display = ''; }
+    };
+
     // Now set source properties — handlers are already attached
     video.srcObject = null;
     video.autoplay = false; // Don't auto-play uploaded videos (need seek-pause for calibration)
