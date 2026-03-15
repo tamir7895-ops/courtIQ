@@ -297,7 +297,9 @@
     var roi = getROI();
     if (roi.w < 10 || roi.h < 10) return null;
 
-    var imageData = ctx.getImageData(roi.x, roi.y, roi.w, roi.h);
+    var imageData;
+    try { imageData = ctx.getImageData(roi.x, roi.y, roi.w, roi.h); }
+    catch (e) { return null; } // tainted canvas (cross-origin video)
     var data = imageData.data;
     var rw = imageData.width, rh = imageData.height;
 
@@ -503,7 +505,9 @@
     ctx.drawImage(video, 0, 0, W, H);
 
     var scanH = Math.round(H * RIM_SCAN_TOP_FRAC);
-    var imageData = ctx.getImageData(0, 0, W, scanH);
+    var imageData;
+    try { imageData = ctx.getImageData(0, 0, W, scanH); }
+    catch (e) { return null; } // tainted canvas (cross-origin video)
     var data = imageData.data;
 
     var minRimW = W * RIM_MIN_WIDTH_FRAC;
@@ -1105,29 +1109,57 @@
     var aiSessions = sessions.filter(function (s) { return s.session_type === 'ai_tracking'; });
 
     if (aiSessions.length === 0) {
-      list.innerHTML = '<div class="ast-hist-empty">No AI tracking sessions yet. Start one above!</div>';
+      list.textContent = '';
+      var emptyDiv = document.createElement('div');
+      emptyDiv.className = 'ast-hist-empty';
+      emptyDiv.textContent = 'No AI tracking sessions yet. Start one above!';
+      list.appendChild(emptyDiv);
       return;
     }
 
+    list.textContent = '';
     var show = aiSessions.slice(0, 10);
-    // Data is from localStorage (user's own saved data), not external input
-    list.innerHTML = show.map(function (s) {
+    show.forEach(function (s) {
       var d = new Date(s.date);
       var dateStr = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
       var total = (s.fg_made || 0) + (s.fg_missed || 0);
       var made = s.fg_made || 0;
       var pct = total > 0 ? Math.round((made / total) * 100) : 0;
       var pctClass = pct >= 65 ? 'ast-hist-good' : pct >= 50 ? 'ast-hist-ok' : 'ast-hist-low';
-      return '<div class="ast-hist-card">' +
-        '<div class="ast-hist-date">' + dateStr + '</div>' +
-        '<div class="ast-hist-stats">' +
-          '<span class="ast-hist-pct ' + pctClass + '">' + pct + '%</span>' +
-          '<span class="ast-hist-detail">' + made + '/' + total + ' shots</span>' +
-          (s.max_streak ? '<span class="ast-hist-streak">' + s.max_streak + ' streak</span>' : '') +
-        '</div>' +
-        '<div class="ast-hist-badge">AI</div>' +
-      '</div>';
-    }).join('');
+
+      var card = document.createElement('div');
+      card.className = 'ast-hist-card';
+
+      var dateEl = document.createElement('div');
+      dateEl.className = 'ast-hist-date';
+      dateEl.textContent = dateStr;
+      card.appendChild(dateEl);
+
+      var stats = document.createElement('div');
+      stats.className = 'ast-hist-stats';
+      var pctSpan = document.createElement('span');
+      pctSpan.className = 'ast-hist-pct ' + pctClass;
+      pctSpan.textContent = pct + '%';
+      stats.appendChild(pctSpan);
+      var detailSpan = document.createElement('span');
+      detailSpan.className = 'ast-hist-detail';
+      detailSpan.textContent = made + '/' + total + ' shots';
+      stats.appendChild(detailSpan);
+      if (s.max_streak) {
+        var streakSpan = document.createElement('span');
+        streakSpan.className = 'ast-hist-streak';
+        streakSpan.textContent = s.max_streak + ' streak';
+        stats.appendChild(streakSpan);
+      }
+      card.appendChild(stats);
+
+      var badge = document.createElement('div');
+      badge.className = 'ast-hist-badge';
+      badge.textContent = 'AI';
+      card.appendChild(badge);
+
+      list.appendChild(card);
+    });
   }
 
   function flashResult(made) {
@@ -1312,15 +1344,18 @@
       // For video mode: seek to different timestamps on each try
       // so we don't scan the same frame 12 times
       if (mode === 'video' && video && video.duration) {
+        // Guard: skip if a previous seek is still pending
+        if (video.seeking) return;
         var seekTo = rimSeekTimes[Math.min(rimDetectTries - 1, rimSeekTimes.length - 1)];
         seekTo = Math.min(seekTo, video.duration * 0.8);
         video.currentTime = seekTo;
-        // Wait for seek, then scan
-        video.onseeked = function () {
-          video.onseeked = null;
+        // Wait for seek, then scan — use one-shot handler to avoid stacking
+        var onSeeked = function () {
+          video.removeEventListener('seeked', onSeeked);
           ctx.drawImage(video, 0, 0, W, H);
           checkRimCandidate();
         };
+        video.addEventListener('seeked', onSeeked);
         return;
       }
 
@@ -1373,6 +1408,10 @@
     cooldownUntil = 0;
     disappearCount = 0;
     atRimFrames = 0;
+    nearRimFrames = 0;
+    ballPeakY = Infinity;
+    ballStartY = 0;
+    mlRimVotes = [];
     phase = PHASE.IDLE;
     lastBall = null;
     isDetecting = false;
@@ -1652,7 +1691,39 @@
   }
 
   /* ── Init ────────────────────────────────────────────────── */
+  /* ── Court size presets ──────────────────────────────────── */
+  var COURT_PRESETS = {
+    nba:  'NBA: 3PT line at 23.75 ft, Court 50\u00d794 ft',
+    fiba: 'FIBA: 3PT line at 6.75 m, Court 15\u00d728 m',
+    hs:   'HS: 3PT line at 19.75 ft, Court 50\u00d784 ft'
+  };
+
+  function initCourtPresets() {
+    var infoEl = document.getElementById('ast-court-info');
+    document.querySelectorAll('.ast-court-btn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        document.querySelectorAll('.ast-court-btn').forEach(function (b) { b.classList.remove('ast-court-active'); });
+        btn.classList.add('ast-court-active');
+        var preset = btn.getAttribute('data-preset') || 'nba';
+        if (infoEl) infoEl.textContent = COURT_PRESETS[preset] || COURT_PRESETS.nba;
+        try { localStorage.setItem('courtiq-court-preset', preset); } catch (e) {}
+      });
+    });
+    // Restore saved preset
+    try {
+      var saved = localStorage.getItem('courtiq-court-preset');
+      if (saved && COURT_PRESETS[saved]) {
+        document.querySelectorAll('.ast-court-btn').forEach(function (b) {
+          b.classList.toggle('ast-court-active', b.getAttribute('data-preset') === saved);
+        });
+        if (infoEl) infoEl.textContent = COURT_PRESETS[saved];
+      }
+    } catch (e) {}
+  }
+
   function init() {
+    initCourtPresets();
+
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
 
@@ -1699,9 +1770,8 @@
     if (closeBtn) closeBtn.addEventListener('click', function () {
       if (phase === PHASE.SUMMARY) { closeOverlay(); return; }
       if (session.attempts === 0) { closeOverlay(); return; }
-      if (confirm('Stop AI tracking? You can save the session on the next screen.')) {
-        stopSession();
-      }
+      // Non-blocking: just stop and show summary (user can save or discard there)
+      stopSession();
     });
 
     var stopBtn = document.getElementById('ast-stop-btn');
