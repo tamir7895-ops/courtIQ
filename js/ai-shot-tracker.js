@@ -184,14 +184,26 @@
     return Math.sqrt(dx * dx + dy * dy) < W * TELEPORT_FRAC;
   }
 
-  /* ── ML model loading ───────────────────────────────────────── */
+  /* ── ML model loading (YOLOX-Nano via ONNX Runtime Web) ───── */
   var mlRetryCount = 0;
-  var ML_MAX_RETRIES = 3;
+  var ML_MAX_RETRIES = 5;
+  var YOLOX_INPUT_SIZE = 416;
+  var YOLOX_NUM_CLASSES = 80;
+  var YOLOX_BALL_CLASS = 32;  // COCO "sports ball" index
+  var YOLOX_BALL_THRESHOLD = 0.03;  // ultra-low for basketball
+  var YOLOX_PERSON_THRESHOLD = 0.35;
+  var YOLOX_PERSON_CLASS = 0;
+  // Additional classes that might match a basketball
+  var YOLOX_ALT_BALL_CLASSES = { 29: 0.80, 49: 0.55, 47: 0.30 }; // frisbee, orange, apple
+
+  // Reusable buffers for ONNX inference (avoid GC pressure)
+  var yoloxInputBuf = null;
+  var yoloxResizeCanvas = null;
+  var yoloxResizeCtx = null;
 
   function loadMLModel() {
     if (mlLoading || mlReady) return;
-    if (typeof cocoSsd === 'undefined' || typeof tf === 'undefined') {
-      // TF/COCO-SSD not loaded yet — retry after delay
+    if (typeof ort === 'undefined') {
       if (mlRetryCount < ML_MAX_RETRIES) {
         mlRetryCount++;
         setTimeout(loadMLModel, mlRetryCount * 2000);
@@ -200,24 +212,28 @@
     }
     mlLoading = true;
     setMLStatus('loading');
-    tf.ready().then(function () {
-      return cocoSsd.load({ base: 'mobilenet_v2' });
-    }).then(function (model) {
-      tfModel = model;
+
+    // Determine model path relative to page
+    var modelPath = 'models/yolox_nano.onnx';
+
+    ort.InferenceSession.create(modelPath, {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: 'all'
+    }).then(function (session) {
+      tfModel = session;
       mlReady = true;
       mlLoading = false;
+      // Pre-allocate reusable buffers
+      yoloxInputBuf = new Float32Array(1 * 3 * YOLOX_INPUT_SIZE * YOLOX_INPUT_SIZE);
+      yoloxResizeCanvas = document.createElement('canvas');
+      yoloxResizeCanvas.width = YOLOX_INPUT_SIZE;
+      yoloxResizeCanvas.height = YOLOX_INPUT_SIZE;
+      yoloxResizeCtx = yoloxResizeCanvas.getContext('2d');
       setMLStatus('ready');
-    }).catch(function () {
-      // Fallback to lite if full model fails
-      cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
-        tfModel = model;
-        mlReady = true;
-        mlLoading = false;
-        setMLStatus('ready');
-      }).catch(function () {
-        mlLoading = false;
-        setMLStatus('fallback');
-      });
+    }).catch(function (e) {
+      console.warn('[AST] ONNX model load failed, using color-only:', e);
+      mlLoading = false;
+      setMLStatus('fallback');
     });
   }
 
@@ -229,70 +245,161 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── ML detection with person exclusion ─────────────────────── */
-  // Wider set of classes — COCO-SSD sometimes classifies basketballs as these
-  // Only accept classes that plausibly look like a basketball in flight; removed 'bowl' and 'clock' (too noisy)
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.80, 'orange': 0.55, 'apple': 0.30 };
+  /* ── YOLOX-Nano inference helpers ──────────────────────────── */
   var mlMissCount = 0;
 
+  function yoloxPreprocess() {
+    // Letterbox resize: fit source canvas into 416×416 with gray padding
+    var sz = YOLOX_INPUT_SIZE;
+    var ratio = Math.min(sz / H, sz / W);
+    var newW = Math.round(W * ratio);
+    var newH = Math.round(H * ratio);
+
+    yoloxResizeCtx.fillStyle = 'rgb(114,114,114)';
+    yoloxResizeCtx.fillRect(0, 0, sz, sz);
+    yoloxResizeCtx.drawImage(canvas, 0, 0, W, H, 0, 0, newW, newH);
+
+    var imgData = yoloxResizeCtx.getImageData(0, 0, sz, sz).data;
+    // HWC RGBA → CHW RGB (no /255 for YOLOX)
+    var chSize = sz * sz;
+    for (var i = 0; i < chSize; i++) {
+      yoloxInputBuf[i]              = imgData[i * 4];     // R
+      yoloxInputBuf[chSize + i]     = imgData[i * 4 + 1]; // G
+      yoloxInputBuf[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+    }
+    return ratio;
+  }
+
+  function yoloxDecode(output, ratio) {
+    // output shape: [3549, 85] — each row: [cx, cy, w, h, obj, cls0..cls79]
+    var numDets = output.length / (5 + YOLOX_NUM_CLASSES);
+    var stride = 5 + YOLOX_NUM_CLASSES;
+    var balls = [];
+    personBoxes = [];
+
+    for (var i = 0; i < numDets; i++) {
+      var off = i * stride;
+      var obj = output[off + 4];
+      if (obj < 0.01) continue;  // skip very low objectness
+
+      var cx = output[off]     / ratio;
+      var cy = output[off + 1] / ratio;
+      var bw = output[off + 2] / ratio;
+      var bh = output[off + 3] / ratio;
+
+      // Find best class
+      var bestCls = -1, bestClsScore = 0;
+      for (var c = 0; c < YOLOX_NUM_CLASSES; c++) {
+        var cs = output[off + 5 + c];
+        if (cs > bestClsScore) { bestClsScore = cs; bestCls = c; }
+      }
+
+      var finalScore = obj * bestClsScore;
+
+      // Collect person boxes
+      if (bestCls === YOLOX_PERSON_CLASS && finalScore > YOLOX_PERSON_THRESHOLD) {
+        personBoxes.push({ x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh });
+        continue;
+      }
+
+      // Check ball classes (sports ball + alternates)
+      var ballScore = obj * output[off + 5 + YOLOX_BALL_CLASS];
+      var classWeight = 1.0;
+
+      // Also check alternate classes
+      for (var altCls in YOLOX_ALT_BALL_CLASSES) {
+        var altScore = obj * output[off + 5 + parseInt(altCls)];
+        if (altScore * YOLOX_ALT_BALL_CLASSES[altCls] > ballScore * classWeight) {
+          ballScore = altScore;
+          classWeight = YOLOX_ALT_BALL_CLASSES[altCls];
+        }
+      }
+
+      var adjScore = ballScore * classWeight;
+      if (adjScore < YOLOX_BALL_THRESHOLD) continue;
+
+      // Size filter
+      var area = bw * bh;
+      var frameArea = W * H;
+      if (area < frameArea * 0.0001 || area > frameArea * 0.08) continue;
+
+      // Aspect ratio check
+      var aspect = Math.max(bw / bh, bh / bw);
+      if (aspect > 2.5) continue;
+
+      // ROI check
+      if (!isInsideROI(cx, cy)) continue;
+
+      balls.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: adjScore });
+    }
+
+    return balls;
+  }
+
+  /* ── ML detection: YOLOX-Nano + color verification ─────────── */
   function detectBallAsync() {
     if (mlReady && tfModel) {
-      // Use canvas instead of video element — ensures ML and color detection
-      // are analyzing the exact same frame (avoids desync)
-      return tfModel.detect(canvas).then(function (preds) {
-        var best = null, bestAdjScore = 0.15; // lowered from 0.25 — catch lower-confidence ball detections
-        var frameArea = W * H;
+      var ratio = yoloxPreprocess();
+      var inputTensor = new ort.Tensor('float32', yoloxInputBuf, [1, 3, YOLOX_INPUT_SIZE, YOLOX_INPUT_SIZE]);
 
-        // First pass: collect person bounding boxes for exclusion
-        personBoxes = [];
-        for (var p = 0; p < preds.length; p++) {
-          if (preds[p].class === 'person' && preds[p].score > 0.35) {
-            var pb = preds[p].bbox;
-            personBoxes.push({ x: pb[0], y: pb[1], w: pb[2], h: pb[3] });
+      return tfModel.run({ images: inputTensor }).then(function (results) {
+        var outputData = results.output.data;
+        var balls = yoloxDecode(outputData, ratio);
+
+        if (balls.length > 0) {
+          // Sort by score, pick best
+          balls.sort(function (a, b) { return b.score - a.score; });
+
+          // For low-confidence detections, verify orange color
+          for (var bi = 0; bi < balls.length; bi++) {
+            var b = balls[bi];
+            if (b.score >= 0.15) {
+              // High confidence — trust it
+              mlMissCount = 0;
+              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score };
+            }
+            // Low confidence — verify with color
+            if (verifyOrangeRegion(b.cx, b.cy, Math.max(b.bw, b.bh))) {
+              mlMissCount = 0;
+              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score * 2 }; // boost confidence
+            }
           }
         }
 
-
-
-        // Second pass: find best ball detection
-        for (var i = 0; i < preds.length; i++) {
-          var cls = preds[i].class;
-          var classWeight = ML_BALL_CLASSES[cls];
-          if (!classWeight) continue;
-          var adjScore = preds[i].score * classWeight;
-          if (adjScore <= bestAdjScore) continue;
-
-          var bbox = preds[i].bbox;
-          var area = bbox[2] * bbox[3];
-          if (area < frameArea * 0.0001 || area > frameArea * 0.15) continue; // wider area range
-
-          // Shape check — basketballs can look slightly elongated in motion
-          var bAspect = Math.max(bbox[2] / bbox[3], bbox[3] / bbox[2]);
-          if (bAspect > 2.8) continue; // more lenient aspect ratio
-
-          // Center of detection
-          var cx = bbox[0] + bbox[2] / 2;
-          var cy = bbox[1] + bbox[3] / 2;
-
-          // Must be inside ROI
-          if (!isInsideROI(cx, cy)) continue;
-
-          best = preds[i];
-          bestAdjScore = adjScore;
-        }
-
-        if (best) {
-          mlMissCount = 0;
-          var b = best.bbox;
-          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: bestAdjScore };
-        }
-
-        // Always try color fallback when ML misses — don't wait 3 frames
+        // No ML ball found — always fall back to color detection
         mlMissCount++;
         return detectBallColor();
-      }).catch(function () { return detectBallColor(); });
+      }).catch(function (e) {
+        console.warn('[AST] ONNX inference error:', e);
+        return detectBallColor();
+      });
     }
     return Promise.resolve(detectBallColor());
+  }
+
+  /* ── Orange color verification for low-confidence ML detections */
+  function verifyOrangeRegion(cx, cy, radius) {
+    var r2 = Math.max(radius, 10);
+    var x0 = Math.max(0, Math.round(cx - r2));
+    var y0 = Math.max(0, Math.round(cy - r2));
+    var x1 = Math.min(W, Math.round(cx + r2));
+    var y1 = Math.min(H, Math.round(cy + r2));
+    if (x1 <= x0 || y1 <= y0) return false;
+
+    try {
+      var imgData = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+    } catch (e) { return false; }
+
+    var orangeCount = 0, total = 0;
+    var step = Math.max(1, Math.floor((x1 - x0) / 8));
+    for (var py = 0; py < y1 - y0; py += step) {
+      for (var px = 0; px < x1 - x0; px += step) {
+        var idx = (py * (x1 - x0) + px) * 4;
+        if (isOrange(imgData[idx], imgData[idx + 1], imgData[idx + 2])) orangeCount++;
+        total++;
+      }
+    }
+    return total > 0 && (orangeCount / total) >= 0.15;  // at least 15% orange pixels
   }
 
   /* ── Color detection: shape-aware, ROI-limited, person-excluded ── */

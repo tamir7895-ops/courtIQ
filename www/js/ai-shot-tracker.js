@@ -21,15 +21,15 @@
   var BALL_CIRCLE_FRAC = 0.022;
 
   /* ── Velocity thresholds (fraction of H per 8-frame window) */
-  var VEL_RISE_FRAC  = 0.010;   // detect ball ascending earlier in trajectory
-  var VEL_FALL_FRAC  = 0.010;   // detect ball descending more reliably
+  var VEL_RISE_FRAC  = 0.010;   // lowered — detect ball ascending earlier in trajectory
+  var VEL_FALL_FRAC  = 0.010;   // lowered — detect ball descending more reliably
   var TELEPORT_FRAC  = 0.30;    // increased — allow bigger jumps (low FPS video)
   var DISAPPEAR_GRACE = 10;     // increased — ball disappears more in compressed video
 
   /* ── Ball size for color detection (fraction of frame width) */
-  var BALL_DIAM_MIN_FRAC = 0.012;
-  var BALL_DIAM_MAX_FRAC = 0.14;
-  var BALL_ASPECT_MAX    = 2.2;
+  var BALL_DIAM_MIN_FRAC = 0.010;   // lowered — catch small/distant balls
+  var BALL_DIAM_MAX_FRAC = 0.20;    // raised — portrait videos can show larger ball area
+  var BALL_ASPECT_MAX    = 2.5;     // raised — motion blur can stretch ball shape
 
   /* ── ROI: Region of Interest for ball search ────────────────
      After rim calibration, we only search in this region:
@@ -46,6 +46,27 @@
   var RIM_MAX_WIDTH_FRAC   = 0.35;  // rim blob can't be more than 35% of frame width
   var RIM_SCAN_TOP_FRAC    = 0.75;  // scan top 75% of frame (rim can be lower in some angles)
 
+  /* ── Rim model (learned by rim-trainer tool) ───────────────
+     Loads courtiq-rim-model from localStorage and applies:
+     - rimModel.rxFracMean → overrides RIM_RX_FRAC default
+     - rimModel.{r,g,b}{Min,Max} → used by isRimColor() for learned color bounds
+     Gracefully ignores if missing/invalid.  */
+  var rimModel = null;
+  (function () {
+    try {
+      var _rm = localStorage.getItem('courtiq-rim-model');
+      if (_rm) {
+        var parsed = JSON.parse(_rm);
+        if (parsed && parsed.rxFracMean > 0.01 && parsed.rxFracMean < 0.30) {
+          rimModel = parsed;
+          RIM_RX_FRAC = rimModel.rxFracMean;
+        }
+      }
+    } catch (e) {
+      console.warn('[AST rim-model] parse error:', e);
+    }
+  }());
+
   /* ── State ────────────────────────────────────────────────── */
   var PHASE = { IDLE: 'idle', CALIBRATING: 'calibrating', TRACKING: 'tracking', SUMMARY: 'summary' };
   var phase = PHASE.IDLE;
@@ -53,13 +74,15 @@
   var autoRimCandidate = null;  // { cx, cy } — candidate from auto-detect
   var rimDetectTimer = null;
   var rimDetectTries = 0;
+  var rimCandidateHistory = [];   // multi-frame consensus buffer
+  var RIM_CONSENSUS_NEEDED = 3;   // require N consistent detections
+  var RIM_CONSENSUS_TOL    = 0.08; // max cx/cy drift (fraction of W)
 
   var video, canvas, ctx, stream;
   var W = 0, H = 0;
   var animFrame = null;
   var mode = 'camera';
   var videoUrl = null;
-  var sessionTimer = null;
 
   /* ── ML state ─────────────────────────────────────────────── */
   var tfModel     = null;
@@ -120,9 +143,9 @@
 
   /* ── ROI helpers ────────────────────────────────────────────── */
   function getROI() {
-    // Before calibration, search most of the frame (exclude bottom 15% for overlays)
+    // Before calibration: only search upper 60% of frame (basket is never in lower half)
     if (!rim) {
-      return { x: 0, y: 0, w: W, h: Math.round(H * (1 - ROI_BOTTOM_MARGIN_FRAC)) };
+      return { x: 0, y: 0, w: W, h: Math.round(H * 0.60) };
     }
     // After calibration, focus on the area around the rim
     var roiTop = 0;
@@ -161,14 +184,26 @@
     return Math.sqrt(dx * dx + dy * dy) < W * TELEPORT_FRAC;
   }
 
-  /* ── ML model loading ───────────────────────────────────────── */
+  /* ── ML model loading (YOLOX-Nano via ONNX Runtime Web) ───── */
   var mlRetryCount = 0;
-  var ML_MAX_RETRIES = 3;
+  var ML_MAX_RETRIES = 5;
+  var YOLOX_INPUT_SIZE = 416;
+  var YOLOX_NUM_CLASSES = 80;
+  var YOLOX_BALL_CLASS = 32;  // COCO "sports ball" index
+  var YOLOX_BALL_THRESHOLD = 0.03;  // ultra-low for basketball
+  var YOLOX_PERSON_THRESHOLD = 0.35;
+  var YOLOX_PERSON_CLASS = 0;
+  // Additional classes that might match a basketball
+  var YOLOX_ALT_BALL_CLASSES = { 29: 0.80, 49: 0.55, 47: 0.30 }; // frisbee, orange, apple
+
+  // Reusable buffers for ONNX inference (avoid GC pressure)
+  var yoloxInputBuf = null;
+  var yoloxResizeCanvas = null;
+  var yoloxResizeCtx = null;
 
   function loadMLModel() {
     if (mlLoading || mlReady) return;
-    if (typeof cocoSsd === 'undefined' || typeof tf === 'undefined') {
-      // TF/COCO-SSD not loaded yet — retry after delay
+    if (typeof ort === 'undefined') {
       if (mlRetryCount < ML_MAX_RETRIES) {
         mlRetryCount++;
         setTimeout(loadMLModel, mlRetryCount * 2000);
@@ -177,24 +212,28 @@
     }
     mlLoading = true;
     setMLStatus('loading');
-    tf.ready().then(function () {
-      return cocoSsd.load({ base: 'mobilenet_v2' });
-    }).then(function (model) {
-      tfModel = model;
+
+    // Determine model path relative to page
+    var modelPath = 'models/yolox_nano.onnx';
+
+    ort.InferenceSession.create(modelPath, {
+      executionProviders: ['wasm'],
+      graphOptimizationLevel: 'all'
+    }).then(function (session) {
+      tfModel = session;
       mlReady = true;
       mlLoading = false;
+      // Pre-allocate reusable buffers
+      yoloxInputBuf = new Float32Array(1 * 3 * YOLOX_INPUT_SIZE * YOLOX_INPUT_SIZE);
+      yoloxResizeCanvas = document.createElement('canvas');
+      yoloxResizeCanvas.width = YOLOX_INPUT_SIZE;
+      yoloxResizeCanvas.height = YOLOX_INPUT_SIZE;
+      yoloxResizeCtx = yoloxResizeCanvas.getContext('2d');
       setMLStatus('ready');
-    }).catch(function () {
-      // Fallback to lite if full model fails
-      cocoSsd.load({ base: 'lite_mobilenet_v2' }).then(function (model) {
-        tfModel = model;
-        mlReady = true;
-        mlLoading = false;
-        setMLStatus('ready');
-      }).catch(function () {
-        mlLoading = false;
-        setMLStatus('fallback');
-      });
+    }).catch(function (e) {
+      console.warn('[AST] ONNX model load failed, using color-only:', e);
+      mlLoading = false;
+      setMLStatus('fallback');
     });
   }
 
@@ -206,92 +245,193 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── ML detection with person exclusion ─────────────────────── */
-  // Wider set of classes — COCO-SSD sometimes classifies basketballs as these
-  var ML_BALL_CLASSES = { 'sports ball': 1.0, 'frisbee': 0.85, 'orange': 0.7, 'apple': 0.5, 'bowl': 0.3, 'clock': 0.25 };
+  /* ── YOLOX-Nano inference helpers ──────────────────────────── */
   var mlMissCount = 0;
 
+  function yoloxPreprocess() {
+    // Letterbox resize: fit source canvas into 416×416 with gray padding
+    var sz = YOLOX_INPUT_SIZE;
+    var ratio = Math.min(sz / H, sz / W);
+    var newW = Math.round(W * ratio);
+    var newH = Math.round(H * ratio);
+
+    yoloxResizeCtx.fillStyle = 'rgb(114,114,114)';
+    yoloxResizeCtx.fillRect(0, 0, sz, sz);
+    yoloxResizeCtx.drawImage(canvas, 0, 0, W, H, 0, 0, newW, newH);
+
+    var imgData = yoloxResizeCtx.getImageData(0, 0, sz, sz).data;
+    // HWC RGBA → CHW RGB (no /255 for YOLOX)
+    var chSize = sz * sz;
+    for (var i = 0; i < chSize; i++) {
+      yoloxInputBuf[i]              = imgData[i * 4];     // R
+      yoloxInputBuf[chSize + i]     = imgData[i * 4 + 1]; // G
+      yoloxInputBuf[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+    }
+    return ratio;
+  }
+
+  function yoloxDecode(output, ratio) {
+    // output shape: [3549, 85] — each row: [cx, cy, w, h, obj, cls0..cls79]
+    var numDets = output.length / (5 + YOLOX_NUM_CLASSES);
+    var stride = 5 + YOLOX_NUM_CLASSES;
+    var balls = [];
+    personBoxes = [];
+
+    for (var i = 0; i < numDets; i++) {
+      var off = i * stride;
+      var obj = output[off + 4];
+      if (obj < 0.01) continue;  // skip very low objectness
+
+      var cx = output[off]     / ratio;
+      var cy = output[off + 1] / ratio;
+      var bw = output[off + 2] / ratio;
+      var bh = output[off + 3] / ratio;
+
+      // Find best class
+      var bestCls = -1, bestClsScore = 0;
+      for (var c = 0; c < YOLOX_NUM_CLASSES; c++) {
+        var cs = output[off + 5 + c];
+        if (cs > bestClsScore) { bestClsScore = cs; bestCls = c; }
+      }
+
+      var finalScore = obj * bestClsScore;
+
+      // Collect person boxes
+      if (bestCls === YOLOX_PERSON_CLASS && finalScore > YOLOX_PERSON_THRESHOLD) {
+        personBoxes.push({ x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh });
+        continue;
+      }
+
+      // Check ball classes (sports ball + alternates)
+      var ballScore = obj * output[off + 5 + YOLOX_BALL_CLASS];
+      var classWeight = 1.0;
+
+      // Also check alternate classes
+      for (var altCls in YOLOX_ALT_BALL_CLASSES) {
+        var altScore = obj * output[off + 5 + parseInt(altCls)];
+        if (altScore * YOLOX_ALT_BALL_CLASSES[altCls] > ballScore * classWeight) {
+          ballScore = altScore;
+          classWeight = YOLOX_ALT_BALL_CLASSES[altCls];
+        }
+      }
+
+      var adjScore = ballScore * classWeight;
+      if (adjScore < YOLOX_BALL_THRESHOLD) continue;
+
+      // Size filter
+      var area = bw * bh;
+      var frameArea = W * H;
+      if (area < frameArea * 0.0001 || area > frameArea * 0.08) continue;
+
+      // Aspect ratio check
+      var aspect = Math.max(bw / bh, bh / bw);
+      if (aspect > 2.5) continue;
+
+      // ROI check
+      if (!isInsideROI(cx, cy)) continue;
+
+      balls.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: adjScore });
+    }
+
+    return balls;
+  }
+
+  /* ── ML detection: YOLOX-Nano + color verification ─────────── */
   function detectBallAsync() {
     if (mlReady && tfModel) {
-      // Use canvas instead of video element — ensures ML and color detection
-      // are analyzing the exact same frame (avoids desync)
-      return tfModel.detect(canvas).then(function (preds) {
-        var best = null, bestAdjScore = 0.15; // lowered from 0.25 — catch lower-confidence ball detections
-        var frameArea = W * H;
+      var ratio = yoloxPreprocess();
+      var inputTensor = new ort.Tensor('float32', yoloxInputBuf, [1, 3, YOLOX_INPUT_SIZE, YOLOX_INPUT_SIZE]);
 
-        // First pass: collect person bounding boxes for exclusion
-        personBoxes = [];
-        for (var p = 0; p < preds.length; p++) {
-          if (preds[p].class === 'person' && preds[p].score > 0.35) {
-            var pb = preds[p].bbox;
-            personBoxes.push({ x: pb[0], y: pb[1], w: pb[2], h: pb[3] });
+      return tfModel.run({ images: inputTensor }).then(function (results) {
+        var outputData = results.output.data;
+        var balls = yoloxDecode(outputData, ratio);
+
+        if (balls.length > 0) {
+          // Sort by score, pick best
+          balls.sort(function (a, b) { return b.score - a.score; });
+
+          // For low-confidence detections, verify orange color
+          for (var bi = 0; bi < balls.length; bi++) {
+            var b = balls[bi];
+            if (b.score >= 0.15) {
+              // High confidence — trust it
+              mlMissCount = 0;
+              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score };
+            }
+            // Low confidence — verify with color
+            if (verifyOrangeRegion(b.cx, b.cy, Math.max(b.bw, b.bh))) {
+              mlMissCount = 0;
+              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score * 2 }; // boost confidence
+            }
           }
         }
 
-        // Second pass: find best ball detection
-        for (var i = 0; i < preds.length; i++) {
-          var cls = preds[i].class;
-          var classWeight = ML_BALL_CLASSES[cls];
-          if (!classWeight) continue;
-          var adjScore = preds[i].score * classWeight;
-          if (adjScore <= bestAdjScore) continue;
-
-          var bbox = preds[i].bbox;
-          var area = bbox[2] * bbox[3];
-          if (area < frameArea * 0.0001 || area > frameArea * 0.15) continue; // wider area range
-
-          // Shape check — basketballs can look slightly elongated in motion
-          var bAspect = Math.max(bbox[2] / bbox[3], bbox[3] / bbox[2]);
-          if (bAspect > 2.8) continue; // more lenient aspect ratio
-
-          // Center of detection
-          var cx = bbox[0] + bbox[2] / 2;
-          var cy = bbox[1] + bbox[3] / 2;
-
-          // Must be inside ROI
-          if (!isInsideROI(cx, cy)) continue;
-
-          best = preds[i];
-          bestAdjScore = adjScore;
-        }
-
-        if (best) {
-          mlMissCount = 0;
-          var b = best.bbox;
-          return { x: b[0] + b[2] / 2, y: b[1] + b[3] / 2, size: b[2] * b[3], score: bestAdjScore };
-        }
-
-        // Always try color fallback when ML misses — don't wait 3 frames
+        // No ML ball found — always fall back to color detection
         mlMissCount++;
         return detectBallColor();
-      }).catch(function () { return detectBallColor(); });
+      }).catch(function (e) {
+        console.warn('[AST] ONNX inference error:', e);
+        return detectBallColor();
+      });
     }
     return Promise.resolve(detectBallColor());
+  }
+
+  /* ── Orange color verification for low-confidence ML detections */
+  function verifyOrangeRegion(cx, cy, radius) {
+    var r2 = Math.max(radius, 10);
+    var x0 = Math.max(0, Math.round(cx - r2));
+    var y0 = Math.max(0, Math.round(cy - r2));
+    var x1 = Math.min(W, Math.round(cx + r2));
+    var y1 = Math.min(H, Math.round(cy + r2));
+    if (x1 <= x0 || y1 <= y0) return false;
+
+    try {
+      var imgData = ctx.getImageData(x0, y0, x1 - x0, y1 - y0).data;
+    } catch (e) { return false; }
+
+    var orangeCount = 0, total = 0;
+    var step = Math.max(1, Math.floor((x1 - x0) / 8));
+    for (var py = 0; py < y1 - y0; py += step) {
+      for (var px = 0; px < x1 - x0; px += step) {
+        var idx = (py * (x1 - x0) + px) * 4;
+        if (isOrange(imgData[idx], imgData[idx + 1], imgData[idx + 2])) orangeCount++;
+        total++;
+      }
+    }
+    return total > 0 && (orangeCount / total) >= 0.15;  // at least 15% orange pixels
   }
 
   /* ── Color detection: shape-aware, ROI-limited, person-excluded ── */
   function isOrange(r, g, b) {
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
-    if (max < 50) return false;   // very low — handle dim indoor/gym lighting
+    if (max < 70) return false;
     var delta = max - min;
-    if (delta < 15) return false;  // very low — handle extreme desaturation from filters
+    if (delta < 18) return false;
     var s = delta / max;
-    if (s < 0.18) return false;   // very low — TikTok cool filters almost wash out color
+    if (s < 0.38) return false;  // raised: excludes skin tone (s~0.25-0.37)
+    // Exclude skin tone: r dominant, g/b close together and r-g < 80
+    if (r > g && r > b && (r - g) < 80 && (g - b) < 30) return false;
     var h;
     if (max === r)      h = 60 * (((g - b) / delta) % 6);
     else if (max === g) h = 60 * ((b - r) / delta + 2);
     else                h = 60 * ((r - g) / delta + 4);
     if (h < 0) h += 360;
-    // Basketball orange range: extremely wide to handle all filters and lighting
-    // Red-orange (0-60) and deep red wrapping around (340-360)
-    // Covers: pure orange, warm-filtered orange, cool-filtered brown-orange,
-    //         tungsten yellow-orange, fluorescent-shifted orange
-    return (h >= 0 && h <= 60) || h >= 340;
+    return (h >= 10 && h <= 48);  // removed h>=342 (catches skin pinkish-red)
   }
 
   function detectBallColor() {
     if (!canvas || !ctx) return null;
+
+    // Level 1: Use adaptive learned color if confident enough
+    if (window.AdaptiveLearning && window.AdaptiveLearning.color.confidence > 0.3) {
+      var roi0 = getROI();
+      var learned = window.AdaptiveLearning.detectBallByLearnedColor(canvas, ctx, roi0.w, Math.min(roi0.h, rim ? Math.round(rim.cy + rim.ry * 4.5) : roi0.h));
+      if (learned && !(rim && learned.y > rim.cy + rim.ry * 12)) {
+        return { x: learned.x, y: learned.y, size: learned.w * learned.h, score: learned.score };
+      }
+    }
 
     // Only scan within the ROI
     var roi = getROI();
@@ -320,7 +460,8 @@
       }
     }
 
-    if (orangeX.length < 15) return null;
+    // DIAG: log orange pixel count every 60 frames
+    if (orangeX.length < 8) return null;
 
     // Grid clustering
     var cellW = Math.max(1, Math.round(W / 24));
@@ -392,7 +533,7 @@
       if (diameter < ballMinPx || diameter > ballMaxPx) continue;
 
       var fillRatio = bCount / ((blobW / 2) * (blobH / 2));
-      if (fillRatio < 0.15) continue;
+      if (fillRatio < 0.10) continue;  // lowered — compressed video reduces apparent fill density
 
       // Centroid must not be inside person core body
       var centX = bSumX / bCount;
@@ -409,8 +550,8 @@
         proximityScore = Math.max(0, 1.0 - distToRim / maxDist);
       }
 
-      var score = roundness * 0.35 + Math.min(fillRatio, 1.0) * 0.25 +
-                  Math.max(sizeScore, 0) * 0.2 + proximityScore * 0.2;
+      var score = roundness * 0.35 + Math.min(fillRatio, 1.0) * 0.20 +
+                  Math.max(sizeScore, 0) * 0.10 + proximityScore * 0.35;  // proximity weight raised: floor blobs far from rim score lower
 
       if (score > bestScore) {
         bestScore = score;
@@ -418,6 +559,12 @@
       }
 
       visited[ck] = true;
+    }
+
+    // Hard cutoff: reject blobs too far below the rim (court floor)
+    // Generous limit — need to see ball during player's shooting motion
+    if (rim && bestBlob && bestBlob.y > rim.cy + rim.ry * 12) {
+      return null;
     }
 
     return bestBlob;
@@ -432,7 +579,18 @@
      ──────────────────────────────────────────────────────────── */
 
   // Strategy A: Orange/red rim color detection
+  // If a learned rim model is available (confidence > 0.5), checks its
+  // trained RGB bounds first before falling back to the heuristic range.
   function isRimColor(r, g, b) {
+    // ── Learned model bounds (from rim-trainer) ──
+    if (rimModel && (rimModel.confidence || 0) > 0.5) {
+      if (r >= rimModel.rMin && r <= rimModel.rMax &&
+          g >= rimModel.gMin && g <= rimModel.gMax &&
+          b >= rimModel.bMin && b <= rimModel.bMax) {
+        return true;
+      }
+    }
+    // ── Heuristic fallback ──
     var max = r > g ? (r > b ? r : b) : (g > b ? g : b);
     var min = r < g ? (r < b ? r : b) : (g < b ? g : b);
     if (max < 50) return false;
@@ -581,9 +739,9 @@
 
     // ═══ Combine strategies: pick best candidate ═══
     var candidates = [];
-    if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color' });
-    if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light' });
-    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.65, src: 'edge' });
+    if (colorCandidate) candidates.push({ cx: colorCandidate.cx, cy: colorCandidate.cy, score: colorCandidate.score * 1.0, src: 'color', blobW: colorCandidate.blobW });
+    if (lightCandidate) candidates.push({ cx: lightCandidate.cx, cy: lightCandidate.cy, score: lightCandidate.score * 0.8, src: 'light', blobW: lightCandidate.blobW });
+    if (edgeCandidate)  candidates.push({ cx: edgeCandidate.cx, cy: edgeCandidate.cy, score: edgeCandidate.score * 0.85, src: 'edge', blobW: edgeCandidate.blobW }); // raised from 0.65 — edge detection works for any rim color
 
     // If multiple strategies agree on a similar position, boost confidence
     for (var ai = 0; ai < candidates.length; ai++) {
@@ -603,7 +761,7 @@
       }
     }
 
-    return best ? { cx: best.cx, cy: best.cy } : null;
+    return best ? { cx: best.cx, cy: best.cy, blobW: best.blobW } : null;
   }
 
   // Helper: generic color-based rim detection (used by both orange and light strategies)
@@ -677,8 +835,11 @@
       var cx = bSumX / bCount;
       var cy = bSumY / bCount;
 
-      // Must be somewhat centered horizontally
-      if (cx < imgW * 0.1 || cx > imgW * 0.9) continue;
+      // Must be somewhat centered horizontally (not near edges)
+      if (cx < imgW * 0.15 || cx > imgW * 0.85) continue;
+
+      // Must not be too close to the top of the frame (rims don't float at the top edge)
+      if (cy < scanH * 0.08) continue;
 
       var widthScore = Math.min(blobW / (imgW * 0.06), 1.0);
       var heightScore = 1.0 - (cy / scanH);
@@ -687,7 +848,7 @@
 
       if (score > bestScore) {
         bestScore = score;
-        bestCandidate = { cx: cx, cy: cy, score: score };
+        bestCandidate = { cx: cx, cy: cy, score: score, blobW: blobW, blobH: blobH };
       }
     }
 
@@ -738,7 +899,7 @@
     if (!rim) return false;
     var dx = (x - rim.cx) / rim.rx;
     var dy = (y - rim.cy) / rim.ry;
-    return dx * dx + dy * dy <= 1.5;  // 1.5 instead of 1.0 — more forgiving hit zone
+    return dx * dx + dy * dy <= 1.2;  // slightly forgiving to handle rim calibration error (was 1.5)
   }
 
   function inApproachZone(x, y) {
@@ -746,6 +907,32 @@
     // Much wider approach zone — ball can come from far away
     return y > rim.cy - rim.ry * 10 && y < rim.cy + rim.ry * 5 &&
            Math.abs(x - rim.cx) < rim.rx * 6;
+  }
+
+  /* ── Basket cylinder zone: expanded area below rim for ball-through detection ── */
+  // Returns true when ball center is within the "basket cylinder":
+  //   Horizontal: within rim opening ± 15% (calibration tolerance)
+  //   Vertical: from slightly above rim to net depth below (~8× rim half-height)
+  function ballInBasketZone(ball) {
+    if (!rim || !ball) return false;
+    var hOk = Math.abs(ball.x - rim.cx) < rim.rx * 1.15;
+    var vOk = ball.y >= rim.cy - rim.ry * 1.5 && ball.y <= rim.cy + rim.ry * 8;
+    return hOk && vOk;
+  }
+
+  // Returns true when ball has definitively passed down through the rim:
+  //   - Ball is currently in basket zone AND below rim face
+  //   - Recent history (last 7 frames) shows ball was above rim
+  function ballPassedThroughRim(ball) {
+    if (!ball || !rim) return false;
+    if (!ballInBasketZone(ball)) return false;
+    if (ball.y < rim.cy + rim.ry * 0.5) return false; // not yet below rim face
+    // Look back up to 7 frames for evidence ball came from above rim level
+    var hist = ballHistory;
+    for (var i = hist.length - 2; i >= 0 && i >= hist.length - 8; i--) {
+      if (hist[i] && hist[i].y < rim.cy - rim.ry * 0.3) return true;
+    }
+    return false;
   }
 
   /* ── Shot detection state machine ───────────────────────────── */
@@ -764,6 +951,7 @@
     if (!ball) {
       disappearCount++;
 
+
       // Ball disappeared near the rim — likely went through or bounced off
       if (shotPhase === 'at_rim' && disappearCount >= DISAPPEAR_GRACE) {
         var wentBelow = checkExitedBelow();
@@ -778,17 +966,19 @@
         nearRimFrames = 0;
         ballPeakY = Infinity;
       } else if (shotPhase === 'near_rim' && disappearCount >= DISAPPEAR_GRACE) {
-        // Ball was near rim area and disappeared — could be a swish (no rim touch)
-        // Check if ball was descending and within horizontal bounds of rim
-        var lastValid = getLastValidBalls(3);
-        if (lastValid.length >= 2) {
-          var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
-          var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
-          var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
-          if (wasDescending && wasNearRimX && wasBelowRimLevel) {
-            commitShot(true, now);  // Likely swish — ball fell through cleanly
-          } else if (wasNearRimX) {
-            commitShot(false, now); // Near but not through
+        // Ball was near rim and disappeared — only count as swish if we saw it there for multiple frames
+        // (guard against brief tracking loss triggering false swish)
+        if (nearRimFrames >= 3) {
+          var lastValid = getLastValidBalls(3);
+          if (lastValid.length >= 2) {
+            var wasDescending = lastValid[lastValid.length - 1].y > lastValid[0].y;
+            var wasNearRimX = Math.abs(lastValid[lastValid.length - 1].x - rim.cx) < rim.rx * 2;
+            var wasBelowRimLevel = lastValid[lastValid.length - 1].y >= rim.cy - rim.ry;
+            if (wasDescending && wasNearRimX && wasBelowRimLevel) {
+              commitShot(true, now);  // Likely swish — confirmed near rim for several frames
+            } else if (wasNearRimX && nearRimFrames >= 5) {
+              commitShot(false, now); // Near rim for a while but didn't go through
+            }
           }
         }
         shotPhase = 'idle';
@@ -802,6 +992,8 @@
     }
 
     disappearCount = 0;
+
+
 
     // Track peak height
     if (ball.y < ballPeakY) ballPeakY = ball.y;
@@ -833,7 +1025,7 @@
         nearRimFrames = 1;
       }
     } else if (shotPhase === 'ascending') {
-      if (insideRim(ball.x, ball.y)) {
+      if (insideRim(ball.x, ball.y) || ballInBasketZone(ball)) {
         shotPhase = 'at_rim';
         atRimFrames = 1;
       } else if (nearRim) {
@@ -844,7 +1036,7 @@
         if (inApproachZone(ball.x, ball.y) && Math.abs(ball.x - rim.cx) < rim.rx * 3.5) {
           // Check if the ball arced high enough to be a real shot
           var arcHeight = ballStartY - ballPeakY;
-          if (arcHeight > H * 0.03) { // minimum arc height
+          if (arcHeight > H * 0.04) { // lowered — catches shots from more camera angles
             commitShot(false, now);
           }
         }
@@ -853,12 +1045,18 @@
       }
     } else if (shotPhase === 'near_rim') {
       nearRimFrames++;
-      if (insideRim(ball.x, ball.y)) {
+      if (insideRim(ball.x, ball.y) || ballInBasketZone(ball)) {
         shotPhase = 'at_rim';
         atRimFrames = 1;
-      } else if (ball.y > rim.cy + rim.ry * 2) {
-        // Ball passed below rim — made shot
-        if (Math.abs(ball.x - rim.cx) < rim.rx * 2) {
+      } else if (ballPassedThroughRim(ball)) {
+        // Ball definitively passed down through the rim opening — swish / clean make
+        commitShot(true, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (ball.y > rim.cy + rim.ry * 2.5) {
+        // Ball passed below rim area — use horizontal position to decide made/miss
+        if (Math.abs(ball.x - rim.cx) < rim.rx * 1.5) {
           commitShot(true, now);
         } else {
           commitShot(false, now);
@@ -871,9 +1069,14 @@
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
-      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
-        // Ball left the area entirely — miss
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y) && nearRimFrames >= 2) {
+        // Ball left the area entirely (and we saw it near rim for at least 2 frames) — miss
         commitShot(false, now);
+        shotPhase = 'idle';
+        nearRimFrames = 0;
+        ballPeakY = Infinity;
+      } else if (!nearRim && !inApproachZone(ball.x, ball.y)) {
+        // Ball left too fast — likely a tracking error, just reset phase
         shotPhase = 'idle';
         nearRimFrames = 0;
         ballPeakY = Infinity;
@@ -881,10 +1084,10 @@
     } else if (shotPhase === 'at_rim') {
       atRimFrames++;
       if (!insideRim(ball.x, ball.y)) {
-        if (ball.y > rim.cy + rim.ry * 0.3) {
-          commitShot(true, now);  // Exited below — made
+        if (ballPassedThroughRim(ball) || ball.y > rim.cy + rim.ry * 1.0) {
+          commitShot(true, now);  // Exited through/below rim — made
         } else {
-          commitShot(false, now); // Exited above/side — miss
+          commitShot(false, now); // Exited above or to the side — miss
         }
         shotPhase = 'idle';
         atRimFrames = 0;
@@ -930,6 +1133,13 @@
     }
     session.shots.push({ made: made, t: now });
     cooldownUntil = now + COOLDOWN_SEC * 1000;
+    // Level 2: feed trajectory to adaptive learning
+    if (window.AdaptiveLearning && rim) {
+      var traj = ballHistory.filter(Boolean).slice(-20).map(function(b) { return { x: b.x, y: b.y }; });
+      // Translate rim format: TrajectoryLearner expects centerX/centerY, not cx/cy
+      var rimZone = { centerX: rim.cx, centerY: rim.cy, rx: rim.rx, ry: rim.ry };
+      window.AdaptiveLearning.onShotCompleted(traj, made ? 'made' : 'missed', rimZone);
+    }
     updateCounter();
     flashResult(made);
   }
@@ -963,6 +1173,7 @@
         ctx.stroke();
         ctx.shadowBlur = 0;
       } else {
+        // Rim ellipse
         ctx.strokeStyle = 'rgba(245,166,35,0.85)';
         ctx.lineWidth = 3;
         ctx.shadowColor = 'rgba(245,166,35,0.5)';
@@ -971,6 +1182,33 @@
         ctx.ellipse(rim.cx, rim.cy, rim.rx, rim.ry, 0, 0, Math.PI * 2);
         ctx.stroke();
         ctx.shadowBlur = 0;
+
+        // Basket cylinder — dashed vertical lines showing the "made" zone below the rim
+        if (phase === PHASE.TRACKING) {
+          var netDepth = rim.ry * 8;
+          var cylTop  = rim.cy - rim.ry * 0.5;
+          var cylBot  = rim.cy + netDepth;
+          var cylL    = rim.cx - rim.rx * 1.15;
+          var cylR    = rim.cx + rim.rx * 1.15;
+          ctx.strokeStyle = 'rgba(245,166,35,0.30)';
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([4, 5]);
+          // Left side line
+          ctx.beginPath();
+          ctx.moveTo(cylL, cylTop);
+          ctx.lineTo(cylL, cylBot);
+          ctx.stroke();
+          // Right side line
+          ctx.beginPath();
+          ctx.moveTo(cylR, cylTop);
+          ctx.lineTo(cylR, cylBot);
+          ctx.stroke();
+          // Bottom ellipse (net bottom)
+          ctx.beginPath();
+          ctx.ellipse(rim.cx, cylBot, rim.rx * 0.6, rim.ry * 0.6, 0, 0, Math.PI * 2);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
 
       // Draw ROI boundary (subtle, only during tracking)
@@ -1035,6 +1273,8 @@
     ctx.drawImage(video, 0, 0, W, H);
     frameCount++;
 
+
+
     if (phase === PHASE.TRACKING) processBall(lastBall);
     drawOverlay(lastBall);
 
@@ -1044,6 +1284,10 @@
         var ball = null;
         if (raw && isPhysicallyValid(raw)) {
           ball = applyKalman(raw);
+          // Level 1+3: feed confirmed ball position to adaptive learning
+          if (ball && window.AdaptiveLearning && canvas && ctx) {
+            window.AdaptiveLearning.onBallDetected(canvas, ctx, ball.x, ball.y);
+          }
         } else if (raw) {
           var predX = kalmanPredict(kalX);
           var predY = kalmanPredict(kalY);
@@ -1055,6 +1299,8 @@
           resetKalman();
         }
         lastBall = ball;
+        isDetecting = false;
+      }).catch(function(e) {
         isDetecting = false;
       });
     }
@@ -1077,16 +1323,15 @@
   }
 
   /* ── Live timer ──────────────────────────────────────────── */
+  var sessionTimer = null;
   function startSessionTimer() {
     stopSessionTimer();
     updateTimerDisplay();
     sessionTimer = setInterval(updateTimerDisplay, 1000);
   }
-
   function stopSessionTimer() {
     if (sessionTimer) { clearInterval(sessionTimer); sessionTimer = null; }
   }
-
   function updateTimerDisplay() {
     var el = document.getElementById('ast-timer');
     if (!el || !session.startTime) return;
@@ -1109,6 +1354,7 @@
     var aiSessions = sessions.filter(function (s) { return s.session_type === 'ai_tracking'; });
 
     if (aiSessions.length === 0) {
+      // Safe: static string, no user input
       list.textContent = '';
       var emptyDiv = document.createElement('div');
       emptyDiv.className = 'ast-hist-empty';
@@ -1279,13 +1525,19 @@
 
   /* ── Rim calibration ─────────────────────────────────────── */
 
-  function confirmRimAndStart(cx, cy) {
+  function confirmRimAndStart(cx, cy, detectedRx) {
     // Guard against double-call from concurrent ML + color detection
     if (phase === PHASE.TRACKING) return;
 
     stopRimDetectTimer();
     autoRimCandidate = null;
-    rim = { cx: cx, cy: cy, rx: W * RIM_RX_FRAC, ry: H * RIM_RY_FRAC };
+    rimCandidateHistory = [];
+    // Use actual detected rim half-width if valid, else fall back to defaults
+    var rx = (detectedRx && detectedRx > W * 0.015 && detectedRx < W * 0.22)
+              ? detectedRx
+              : W * RIM_RX_FRAC;
+    var ry = rx * 0.38;   // rim ellipse ~2.6:1 aspect (perspective foreshortening)
+    rim = { cx: cx, cy: cy, rx: rx, ry: ry };
     phase = PHASE.TRACKING;
     session.startTime = Date.now();
     startSessionTimer();
@@ -1300,13 +1552,17 @@
     }
 
     if (mode === 'video' && video) {
-      // Clear any stale onseeked handler from rim detection before seeking
-      video.onseeked = null;
-      // Reset to beginning and play
+      // Seek to beginning, then play AFTER seek completes (play during seek gets cancelled)
       video.currentTime = 0;
-      video.play();
-      var ppBtn = document.getElementById('ast-vc-playpause');
-      if (ppBtn) ppBtn.textContent = '⏸';
+      video.onseeked = function onConfirmSeek() {
+        video.onseeked = null;
+        video.play().catch(function (e) {
+          video.muted = true;
+          video.play().catch(function () {});
+        });
+        var ppBtn = document.getElementById('ast-vc-playpause');
+        if (ppBtn) ppBtn.textContent = '⏸';
+      };
     }
   }
 
@@ -1368,10 +1624,37 @@
     var candidate = detectRimAuto();
     if (candidate) {
       autoRimCandidate = candidate;
-      // Always skip confirmation — go straight to tracking
-      confirmRimAndStart(candidate.cx, candidate.cy);
-      return;
+      rimCandidateHistory.push(candidate);
+      if (rimCandidateHistory.length > 6) rimCandidateHistory.shift();
+
+      // Need RIM_CONSENSUS_NEEDED consistent detections before confirming
+      if (rimCandidateHistory.length >= RIM_CONSENSUS_NEEDED) {
+        var recent = rimCandidateHistory.slice(-RIM_CONSENSUS_NEEDED);
+        var avgCX = 0, avgCY = 0, avgBW = 0;
+        for (var ri = 0; ri < recent.length; ri++) {
+          avgCX += recent[ri].cx;
+          avgCY += recent[ri].cy;
+          avgBW += (recent[ri].blobW || W * RIM_RX_FRAC * 2);
+        }
+        avgCX /= recent.length;
+        avgCY /= recent.length;
+        avgBW /= recent.length;
+
+        var tol = W * RIM_CONSENSUS_TOL;
+        var allAgree = recent.every(function(c) {
+          return Math.abs(c.cx - avgCX) < tol && Math.abs(c.cy - avgCY) < tol;
+        });
+
+        if (allAgree) {
+          confirmRimAndStart(avgCX, avgCY, avgBW / 2);
+          return;
+        }
+      }
+      return; // keep trying until consensus
     }
+
+    // No candidate this frame — reset streak
+    if (rimCandidateHistory.length > 0) rimCandidateHistory.pop();
 
     // After several color-based failures, try ML-based detection
     if (rimDetectTries >= 6 && mlReady) {
@@ -1412,6 +1695,7 @@
     ballPeakY = Infinity;
     ballStartY = 0;
     mlRimVotes = [];
+    rimCandidateHistory = [];
     phase = PHASE.IDLE;
     lastBall = null;
     isDetecting = false;
@@ -1454,13 +1738,11 @@
     mode = 'video';
     var fileInput = document.getElementById('ast-file-input');
     if (!fileInput) return;
-
     // On iOS Capacitor, remove capture attribute so it opens the gallery
     // (capture="environment" forces the native camera, not file picker)
     if (window.Capacitor) {
       fileInput.removeAttribute('capture');
     }
-
     fileInput.value = '';
     fileInput.click();
   }
@@ -1724,6 +2006,11 @@
   function init() {
     initCourtPresets();
 
+    // Initialize adaptive learning system if available
+    if (window.AdaptiveLearning) {
+      window.AdaptiveLearning.init();
+    }
+
     var launchBtn = document.getElementById('ast-launch-btn');
     if (launchBtn) launchBtn.addEventListener('click', openOverlay);
 
@@ -1779,9 +2066,6 @@
       if (phase === PHASE.TRACKING || phase === PHASE.CALIBRATING) stopSession();
     });
 
-    var closeSumBtn = document.getElementById('ast-close-btn-sum');
-    if (closeSumBtn) closeSumBtn.addEventListener('click', closeOverlay);
-
     var cvs = document.getElementById('ast-canvas');
     if (cvs) {
       cvs.addEventListener('click', onCanvasTap);
@@ -1817,9 +2101,6 @@
       }
     });
 
-    // Render AI session history on load
-    renderAIHistory();
-
     /* ── Live camera calibration buttons ─────────────────── */
     bindBtn('ast-lcalib-ready', function () {
       if (phase !== PHASE.CALIBRATING) return;
@@ -1846,6 +2127,12 @@
         showCalibState('manual');
       }
     });
+
+    var closeSumBtn = document.getElementById('ast-close-btn-sum');
+    if (closeSumBtn) closeSumBtn.addEventListener('click', closeOverlay);
+
+    // Render AI session history on load
+    renderAIHistory();
   }
 
   function bindBtn(id, fn) {
