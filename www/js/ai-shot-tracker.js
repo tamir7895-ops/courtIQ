@@ -184,22 +184,26 @@
     return Math.sqrt(dx * dx + dy * dy) < W * TELEPORT_FRAC;
   }
 
-  /* ── ML model loading (YOLOX-Nano via ONNX Runtime Web) ───── */
+  /* ── ML model loading (Custom YOLOv8 Basketball via ONNX Runtime Web) ── */
   var mlRetryCount = 0;
   var ML_MAX_RETRIES = 5;
-  var YOLOX_INPUT_SIZE = 416;
-  var YOLOX_NUM_CLASSES = 80;
-  var YOLOX_BALL_CLASS = 32;  // COCO "sports ball" index
-  var YOLOX_BALL_THRESHOLD = 0.03;  // ultra-low for basketball
-  var YOLOX_PERSON_THRESHOLD = 0.35;
-  var YOLOX_PERSON_CLASS = 0;
-  // Additional classes that might match a basketball
-  var YOLOX_ALT_BALL_CLASSES = { 29: 0.80, 49: 0.55, 47: 0.30 }; // frisbee, orange, apple
+  var YOLO_INPUT_SIZE = 416;
+  var YOLO_NUM_CLASSES = 2;       // 0=Basketball, 1=Basketball Hoop
+  var YOLO_BALL_CLASS = 0;
+  var YOLO_HOOP_CLASS = 1;
+  var YOLO_BALL_THRESHOLD = 0.05;  // lowered — ball often partially occluded in TikTok videos
+  var YOLO_HOOP_THRESHOLD = 0.20;  // hoop detection threshold
+  var YOLO_NUM_DETECTIONS = 3549;  // output grid anchors
+
+  // ML-detected hoop position (replaces old color/edge rim detection)
+  var mlHoopDetection = null;     // { cx, cy, w, h, score }
+  var mlHoopHistory = [];         // rolling window for consensus
+  var ML_HOOP_CONSENSUS = 5;      // frames needed for stable hoop
 
   // Reusable buffers for ONNX inference (avoid GC pressure)
-  var yoloxInputBuf = null;
-  var yoloxResizeCanvas = null;
-  var yoloxResizeCtx = null;
+  var yoloInputBuf = null;
+  var yoloResizeCanvas = null;
+  var yoloResizeCtx = null;
 
   function loadMLModel() {
     if (mlLoading || mlReady) return;
@@ -213,8 +217,8 @@
     mlLoading = true;
     setMLStatus('loading');
 
-    // Determine model path relative to page
-    var modelPath = 'models/yolox_nano.onnx';
+    // Custom YOLOv8 model trained on basketball + hoop detection
+    var modelPath = 'models/basketball_yolov8.onnx';
 
     ort.InferenceSession.create(modelPath, {
       executionProviders: ['wasm'],
@@ -224,12 +228,13 @@
       mlReady = true;
       mlLoading = false;
       // Pre-allocate reusable buffers
-      yoloxInputBuf = new Float32Array(1 * 3 * YOLOX_INPUT_SIZE * YOLOX_INPUT_SIZE);
-      yoloxResizeCanvas = document.createElement('canvas');
-      yoloxResizeCanvas.width = YOLOX_INPUT_SIZE;
-      yoloxResizeCanvas.height = YOLOX_INPUT_SIZE;
-      yoloxResizeCtx = yoloxResizeCanvas.getContext('2d');
+      yoloInputBuf = new Float32Array(1 * 3 * YOLO_INPUT_SIZE * YOLO_INPUT_SIZE);
+      yoloResizeCanvas = document.createElement('canvas');
+      yoloResizeCanvas.width = YOLO_INPUT_SIZE;
+      yoloResizeCanvas.height = YOLO_INPUT_SIZE;
+      yoloResizeCtx = yoloResizeCanvas.getContext('2d');
       setMLStatus('ready');
+      console.log('[AST] Basketball YOLOv8 model loaded — classes: Basketball, Basketball Hoop');
     }).catch(function (e) {
       console.warn('[AST] ONNX model load failed, using color-only:', e);
       mlLoading = false;
@@ -245,128 +250,173 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── YOLOX-Nano inference helpers ──────────────────────────── */
+  /* ── YOLOv8 Basketball inference helpers ──────────────────── */
   var mlMissCount = 0;
 
-  function yoloxPreprocess() {
+  function yoloPreprocess() {
     // Letterbox resize: fit source canvas into 416×416 with gray padding
-    var sz = YOLOX_INPUT_SIZE;
+    var sz = YOLO_INPUT_SIZE;
     var ratio = Math.min(sz / H, sz / W);
     var newW = Math.round(W * ratio);
     var newH = Math.round(H * ratio);
+    var padX = Math.round((sz - newW) / 2);
+    var padY = Math.round((sz - newH) / 2);
 
-    yoloxResizeCtx.fillStyle = 'rgb(114,114,114)';
-    yoloxResizeCtx.fillRect(0, 0, sz, sz);
-    yoloxResizeCtx.drawImage(canvas, 0, 0, W, H, 0, 0, newW, newH);
+    yoloResizeCtx.fillStyle = 'rgb(114,114,114)';
+    yoloResizeCtx.fillRect(0, 0, sz, sz);
+    yoloResizeCtx.drawImage(canvas, 0, 0, W, H, padX, padY, newW, newH);
 
-    var imgData = yoloxResizeCtx.getImageData(0, 0, sz, sz).data;
-    // HWC RGBA → CHW RGB (no /255 for YOLOX)
+    var imgData = yoloResizeCtx.getImageData(0, 0, sz, sz).data;
+    // HWC RGBA → CHW RGB, normalized to [0,1] (YOLOv8 standard)
     var chSize = sz * sz;
     for (var i = 0; i < chSize; i++) {
-      yoloxInputBuf[i]              = imgData[i * 4];     // R
-      yoloxInputBuf[chSize + i]     = imgData[i * 4 + 1]; // G
-      yoloxInputBuf[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+      yoloInputBuf[i]              = imgData[i * 4]     / 255.0; // R
+      yoloInputBuf[chSize + i]     = imgData[i * 4 + 1] / 255.0; // G
+      yoloInputBuf[chSize * 2 + i] = imgData[i * 4 + 2] / 255.0; // B
     }
-    return ratio;
+    return { ratio: ratio, padX: padX, padY: padY };
   }
 
-  function yoloxDecode(output, ratio) {
-    // output shape: [3549, 85] — each row: [cx, cy, w, h, obj, cls0..cls79]
-    var numDets = output.length / (5 + YOLOX_NUM_CLASSES);
-    var stride = 5 + YOLOX_NUM_CLASSES;
+  function yoloDecode(rawOutput, prepInfo) {
+    // YOLOv8 output: [1, 6, 3549] = [batch, 4+nclass, ndetections]
+    // Transposed: rawOutput is flat array of 6 * 3549 values
+    // Layout: first 3549 values = all cx, next 3549 = all cy, etc.
+    var nd = YOLO_NUM_DETECTIONS;
+    var ratio = prepInfo.ratio;
+    var padX = prepInfo.padX;
+    var padY = prepInfo.padY;
     var balls = [];
-    personBoxes = [];
+    var hoops = [];
 
-    for (var i = 0; i < numDets; i++) {
-      var off = i * stride;
-      var obj = output[off + 4];
-      if (obj < 0.01) continue;  // skip very low objectness
+    for (var i = 0; i < nd; i++) {
+      var cx_raw = rawOutput[0 * nd + i];
+      var cy_raw = rawOutput[1 * nd + i];
+      var bw_raw = rawOutput[2 * nd + i];
+      var bh_raw = rawOutput[3 * nd + i];
+      var ballScore = rawOutput[4 * nd + i]; // class 0 = Basketball
+      var hoopScore = rawOutput[5 * nd + i]; // class 1 = Basketball Hoop
 
-      var cx = output[off]     / ratio;
-      var cy = output[off + 1] / ratio;
-      var bw = output[off + 2] / ratio;
-      var bh = output[off + 3] / ratio;
+      // Convert from letterbox coords back to original frame coords
+      var cx = (cx_raw - padX) / ratio;
+      var cy = (cy_raw - padY) / ratio;
+      var bw = bw_raw / ratio;
+      var bh = bh_raw / ratio;
 
-      // Find best class
-      var bestCls = -1, bestClsScore = 0;
-      for (var c = 0; c < YOLOX_NUM_CLASSES; c++) {
-        var cs = output[off + 5 + c];
-        if (cs > bestClsScore) { bestClsScore = cs; bestCls = c; }
-      }
-
-      var finalScore = obj * bestClsScore;
-
-      // Collect person boxes
-      if (bestCls === YOLOX_PERSON_CLASS && finalScore > YOLOX_PERSON_THRESHOLD) {
-        personBoxes.push({ x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh });
-        continue;
-      }
-
-      // Check ball classes (sports ball + alternates)
-      var ballScore = obj * output[off + 5 + YOLOX_BALL_CLASS];
-      var classWeight = 1.0;
-
-      // Also check alternate classes
-      for (var altCls in YOLOX_ALT_BALL_CLASSES) {
-        var altScore = obj * output[off + 5 + parseInt(altCls)];
-        if (altScore * YOLOX_ALT_BALL_CLASSES[altCls] > ballScore * classWeight) {
-          ballScore = altScore;
-          classWeight = YOLOX_ALT_BALL_CLASSES[altCls];
+      // Collect basketball detections
+      if (ballScore >= YOLO_BALL_THRESHOLD) {
+        // Size filter
+        var area = bw * bh;
+        var frameArea = W * H;
+        if (area >= frameArea * 0.0001 && area <= frameArea * 0.10) {
+          var aspect = Math.max(bw / bh, bh / bw);
+          if (aspect <= 3.0) {
+            balls.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore });
+          }
         }
       }
 
-      var adjScore = ballScore * classWeight;
-      if (adjScore < YOLOX_BALL_THRESHOLD) continue;
-
-      // Size filter
-      var area = bw * bh;
-      var frameArea = W * H;
-      if (area < frameArea * 0.0001 || area > frameArea * 0.08) continue;
-
-      // Aspect ratio check
-      var aspect = Math.max(bw / bh, bh / bw);
-      if (aspect > 2.5) continue;
-
-      // ROI check
-      if (!isInsideROI(cx, cy)) continue;
-
-      balls.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: adjScore });
+      // Collect hoop detections
+      if (hoopScore >= YOLO_HOOP_THRESHOLD) {
+        hoops.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
+      }
     }
 
-    return balls;
+    return { balls: balls, hoops: hoops };
   }
 
-  /* ── ML detection: YOLOX-Nano + color verification ─────────── */
+  // Update ML-based hoop detection from YOLOv8 results
+  function updateMLHoop(hoops) {
+    if (hoops.length === 0) return;
+    // Pick highest-confidence hoop
+    hoops.sort(function (a, b) { return b.score - a.score; });
+    var best = hoops[0];
+
+    mlHoopHistory.push({ cx: best.cx, cy: best.cy, w: best.bw, h: best.bh, score: best.score });
+    if (mlHoopHistory.length > 30) mlHoopHistory.shift();
+
+    // Rolling average for stability (last N frames)
+    var recent = mlHoopHistory.slice(-ML_HOOP_CONSENSUS);
+    if (recent.length >= 3) {
+      var avgCx = 0, avgCy = 0, avgW = 0, avgH = 0, avgScore = 0;
+      for (var i = 0; i < recent.length; i++) {
+        avgCx += recent[i].cx;
+        avgCy += recent[i].cy;
+        avgW += recent[i].w;
+        avgH += recent[i].h;
+        avgScore += recent[i].score;
+      }
+      var n = recent.length;
+      mlHoopDetection = {
+        cx: avgCx / n, cy: avgCy / n,
+        w: avgW / n, h: avgH / n,
+        score: avgScore / n
+      };
+
+      // Auto-calibrate rim from ML hoop detection (during calibration or update during tracking)
+      if (!rim || (mlHoopDetection.score > 0.40 && phase === PHASE.CALIBRATING)) {
+        setRimFromML(mlHoopDetection);
+      } else if (rim && mlHoopDetection.score > 0.50 && phase === PHASE.TRACKING) {
+        // Smoothly update rim position during tracking
+        rim.cx = rim.cx * 0.8 + mlHoopDetection.cx * 0.2;
+        rim.cy = rim.cy * 0.8 + mlHoopDetection.cy * 0.2;
+        rim.rx = rim.rx * 0.8 + (mlHoopDetection.w / 2) * 0.2;
+        rim.ry = rim.ry * 0.8 + (mlHoopDetection.h / 2) * 0.2;
+      }
+    }
+  }
+
+  // Set rim position from ML hoop detection
+  function setRimFromML(hoop) {
+    var newRx = hoop.w / 2;
+    var newRy = hoop.h / 2;
+    // Ensure minimum rim size
+    newRx = Math.max(newRx, W * 0.02);
+    newRy = Math.max(newRy, H * 0.01);
+
+    rim = { cx: hoop.cx, cy: hoop.cy, rx: newRx, ry: newRy };
+    console.log('[AST] Rim set from ML hoop: cx=' + Math.round(hoop.cx) +
+                ' cy=' + Math.round(hoop.cy) + ' rx=' + Math.round(newRx) +
+                ' ry=' + Math.round(newRy) + ' score=' + hoop.score.toFixed(2));
+
+    if (phase === PHASE.CALIBRATING) {
+      phase = PHASE.TRACKING;
+      startTracking();
+    }
+  }
+
+  /* ── ML detection: YOLOv8 Basketball + Hoop ────────────────── */
   function detectBallAsync() {
     if (mlReady && tfModel) {
-      var ratio = yoloxPreprocess();
-      var inputTensor = new ort.Tensor('float32', yoloxInputBuf, [1, 3, YOLOX_INPUT_SIZE, YOLOX_INPUT_SIZE]);
+      var prepInfo = yoloPreprocess();
+      var inputTensor = new ort.Tensor('float32', yoloInputBuf, [1, 3, YOLO_INPUT_SIZE, YOLO_INPUT_SIZE]);
 
       return tfModel.run({ images: inputTensor }).then(function (results) {
-        var outputData = results.output.data;
-        var balls = yoloxDecode(outputData, ratio);
+        var outputData = results.output0.data;
+        var decoded = yoloDecode(outputData, prepInfo);
 
-        if (balls.length > 0) {
+        // Update hoop detection every frame
+        updateMLHoop(decoded.hoops);
+
+        if (decoded.balls.length > 0) {
           // Sort by score, pick best
-          balls.sort(function (a, b) { return b.score - a.score; });
+          decoded.balls.sort(function (a, b) { return b.score - a.score; });
 
-          // For low-confidence detections, verify orange color
-          for (var bi = 0; bi < balls.length; bi++) {
-            var b = balls[bi];
-            if (b.score >= 0.15) {
-              // High confidence — trust it
+          for (var bi = 0; bi < Math.min(decoded.balls.length, 3); bi++) {
+            var best = decoded.balls[bi];
+            if (best.score >= 0.15) {
+              // High confidence — trust directly
               mlMissCount = 0;
-              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score };
+              return { x: best.cx, y: best.cy, size: best.bw * best.bh, score: best.score };
             }
-            // Low confidence — verify with color
-            if (verifyOrangeRegion(b.cx, b.cy, Math.max(b.bw, b.bh))) {
+            // Low confidence — verify with orange color
+            if (verifyOrangeRegion(best.cx, best.cy, Math.max(best.bw, best.bh))) {
               mlMissCount = 0;
-              return { x: b.cx, y: b.cy, size: b.bw * b.bh, score: b.score * 2 }; // boost confidence
+              return { x: best.cx, y: best.cy, size: best.bw * best.bh, score: best.score * 2 };
             }
           }
         }
 
-        // No ML ball found — always fall back to color detection
+        // No ML ball found — fall back to color detection
         mlMissCount++;
         return detectBallColor();
       }).catch(function (e) {
@@ -855,43 +905,16 @@
     return bestCandidate;
   }
 
-  // ML-based rim detection: use COCO-SSD to find where the ball lands
-  var mlRimVotes = [];
-
+  // ML-based rim detection: uses YOLOv8 hoop detections (updated each frame)
   function detectRimML() {
-    if (!mlReady || !tfModel || !canvas) return Promise.resolve(null);
-
-    return tfModel.detect(canvas).then(function (preds) {
-      // Look for sports ball detections and track their positions
-      for (var i = 0; i < preds.length; i++) {
-        var p = preds[i];
-        if (p.class === 'sports ball' && p.score > 0.2) {
-          var ballCX = p.bbox[0] + p.bbox[2] / 2;
-          var ballCY = p.bbox[1] + p.bbox[3] / 2;
-          // Ball near top of frame likely near rim
-          if (ballCY < H * 0.5) {
-            mlRimVotes.push({ x: ballCX, y: ballCY });
-          }
-        }
-      }
-
-      // After collecting multiple votes, estimate rim location
-      if (mlRimVotes.length >= 3) {
-        // Find the cluster of highest ball positions (near rim area)
-        mlRimVotes.sort(function (a, b) { return a.y - b.y; });
-        // Take the top-most cluster
-        var topVotes = mlRimVotes.slice(0, Math.min(5, mlRimVotes.length));
-        var avgX = 0, avgY = 0;
-        for (var j = 0; j < topVotes.length; j++) {
-          avgX += topVotes[j].x;
-          avgY += topVotes[j].y;
-        }
-        avgX /= topVotes.length;
-        avgY /= topVotes.length;
-        return { cx: avgX, cy: avgY };
-      }
-      return null;
-    }).catch(function () { return null; });
+    if (mlHoopDetection && mlHoopDetection.score > 0.30) {
+      return Promise.resolve({
+        cx: mlHoopDetection.cx,
+        cy: mlHoopDetection.cy,
+        blobW: mlHoopDetection.w
+      });
+    }
+    return Promise.resolve(null);
   }
 
   /* ── Rim geometry ───────────────────────────────────────────── */
@@ -1252,6 +1275,20 @@
         ctx.lineTo(valid[i].x, valid[i].y);
       }
       ctx.stroke();
+    }
+
+    // ML hoop bounding box (when available)
+    if (mlHoopDetection && mlHoopDetection.score > 0.20 && phase === PHASE.TRACKING) {
+      var hx = mlHoopDetection.cx - mlHoopDetection.w / 2;
+      var hy = mlHoopDetection.cy - mlHoopDetection.h / 2;
+      ctx.strokeStyle = 'rgba(59,158,255,0.5)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(hx, hy, mlHoopDetection.w, mlHoopDetection.h);
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(59,158,255,0.7)';
+      ctx.font = '10px sans-serif';
+      ctx.fillText('HOOP ' + (mlHoopDetection.score * 100).toFixed(0) + '%', hx, hy - 4);
     }
 
     // State indicator
@@ -1621,13 +1658,30 @@
   }
 
   function checkRimCandidate() {
+    // ── Priority 1: ML hoop detection (from YOLOv8 running each frame) ──
+    if (mlHoopDetection && mlHoopDetection.score > 0.30) {
+      autoRimCandidate = {
+        cx: mlHoopDetection.cx,
+        cy: mlHoopDetection.cy,
+        blobW: mlHoopDetection.w
+      };
+      confirmRimAndStart(mlHoopDetection.cx, mlHoopDetection.cy, mlHoopDetection.w / 2);
+      return;
+    }
+
+    // ── Priority 2: Run one ML inference frame to get hoop data ──
+    if (mlReady && tfModel && !mlHoopDetection) {
+      // Trigger one detection pass to populate mlHoopDetection
+      detectBallAsync(); // side-effect: calls updateMLHoop()
+    }
+
+    // ── Priority 3: Fallback to color/edge detection ──
     var candidate = detectRimAuto();
     if (candidate) {
       autoRimCandidate = candidate;
       rimCandidateHistory.push(candidate);
       if (rimCandidateHistory.length > 6) rimCandidateHistory.shift();
 
-      // Need RIM_CONSENSUS_NEEDED consistent detections before confirming
       if (rimCandidateHistory.length >= RIM_CONSENSUS_NEEDED) {
         var recent = rimCandidateHistory.slice(-RIM_CONSENSUS_NEEDED);
         var avgCX = 0, avgCY = 0, avgBW = 0;
@@ -1650,25 +1704,13 @@
           return;
         }
       }
-      return; // keep trying until consensus
+      return;
     }
 
-    // No candidate this frame — reset streak
     if (rimCandidateHistory.length > 0) rimCandidateHistory.pop();
-
-    // After several color-based failures, try ML-based detection
-    if (rimDetectTries >= 6 && mlReady) {
-      detectRimML().then(function (mlCandidate) {
-        if (mlCandidate && (phase === PHASE.CALIBRATING || phase === PHASE.TRACKING)) {
-          autoRimCandidate = mlCandidate;
-          confirmRimAndStart(mlCandidate.cx, mlCandidate.cy);
-        }
-      });
-    }
 
     if (rimDetectTries >= RIM_DETECT_MAX_TRIES) {
       stopRimDetectTimer();
-      // Use smart default — assume rim is in upper-center of frame
       var defaultCX = W * 0.5;
       var defaultCY = H * 0.25;
       confirmRimAndStart(defaultCX, defaultCY);
@@ -1694,7 +1736,8 @@
     nearRimFrames = 0;
     ballPeakY = Infinity;
     ballStartY = 0;
-    mlRimVotes = [];
+    mlHoopDetection = null;
+    mlHoopHistory = [];
     rimCandidateHistory = [];
     phase = PHASE.IDLE;
     lastBall = null;
