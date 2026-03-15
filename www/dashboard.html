@@ -2,7 +2,7 @@
 <html lang="en" style="background:#0e1014;">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com https://storage.googleapis.com https://tfhub.dev https://cdn.jsdelivr.net https://www.kaggle.com; img-src 'self' data: blob: https://api.dicebear.com; style-src 'self' 'unsafe-inline'; font-src 'self' data:; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com https://storage.googleapis.com https://tfhub.dev https://cdn.jsdelivr.net https://www.kaggle.com; img-src 'self' data: blob: https://api.dicebear.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#0e1014" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
@@ -17,28 +17,29 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-  <link rel="stylesheet" href="styles/main.css" />
-  <link rel="stylesheet" href="styles/drills.css" />
-  <link rel="stylesheet" href="styles/workouts.css" />
-  <link rel="stylesheet" href="styles/animations.css" />
-  <link rel="stylesheet" href="styles/profile.css" />
-  <link rel="stylesheet" href="styles/daily-workout.css" />
-  <link rel="stylesheet" href="styles/gamification.css" />
-  <link rel="stylesheet" href="styles/shop.css" />
-  <link rel="stylesheet" href="styles/avatar-customizer.css" />
-  <link rel="stylesheet" href="styles/shot-tracker.css" />
+  <link rel="stylesheet" href="styles/main.css?v=3" />
+  <link rel="stylesheet" href="styles/drills.css?v=3" />
+  <link rel="stylesheet" href="styles/workouts.css?v=3" />
+  <link rel="stylesheet" href="styles/animations.css?v=3" />
+  <link rel="stylesheet" href="styles/profile.css?v=3" />
+  <link rel="stylesheet" href="styles/daily-workout.css?v=3" />
+  <link rel="stylesheet" href="styles/gamification.css?v=3" />
+  <link rel="stylesheet" href="styles/shop.css?v=3" />
+  <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
+  <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
   <link rel="stylesheet" href="styles/ai-shot-tracker.css?v=3" />
-  <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css" />
-  <link rel="stylesheet" href="styles/charts.css" />
-  <link rel="stylesheet" href="styles/move-library.css" />
-  <link rel="stylesheet" href="styles/challenge.css" />
-  <link rel="stylesheet" href="styles/archetype.css" />
-  <link rel="stylesheet" href="styles/onboarding.css" />
-  <link rel="stylesheet" href="styles/components.css" />
-  <link rel="stylesheet" href="styles/avatar-3d.css" />
-  <link rel="stylesheet" href="styles/social.css" />
+  <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css?v=3" />
+  <link rel="stylesheet" href="styles/charts.css?v=3" />
+  <link rel="stylesheet" href="styles/move-library.css?v=3" />
+  <link rel="stylesheet" href="styles/challenge.css?v=3" />
+  <link rel="stylesheet" href="styles/archetype.css?v=3" />
+  <link rel="stylesheet" href="styles/onboarding.css?v=3" />
+  <link rel="stylesheet" href="styles/components.css?v=3" />
+  <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
+  <link rel="stylesheet" href="styles/social.css?v=3" />
+  <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-pLPtCEiv6bwVY0HysJzulEnlW/Cm60T6FyKOEykDvf2sqqZ+47BkcMrGBBM+AHdR" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
 </head>
 <body class="is-dashboard">
 
@@ -122,25 +123,26 @@
     </div>
 
     <nav class="db-sidebar-nav" role="navigation" aria-label="Dashboard navigation">
-      <div class="db-sidebar-group">
-        <button class="db-sidebar-item active" data-tab="home">
-          <span class="db-sidebar-icon">🏠</span>
-          <span class="db-sidebar-text">Home</span>
-        </button>
-      </div>
-
+      <!-- Home (standalone, above groups) -->
+      <button class="db-sidebar-item db-sidebar-item--home" data-tab="home">
+        <span class="db-sidebar-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+        <span class="db-sidebar-text">Home</span>
+      </button>
+      <div class="db-sidebar-home-sep" aria-hidden="true"></div>
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Training</div>
-        <button class="db-sidebar-item" data-tab="log">
-          <span class="db-sidebar-icon">📋</span>
+        <button class="db-sidebar-item active" data-tab="log">
+          <span class="db-sidebar-icon" data-icon="log"></span>
           <span class="db-sidebar-text">Log Session</span>
         </button>
         <button class="db-sidebar-item" data-tab="drills">
-          <span class="db-sidebar-icon">🎯</span>
+          <span class="db-sidebar-icon" data-icon="drills"></span>
           <span class="db-sidebar-text">Drills</span>
         </button>
         <button class="db-sidebar-item" data-tab="workouts">
-          <span class="db-sidebar-icon">🏀</span>
+          <span class="db-sidebar-icon" data-icon="workouts"></span>
           <span class="db-sidebar-text">Workouts</span>
         </button>
       </div>
@@ -148,15 +150,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Analytics</div>
         <button class="db-sidebar-item" data-tab="summary">
-          <span class="db-sidebar-icon">📊</span>
+          <span class="db-sidebar-icon" data-icon="summary"></span>
           <span class="db-sidebar-text">Weekly Summary</span>
         </button>
         <button class="db-sidebar-item" data-tab="history">
-          <span class="db-sidebar-icon">📅</span>
+          <span class="db-sidebar-icon" data-icon="history"></span>
           <span class="db-sidebar-text">History</span>
         </button>
         <button class="db-sidebar-item" data-tab="shots">
-          <span class="db-sidebar-icon">🏹</span>
+          <span class="db-sidebar-icon" data-icon="shots"></span>
           <span class="db-sidebar-text">Shot Tracker</span>
         </button>
       </div>
@@ -164,15 +166,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">AI Coach</div>
         <button class="db-sidebar-item" data-tab="coach">
-          <span class="db-sidebar-icon">🏋️</span>
+          <span class="db-sidebar-icon" data-icon="coach"></span>
           <span class="db-sidebar-text">AI Coach</span>
         </button>
         <button class="db-sidebar-item" data-tab="calendar">
-          <span class="db-sidebar-icon">📆</span>
+          <span class="db-sidebar-icon" data-icon="calendar"></span>
           <span class="db-sidebar-text">Calendar</span>
         </button>
         <button class="db-sidebar-item" data-tab="notifications">
-          <span class="db-sidebar-icon">🔔</span>
+          <span class="db-sidebar-icon" data-icon="notifications"></span>
           <span class="db-sidebar-text">Notifications</span>
         </button>
       </div>
@@ -180,15 +182,15 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Profile</div>
         <button class="db-sidebar-item" data-tab="archetype">
-          <span class="db-sidebar-icon">🧬</span>
+          <span class="db-sidebar-icon" data-icon="archetype"></span>
           <span class="db-sidebar-text">Archetype</span>
         </button>
         <button class="db-sidebar-item" data-tab="shop">
-          <span class="db-sidebar-icon">🛍️</span>
+          <span class="db-sidebar-icon" data-icon="shop"></span>
           <span class="db-sidebar-text">Shop</span>
         </button>
         <button class="db-sidebar-item" data-tab="moves">
-          <span class="db-sidebar-icon">🤸</span>
+          <span class="db-sidebar-icon" data-icon="moves"></span>
           <span class="db-sidebar-text">Pro Moves</span>
         </button>
       </div>
@@ -197,7 +199,7 @@
       <div class="db-sidebar-group">
         <div class="db-sidebar-group-label">Social</div>
         <button class="db-sidebar-item" data-tab="social">
-          <span class="db-sidebar-icon">🏆</span>
+          <span class="db-sidebar-icon" data-icon="social"></span>
           <span class="db-sidebar-text">Social Hub</span>
         </button>
       </div>
@@ -227,22 +229,112 @@
   <main class="db-main" id="db-main">
     <div class="db-main-inner">
 
-    <!-- Topbar -->
+    <!-- Breadcrumb topbar -->
     <div class="db-topbar" id="db-topbar">
       <div class="db-breadcrumb">
-        <span class="db-breadcrumb-current" id="db-breadcrumb-current">Home</span>
+        <span class="db-breadcrumb-root">Dashboard</span>
+        <span class="db-breadcrumb-sep">/</span>
+        <span class="db-breadcrumb-current" id="db-breadcrumb-current">Log Session</span>
       </div>
       <div class="db-topbar-right">
         <span class="db-topbar-date" id="db-topbar-date"></span>
-        <!-- Compact profile badge -->
-        <div class="db-topbar-profile" id="db-topbar-profile" onclick="dbSwitchTab('home')">
-          <div class="db-topbar-profile-avatar" id="db-topbar-avatar"></div>
-          <div class="db-topbar-profile-info">
-            <span class="db-topbar-profile-name" id="db-topbar-profile-name">Player</span>
-            <span class="db-topbar-profile-xp" id="db-topbar-profile-xp">0 XP</span>
-          </div>
+        <button class="db-profile-widget" id="db-profile-widget" aria-label="Open profile" onclick="if(document.getElementById('profile-modal-overlay'))document.getElementById('profile-modal-overlay').classList.add('active');">
+          <div class="db-profile-widget-avatar" id="db-pw-avatar"></div>
+          <span class="db-profile-widget-name" id="db-pw-name"></span>
+          <span class="db-profile-widget-badge" id="db-pw-badge">Rookie</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Welcome Hero -->
+    <div class="db-welcome-hero">
+      <div class="db-court-bg" aria-hidden="true"></div>
+      <div class="db-welcome-content">
+        <h1 class="db-welcome-title">Hey, <span id="db-welcome-name">Player</span>!</h1>
+        <p class="db-welcome-sub">Ready to level up your game today?</p>
+      </div>
+      <div class="db-profile-mini" id="db-profile-mini">
+        <div class="db-profile-mini-avatar" id="db-profile-mini-avatar"></div>
+        <div class="db-profile-mini-info">
+          <span class="db-profile-mini-name" id="db-profile-mini-name">Player</span>
+          <span class="db-profile-mini-level" id="db-profile-mini-level">Rookie</span>
         </div>
       </div>
+    </div>
+
+    <!-- Stats Summary -->
+    <div class="db-stats-row">
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="sessions"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-sessions">0</span>
+          <span class="db-stat-label">Sessions This Week</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="streak"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-streak">0</span>
+          <span class="db-stat-label">Day Streak</span>
+        </div>
+      </div>
+      <div class="db-stat-card">
+        <div class="db-stat-icon" data-icon="xp"></div>
+        <div class="db-stat-info">
+          <span class="db-stat-value" id="db-stat-xp">0 XP</span>
+          <span class="db-stat-label">Total XP</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Compact Player Bar (replaces old profile-summary + xp-widget cards) -->
+    <div class="db-top-widgets" style="display:none">
+    <div class="db-player-bar">
+
+      <!-- Left: Avatar + Profile pills -->
+      <div class="db-pbar-profile">
+        <div class="skel-profile-wrap" id="skel-profile">
+          <div class="skel-profile-row">
+            <div class="skel skel-circle" style="width:32px;height:32px;flex-shrink:0;"></div>
+            <div class="skel-profile-text">
+              <div class="skel skel-line" style="width:90px;"></div>
+              <div class="skel skel-line-sm" style="width:60px;"></div>
+            </div>
+          </div>
+        </div>
+        <div id="profile-summary-content" class="db-pbar-info"></div>
+      </div>
+
+      <!-- Separator -->
+      <div class="db-pbar-sep" aria-hidden="true"></div>
+
+      <!-- Center: Level + XP bar -->
+      <div class="db-pbar-xp" id="xp-widget">
+        <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
+        <div class="db-pbar-xp-inner">
+          <div class="db-pbar-level-row">
+            <span class="xp-rank" id="xp-rank">Rookie</span>
+            <span class="xp-rank-label">Level</span>
+          </div>
+          <div class="xp-bar db-pbar-xp-bar">
+            <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+          </div>
+        </div>
+        <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP</div>
+      </div>
+
+      <!-- Right: Streak + action buttons -->
+      <div class="db-pbar-right">
+        <div id="db-streak-badge" style="display:none;font-size:11px;font-weight:800;padding:2px 9px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;"></div>
+        <button class="db-pbar-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()" title="Customize Avatar">
+          ✏️ <span>Avatar</span>
+        </button>
+        <button class="db-pbar-btn db-pbar-btn--ghost" id="profile-edit-btn" title="Edit Profile">
+          ⚙️ <span>Edit</span>
+        </button>
+      </div>
+
+    </div>
     </div>
 
     <!-- XP gain toast -->
@@ -258,231 +350,230 @@
       </div>
     </div>
 
-    <!-- ══ TAB: HOME ══ -->
-    <div class="db-panel active" id="db-panel-home">
-
-      <!-- Animated background -->
-      <div class="home-bg">
-        <div class="home-bg-orb home-bg-orb--1"></div>
-        <div class="home-bg-orb home-bg-orb--2"></div>
-        <div class="home-bg-orb home-bg-orb--3"></div>
-        <div class="home-bg-court"></div>
-      </div>
-
-      <!-- Hero welcome -->
-      <div class="home-hero">
-        <div class="home-hero-badge">AI-POWERED TRAINING</div>
-        <h1 class="home-hero-title">
-          <span class="home-hero-title-line">Level Up Your</span>
-          <span class="home-hero-title-accent">Basketball Game</span>
-        </h1>
-        <p class="home-hero-sub">Track sessions, get AI-personalized drills, analyze your shooting, and compete with other players — all in one place.</p>
-        <div class="home-hero-actions">
-          <button class="home-hero-cta" onclick="dbSwitchTab('log')">
-            <span class="home-hero-cta-icon">🏀</span>
-            Start Training
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10m0 0L9 4m4 4L9 12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </button>
-          <div class="home-hero-stat-row">
-            <div class="home-hero-stat">
-              <div class="home-hero-stat-val" id="db-week-label">Week 1</div>
-              <div class="home-hero-stat-label" id="db-session-count">0 sessions logged</div>
-            </div>
+    <!-- Daily Challenge Card -->
+    <div class="dc-card" id="dc-card">
+      <!-- Skeleton shown until DailyWorkout renders content -->
+      <div class="skel-dc-wrap" id="skel-dc">
+        <div class="skel-dc-row">
+          <div class="skel skel-circle" style="width:40px;height:40px;flex-shrink:0;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
+            <div class="skel skel-line-lg" style="width:50%"></div>
+            <div class="skel skel-line"    style="width:75%"></div>
           </div>
         </div>
-      </div>
-
-      <!-- Profile + XP Row -->
-      <div class="db-top-widgets">
-        <!-- Player Profile Summary -->
-        <div class="profile-summary" id="profile-summary-card">
-          <div class="skel-profile-wrap" id="skel-profile">
-            <div class="skel-profile-row">
-              <div class="skel skel-circle skel-avatar"></div>
-              <div class="skel-profile-text">
-                <div class="skel skel-line-lg" style="width:55%"></div>
-                <div class="skel skel-line"    style="width:40%"></div>
-                <div class="skel skel-line-sm" style="width:30%"></div>
-              </div>
-            </div>
-            <div class="skel skel-line" style="width:70%"></div>
-            <div class="skel skel-line-sm" style="width:50%"></div>
-          </div>
-          <div id="profile-summary-content"></div>
-          <div class="profile-summary-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="profile-edit-btn" id="profile-avatar-btn" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">✏️ Customize Avatar</button>
-            <button class="profile-edit-btn" id="profile-edit-btn">Edit Profile</button>
-          </div>
+        <div class="skel skel-rect" style="height:48px;width:100%"></div>
+        <div style="display:flex;gap:10px;">
+          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
+          <div class="skel skel-rect" style="height:34px;flex:1;"></div>
         </div>
-
-        <!-- XP / Level Widget -->
-        <div class="xp-widget" id="xp-widget">
-          <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
-          <div class="xp-info">
-            <div class="xp-info-top">
-              <div>
-                <span class="xp-rank" id="xp-rank">Rookie</span>
-                <span class="xp-rank-label">Level</span>
-              </div>
-              <div style="display:flex;align-items:center;gap:12px;">
-                <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP to Hooper</div>
-                <div id="db-streak-badge" style="display:none;font-size:12px;font-weight:800;padding:3px 10px;border-radius:100px;background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);white-space:nowrap;cursor:default;"></div>
-              </div>
-            </div>
-            <div class="xp-bar">
-              <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Daily Challenge Card -->
-      <div class="dc-card" id="dc-card">
-        <div class="skel-dc-wrap" id="skel-dc">
-          <div class="skel-dc-row">
-            <div class="skel skel-circle" style="width:40px;height:40px;flex-shrink:0;"></div>
-            <div style="flex:1;display:flex;flex-direction:column;gap:8px;">
-              <div class="skel skel-line-lg" style="width:50%"></div>
-              <div class="skel skel-line"    style="width:75%"></div>
-            </div>
-          </div>
-          <div class="skel skel-rect" style="height:48px;width:100%"></div>
-          <div style="display:flex;gap:10px;">
-            <div class="skel skel-rect" style="height:34px;flex:1;"></div>
-            <div class="skel skel-rect" style="height:34px;flex:1;"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Actions Grid -->
-      <div class="home-section">
-        <div class="home-section-label">
-          <span class="home-section-dot"></span>
-          Quick Actions
-        </div>
-        <div class="home-features-grid">
-          <button class="home-feature-card home-feature-card--primary" onclick="dbSwitchTab('log')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">📋</div>
-            <div class="home-feature-name">Log Session</div>
-            <div class="home-feature-desc">Record today's training data</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('drills')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🎯</div>
-            <div class="home-feature-name">Drills</div>
-            <div class="home-feature-desc">AI-generated drills for your position</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('workouts')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🏀</div>
-            <div class="home-feature-name">Workouts</div>
-            <div class="home-feature-desc">Full workout programs</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('shots')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🏹</div>
-            <div class="home-feature-name">Shot Tracker</div>
-            <div class="home-feature-desc">Track and analyze your shooting</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Analytics & Tools -->
-      <div class="home-section">
-        <div class="home-section-label">
-          <span class="home-section-dot home-section-dot--blue"></span>
-          Analytics & Tools
-        </div>
-        <div class="home-features-grid">
-          <button class="home-feature-card" onclick="dbSwitchTab('summary')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">📊</div>
-            <div class="home-feature-name">Weekly Summary</div>
-            <div class="home-feature-desc">AI-powered performance insights</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('coach')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🏋️</div>
-            <div class="home-feature-name">AI Coach</div>
-            <div class="home-feature-desc">Personalized program adjustments</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('calendar')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">📆</div>
-            <div class="home-feature-name">Calendar</div>
-            <div class="home-feature-desc">Weekly training schedule</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('history')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">📅</div>
-            <div class="home-feature-name">History</div>
-            <div class="home-feature-desc">Browse all past weeks</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Profile & Social -->
-      <div class="home-section">
-        <div class="home-section-label">
-          <span class="home-section-dot home-section-dot--purple"></span>
-          Profile & Social
-        </div>
-        <div class="home-features-grid home-features-grid--3">
-          <button class="home-feature-card" onclick="dbSwitchTab('archetype')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🧬</div>
-            <div class="home-feature-name">Archetype</div>
-            <div class="home-feature-desc">Discover your player DNA</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('moves')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🤸</div>
-            <div class="home-feature-name">Pro Moves</div>
-            <div class="home-feature-desc">Learn signature moves</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-          <button class="home-feature-card" onclick="dbSwitchTab('social')">
-            <div class="home-feature-glow"></div>
-            <div class="home-feature-icon">🏆</div>
-            <div class="home-feature-name">Social Hub</div>
-            <div class="home-feature-desc">Connect with other players</div>
-            <div class="home-feature-arrow">→</div>
-          </button>
-        </div>
-      </div>
-
-      <!-- Footer tagline -->
-      <div class="home-footer">
-        <div class="home-footer-line"></div>
-        <p class="home-footer-text">Court<span>IQ</span> — Train smarter. Play harder.</p>
-      </div>
-
-    </div><!-- /home panel -->
-
-    <!-- Player context row (for Log Session panel) -->
-    <div class="db-context-row" id="db-context-row">
-      <div class="db-field">
-        <label class="db-label">👤 Player Name</label>
-        <input class="db-input" id="db-player" type="text" value="Marcus R." />
-      </div>
-      <div class="db-field">
-        <label class="db-label">🏀 Position</label>
-        <select class="db-input" id="db-position">
-          <option>Point Guard</option><option>Shooting Guard</option>
-          <option>Small Forward</option><option>Power Forward</option><option>Center</option>
-        </select>
       </div>
     </div>
+
+    <!-- Quick Actions Grid -->
+    <div class="db-quick-grid" id="db-quick-actions">
+      <button class="db-quick-card" onclick="dbSwitchTabById('drills')">
+        <div class="db-quick-card-icon" data-icon="drills"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Drills</span>
+          <span class="db-quick-card-desc">Practice fundamentals</span>
+        </div>
+      </button>
+      <button class="db-quick-card" onclick="dbSwitchTabById('workouts')">
+        <div class="db-quick-card-icon" data-icon="workouts"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Workouts</span>
+          <span class="db-quick-card-desc">Full training sessions</span>
+        </div>
+      </button>
+      <button class="db-quick-card" onclick="dbSwitchTabById('shots')">
+        <div class="db-quick-card-icon" data-icon="shots"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Shot Tracker</span>
+          <span class="db-quick-card-desc">Log your shooting</span>
+        </div>
+      </button>
+      <button class="db-quick-card" onclick="dbSwitchTabById('summary')">
+        <div class="db-quick-card-icon" data-icon="summary"></div>
+        <div class="db-quick-card-info">
+          <span class="db-quick-card-label">Weekly Summary</span>
+          <span class="db-quick-card-desc">AI performance report</span>
+        </div>
+      </button>
+    </div>
+
+    <!-- Skills Overview -->
+    <div class="db-skills-circle-grid" id="db-skill-stats">
+      <div class="db-skill-circle" data-skill="shooting">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--shooting" id="stat-shooting-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-shooting">–</span>
+        <span class="db-skill-circle-name">Shooting</span>
+      </div>
+      <div class="db-skill-circle" data-skill="dribbling">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--dribbling" id="stat-dribbling-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-dribbling">–</span>
+        <span class="db-skill-circle-name">Dribbling</span>
+      </div>
+      <div class="db-skill-circle" data-skill="defense">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--defense" id="stat-defense-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-defense">–</span>
+        <span class="db-skill-circle-name">Defense</span>
+      </div>
+      <div class="db-skill-circle" data-skill="gameiq">
+        <svg class="db-skill-svg" viewBox="0 0 80 80">
+          <circle class="db-skill-track" cx="40" cy="40" r="34" />
+          <circle class="db-skill-progress db-skill-progress--gameiq" id="stat-gameiq-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+        </svg>
+        <span class="db-skill-circle-pct" id="stat-gameiq">–</span>
+        <span class="db-skill-circle-name">Game IQ</span>
+      </div>
+    </div>
+
+
+    <!-- ── TAB: HOME ── -->
+    <div class="db-panel active" id="db-panel-home">
+
+      <!-- 1.1 Hero Greeting -->
+      <div class="db-home-hero">
+        <h1 class="db-home-greeting" id="db-home-greeting">Hey, <strong>Player</strong>!</h1>
+        <p class="db-home-subtitle">Ready to level up your game today?</p>
+        <div class="db-home-date-pill" id="db-home-date"></div>
+      </div>
+
+      <!-- 1.2 Quick Stats Row -->
+      <div class="db-home-stats-row">
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-sessions">0</span>
+            <span class="db-home-stat-label">Sessions This Week</span>
+          </div>
+        </div>
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-streak">0</span>
+            <span class="db-home-stat-label">Day Streak</span>
+          </div>
+        </div>
+        <div class="db-home-stat">
+          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+          <div class="db-home-stat-info">
+            <span class="db-home-stat-value" id="db-home-xp">0</span>
+            <span class="db-home-stat-label">Total XP</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1.3 Skill Donut Charts -->
+      <div class="db-donuts-row" id="db-donuts-row">
+        <div class="db-donut" data-skill="shooting" data-pct="0" role="img" aria-label="Shooting: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">SHOOTING</div>
+        </div>
+        <div class="db-donut" data-skill="dribbling" data-pct="0" role="img" aria-label="Dribbling: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">DRIBBLING</div>
+        </div>
+        <div class="db-donut" data-skill="defense" data-pct="0" role="img" aria-label="Defense: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">DEFENSE</div>
+        </div>
+        <div class="db-donut" data-skill="gameiq" data-pct="0" role="img" aria-label="Game IQ: 0%">
+          <div class="db-donut-ring"></div>
+          <div class="db-donut-center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+          </div>
+          <div class="db-donut-label">0%</div>
+          <div class="db-donut-name">GAME IQ</div>
+        </div>
+      </div>
+
+      <!-- 1.4 Navigation Cards Grid -->
+      <div class="db-home-nav-grid">
+        <button class="db-home-nav-card" onclick="dbSwitchTab('drills')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Drills</span>
+            <span class="db-home-nav-sub">Practice fundamentals</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('workouts')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Workouts</span>
+            <span class="db-home-nav-sub">Full training sessions</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('shots')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Shot Tracker</span>
+            <span class="db-home-nav-sub">Log your shooting</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('summary')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Weekly Summary</span>
+            <span class="db-home-nav-sub">AI performance report</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('coach')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">AI Coach</span>
+            <span class="db-home-nav-sub">Get personalized tips</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+        <button class="db-home-nav-card" onclick="dbSwitchTab('moves')">
+          <span class="db-home-nav-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </span>
+          <div class="db-home-nav-text">
+            <span class="db-home-nav-title">Pro Moves</span>
+            <span class="db-home-nav-sub">Learn new techniques</span>
+          </div>
+          <span class="db-home-nav-arrow">&rsaquo;</span>
+        </button>
+      </div>
+
+    </div><!-- /db-panel-home -->
 
     <!-- ── TAB: LOG ── -->
     <div class="db-panel" id="db-panel-log">
@@ -495,28 +586,28 @@
           <div class="db-fields">
             <div class="db-row-2">
               <div class="db-field">
-                <label class="db-label">🎯 Shots Made</label>
+                <label class="db-label">Shots Made</label>
                 <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
               </div>
               <div class="db-field">
-                <label class="db-label">⚪ Shots Attempted</label>
+                <label class="db-label">Shots Attempted</label>
                 <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
               </div>
             </div>
             <div class="db-field">
-              <label class="db-label">⚡ Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
+              <label class="db-label">Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
               <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
             </div>
             <div class="db-field">
-              <label class="db-label">↑ Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
+              <label class="db-label">Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
               <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
             </div>
             <div class="db-field">
-              <label class="db-label">🏃 Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
+              <label class="db-label">Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
               <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
             </div>
             <div class="db-field">
-              <label class="db-label">📝 Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
+              <label class="db-label">Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
               <textarea class="db-input" id="db-notes" rows="2" placeholder="Felt strong today, nailed catch-and-shoot…"></textarea>
             </div>
             <div class="db-error" id="db-error"></div>
@@ -951,7 +1042,10 @@
             <div class="daily-workout-title">🏀 Today's Workout</div>
             <div class="daily-workout-date" id="daily-workout-date"></div>
           </div>
-          <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;">
+            <button class="night-training-trigger" onclick="NightTraining.open()">🌙 Night Training</button>
+            <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          </div>
         </div>
         <div class="daily-workout-grid" id="daily-workout-grid"></div>
         <div class="daily-workout-totals" id="daily-workout-totals"></div>
@@ -2439,10 +2533,23 @@
 <script src="js/avatar-shop.js"></script>
 <script src="js/avatar-customizer.js"></script>
 <script src="js/social-hub.js"></script>
-<!-- TF.js + COCO-SSD for AI ball detection -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" integrity="sha384-xc4sZTUOM2obsQR75Be0zGbt7Gb6mOVFJN4yBm30Xn0YQLDWIY+yrtFmLmIank6w" crossorigin="anonymous" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" integrity="sha384-7qLdgfEQyO9ZQi9ArRHigK+IBto4XPk468jAqc+fnsXaZIcMAhQeLwzggRK7aESl" crossorigin="anonymous" defer></script>
-<script src="js/ai-shot-tracker.js" defer></script>
+<!-- MediaPipe Tasks Vision — ES module shim: assigns FilesetResolver + ObjectDetector to window
+     so non-module IIFE scripts can access them via typeof guards (shotDetection.js migrated in
+     the same commit — consumer code no longer references tf/cocoSsd after Task 2).
+     IMPORTANT: module scripts share the same deferred-script execution queue as classic
+     defer scripts and execute in document order after HTML parsing completes (HTML spec §8.1.6).
+     Placing this tag BEFORE the shot-tracking defer script tags guarantees it runs first.
+     If vision_bundle.mjs is not yet loaded, _tryLoadModel falls back to color-only mode safely. -->
+<!-- AI Shot Tracker: ONNX Runtime Web + YOLOX-Nano (Apache 2.0) -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous" defer></script>
+<script src="js/ai-shot-tracker.js?v=4" defer></script>
+
+<script type="module">
+  import { FilesetResolver, ObjectDetector }
+    from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs';
+  window.FilesetResolver = FilesetResolver;
+  window.ObjectDetector  = ObjectDetector;
+</script>
 <!-- Shot Tracking Module (Capacitor/web rewrite) -->
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="features/shot-tracking/shotDetection.js" defer></script>
@@ -2453,7 +2560,7 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('/sw.js').catch(function () {});
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
   });
 }
 </script>
@@ -2500,24 +2607,178 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
+
+<!-- ── Skill Stats Renderer ── -->
+<script>
+(function () {
+  function renderSkillStats() {
+    var xpData   = (typeof XPSystem !== 'undefined') ? XPSystem.load() : { xp: 0, history: [] };
+    var history  = xpData.history || [];
+    var totalXP  = xpData.xp || 0;
+
+    var shotEv     = history.filter(function(e) { return /shot|basket|scoring/i.test(e.reason); }).length;
+    var trainEv    = history.filter(function(e) { return /drill|session|workout|check/i.test(e.reason); }).length;
+    var challengeEv= history.filter(function(e) { return /daily|challenge|streak/i.test(e.reason); }).length;
+
+    var profile = (typeof PlayerProfile !== 'undefined') ? PlayerProfile.load() : null;
+    var sl   = profile ? (profile.skillLevel || '').toLowerCase() : '';
+    var base = sl.indexOf('adv') !== -1 ? 65 : sl.indexOf('int') !== -1 ? 45 : 30;
+
+    var gameiq    = (typeof XPSystem !== 'undefined') ? XPSystem.getProgress(totalXP) : Math.min(95, base + trainEv * 3);
+    var shooting  = Math.min(97, base + shotEv * 12 + trainEv * 2);
+    var dribbling = Math.min(97, base + trainEv * 4 + challengeEv * 3);
+    var defense   = Math.min(97, base + challengeEv * 6 + trainEv * 2);
+
+    if (totalXP === 0) { shooting = dribbling = defense = gameiq = 0; }
+
+    setStat('shooting',  shooting);
+    setStat('dribbling', dribbling);
+    setStat('defense',   defense);
+    setStat('gameiq',    gameiq);
+
+    // Update home panel quick stats
+    updateHomeStats(totalXP);
+  }
+
+  function setStat(name, pct) {
+    // Legacy linear bars
+    var pctEl = document.getElementById('stat-' + name);
+    var barEl = document.getElementById('stat-' + name + '-bar');
+    if (pctEl) pctEl.textContent = pct > 0 ? pct + '%' : '\u2013';
+    if (barEl) setTimeout(function() { barEl.style.width = pct + '%'; }, 150);
+
+    // Donut chart update
+    var donut = document.querySelector('.db-donut[data-skill="' + name + '"]');
+    if (donut) {
+      donut.setAttribute('data-pct', pct);
+      donut.setAttribute('aria-label', name.charAt(0).toUpperCase() + name.slice(1) + ': ' + pct + '%');
+      var label = donut.querySelector('.db-donut-label');
+      if (label) label.textContent = pct > 0 ? pct + '%' : '0%';
+      if (!_skipDonutAnim) animateDonut(donut, pct);
+    }
+  }
+
+  // requestAnimationFrame donut animation
+  function animateDonut(donut, targetPct) {
+    var ring = donut.querySelector('.db-donut-ring');
+    if (!ring) return;
+    var start = null;
+    var duration = 800;
+    var from = 0;
+
+    function step(timestamp) {
+      if (!start) start = timestamp;
+      var progress = Math.min((timestamp - start) / duration, 1);
+      // Ease out cubic
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = from + (targetPct - from) * eased;
+      ring.style.setProperty('--pct', current + '%');
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      }
+    }
+    requestAnimationFrame(step);
+  }
+
+  function updateHomeStats(totalXP) {
+    // Sessions this week
+    var sessEl = document.getElementById('db-home-sessions');
+    if (sessEl) {
+      var countEl = document.getElementById('db-session-count');
+      var count = 0;
+      if (countEl) {
+        var match = countEl.textContent.match(/(\d+)/);
+        if (match) count = parseInt(match[1], 10);
+      }
+      sessEl.textContent = count;
+    }
+
+    // Streak
+    var streakEl = document.getElementById('db-home-streak');
+    if (streakEl) {
+      var badge = document.getElementById('db-streak-badge');
+      var streak = 0;
+      if (badge && badge.textContent) {
+        var m = badge.textContent.match(/(\d+)/);
+        if (m) streak = parseInt(m[1], 10);
+      }
+      streakEl.textContent = streak;
+    }
+
+    // XP
+    var xpEl = document.getElementById('db-home-xp');
+    if (xpEl) xpEl.textContent = totalXP || 0;
+  }
+
+  var _skipDonutAnim = true; // Skip animation during first renderSkillStats
+
+  function init() {
+    _skipDonutAnim = true;
+    renderSkillStats();
+    _skipDonutAnim = false;
+
+    // Stagger donut animations on initial load
+    var donuts = document.querySelectorAll('.db-donut');
+    donuts.forEach(function(d, i) {
+      var pct = parseInt(d.getAttribute('data-pct') || '0', 10);
+      setTimeout(function() { animateDonut(d, pct); }, i * 100);
+    });
+
+    if (typeof XPSystem !== 'undefined' && XPSystem.render) {
+      var _origRender = XPSystem.render;
+      XPSystem.render = function() {
+        _origRender.apply(this, arguments);
+        renderSkillStats();
+      };
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    setTimeout(init, 200);
+  }
+})();
+</script>
+
+<!-- ═══════════════════════════════════════════════════════
+     NIGHT TRAINING OVERLAY
+     ═══════════════════════════════════════════════════════ -->
+<div class="nt-overlay" id="nt-overlay">
+  <div class="nt-modal">
+    <div class="nt-modal-header">
+      <div class="nt-stars" id="nt-stars"></div>
+      <div class="nt-badge">🌙 Night Session</div>
+      <div class="nt-title">Night Training</div>
+      <div class="nt-subtitle">Technical work designed for evening recovery &amp; skill refinement</div>
+      <button class="nt-close" id="nt-close" aria-label="Close">&#x2715;</button>
+    </div>
+    <div class="nt-body">
+      <div class="nt-grid" id="nt-grid"></div>
+      <div class="nt-footer">
+        <div class="nt-totals" id="nt-totals"></div>
+        <button class="nt-start-btn" onclick="NightTraining.close()">&#x2713; Let's Get to Work</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="js/night-training.js"></script>
+
 <!-- ══════════════════════════════════════════════════════════
      AI SHOT TRACKER — Fullscreen camera overlay
      ══════════════════════════════════════════════════════════ -->
 <div class="ast-overlay" id="ast-overlay">
 
-  <!-- ── Camera / Detection View ── -->
+  <!-- Camera / Detection View -->
   <div class="ast-camera-view" id="ast-camera-view">
-    <!-- Hidden video source -->
     <video class="ast-video" id="ast-video" muted playsinline autoplay></video>
-    <!-- Detection + overlay canvas -->
     <canvas class="ast-canvas" id="ast-canvas"></canvas>
 
-    <!-- UI layer -->
     <div class="ast-ui">
 
       <!-- Top bar -->
       <div class="ast-topbar">
-        <button class="ast-close-btn" id="ast-close-btn">✕</button>
+        <button class="ast-close-btn" id="ast-close-btn">&#x2715;</button>
         <div class="ast-topbar-center">
           <div class="ast-timer" id="ast-timer">00:00</div>
           <span class="ast-ml-status" id="ast-ml-status" style="display:none;"></span>
@@ -2525,15 +2786,13 @@ if ('serviceWorker' in navigator) {
         <button class="ast-stop-btn" id="ast-stop-btn">Stop</button>
       </div>
 
-      <!-- ═══ CALIBRATION: VIDEO MODE ═══ -->
+      <!-- CALIBRATION: VIDEO MODE -->
       <div class="ast-calib-msg" id="ast-calib-video" style="display:none;">
-        <!-- Auto-detect scanning -->
         <div id="ast-vcalib-scanning">
-          <div class="ast-msg-icon">🔍</div>
+          <div class="ast-msg-icon">&#x1F50D;</div>
           <div class="ast-msg-text">Detecting rim...</div>
           <div class="ast-msg-sub">Analyzing the video for the basketball hoop</div>
         </div>
-        <!-- Confirm candidate -->
         <div id="ast-vcalib-confirm" style="display:none;">
           <div class="ast-msg-text">Is this the rim?</div>
           <div class="ast-msg-sub">The green circle marks the detected position</div>
@@ -2542,9 +2801,8 @@ if ('serviceWorker' in navigator) {
             <button class="ast-calib-btn ast-calib-no" id="ast-vcalib-retry">Try again</button>
           </div>
         </div>
-        <!-- Manual fallback for video -->
         <div id="ast-vcalib-manual" style="display:none;">
-          <div class="ast-msg-icon">👆</div>
+          <div class="ast-msg-icon">&#x1F446;</div>
           <div class="ast-msg-text">Tap the rim in the video</div>
           <div class="ast-msg-sub">Tap exactly on the center of the hoop</div>
         </div>
@@ -2553,9 +2811,8 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <!-- ═══ CALIBRATION: LIVE CAMERA MODE ═══ -->
+      <!-- CALIBRATION: LIVE CAMERA MODE -->
       <div class="ast-calib-msg" id="ast-calib-live" style="display:none;">
-        <!-- Step 1: Setup guide -->
         <div id="ast-lcalib-setup">
           <div class="ast-setup-steps">
             <div class="ast-setup-step">
@@ -2572,16 +2829,14 @@ if ('serviceWorker' in navigator) {
             </div>
           </div>
           <div class="ast-calib-actions" style="margin-top:16px;">
-            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-ready">I'm ready — detect rim</button>
+            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-ready">I'm ready &#x2014; detect rim</button>
           </div>
         </div>
-        <!-- Auto-detect scanning -->
         <div id="ast-lcalib-scanning" style="display:none;">
-          <div class="ast-msg-icon">🔍</div>
+          <div class="ast-msg-icon">&#x1F50D;</div>
           <div class="ast-msg-text">Detecting rim...</div>
           <div class="ast-msg-sub">Looking for the hoop in your camera feed</div>
         </div>
-        <!-- Confirm candidate -->
         <div id="ast-lcalib-confirm" style="display:none;">
           <div class="ast-msg-text">Is this the rim?</div>
           <div class="ast-msg-sub">The green circle marks the detected position</div>
@@ -2590,9 +2845,8 @@ if ('serviceWorker' in navigator) {
             <button class="ast-calib-btn ast-calib-no" id="ast-lcalib-retry">Try again</button>
           </div>
         </div>
-        <!-- Manual fallback for live -->
         <div id="ast-lcalib-manual" style="display:none;">
-          <div class="ast-msg-icon">👆</div>
+          <div class="ast-msg-icon">&#x1F446;</div>
           <div class="ast-msg-text">Tap the center of the rim</div>
           <div class="ast-msg-sub">Tap on the hoop in your camera view</div>
         </div>
@@ -2601,9 +2855,9 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
 
-      <!-- Tracking message (shown after calibration) -->
+      <!-- Tracking message -->
       <div class="ast-track-msg" id="ast-track-msg" style="display:none;">
-        <div class="ast-msg-sub">🟢 Tracking — Shoot away!</div>
+        <div class="ast-msg-sub">&#x1F7E2; Tracking &#x2014; Shoot away!</div>
       </div>
 
       <!-- Live counter -->
@@ -2617,13 +2871,13 @@ if ('serviceWorker' in navigator) {
           <div class="ast-counter-val" id="ast-attempts">0</div>
           <div class="ast-counter-lbl">Shots</div>
         </div>
-        <div class="ast-counter-pct" id="ast-pct">—%</div>
+        <div class="ast-counter-pct" id="ast-pct">&#x2014;%</div>
       </div>
 
-      <!-- Flash result (made/miss) -->
+      <!-- Flash result -->
       <div class="ast-flash" id="ast-flash"></div>
 
-      <!-- Shot type selector -->
+      <!-- Shot type selector (hidden stub) -->
       <div class="ast-type-bar">
         <button class="ast-type-btn ast-type-active" data-type="fg">FG</button>
         <button class="ast-type-btn" data-type="3pt">3PT</button>
@@ -2631,50 +2885,46 @@ if ('serviceWorker' in navigator) {
         <button class="ast-horse-toggle-btn" id="ast-horse-toggle">H-O-R-S-E</button>
       </div>
 
-      <!-- HORSE Mode Setup -->
+      <!-- HORSE Mode (hidden stub) -->
       <div class="ast-horse-setup" id="ast-horse-setup" style="display:none;">
         <input class="ast-horse-input" id="ast-horse-p1" placeholder="Player 1" maxlength="12">
         <span class="ast-horse-vs">VS</span>
         <input class="ast-horse-input" id="ast-horse-p2" placeholder="Player 2" maxlength="12">
         <button class="ast-horse-start-btn" id="ast-horse-start">Start</button>
       </div>
-
-      <!-- HORSE Status -->
       <div class="ast-horse-status" id="ast-horse-status" style="display:none;"></div>
 
       <!-- Manual override buttons -->
       <div class="ast-manual" id="ast-manual">
-        <button class="ast-manual-btn ast-manual-miss" id="ast-manual-miss">× Miss</button>
+        <button class="ast-manual-btn ast-manual-miss" id="ast-manual-miss">&#xD7; Miss</button>
         <div class="ast-manual-label">Manual override</div>
         <button class="ast-manual-btn ast-manual-made" id="ast-manual-made">+ Made</button>
       </div>
 
-      <!-- Video playback controls (video-upload mode only) -->
+      <!-- Video playback controls -->
       <div class="ast-video-controls" id="ast-video-controls" style="display:none;">
-        <button class="ast-vc-btn" id="ast-vc-playpause" title="Play / Pause">▶</button>
+        <button class="ast-vc-btn" id="ast-vc-playpause" title="Play / Pause">&#x25B6;</button>
         <input class="ast-vc-scrub" id="ast-vc-scrub" type="range" min="0" max="100" value="0" step="0.1">
         <div class="ast-vc-speeds">
-          <button class="ast-vc-speed-btn" data-speed="0.5">0.5×</button>
-          <button class="ast-vc-speed-btn ast-vc-speed-active" data-speed="1">1×</button>
-          <button class="ast-vc-speed-btn" data-speed="2">2×</button>
+          <button class="ast-vc-speed-btn" data-speed="0.5">0.5&#xD7;</button>
+          <button class="ast-vc-speed-btn ast-vc-speed-active" data-speed="1">1&#xD7;</button>
+          <button class="ast-vc-speed-btn" data-speed="2">2&#xD7;</button>
         </div>
       </div>
 
-      <!-- Camera / permission error -->
+      <!-- Error message -->
       <div class="ast-error" id="ast-error" style="display:none;"></div>
 
     </div><!-- /ast-ui -->
   </div><!-- /ast-camera-view -->
 
-  <!-- ── Summary View (shown after Stop) ── -->
+  <!-- Summary View -->
   <div class="ast-summary-view" id="ast-summary-view" style="display:none;">
     <div class="ast-sum-header">
       <div class="ast-sum-title">Session Summary</div>
-      <button class="ast-close-btn-sum" id="ast-close-btn-sum">✕</button>
+      <button class="ast-close-btn-sum" id="ast-close-btn-sum">&#x2715;</button>
     </div>
-    <div class="ast-sum-content" id="ast-sum-content">
-      <!-- Built by buildSummary() in ai-shot-tracker.js -->
-    </div>
+    <div class="ast-sum-content" id="ast-sum-content"></div>
   </div><!-- /ast-summary-view -->
 
 </div><!-- /ast-overlay -->

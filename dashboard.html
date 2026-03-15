@@ -2540,10 +2540,9 @@
      defer scripts and execute in document order after HTML parsing completes (HTML spec §8.1.6).
      Placing this tag BEFORE the shot-tracking defer script tags guarantees it runs first.
      If vision_bundle.mjs is not yet loaded, _tryLoadModel falls back to color-only mode safely. -->
-<!-- AI Shot Tracker: TensorFlow.js + COCO-SSD -->
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js" crossorigin="anonymous" defer></script>
-<script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js" crossorigin="anonymous" defer></script>
-<script src="js/ai-shot-tracker.js?v=3" defer></script>
+<!-- AI Shot Tracker: ONNX Runtime Web + YOLOX-Nano (Apache 2.0) -->
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous" defer></script>
+<script src="js/ai-shot-tracker.js?v=4" defer></script>
 
 <script type="module">
   import { FilesetResolver, ObjectDetector }
