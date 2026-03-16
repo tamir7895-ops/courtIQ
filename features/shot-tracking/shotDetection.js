@@ -2,13 +2,13 @@
    SHOT DETECTION — ML + Color Fallback Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
-   v6 — Custom YOLOX-tiny (Apache 2.0) trained on basketball dataset.
+   v9 — Custom YOLOX-tiny (Apache 2.0) trained on basketball dataset.
         2 classes: Basketball (0), Basketball Hoop (1).
-        Output: [1, N, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        Output: [1, 3549, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
         YOLOX runs every 3rd frame. Color detection every frame as fallback.
 
    Runs entirely in-browser using:
-     - ONNX Runtime Web (WASM backend) + YOLOX-tiny (custom trained, 0.6 MB)
+     - ONNX Runtime Web (WASM backend) + YOLOX-tiny (custom trained, 20 MB)
      - Canvas color analysis (always available)
    ══════════════════════════════════════════════════════════════ */
 (function () {
