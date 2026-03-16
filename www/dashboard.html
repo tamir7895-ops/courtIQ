@@ -27,7 +27,6 @@
   <link rel="stylesheet" href="styles/shop.css?v=3" />
   <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
   <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
-  <link rel="stylesheet" href="styles/ai-shot-tracker.css?v=3" />
   <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css?v=3" />
   <link rel="stylesheet" href="styles/charts.css?v=3" />
   <link rel="stylesheet" href="styles/move-library.css?v=3" />
@@ -2535,7 +2534,6 @@
 <script src="js/social-hub.js"></script>
 <!-- AI Detection: ONNX Runtime Web (WASM) — used by shotDetection.js for YOLOX-tiny -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous" defer></script>
-<!-- Legacy ai-shot-tracker.js DISABLED — replaced by features/shot-tracking/ module -->
 <!-- Shot Tracking Module (unified system) -->
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="features/shot-tracking/shotDetection.js" defer></script>
@@ -2750,170 +2748,6 @@ if ('serviceWorker' in navigator) {
 </div>
 <script src="js/night-training.js"></script>
 
-<!-- ══════════════════════════════════════════════════════════
-     AI SHOT TRACKER — Fullscreen camera overlay
-     ══════════════════════════════════════════════════════════ -->
-<div class="ast-overlay" id="ast-overlay">
-
-  <!-- Camera / Detection View -->
-  <div class="ast-camera-view" id="ast-camera-view">
-    <video class="ast-video" id="ast-video" muted playsinline autoplay></video>
-    <canvas class="ast-canvas" id="ast-canvas"></canvas>
-
-    <div class="ast-ui">
-
-      <!-- Top bar -->
-      <div class="ast-topbar">
-        <button class="ast-close-btn" id="ast-close-btn">&#x2715;</button>
-        <div class="ast-topbar-center">
-          <div class="ast-timer" id="ast-timer">00:00</div>
-          <span class="ast-ml-status" id="ast-ml-status" style="display:none;"></span>
-        </div>
-        <button class="ast-stop-btn" id="ast-stop-btn">Stop</button>
-      </div>
-
-      <!-- CALIBRATION: VIDEO MODE -->
-      <div class="ast-calib-msg" id="ast-calib-video" style="display:none;">
-        <div id="ast-vcalib-scanning">
-          <div class="ast-msg-icon">&#x1F50D;</div>
-          <div class="ast-msg-text">Detecting rim...</div>
-          <div class="ast-msg-sub">Analyzing the video for the basketball hoop</div>
-        </div>
-        <div id="ast-vcalib-confirm" style="display:none;">
-          <div class="ast-msg-text">Is this the rim?</div>
-          <div class="ast-msg-sub">The green circle marks the detected position</div>
-          <div class="ast-calib-actions">
-            <button class="ast-calib-btn ast-calib-yes" id="ast-vcalib-yes">Yes, start tracking</button>
-            <button class="ast-calib-btn ast-calib-no" id="ast-vcalib-retry">Try again</button>
-          </div>
-        </div>
-        <div id="ast-vcalib-manual" style="display:none;">
-          <div class="ast-msg-icon">&#x1F446;</div>
-          <div class="ast-msg-text">Tap the rim in the video</div>
-          <div class="ast-msg-sub">Tap exactly on the center of the hoop</div>
-        </div>
-        <div class="ast-calib-manual-link">
-          <button class="ast-calib-link-btn" id="ast-vcalib-switch">Or set manually</button>
-        </div>
-      </div>
-
-      <!-- CALIBRATION: LIVE CAMERA MODE -->
-      <div class="ast-calib-msg" id="ast-calib-live" style="display:none;">
-        <div id="ast-lcalib-setup">
-          <div class="ast-setup-steps">
-            <div class="ast-setup-step">
-              <div class="ast-setup-num">1</div>
-              <div class="ast-setup-text">Place your phone on the <strong>side of the court</strong>, leaning against something stable</div>
-            </div>
-            <div class="ast-setup-step">
-              <div class="ast-setup-num">2</div>
-              <div class="ast-setup-text">Make sure the <strong>rim is visible</strong> in the camera frame</div>
-            </div>
-            <div class="ast-setup-step">
-              <div class="ast-setup-num">3</div>
-              <div class="ast-setup-text">Stand <strong>2-4 meters</strong> from the phone so the hoop and your shots are in view</div>
-            </div>
-          </div>
-          <div class="ast-calib-actions" style="margin-top:16px;">
-            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-ready">I'm ready &#x2014; detect rim</button>
-          </div>
-        </div>
-        <div id="ast-lcalib-scanning" style="display:none;">
-          <div class="ast-msg-icon">&#x1F50D;</div>
-          <div class="ast-msg-text">Detecting rim...</div>
-          <div class="ast-msg-sub">Looking for the hoop in your camera feed</div>
-        </div>
-        <div id="ast-lcalib-confirm" style="display:none;">
-          <div class="ast-msg-text">Is this the rim?</div>
-          <div class="ast-msg-sub">The green circle marks the detected position</div>
-          <div class="ast-calib-actions">
-            <button class="ast-calib-btn ast-calib-yes" id="ast-lcalib-yes">Yes, start tracking</button>
-            <button class="ast-calib-btn ast-calib-no" id="ast-lcalib-retry">Try again</button>
-          </div>
-        </div>
-        <div id="ast-lcalib-manual" style="display:none;">
-          <div class="ast-msg-icon">&#x1F446;</div>
-          <div class="ast-msg-text">Tap the center of the rim</div>
-          <div class="ast-msg-sub">Tap on the hoop in your camera view</div>
-        </div>
-        <div class="ast-calib-manual-link" id="ast-lcalib-manual-link" style="display:none;">
-          <button class="ast-calib-link-btn" id="ast-lcalib-switch">Or set manually</button>
-        </div>
-      </div>
-
-      <!-- Tracking message -->
-      <div class="ast-track-msg" id="ast-track-msg" style="display:none;">
-        <div class="ast-msg-sub">&#x1F7E2; Tracking &#x2014; Shoot away!</div>
-      </div>
-
-      <!-- Live counter -->
-      <div class="ast-counter" id="ast-counter">
-        <div class="ast-counter-item">
-          <div class="ast-counter-val" id="ast-made">0</div>
-          <div class="ast-counter-lbl">Made</div>
-        </div>
-        <div class="ast-counter-sep">/</div>
-        <div class="ast-counter-item">
-          <div class="ast-counter-val" id="ast-attempts">0</div>
-          <div class="ast-counter-lbl">Shots</div>
-        </div>
-        <div class="ast-counter-pct" id="ast-pct">&#x2014;%</div>
-      </div>
-
-      <!-- Flash result -->
-      <div class="ast-flash" id="ast-flash"></div>
-
-      <!-- Shot type selector (hidden stub) -->
-      <div class="ast-type-bar">
-        <button class="ast-type-btn ast-type-active" data-type="fg">FG</button>
-        <button class="ast-type-btn" data-type="3pt">3PT</button>
-        <button class="ast-type-btn" data-type="ft">FT</button>
-        <button class="ast-horse-toggle-btn" id="ast-horse-toggle">H-O-R-S-E</button>
-      </div>
-
-      <!-- HORSE Mode (hidden stub) -->
-      <div class="ast-horse-setup" id="ast-horse-setup" style="display:none;">
-        <input class="ast-horse-input" id="ast-horse-p1" placeholder="Player 1" maxlength="12">
-        <span class="ast-horse-vs">VS</span>
-        <input class="ast-horse-input" id="ast-horse-p2" placeholder="Player 2" maxlength="12">
-        <button class="ast-horse-start-btn" id="ast-horse-start">Start</button>
-      </div>
-      <div class="ast-horse-status" id="ast-horse-status" style="display:none;"></div>
-
-      <!-- Manual override buttons -->
-      <div class="ast-manual" id="ast-manual">
-        <button class="ast-manual-btn ast-manual-miss" id="ast-manual-miss">&#xD7; Miss</button>
-        <div class="ast-manual-label">Manual override</div>
-        <button class="ast-manual-btn ast-manual-made" id="ast-manual-made">+ Made</button>
-      </div>
-
-      <!-- Video playback controls -->
-      <div class="ast-video-controls" id="ast-video-controls" style="display:none;">
-        <button class="ast-vc-btn" id="ast-vc-playpause" title="Play / Pause">&#x25B6;</button>
-        <input class="ast-vc-scrub" id="ast-vc-scrub" type="range" min="0" max="100" value="0" step="0.1">
-        <div class="ast-vc-speeds">
-          <button class="ast-vc-speed-btn" data-speed="0.5">0.5&#xD7;</button>
-          <button class="ast-vc-speed-btn ast-vc-speed-active" data-speed="1">1&#xD7;</button>
-          <button class="ast-vc-speed-btn" data-speed="2">2&#xD7;</button>
-        </div>
-      </div>
-
-      <!-- Error message -->
-      <div class="ast-error" id="ast-error" style="display:none;"></div>
-
-    </div><!-- /ast-ui -->
-  </div><!-- /ast-camera-view -->
-
-  <!-- Summary View -->
-  <div class="ast-summary-view" id="ast-summary-view" style="display:none;">
-    <div class="ast-sum-header">
-      <div class="ast-sum-title">Session Summary</div>
-      <button class="ast-close-btn-sum" id="ast-close-btn-sum">&#x2715;</button>
-    </div>
-    <div class="ast-sum-content" id="ast-sum-content"></div>
-  </div><!-- /ast-summary-view -->
-
-</div><!-- /ast-overlay -->
 
 </body>
 </html>
