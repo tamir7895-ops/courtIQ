@@ -2,13 +2,13 @@
    SHOT DETECTION — ML + Color Fallback Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
-   v5 — Replaced MediaPipe with YOLOX-Nano ONNX (4.4 MB, Apache 2.0).
-        YOLOX runs every 3rd frame with ultra-low threshold + orange
-        color verification. Color detection runs every frame as primary.
-        Falls back to color-only mode if ONNX Runtime unavailable.
+   v6 — Custom YOLOX-tiny (Apache 2.0) trained on basketball dataset.
+        2 classes: Basketball (0), Basketball Hoop (1).
+        Output: [1, N, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        YOLOX runs every 3rd frame. Color detection every frame as fallback.
 
    Runs entirely in-browser using:
-     - ONNX Runtime Web (WASM backend) + YOLOX-Nano (COCO pre-trained)
+     - ONNX Runtime Web (WASM backend) + YOLOX-tiny (custom trained, 0.6 MB)
      - Canvas color analysis (always available)
    ══════════════════════════════════════════════════════════════ */
 (function () {
@@ -24,14 +24,12 @@
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
 
-  /* ── YOLOX-Nano constants ─────────────────────────────────── */
+  /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
   var YOLOX_INPUT_SIZE     = 416;
-  var YOLOX_NUM_CLASSES    = 80;
-  var YOLOX_BALL_CLASS     = 32;   // COCO "sports ball"
-  var YOLOX_PERSON_CLASS   = 0;
-  var YOLOX_PERSON_THRESHOLD = 0.35;
-  // Alternate classes that might match a basketball
-  var YOLOX_ALT_BALL_CLASSES = { 29: 0.80, 49: 0.55, 47: 0.30 }; // frisbee, orange, apple
+  var YOLOX_NUM_CLASSES    = 2;
+  var YOLOX_BALL_CLASS     = 0;    // Basketball
+  var YOLOX_HOOP_CLASS     = 1;    // Basketball Hoop
+  var YOLOX_STRIDE         = 7;    // 4 (box) + 1 (objectness) + 2 (classes)
 
   // Pre-allocated buffers for ONNX inference (avoid GC)
   var _yoloxBuf    = null;
@@ -435,7 +433,7 @@
         return;
       }
 
-      var modelPath = 'models/yolox_nano.onnx';
+      var modelPath = 'models/basketball_yolox_tiny.onnx';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'all'
@@ -449,11 +447,11 @@
         _yoloxCanvas.width = sz;
         _yoloxCanvas.height = sz;
         _yoloxCtx = _yoloxCanvas.getContext('2d');
-        console.log('[ShotDetection] YOLOX-Nano loaded successfully');
+        console.log('[ShotDetection] YOLOX-tiny basketball model loaded (Apache 2.0)');
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
-        console.warn('[ShotDetection] YOLOX load failed — color-only mode:', err);
+        console.warn('[ShotDetection] YOLOX-tiny load failed — color-only mode:', err);
         self._mlFailed = true;
         self._colorOnlyMode = true;
         self._detectorType = 'none';
@@ -645,16 +643,18 @@
       });
     },
 
-    /* ── YOLOX output decode ──────────────────────────────────── */
+    /* ── YOLOX output decode (custom 2-class model) ─────────── */
+    /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
     _yoloxDecode: function (output, ratio, pw, ph) {
-      var numDets = output.length / (5 + YOLOX_NUM_CLASSES);
-      var stride = 5 + YOLOX_NUM_CLASSES;
+      var numDets = output.length / YOLOX_STRIDE;
       var best = null;
       var bestScore = 0;
+      var bestHoop = null;
+      var bestHoopScore = 0;
       var frameArea = pw * ph;
 
       for (var i = 0; i < numDets; i++) {
-        var off = i * stride;
+        var off = i * YOLOX_STRIDE;
         var obj = output[off + 4];
         if (obj < 0.01) continue;
 
@@ -663,32 +663,39 @@
         var bw = output[off + 2] / ratio;
         var bh = output[off + 3] / ratio;
 
-        // Check sports ball class + alternates
-        var ballScore = obj * output[off + 5 + YOLOX_BALL_CLASS];
-        var classWeight = 1.0;
-
-        for (var altCls in YOLOX_ALT_BALL_CLASSES) {
-          var altScore = obj * output[off + 5 + parseInt(altCls)];
-          if (altScore * YOLOX_ALT_BALL_CLASSES[altCls] > ballScore * classWeight) {
-            ballScore = altScore;
-            classWeight = YOLOX_ALT_BALL_CLASSES[altCls];
-          }
-        }
-
-        var adjScore = ballScore * classWeight;
-        if (adjScore < BALL_CONFIDENCE || adjScore <= bestScore) continue;
+        // Score = objectness × class_score
+        var ballScore = obj * output[off + 5];  // class 0 = Basketball
+        var hoopScore = obj * output[off + 6];  // class 1 = Hoop
 
         // Size filter
         var area = bw * bh;
-        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) continue;
+        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) {
+          // Still check for hoop (hoops can be larger)
+          if (hoopScore > 0.15 && hoopScore > bestHoopScore && area < frameArea * 0.4) {
+            bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
+            bestHoopScore = hoopScore;
+          }
+          continue;
+        }
 
-        // Aspect ratio check
+        // Aspect ratio check for ball
         var aspect = Math.max(bw, bh) / (Math.min(bw, bh) || 1);
         if (aspect > 3.0) continue;
 
-        best = { cx: cx, cy: cy, bw: bw, bh: bh, score: adjScore };
-        bestScore = adjScore;
+        if (ballScore >= BALL_CONFIDENCE && ballScore > bestScore) {
+          best = { cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore };
+          bestScore = ballScore;
+        }
+
+        // Also track hoop detections
+        if (hoopScore > 0.15 && hoopScore > bestHoopScore) {
+          bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
+          bestHoopScore = hoopScore;
+        }
       }
+
+      // Store latest hoop detection for auto rim-lock
+      this._lastHoopDetection = bestHoop;
 
       return best;
     },
