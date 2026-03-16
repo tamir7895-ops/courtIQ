@@ -184,7 +184,7 @@
     return Math.sqrt(dx * dx + dy * dy) < W * TELEPORT_FRAC;
   }
 
-  /* ── ML model loading (Custom YOLOv8 Basketball via ONNX Runtime Web) ── */
+  /* ── ML model loading (Custom YOLOX-tiny Basketball via ONNX Runtime Web) ── */
   var mlRetryCount = 0;
   var ML_MAX_RETRIES = 5;
   var YOLO_INPUT_SIZE = 416;
@@ -193,7 +193,8 @@
   var YOLO_HOOP_CLASS = 1;
   var YOLO_BALL_THRESHOLD = 0.05;  // lowered — ball often partially occluded in TikTok videos
   var YOLO_HOOP_THRESHOLD = 0.20;  // hoop detection threshold
-  var YOLO_NUM_DETECTIONS = 3549;  // output grid anchors
+  // YOLOX output: [1, N, 7] — N varies; 7 = [cx, cy, w, h, obj, cls0, cls1]
+  // Score = objectness * class_score
 
   // ML-detected hoop position (replaces old color/edge rim detection)
   var mlHoopDetection = null;     // { cx, cy, w, h, score }
@@ -217,8 +218,8 @@
     mlLoading = true;
     setMLStatus('loading');
 
-    // Custom YOLOv8 model trained on basketball + hoop detection
-    var modelPath = 'models/basketball_yolov8.onnx';
+    // YOLOX-tiny model — Apache 2.0 license (free for commercial use)
+    var modelPath = 'models/basketball_yolox_tiny.onnx';
 
     ort.InferenceSession.create(modelPath, {
       executionProviders: ['wasm'],
@@ -234,7 +235,7 @@
       yoloResizeCanvas.height = YOLO_INPUT_SIZE;
       yoloResizeCtx = yoloResizeCanvas.getContext('2d');
       setMLStatus('ready');
-      console.log('[AST] Basketball YOLOv8 model loaded — classes: Basketball, Basketball Hoop');
+      console.log('[AST] YOLOX-tiny basketball model loaded (Apache 2.0) — classes: Basketball, Basketball Hoop');
     }).catch(function (e) {
       console.warn('[AST] ONNX model load failed, using color-only:', e);
       mlLoading = false;
@@ -250,7 +251,7 @@
     else { el.style.display = 'none'; }
   }
 
-  /* ── YOLOv8 Basketball inference helpers ──────────────────── */
+  /* ── YOLOX Basketball inference helpers ──────────────────── */
   var mlMissCount = 0;
 
   function yoloPreprocess() {
@@ -267,7 +268,7 @@
     yoloResizeCtx.drawImage(canvas, 0, 0, W, H, padX, padY, newW, newH);
 
     var imgData = yoloResizeCtx.getImageData(0, 0, sz, sz).data;
-    // HWC RGBA → CHW RGB, normalized to [0,1] (YOLOv8 standard)
+    // HWC RGBA → CHW RGB, normalized to [0,1] (YOLOX standard)
     var chSize = sz * sz;
     for (var i = 0; i < chSize; i++) {
       yoloInputBuf[i]              = imgData[i * 4]     / 255.0; // R
@@ -277,24 +278,28 @@
     return { ratio: ratio, padX: padX, padY: padY };
   }
 
-  function yoloDecode(rawOutput, prepInfo) {
-    // YOLOv8 output: [1, 6, 3549] = [batch, 4+nclass, ndetections]
-    // Transposed: rawOutput is flat array of 6 * 3549 values
-    // Layout: first 3549 values = all cx, next 3549 = all cy, etc.
-    var nd = YOLO_NUM_DETECTIONS;
+  function yoloDecode(rawOutput, numDetections, prepInfo) {
+    // YOLOX output: [1, N, 7] = [batch, detections, 4+1+nclass]
+    // Each row: [cx, cy, w, h, objectness, basketball_score, hoop_score]
     var ratio = prepInfo.ratio;
     var padX = prepInfo.padX;
     var padY = prepInfo.padY;
     var balls = [];
     var hoops = [];
 
-    for (var i = 0; i < nd; i++) {
-      var cx_raw = rawOutput[0 * nd + i];
-      var cy_raw = rawOutput[1 * nd + i];
-      var bw_raw = rawOutput[2 * nd + i];
-      var bh_raw = rawOutput[3 * nd + i];
-      var ballScore = rawOutput[4 * nd + i]; // class 0 = Basketball
-      var hoopScore = rawOutput[5 * nd + i]; // class 1 = Basketball Hoop
+    for (var i = 0; i < numDetections; i++) {
+      var offset = i * 7;
+      var cx_raw = rawOutput[offset + 0];
+      var cy_raw = rawOutput[offset + 1];
+      var bw_raw = rawOutput[offset + 2];
+      var bh_raw = rawOutput[offset + 3];
+      var objectness = rawOutput[offset + 4];
+      var ballClassScore = rawOutput[offset + 5];
+      var hoopClassScore = rawOutput[offset + 6];
+
+      // YOLOX score = objectness * class_score
+      var ballScore = objectness * ballClassScore;
+      var hoopScore = objectness * hoopClassScore;
 
       // Convert from letterbox coords back to original frame coords
       var cx = (cx_raw - padX) / ratio;
@@ -304,7 +309,6 @@
 
       // Collect basketball detections
       if (ballScore >= YOLO_BALL_THRESHOLD) {
-        // Size filter
         var area = bw * bh;
         var frameArea = W * H;
         if (area >= frameArea * 0.0001 && area <= frameArea * 0.10) {
@@ -324,7 +328,7 @@
     return { balls: balls, hoops: hoops };
   }
 
-  // Update ML-based hoop detection from YOLOv8 results
+  // Update ML-based hoop detection from YOLOX results
   function updateMLHoop(hoops) {
     if (hoops.length === 0) return;
     // Pick highest-confidence hoop
@@ -388,15 +392,17 @@
     }
   }
 
-  /* ── ML detection: YOLOv8 Basketball + Hoop ────────────────── */
+  /* ── ML detection: YOLOX Basketball + Hoop ────────────────── */
   function detectBallAsync() {
     if (mlReady && tfModel) {
       var prepInfo = yoloPreprocess();
       var inputTensor = new ort.Tensor('float32', yoloInputBuf, [1, 3, YOLO_INPUT_SIZE, YOLO_INPUT_SIZE]);
 
       return tfModel.run({ images: inputTensor }).then(function (results) {
-        var outputData = results.output0.data;
-        var decoded = yoloDecode(outputData, prepInfo);
+        var outputData = results.output.data;
+        var outputShape = results.output.dims;  // [1, N, 7]
+        var numDetections = outputShape[1];
+        var decoded = yoloDecode(outputData, numDetections, prepInfo);
 
         // Update hoop detection every frame
         updateMLHoop(decoded.hoops);
@@ -909,7 +915,7 @@
     return bestCandidate;
   }
 
-  // ML-based rim detection: uses YOLOv8 hoop detections (updated each frame)
+  // ML-based rim detection: uses YOLOX hoop detections (updated each frame)
   function detectRimML() {
     if (mlHoopDetection && mlHoopDetection.score > 0.30) {
       return Promise.resolve({
@@ -1702,7 +1708,7 @@
   }
 
   function checkRimCandidate() {
-    // ── Priority 1: ML hoop detection (from YOLOv8 running each frame) ──
+    // ── Priority 1: ML hoop detection (from YOLOX running each frame) ──
     if (mlHoopDetection && mlHoopDetection.score > 0.30) {
       autoRimCandidate = {
         cx: mlHoopDetection.cx,
