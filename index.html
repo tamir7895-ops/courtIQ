@@ -1434,16 +1434,28 @@
     <!-- ── TAB: SHOT TRACKER ── -->
     <div class="db-panel" id="db-panel-shots">
 
-      <!-- AI Tracking Banner -->
-      <div class="ast-launch-card">
-        <div class="ast-launch-icon">📷</div>
-        <div class="ast-launch-text">
-          <div class="ast-launch-title">AI Shot Tracker</div>
-          <div class="ast-launch-sub">Auto-detect made &amp; missed shots — use your live camera or upload a video from your gallery.</div>
+      <!-- AI Shot Tracker Hero -->
+      <div class="st-hero">
+        <div class="st-hero-visual">
+          <div class="st-hero-court">
+            <div class="st-hero-ball"></div>
+            <div class="st-hero-rim"></div>
+          </div>
         </div>
-        <div class="ast-launch-btns">
-          <button class="ast-launch-btn" id="ast-launch-btn">📷 Live Camera</button>
-          <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
+        <div class="st-hero-content">
+          <div class="st-hero-badge">AI-POWERED</div>
+          <h2 class="st-hero-title">Shot Tracker</h2>
+          <p class="st-hero-desc">Point your camera at the hoop and let AI detect every made and missed shot in real-time.</p>
+          <div class="st-hero-actions">
+            <button class="st-hero-btn st-hero-btn-primary" id="ast-launch-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+              Live Camera
+            </button>
+            <button class="st-hero-btn st-hero-btn-secondary" id="ast-upload-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload Video
+            </button>
+          </div>
         </div>
       </div>
       <input type="file" accept="video/*" id="ast-file-input" capture="environment" style="display:none">
