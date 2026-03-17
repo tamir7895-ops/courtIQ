@@ -484,10 +484,13 @@
       if (sidebarBtn) sidebarBtn.classList.add('active');
     }
 
-    // Update bottom nav active state
-    document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
-    var bottomBtn = document.querySelector('.bottom-nav-item[data-tab="' + id + '"]');
-    if (bottomBtn) bottomBtn.classList.add('active');
+    // Update bottom nav active state (section-aware)
+    document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      var section = btn.dataset.section;
+      var sectionDef = typeof bottomNavSections !== 'undefined' && bottomNavSections[section];
+      var isActive = sectionDef && sectionDef.tabs.indexOf(id) !== -1;
+      btn.classList.toggle('active', !!isActive);
+    });
 
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
@@ -502,6 +505,17 @@
       } else {
         layoutRoot.classList.remove('db-home-active');
       }
+    }
+
+    // Show/hide global hero + stats (only on home)
+    var welcomeHero = document.querySelector('.db-welcome-hero');
+    var statsRow = document.querySelector('.db-stats-row');
+    if (id === 'home') {
+      if (welcomeHero) welcomeHero.style.display = '';
+      if (statsRow) statsRow.style.display = '';
+    } else {
+      if (welcomeHero) welcomeHero.style.display = 'none';
+      if (statsRow) statsRow.style.display = 'none';
     }
 
     // Update breadcrumb
@@ -552,6 +566,19 @@
       } catch (e) {}
     }
 
+    // Update subnav active states
+    document.querySelectorAll('.subnav-item').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    document.querySelectorAll('.section-subnav').forEach(function(nav) {
+      var buttons = nav.querySelectorAll('.subnav-item');
+      buttons.forEach(function(btn) {
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + id + "'") !== -1) {
+          btn.classList.add('active');
+        }
+      });
+    });
+
     // Close mobile sidebar if open
     const sidebar = document.getElementById('db-sidebar');
     const overlay = document.getElementById('db-sidebar-overlay');
@@ -560,6 +587,34 @@
   }
   function dbSwitchTabById(id) {
     dbSwitchTab(id, null);
+  }
+
+  /* ── bottom nav section switching ── */
+  var bottomNavSections = {
+    home:  { tabs: ['home'], default: 'home' },
+    train: { tabs: ['drills', 'workouts', 'log', 'moves'], default: 'drills' },
+    track: { tabs: ['shots', 'log', 'history'], default: 'shots' },
+    coach: { tabs: ['coach', 'summary', 'calendar', 'notifications'], default: 'coach' },
+    me:    { tabs: ['archetype', 'social', 'shop'], default: 'archetype' }
+  };
+
+  function bottomNavSwitch(section) {
+    // Update active bottom nav button
+    document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.section === section);
+    });
+    // Hide all subnavs
+    document.querySelectorAll('.section-subnav').forEach(function(nav) {
+      nav.style.display = 'none';
+    });
+    // Show correct subnav (if not home)
+    if (section !== 'home') {
+      var subnav = document.getElementById('subnav-' + section);
+      if (subnav) subnav.style.display = 'flex';
+    }
+    // Switch to default tab for this section
+    var defaultTab = bottomNavSections[section].default;
+    dbSwitchTab(defaultTab);
   }
 
   /* ── update header labels ── */

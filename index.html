@@ -286,6 +286,30 @@
       </div>
     </div>
 
+    <!-- Section Sub-Navigation (shown when bottom nav section is active) -->
+    <div class="section-subnav" id="subnav-train" style="display:none">
+      <button class="subnav-item active" onclick="dbSwitchTab('drills')">Drills</button>
+      <button class="subnav-item" onclick="dbSwitchTab('workouts')">Workouts</button>
+      <button class="subnav-item" onclick="dbSwitchTab('log')">Daily Challenge</button>
+      <button class="subnav-item" onclick="dbSwitchTab('moves')">Pro Moves</button>
+    </div>
+    <div class="section-subnav" id="subnav-track" style="display:none">
+      <button class="subnav-item active" onclick="dbSwitchTab('shots')">Shot Tracker</button>
+      <button class="subnav-item" onclick="dbSwitchTab('log')">Log Session</button>
+      <button class="subnav-item" onclick="dbSwitchTab('history')">History</button>
+    </div>
+    <div class="section-subnav" id="subnav-coach" style="display:none">
+      <button class="subnav-item active" onclick="dbSwitchTab('coach')">AI Coach</button>
+      <button class="subnav-item" onclick="dbSwitchTab('summary')">Weekly Summary</button>
+      <button class="subnav-item" onclick="dbSwitchTab('calendar')">Calendar</button>
+      <button class="subnav-item" onclick="dbSwitchTab('notifications')">Notifications</button>
+    </div>
+    <div class="section-subnav" id="subnav-me" style="display:none">
+      <button class="subnav-item active" onclick="dbSwitchTab('archetype')">Profile</button>
+      <button class="subnav-item" onclick="dbSwitchTab('social')">Social</button>
+      <button class="subnav-item" onclick="dbSwitchTab('shop')">Shop</button>
+    </div>
+
     <!-- Compact Player Bar (replaces old profile-summary + xp-widget cards) -->
     <div class="db-top-widgets" style="display:none">
     <div class="db-player-bar">
@@ -1811,39 +1835,39 @@
 
   <!-- BOTTOM NAV BAR (mobile only) -->
   <nav class="bottom-nav" id="bottom-nav" aria-label="Mobile navigation">
-    <button class="bottom-nav-item active" data-tab="home" onclick="dbSwitchTab('home')">
+    <button class="bottom-nav-item active" data-section="home" onclick="bottomNavSwitch('home')">
       <span class="bottom-nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </span>
       <span class="bottom-nav-label">Home</span>
       <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-tab="drills" onclick="dbSwitchTab('drills')">
+    <button class="bottom-nav-item" data-section="train" onclick="bottomNavSwitch('train')">
       <span class="bottom-nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
       </span>
-      <span class="bottom-nav-label">Drills</span>
+      <span class="bottom-nav-label">Train</span>
       <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-tab="shots" onclick="dbSwitchTab('shots')">
+    <button class="bottom-nav-item" data-section="track" onclick="bottomNavSwitch('track')">
       <span class="bottom-nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
       </span>
-      <span class="bottom-nav-label">Tracker</span>
+      <span class="bottom-nav-label">Track</span>
       <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-tab="coach" onclick="dbSwitchTab('coach')">
+    <button class="bottom-nav-item" data-section="coach" onclick="bottomNavSwitch('coach')">
       <span class="bottom-nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
       </span>
-      <span class="bottom-nav-label">AI Coach</span>
+      <span class="bottom-nav-label">Coach</span>
       <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-tab="archetype" onclick="dbSwitchTab('archetype')">
+    <button class="bottom-nav-item" data-section="me" onclick="bottomNavSwitch('me')">
       <span class="bottom-nav-icon">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
-      <span class="bottom-nav-label">Profile</span>
+      <span class="bottom-nav-label">Me</span>
       <span class="bottom-nav-dot"></span>
     </button>
   </nav>
