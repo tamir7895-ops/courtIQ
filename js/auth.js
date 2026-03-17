@@ -140,7 +140,7 @@
     }
 
     showAuthSuccess('signin', email);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    setTimeout(() => { window.location.reload(); }, 1500);
   }
 
   async function submitSignUp() {
@@ -200,12 +200,27 @@
     }
 
     showAuthSuccess('signup', first);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    setTimeout(() => { window.location.reload(); }, 1500);
   }
 
   async function signOut() {
+    localStorage.removeItem('courtiq-guest-mode');
+    window.courtiqGuest = false;
     await sb.auth.signOut();
-    window.location.href = 'index.html';
+    window.location.reload();
+  }
+
+  function enterGuestMode() {
+    localStorage.setItem('courtiq-guest-mode', 'true');
+    window.courtiqGuest = true;
+    if (typeof hideWelcomeScreen === 'function') hideWelcomeScreen();
+    // Show guest banner
+    var gb = document.getElementById('guest-banner');
+    if (gb) gb.style.display = 'flex';
+    // Set guest user and init dashboard
+    window.currentUser = { id: 'guest', email: 'guest@courtiq.app', user_metadata: { display_name: 'Guest' } };
+    window.currentSession = { user: window.currentUser };
+    if (typeof initDashboard === 'function') initDashboard();
   }
 
   function socialAuth(provider) {
@@ -253,7 +268,7 @@
       const navBtns = document.querySelector('.nav-buttons');
       if (navBtns && !document.getElementById('db-panel-log')) {
         navBtns.innerHTML = `
-          <a href="dashboard.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
+          <a href="index.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
           <button onclick="signOut()" class="btn-hamburger" style="font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;">Sign Out</button>
         `;
       }

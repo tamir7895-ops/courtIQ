@@ -12,27 +12,54 @@
   let currentWeekNum = 1;
 
   /* ══════════════════════════════════════════════════════════════
-     AUTH GUARD — redirect if not logged in
+     AUTH GUARD — show welcome screen if not logged in
   ══════════════════════════════════════════════════════════════ */
+  function showWelcomeScreen() {
+    var ws = document.getElementById('welcome-screen');
+    if (ws) ws.style.display = 'flex';
+    var layout = document.querySelector('.db-layout-root');
+    if (layout) layout.style.display = 'none';
+  }
+  function hideWelcomeScreen() {
+    var ws = document.getElementById('welcome-screen');
+    if (ws) {
+      ws.classList.add('hiding');
+      setTimeout(function() { ws.style.display = 'none'; }, 400);
+    }
+    var layout = document.querySelector('.db-layout-root');
+    if (layout) layout.style.display = '';
+  }
+  // Make available globally for auth.js
+  window.showWelcomeScreen = showWelcomeScreen;
+  window.hideWelcomeScreen = hideWelcomeScreen;
+
   (async function authGuard() {
     /* TEMP TEST BYPASS */
     if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
       window.currentUser = { id: 'test', email: 'test@test.com', user_metadata: { display_name: 'Tamir' } };
       window.currentSession = { user: window.currentUser };
-      var ao = document.querySelector('.auth-overlay'); if (ao) ao.style.display = 'none';
+      hideWelcomeScreen();
       initDashboard(); return;
     }
-let session;
+
+    // Check guest mode
+    if (localStorage.getItem('courtiq-guest-mode') === 'true') {
+      window.courtiqGuest = true;
+      window.currentUser = { id: 'guest', email: 'guest@courtiq.app', user_metadata: { display_name: 'Guest' } };
+      window.currentSession = { user: window.currentUser };
+      hideWelcomeScreen();
+      // Show guest banner
+      var gb = document.getElementById('guest-banner');
+      if (gb) gb.style.display = 'flex';
+      initDashboard(); return;
+    }
+
+    let session;
     try {
       const { data, error } = await sb.auth.getSession();
       if (error) throw error;
       session = data.session;
     } catch (e) {
-      // Distinguish network errors from genuine auth failures.
-      // A "Failed to fetch" / TypeError means the token-refresh network
-      // call failed (CDN hiccup, offline, etc.) — the stored session is
-      // still valid. We recover it directly from localStorage so the user
-      // is never kicked out due to a transient network problem.
       const isNetworkError = e instanceof TypeError ||
         (e && typeof e.message === 'string' &&
           /fetch|network|load/i.test(e.message));
@@ -40,36 +67,32 @@ let session;
       if (isNetworkError) {
         console.warn('Token refresh failed (network error) — recovering session from cache:', e);
         try {
-          // Supabase v2 key: sb-<project-ref>-auth-token
           const cacheKey = Object.keys(localStorage)
             .find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
           if (cacheKey) {
             const stored = JSON.parse(localStorage.getItem(cacheKey) || 'null');
-            // stored can be the session object directly or wrapped in {currentSession}
             session = stored?.currentSession ?? stored;
           }
         } catch (_) { /* ignore parse errors */ }
 
         if (!session || !session.user) {
-          // No cached session either — send to login
-          window.location.href = 'index.html';
+          showWelcomeScreen();
           return;
         }
-        // Cached session recovered — continue loading dashboard
       } else {
-        // Genuine auth error (refresh token revoked/expired) — sign out cleanly
         console.warn('Session load failed, clearing stale auth:', e);
         await sb.auth.signOut();
-        window.location.href = 'index.html';
+        showWelcomeScreen();
         return;
       }
     }
     if (!session) {
-      window.location.href = 'index.html';
+      showWelcomeScreen();
       return;
     }
     window.currentUser = session.user;
     window.currentSession = session;
+    hideWelcomeScreen();
 
     // Update sidebar user info
     const sidebarName = document.getElementById('db-sidebar-name');
@@ -410,8 +433,45 @@ let session;
   function dbWeekNum() { return currentWeekNum; }
   function dbPrevStats() { return dbWeeks.length > 0 ? dbWeekStats(dbWeeks[dbWeeks.length-1]) : null; }
 
+  /* ── premium lock for guest mode ── */
+  function showPremiumLock(tabId) {
+    var names = { coach: 'AI Coach', summary: 'Weekly Summary', progress: 'Progress Analytics', archetype: 'Player Archetype' };
+    var existing = document.getElementById('premium-lock-dialog');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'premium-lock-dialog';
+    overlay.className = 'premium-lock-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '150000';
+    var icon = document.createElement('div');
+    icon.className = 'premium-lock-icon';
+    icon.textContent = '\uD83D\uDD12';
+    var text = document.createElement('div');
+    text.className = 'premium-lock-text';
+    text.textContent = (names[tabId] || tabId) + ' is a premium feature. Sign up to unlock full access.';
+    var btn = document.createElement('button');
+    btn.className = 'premium-lock-btn';
+    btn.textContent = 'SIGN UP TO UNLOCK';
+    btn.addEventListener('click', function() { overlay.remove(); if (typeof openAuth === 'function') openAuth('signup'); });
+    var dismiss = document.createElement('button');
+    dismiss.textContent = 'Maybe Later';
+    dismiss.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.4);font-size:13px;cursor:pointer;margin-top:12px;';
+    dismiss.addEventListener('click', function() { overlay.remove(); });
+    overlay.appendChild(icon);
+    overlay.appendChild(text);
+    overlay.appendChild(btn);
+    overlay.appendChild(dismiss);
+    document.body.appendChild(overlay);
+  }
+
   /* ── tab switching ── */
+  var GUEST_LOCKED_TABS = ['coach', 'summary', 'progress', 'archetype'];
   function dbSwitchTab(id, btn) {
+    // Guest mode: block premium tabs
+    if (window.courtiqGuest && GUEST_LOCKED_TABS.indexOf(id) !== -1) {
+      showPremiumLock(id); return;
+    }
     // Update sidebar active state
     document.querySelectorAll('.db-sidebar-item').forEach(i => i.classList.remove('active'));
     // Also clear old tab buttons if any exist

@@ -122,6 +122,32 @@
     if (statsRow) observer.observe(statsRow);
   }
 
+  /* ── SVG SKILL RINGS ANIMATION ─────────────────────── */
+  function wireSkillRings() {
+    var CIRC = 2 * Math.PI * 42; // r=42, circumference ~263.9
+    var rings = document.querySelectorAll('.db-ring');
+    if (!rings.length) return;
+
+    rings.forEach(function(ring) {
+      var pct = parseInt(ring.getAttribute('data-pct') || '0', 10);
+      var progress = ring.querySelector('.db-ring-progress');
+      var label = ring.querySelector('.db-ring-pct');
+      if (!progress) return;
+
+      // Set initial state (fully hidden)
+      progress.style.strokeDasharray = CIRC;
+      progress.style.strokeDashoffset = CIRC;
+
+      // Animate after a short delay
+      setTimeout(function() {
+        var offset = CIRC - (CIRC * pct / 100);
+        progress.style.strokeDashoffset = offset;
+      }, 400);
+
+      if (label) label.textContent = pct + '%';
+    });
+  }
+
   /* ── RECENT SESSIONS TABLE (safe DOM construction) ──── */
   function renderRecentSessions() {
     var container = $('db-recent-sessions');
@@ -195,6 +221,7 @@
   function initRedesign() {
     wireHero();
     wireStatCountUp();
+    wireSkillRings();
     renderRecentSessions();
 
     // Re-wire hero when XP system updates
