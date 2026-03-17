@@ -109,6 +109,24 @@
 ══════════════════════════════════════════ -->
 <div class="db-layout-root">
 
+  <!-- DESKTOP TOP NAV BAR -->
+  <nav class="top-nav" id="top-nav">
+    <div class="top-nav-brand">
+      <span class="top-nav-logo">Court<span class="top-nav-logo-accent">IQ</span></span>
+    </div>
+    <div class="top-nav-tabs">
+      <button class="top-nav-item active" data-section="home" onclick="bottomNavSwitch('home')">Home</button>
+      <button class="top-nav-item" data-section="train" onclick="bottomNavSwitch('train')">Train</button>
+      <button class="top-nav-item" data-section="track" onclick="bottomNavSwitch('track')">Track</button>
+      <button class="top-nav-item" data-section="coach" onclick="bottomNavSwitch('coach')">Coach</button>
+      <button class="top-nav-item" data-section="me" onclick="bottomNavSwitch('me')">Me</button>
+    </div>
+    <div class="top-nav-user">
+      <div class="top-nav-avatar" id="top-nav-avatar"></div>
+      <span class="top-nav-badge" id="top-nav-badge">Rookie</span>
+    </div>
+  </nav>
+
   <!-- SIDEBAR NAVIGATION -->
   <aside class="db-sidebar" id="db-sidebar">
     <div class="db-sidebar-header">

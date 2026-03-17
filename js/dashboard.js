@@ -492,6 +492,14 @@
       btn.classList.toggle('active', !!isActive);
     });
 
+    // Update top nav active state (section-aware)
+    document.querySelectorAll('.top-nav-item').forEach(function(btn) {
+      var section = btn.dataset.section;
+      var sectionDef = typeof bottomNavSections !== 'undefined' && bottomNavSections[section];
+      var isActive = sectionDef && sectionDef.tabs.indexOf(id) !== -1;
+      btn.classList.toggle('active', !!isActive);
+    });
+
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('db-panel-' + id);
@@ -601,6 +609,10 @@
   function bottomNavSwitch(section) {
     // Update active bottom nav button
     document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.section === section);
+    });
+    // Update active top nav button
+    document.querySelectorAll('.top-nav-item').forEach(function(btn) {
       btn.classList.toggle('active', btn.dataset.section === section);
     });
     // Hide all subnavs
