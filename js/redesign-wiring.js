@@ -128,20 +128,35 @@
     var rings = document.querySelectorAll('.db-ring');
     if (!rings.length) return;
 
+    // Read skill data from localStorage (same source as dashboard.js)
+    var ob = {};
+    try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+    var skills = (ob && ob.skills) || {};
+    var skillMap = {
+      shooting: (skills.shooting || 5) * 10,
+      dribbling: (skills.dribbling || skills.ballhandling || 5) * 10,
+      defense: (skills.defense || 5) * 10,
+      gameiq: (skills.gameIQ || skills.gameiq || skills.bbiq || 5) * 10
+    };
+
     rings.forEach(function(ring) {
-      var pct = parseInt(ring.getAttribute('data-pct') || '0', 10);
+      var skill = ring.getAttribute('data-skill');
+      var pct = skillMap[skill] || 0;
+      ring.setAttribute('data-pct', pct);
+
       var progress = ring.querySelector('.db-ring-progress');
       var label = ring.querySelector('.db-ring-pct');
       if (!progress) return;
 
-      // Set initial state (fully hidden)
-      progress.style.strokeDasharray = CIRC;
-      progress.style.strokeDashoffset = CIRC;
+      // Set initial hidden state via SVG attributes
+      var circStr = CIRC.toFixed(1);
+      progress.setAttribute('stroke-dasharray', circStr);
+      progress.setAttribute('stroke-dashoffset', circStr);
 
-      // Animate after a short delay
+      // Animate to target after delay — setAttribute triggers CSS transition
       setTimeout(function() {
         var offset = CIRC - (CIRC * pct / 100);
-        progress.style.strokeDashoffset = offset;
+        progress.setAttribute('stroke-dashoffset', offset.toFixed(1));
       }, 400);
 
       if (label) label.textContent = pct + '%';
@@ -223,6 +238,9 @@
     wireStatCountUp();
     wireSkillRings();
     renderRecentSessions();
+
+    // Retry rings after dashboard data may have loaded
+    setTimeout(wireSkillRings, 1500);
 
     // Re-wire hero when XP system updates
     if (typeof XPSystem !== 'undefined' && XPSystem.render) {
