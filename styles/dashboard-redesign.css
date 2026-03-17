@@ -38,6 +38,13 @@
 /* Hide old player bar if it still exists */
 .db-player-bar   { display: none !important; }
 
+/* Hide elements outside panels that are duplicated inside #db-panel-home */
+.db-layout-root.db-home-active .db-welcome-hero { display: none !important; }
+.db-layout-root.db-home-active .db-stats-row    { display: none !important; }
+.db-layout-root.db-home-active .db-quick-grid   { display: none !important; }
+.db-layout-root.db-home-active .db-skills-circle-grid { display: none !important; }
+.db-layout-root.db-home-active .dc-card         { display: none !important; }
+
 
 /* ══════════════════════════════════════════════════════════════════════════════
    1. COMPACT PROFILE MINI WIDGET
@@ -1532,7 +1539,7 @@
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1200;
+  z-index: 99999;
   height: calc(64px + env(safe-area-inset-bottom, 0px));
   padding-bottom: env(safe-area-inset-bottom, 0px);
   background: var(--glass-bg);

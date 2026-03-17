@@ -3909,12 +3909,15 @@
 
 /* ══════════════════════════════════════════════════════════
    HOME SCREEN ACTIVE STATE
-   When home panel is active, hide sidebar and expand main
+   On mobile, hide sidebar and expand main when home is active.
+   Desktop keeps the sidebar visible.
    ══════════════════════════════════════════════════════════ */
-.db-layout-root.db-home-active .db-sidebar { display: none; }
-.db-layout-root.db-home-active .db-sidebar-mobile-toggle { display: none; }
-.db-layout-root.db-home-active .db-sidebar-overlay { display: none; }
-.db-layout-root.db-home-active .db-main { margin-left: 0 !important; }
+@media (max-width: 1024px) {
+  .db-layout-root.db-home-active .db-sidebar { display: none; }
+  .db-layout-root.db-home-active .db-sidebar-mobile-toggle { display: none; }
+  .db-layout-root.db-home-active .db-sidebar-overlay { display: none; }
+  .db-layout-root.db-home-active .db-main { margin-left: 0 !important; }
+}
 
 /* Hide shared widgets on home panel — they have home-specific versions */
 .db-layout-root.db-home-active .db-main-header,
