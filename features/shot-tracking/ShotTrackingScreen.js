@@ -301,6 +301,11 @@
       videoEl = freshVideo;
       els.video = freshVideo;
 
+      // Resize canvas once metadata is available
+      freshVideo.addEventListener('loadedmetadata', function () {
+        resizeCanvas();
+      });
+
       // When ready — play briefly then pause to show a visible frame
       freshVideo.oncanplay = function () {
         freshVideo.oncanplay = null;
@@ -542,10 +547,29 @@
       els.timer.textContent = formatTime(elapsedSec);
     }, 1000);
 
-    // For file upload mode — play video from the beginning
+    // For file upload mode — seek to start, then play
     if (videoFileUrl && videoEl) {
-      videoEl.currentTime = 0;
-      videoEl.play().catch(function () {});
+      resizeCanvas();
+
+      function startPlayback() {
+        videoEl.play().then(function () {
+          resizeCanvas();
+        }).catch(function (err) {
+          console.warn('[ShotTracker] Video play failed:', err.message);
+        });
+      }
+
+      if (videoEl.readyState >= 2) {
+        videoEl.currentTime = 0;
+        startPlayback();
+      } else {
+        // Video lost buffered data — wait for canplay before playing
+        videoEl.addEventListener('canplay', function onReady() {
+          videoEl.removeEventListener('canplay', onReady);
+          videoEl.currentTime = 0;
+          startPlayback();
+        });
+      }
     }
 
     // Configure detection engine
