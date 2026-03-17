@@ -440,11 +440,31 @@
     <!-- ── TAB: HOME ── -->
     <div class="db-panel active" id="db-panel-home">
 
-      <!-- 1.1 Hero Greeting -->
+      <!-- 1.1 Premium Hero -->
       <div class="db-home-hero">
-        <h1 class="db-home-greeting" id="db-home-greeting">Hey, <strong>Player</strong>!</h1>
-        <p class="db-home-subtitle">Ready to level up your game today?</p>
-        <div class="db-home-date-pill" id="db-home-date"></div>
+        <div class="db-hero-avatar-row">
+          <div class="db-hero-avatar" id="db-hero-avatar">
+            <span id="db-hero-avatar-initials">MR</span>
+          </div>
+          <div class="db-hero-info">
+            <div class="db-hero-name" id="db-hero-name">Hey, Player! 👋</div>
+            <div class="db-hero-rank" id="db-hero-rank">Rookie · PG</div>
+          </div>
+        </div>
+        <div class="db-hero-xp">
+          <div class="db-hero-xp-row">
+            <span class="db-hero-xp-label">Next: Hooper</span>
+            <span class="db-hero-xp-nums" id="db-hero-xp-nums"><strong>0</strong> / 200 XP</span>
+          </div>
+          <div class="db-hero-xp-bar">
+            <div class="db-hero-xp-fill" id="db-hero-xp-fill"></div>
+          </div>
+        </div>
+        <div class="db-hero-challenge" id="db-hero-challenge" onclick="dbSwitchTab('drills')">
+          <span>🏀</span>
+          <span class="db-hero-challenge-name" id="db-hero-challenge-name">Daily Challenge</span>
+          <span class="db-hero-challenge-xp">+30 XP</span>
+        </div>
       </div>
 
       <!-- 1.2 Quick Stats Row -->
@@ -571,6 +591,9 @@
           <span class="db-home-nav-arrow">&rsaquo;</span>
         </button>
       </div>
+
+      <!-- 1.5 Recent Sessions Table -->
+      <div class="db-recent-sessions" id="db-recent-sessions"></div>
 
     </div><!-- /db-panel-home -->
 
@@ -1778,6 +1801,45 @@
     </div><!-- /db-main-inner -->
   </main><!-- /db-main -->
 
+  <!-- BOTTOM NAV BAR (mobile only) -->
+  <nav class="bottom-nav" id="bottom-nav" aria-label="Mobile navigation">
+    <button class="bottom-nav-item active" data-tab="home" onclick="dbSwitchTab('home')">
+      <span class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      </span>
+      <span class="bottom-nav-label">Home</span>
+      <span class="bottom-nav-dot"></span>
+    </button>
+    <button class="bottom-nav-item" data-tab="drills" onclick="dbSwitchTab('drills')">
+      <span class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+      </span>
+      <span class="bottom-nav-label">Drills</span>
+      <span class="bottom-nav-dot"></span>
+    </button>
+    <button class="bottom-nav-item" data-tab="shots" onclick="dbSwitchTab('shots')">
+      <span class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </span>
+      <span class="bottom-nav-label">Tracker</span>
+      <span class="bottom-nav-dot"></span>
+    </button>
+    <button class="bottom-nav-item" data-tab="coach" onclick="dbSwitchTab('coach')">
+      <span class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
+      </span>
+      <span class="bottom-nav-label">AI Coach</span>
+      <span class="bottom-nav-dot"></span>
+    </button>
+    <button class="bottom-nav-item" data-tab="archetype" onclick="dbSwitchTab('archetype')">
+      <span class="bottom-nav-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </span>
+      <span class="bottom-nav-label">Profile</span>
+      <span class="bottom-nav-dot"></span>
+    </button>
+  </nav>
+
 </div><!-- /db-layout-root -->
 
 
@@ -2724,6 +2786,8 @@ if ('serviceWorker' in navigator) {
   }
 })();
 </script>
+
+<script src="js/redesign-wiring.js"></script>
 
 <!-- ═══════════════════════════════════════════════════════
      NIGHT TRAINING OVERLAY

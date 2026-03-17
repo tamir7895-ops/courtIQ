@@ -424,6 +424,11 @@ let session;
       if (sidebarBtn) sidebarBtn.classList.add('active');
     }
 
+    // Update bottom nav active state
+    document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+    var bottomBtn = document.querySelector('.bottom-nav-item[data-tab="' + id + '"]');
+    if (bottomBtn) bottomBtn.classList.add('active');
+
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('db-panel-' + id);
