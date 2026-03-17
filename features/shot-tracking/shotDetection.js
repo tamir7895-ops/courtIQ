@@ -411,7 +411,10 @@
         self._ctx = self._canvas.getContext('2d', { willReadFrequently: true });
       }
 
-      if (self.model) return Promise.resolve(true);
+      if (self.model) {
+        self._detectorType = 'yolox';
+        return Promise.resolve(true);
+      }
 
       self._setStatus('loading');
 
