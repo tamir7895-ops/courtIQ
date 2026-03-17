@@ -1193,8 +1193,9 @@
    ══════════════════════════════════════════════════════════ */
 .db-main {
   background:
-    radial-gradient(ellipse 80% 60% at 15% 10%, rgba(245,166,35,0.07) 0%, transparent 60%),
-    radial-gradient(ellipse 70% 50% at 85% 80%, rgba(100,60,180,0.06) 0%, transparent 60%),
+    radial-gradient(ellipse 80% 60% at 10% 5%, rgba(245,166,35,0.10) 0%, transparent 55%),
+    radial-gradient(ellipse 70% 60% at 90% 85%, rgba(76,163,255,0.08) 0%, transparent 55%),
+    radial-gradient(ellipse 60% 50% at 50% 40%, rgba(120,60,220,0.05) 0%, transparent 60%),
     radial-gradient(ellipse 50% 40% at 50% 50%, rgba(30,35,60,0.4) 0%, transparent 70%),
     var(--c-bg) !important;
   min-height: 100vh;
@@ -1398,10 +1399,10 @@
   flex-direction: column;
   gap: 8px;
   padding: 20px 18px;
-  background: rgba(255,255,255,0.04);
+  background: linear-gradient(135deg, rgba(26,29,46,0.9), rgba(19,21,31,0.9));
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.08);
   border-radius: 18px;
   transition: all 0.3s var(--ease-out-expo);
   position: relative;
@@ -1432,10 +1433,13 @@
   justify-content: center;
 }
 
-/* Color each stat icon */
-.db-home-stat:nth-child(1) .db-home-stat-icon { color: var(--c-amber); }
-.db-home-stat:nth-child(2) .db-home-stat-icon { color: #56d364; }
-.db-home-stat:nth-child(3) .db-home-stat-icon { color: var(--c-purple); }
+/* Per-stat colored top border + icon color + glow */
+.db-home-stat:nth-child(1) { border-top: 3px solid var(--c-amber); }
+.db-home-stat:nth-child(2) { border-top: 3px solid #56d364; }
+.db-home-stat:nth-child(3) { border-top: 3px solid var(--c-purple); }
+.db-home-stat:nth-child(1) .db-home-stat-icon { color: var(--c-amber); filter: drop-shadow(0 0 8px rgba(245,166,35,0.4)); }
+.db-home-stat:nth-child(2) .db-home-stat-icon { color: #56d364; filter: drop-shadow(0 0 8px rgba(86,211,100,0.4)); }
+.db-home-stat:nth-child(3) .db-home-stat-icon { color: var(--c-purple); filter: drop-shadow(0 0 8px rgba(188,140,255,0.4)); }
 
 .db-home-stat-info {
   display: flex;
@@ -1489,7 +1493,7 @@
   align-items: center;
   gap: 8px;
   padding: 18px 8px 14px;
-  background: rgba(255,255,255,0.035);
+  background: linear-gradient(135deg, rgba(26,29,46,0.9), rgba(19,21,31,0.9));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.08);
@@ -1502,6 +1506,10 @@
   border-color: rgba(255,255,255,0.15);
   box-shadow: 0 8px 28px rgba(0,0,0,0.3);
 }
+.db-ring[data-skill="shooting"]:hover { border-color: rgba(245,166,35,0.3); box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 20px rgba(245,166,35,0.08); }
+.db-ring[data-skill="dribbling"]:hover { border-color: rgba(86,211,100,0.3); box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 20px rgba(86,211,100,0.08); }
+.db-ring[data-skill="defense"]:hover { border-color: rgba(188,140,255,0.3); box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 20px rgba(188,140,255,0.08); }
+.db-ring[data-skill="gameiq"]:hover { border-color: rgba(232,64,64,0.3); box-shadow: 0 8px 28px rgba(0,0,0,0.3), 0 0 20px rgba(232,64,64,0.08); }
 
 .db-ring-wrap {
   position: relative;
@@ -1515,7 +1523,7 @@
 
 .db-ring-track {
   fill: none;
-  stroke: rgba(255,255,255,0.06);
+  stroke: rgba(255,255,255,0.08);
   stroke-width: 6;
 }
 
@@ -1597,7 +1605,7 @@
   align-items: center;
   gap: 14px;
   padding: 18px 16px;
-  background: rgba(255,255,255,0.035);
+  background: linear-gradient(135deg, rgba(26,29,46,0.9), rgba(19,21,31,0.9));
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255,255,255,0.08);
