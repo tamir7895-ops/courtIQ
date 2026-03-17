@@ -447,7 +447,7 @@
 
     // Header: avatar + name + archetype
     html += '<div class="ob-report-header">';
-    html += '<div class="ob-report-avatar"><div id="ob-report-avatar-container" class="avatar-3d-viewport" style="width:120px;height:168px"></div></div>';
+    html += '<div class="ob-report-avatar"><div id="ob-report-avatar-container" style="width:120px;height:120px;border-radius:50%;overflow:hidden;background:rgba(245,166,35,0.1);display:flex;align-items:center;justify-content:center;font-size:48px">🏀</div></div>';
     html += '<div class="ob-report-info">';
     html += '<div class="ob-report-name">' + esc(data.name || 'Player') + '</div>';
     html += '<div class="ob-report-archetype">' + (archetype ? archetype.icon + ' ' : '') + (archetype ? archetype.name : archetypeKey) + '</div>';
@@ -505,20 +505,22 @@
 
     container.innerHTML = html;
 
-    // Draw avatar on report
+    // Draw DiceBear avatar on report
     setTimeout(function () {
-      var reportContainer = document.getElementById('ob-report-avatar-container');
-      if (reportContainer && typeof AvatarBridge !== 'undefined') {
-        AvatarBridge.render(reportContainer, Object.assign({}, data.avatar || {}, { position: data.position }), { width: 120, height: 168, interactive: false, animate: true });
-      } else {
-        // Fallback to 2D canvas
-        var c = document.getElementById('ob-report-avatar-container');
-        if (c && typeof AvatarBuilder !== 'undefined') {
-          var canvas = document.createElement('canvas');
-          canvas.width = 120; canvas.height = 168;
-          c.innerHTML = '';
-          c.appendChild(canvas);
-          AvatarBuilder.draw(canvas, Object.assign({}, data.avatar || {}, { position: data.position }));
+      var reportEl = document.getElementById('ob-report-avatar-container');
+      if (reportEl) {
+        var avatarUrl = localStorage.getItem('courtiq_avatar_url');
+        if (!avatarUrl) {
+          try { var od = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); avatarUrl = od.dicebear_avatar_url; } catch(e) {}
+        }
+        if (avatarUrl && typeof AvatarCustomizer !== 'undefined' && AvatarCustomizer.injectAvatarIntoEl) {
+          AvatarCustomizer.injectAvatarIntoEl(reportEl, avatarUrl, '120px', '120px');
+        } else if (avatarUrl) {
+          var img = document.createElement('img');
+          img.src = avatarUrl; img.alt = 'Avatar';
+          img.style.cssText = 'width:120px;height:120px;object-fit:cover;border-radius:50%;object-position:center top;';
+          reportEl.textContent = '';
+          reportEl.appendChild(img);
         }
       }
     }, 50);
