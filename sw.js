@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v15';  // bumped: onboarding UX + DiceBear avatar everywhere
+const CACHE_NAME = 'courtiq-v16';  // bumped: DiceBear avatar in scout report
 const STATIC_ASSETS = [
   './',
   './index.html',
