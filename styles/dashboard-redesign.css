@@ -44,6 +44,9 @@
 .db-layout-root .dc-card         { display: none !important; }
 /* .db-welcome-hero and .db-stats-row visibility controlled by JS in dbSwitchTab() */
 
+/* Footer removed */
+footer[role="contentinfo"] { display: none !important; }
+
 /* Override sidebar — replaced by top nav on desktop, bottom pill on mobile */
 .db-sidebar { display: none !important; }
 .db-sidebar-mobile-toggle { display: none !important; }
