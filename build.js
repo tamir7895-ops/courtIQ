@@ -11,7 +11,7 @@ const DEST = path.join(__dirname, 'www');
 // Files and folders to copy into www/
 const COPY_TARGETS = [
   'index.html',
-  'dashboard.html',
+  'landing.html',
   'shared.css',
   'manifest.json',
   'sw.js',

@@ -9,7 +9,7 @@ const CACHE_NAME = 'courtiq-v8';  // bumped: force cache refresh on all clients
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './dashboard.html',
+  './landing.html',
   // Styles
   './styles/main.css',
   './styles/animations.css',
