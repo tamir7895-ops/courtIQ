@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v11';  // bumped: footer removed
+const CACHE_NAME = 'courtiq-v12';  // bumped: shot tracker hero redesign
 const STATIC_ASSETS = [
   './',
   './index.html',
