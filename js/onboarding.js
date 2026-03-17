@@ -222,8 +222,14 @@
       case 1:
         data.name = (document.getElementById('ob-name').value || '').trim();
         data.age = parseInt(document.getElementById('ob-age').value) || 0;
-        data.height = parseInt(document.getElementById('ob-height').value) || 72;
-        data.weight = parseInt(document.getElementById('ob-weight').value) || 0;
+        var rawH = parseInt(document.getElementById('ob-height').value) || 72;
+        var hUnit = document.getElementById('ob-height-unit');
+        data.heightUnit = hUnit ? hUnit.dataset.unit : 'in';
+        data.height = data.heightUnit === 'cm' ? Math.round(rawH / 2.54) : rawH;
+        var rawW = parseInt(document.getElementById('ob-weight').value) || 0;
+        var wUnit = document.getElementById('ob-weight-unit');
+        data.weightUnit = wUnit ? wUnit.dataset.unit : 'lbs';
+        data.weight = data.weightUnit === 'kg' ? Math.round(rawW / 0.4536) : rawW;
         var handBtn = document.querySelector('.ob-hand-btn.selected');
         data.hand = handBtn ? handBtn.dataset.hand : 'right';
         var posCard = document.querySelector('.ob-position-card.selected');
@@ -624,6 +630,52 @@
         btn.classList.add('selected');
       });
     });
+
+    // Unit toggles (height: in/cm, weight: lbs/kg)
+    var heightUnitBtn = document.getElementById('ob-height-unit');
+    var weightUnitBtn = document.getElementById('ob-weight-unit');
+    var heightInput = document.getElementById('ob-height');
+    var weightInput = document.getElementById('ob-weight');
+
+    if (heightUnitBtn && heightInput) {
+      heightUnitBtn.addEventListener('click', function () {
+        var cur = heightUnitBtn.dataset.unit;
+        var val = parseFloat(heightInput.value) || 0;
+        if (cur === 'in') {
+          heightUnitBtn.dataset.unit = 'cm';
+          heightUnitBtn.textContent = 'cm / in';
+          heightInput.placeholder = '188';
+          heightInput.min = '120'; heightInput.max = '250';
+          if (val) heightInput.value = Math.round(val * 2.54);
+        } else {
+          heightUnitBtn.dataset.unit = 'in';
+          heightUnitBtn.textContent = 'in / cm';
+          heightInput.placeholder = '74';
+          heightInput.min = '48'; heightInput.max = '96';
+          if (val) heightInput.value = Math.round(val / 2.54);
+        }
+      });
+    }
+
+    if (weightUnitBtn && weightInput) {
+      weightUnitBtn.addEventListener('click', function () {
+        var cur = weightUnitBtn.dataset.unit;
+        var val = parseFloat(weightInput.value) || 0;
+        if (cur === 'lbs') {
+          weightUnitBtn.dataset.unit = 'kg';
+          weightUnitBtn.textContent = 'kg / lbs';
+          weightInput.placeholder = '84';
+          weightInput.min = '30'; weightInput.max = '180';
+          if (val) weightInput.value = Math.round(val * 0.4536);
+        } else {
+          weightUnitBtn.dataset.unit = 'lbs';
+          weightUnitBtn.textContent = 'lbs / kg';
+          weightInput.placeholder = '185';
+          weightInput.min = '60'; weightInput.max = '400';
+          if (val) weightInput.value = Math.round(val / 0.4536);
+        }
+      });
+    }
 
     // Playstyle choices
     document.querySelectorAll('.ob-question').forEach(function (q) {

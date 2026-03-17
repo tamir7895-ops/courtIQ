@@ -2095,20 +2095,20 @@
           <div class="ob-error">Enter a valid age</div>
         </div>
         <div class="ob-field">
-          <label class="ob-label">Height (inches)</label>
-          <input class="ob-input" id="ob-height" type="number" min="48" max="96" placeholder="74">
+          <label class="ob-label">Height <button type="button" class="ob-unit-toggle" id="ob-height-unit" data-unit="in">in / cm</button></label>
+          <input class="ob-input" id="ob-height" type="number" min="48" max="250" placeholder="74">
         </div>
         <div class="ob-field">
-          <label class="ob-label">Weight (lbs)</label>
-          <input class="ob-input" id="ob-weight" type="number" min="60" max="400" placeholder="185">
+          <label class="ob-label">Weight <button type="button" class="ob-unit-toggle" id="ob-weight-unit" data-unit="lbs">lbs / kg</button></label>
+          <input class="ob-input" id="ob-weight" type="number" min="30" max="400" placeholder="185">
         </div>
       </div>
 
       <div class="ob-field" style="margin-bottom:24px">
         <label class="ob-label">Dominant Hand</label>
         <div class="ob-hand-toggle">
-          <button class="ob-hand-btn selected" data-hand="right" type="button">Right</button>
           <button class="ob-hand-btn" data-hand="left" type="button">Left</button>
+          <button class="ob-hand-btn selected" data-hand="right" type="button">Right</button>
         </div>
       </div>
 
@@ -2348,6 +2348,30 @@
           <div class="ob-goal-icon">🏃</div>
           <div class="ob-goal-label">Conditioning</div>
         </div>
+        <div class="ob-goal-chip" data-goal="Passing">
+          <div class="ob-goal-icon">🎯</div>
+          <div class="ob-goal-label">Passing</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Rebounding">
+          <div class="ob-goal-icon">💪</div>
+          <div class="ob-goal-label">Rebounding</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Speed & Agility">
+          <div class="ob-goal-icon">⚡</div>
+          <div class="ob-goal-label">Speed & Agility</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Court Vision">
+          <div class="ob-goal-icon">👁️</div>
+          <div class="ob-goal-label">Court Vision</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="Mid-Range">
+          <div class="ob-goal-icon">🎯</div>
+          <div class="ob-goal-label">Mid-Range</div>
+        </div>
+        <div class="ob-goal-chip" data-goal="3PT Shooting">
+          <div class="ob-goal-icon">🔥</div>
+          <div class="ob-goal-label">3PT Shooting</div>
+        </div>
       </div>
       <div class="ob-goals-hint">Select 1-3 goals to focus your training plan</div>
     </div>
@@ -2360,94 +2384,12 @@
         <div class="ob-step-sub">Build your player identity</div>
       </div>
 
-      <div class="ob-avatar-layout">
-        <div class="ob-avatar-preview">
-          <div class="ob-avatar-canvas-wrap">
-            <div id="ob-avatar-container" class="avatar-3d-viewport" style="width:200px;height:280px"></div>
-          </div>
+      <div class="ob-avatar-dicebear">
+        <div class="ob-avatar-dicebear-preview" id="ob-dicebear-preview">
+          <div class="ob-avatar-dicebear-placeholder">🏀</div>
         </div>
-
-        <div class="ob-avatar-controls">
-          <!-- Skin Tone -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Skin Tone</div>
-            <div class="ob-picker-row">
-              <div class="ob-swatch" data-picker="skinTone" data-value="#FDDBB4" style="background:#FDDBB4"></div>
-              <div class="ob-swatch" data-picker="skinTone" data-value="#E8B98D" style="background:#E8B98D"></div>
-              <div class="ob-swatch selected" data-picker="skinTone" data-value="#C68642" style="background:#C68642"></div>
-              <div class="ob-swatch" data-picker="skinTone" data-value="#8D5524" style="background:#8D5524"></div>
-              <div class="ob-swatch" data-picker="skinTone" data-value="#5C3317" style="background:#5C3317"></div>
-              <div class="ob-swatch" data-picker="skinTone" data-value="#3B1E0E" style="background:#3B1E0E"></div>
-            </div>
-          </div>
-
-          <!-- Hair Style -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Hair Style</div>
-            <div class="ob-picker-row">
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="buzz" type="button">Buzz</button>
-              <button class="ob-style-btn selected" data-picker="hairStyle" data-value="short" type="button">Short</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="fade" type="button">Fade</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="afro" type="button">Afro</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="dreads" type="button">Dreads</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="mohawk" type="button">Mohawk</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="waves" type="button">Waves</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="cornrows" type="button">Cornrows</button>
-              <button class="ob-style-btn" data-picker="hairStyle" data-value="bald" type="button">Bald</button>
-            </div>
-          </div>
-
-          <!-- Hair Color -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Hair Color</div>
-            <div class="ob-picker-row">
-              <div class="ob-swatch selected" data-picker="hairColor" data-value="#1a1a1a" style="background:#1a1a1a"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#4a2912" style="background:#4a2912"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#c4a35a" style="background:#c4a35a"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#8b3a2f" style="background:#8b3a2f"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#e8e0d0" style="background:#e8e0d0"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#8a8a8a" style="background:#8a8a8a"></div>
-              <div class="ob-swatch" data-picker="hairColor" data-value="#1a2d5a" style="background:#1a2d5a"></div>
-            </div>
-          </div>
-
-          <!-- Beard -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Beard</div>
-            <div class="ob-picker-row">
-              <button class="ob-style-btn selected" data-picker="beardStyle" data-value="none" type="button">None</button>
-              <button class="ob-style-btn" data-picker="beardStyle" data-value="stubble" type="button">Stubble</button>
-              <button class="ob-style-btn" data-picker="beardStyle" data-value="short" type="button">Short</button>
-              <button class="ob-style-btn" data-picker="beardStyle" data-value="full" type="button">Full</button>
-              <button class="ob-style-btn" data-picker="beardStyle" data-value="goatee" type="button">Goatee</button>
-              <button class="ob-style-btn" data-picker="beardStyle" data-value="chinstrap" type="button">Chinstrap</button>
-            </div>
-          </div>
-
-          <!-- Body Type -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Body Type</div>
-            <div class="ob-picker-row">
-              <button class="ob-style-btn" data-picker="bodyType" data-value="lean" type="button">Lean</button>
-              <button class="ob-style-btn selected" data-picker="bodyType" data-value="athletic" type="button">Athletic</button>
-              <button class="ob-style-btn" data-picker="bodyType" data-value="heavy" type="button">Heavy</button>
-            </div>
-          </div>
-
-          <!-- Accessories -->
-          <div class="ob-picker-group">
-            <div class="ob-picker-label">Accessories</div>
-            <div class="ob-picker-row">
-              <button class="ob-style-btn selected" data-picker="accessory" data-value="none" type="button">None</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="headband" type="button">Headband</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="sweatband" type="button">Sweatband</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="glasses" type="button">Glasses</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="chain" type="button">Chain</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="durag" type="button">Durag</button>
-              <button class="ob-style-btn" data-picker="accessory" data-value="armband" type="button">Armband</button>
-            </div>
-          </div>
-        </div>
+        <p class="ob-avatar-dicebear-hint">Customize your look — hair, skin, accessories & more</p>
+        <button type="button" class="ob-avatar-dicebear-btn" id="ob-open-avatar-customizer" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open();">✏️ Customize Avatar</button>
       </div>
     </div>
 
