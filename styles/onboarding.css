@@ -773,17 +773,18 @@
 
 /* ── Navigation Buttons ───────────────────────────────────── */
 .ob-nav {
-  position: fixed;
+  position: sticky;
   bottom: 0;
   left: 0;
   right: 0;
   display: flex;
   gap: 12px;
-  padding: 16px 24px;
-  background: linear-gradient(180deg, transparent 0%, rgba(12,13,15,0.95) 30%);
+  padding: 20px 24px;
+  background: linear-gradient(180deg, transparent 0%, rgba(12,13,15,0.97) 35%);
   backdrop-filter: blur(12px);
   z-index: 9001;
   justify-content: center;
+  margin-top: auto;
 }
 .ob-nav-inner {
   display: flex;
@@ -855,9 +856,94 @@
   display: block;
 }
 
+/* ── Unit Toggle Button ─────────────────────────────────────── */
+.ob-unit-toggle {
+  display: inline-block;
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.3);
+  color: #f5a623;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 2px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 8px;
+  transition: all 0.2s ease;
+  vertical-align: middle;
+}
+.ob-unit-toggle:hover {
+  background: rgba(245,166,35,0.2);
+}
+.ob-unit-toggle[data-unit="cm"],
+.ob-unit-toggle[data-unit="kg"] {
+  background: rgba(86,211,100,0.12);
+  border-color: rgba(86,211,100,0.3);
+  color: #56d364;
+}
+
+/* ── DiceBear Avatar Step ──────────────────────────────────── */
+.ob-avatar-dicebear {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 32px 0;
+}
+.ob-avatar-dicebear-preview {
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: rgba(22,25,33,0.8);
+  border: 3px solid rgba(245,166,35,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 0 40px rgba(245,166,35,0.1);
+}
+.ob-avatar-dicebear-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  border-radius: 50%;
+}
+.ob-avatar-dicebear-placeholder {
+  font-size: 64px;
+  opacity: 0.4;
+}
+.ob-avatar-dicebear-hint {
+  color: rgba(240,237,230,0.5);
+  font-size: 14px;
+  text-align: center;
+  margin: 0;
+}
+.ob-avatar-dicebear-btn {
+  background: rgba(245,166,35,0.12);
+  border: 1px solid rgba(245,166,35,0.3);
+  color: #f5a623;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 32px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.ob-avatar-dicebear-btn:hover {
+  background: rgba(245,166,35,0.2);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+}
+
 /* ── Responsive ───────────────────────────────────────────── */
 @media (max-width: 680px) {
-  .ob-container { padding: 24px 16px 110px; }
+  .ob-container { padding: 24px 16px 24px; }
   .ob-step-title { font-size: 28px; }
   .ob-form-grid { grid-template-columns: 1fr; }
   .ob-position-grid {
