@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v13';  // bumped: remove shot tracker clutter
+const CACHE_NAME = 'courtiq-v14';  // bumped: feature color system + glassmorphism topbar
 const STATIC_ASSETS = [
   './',
   './index.html',
