@@ -38,12 +38,11 @@
 /* Hide old player bar if it still exists */
 .db-player-bar   { display: none !important; }
 
-/* Hide elements outside panels that are duplicated inside #db-panel-home */
-.db-layout-root.db-home-active .db-welcome-hero { display: none !important; }
-.db-layout-root.db-home-active .db-stats-row    { display: none !important; }
-.db-layout-root.db-home-active .db-quick-grid   { display: none !important; }
-.db-layout-root.db-home-active .db-skills-circle-grid { display: none !important; }
-.db-layout-root.db-home-active .dc-card         { display: none !important; }
+/* Hide old duplicate elements that are now inside #db-panel-home */
+.db-layout-root .db-quick-grid   { display: none !important; }
+.db-layout-root .db-skills-circle-grid { display: none !important; }
+.db-layout-root .dc-card         { display: none !important; }
+/* .db-welcome-hero and .db-stats-row visibility controlled by JS in dbSwitchTab() */
 
 
 /* ══════════════════════════════════════════════════════════════════════════════
@@ -1916,6 +1915,42 @@
   transform: scale(1);
 }
 
+/* Sub-navigation pills */
+.section-subnav {
+  display: none;
+  gap: 8px;
+  padding: 12px 16px;
+  background: rgba(22,25,33,0.8);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.section-subnav::-webkit-scrollbar { display: none; }
+
+.subnav-item {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(240,237,230,0.65);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.subnav-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: rgba(240,237,230,0.85);
+}
+.subnav-item.active {
+  background: rgba(245,166,35,0.15);
+  border-color: rgba(245,166,35,0.4);
+  color: #f5a623;
+}
+
 /* Mobile: show bottom nav, hide sidebar */
 @media (max-width: 1024px) {
   .bottom-nav { display: flex; }
@@ -1928,6 +1963,7 @@
 }
 @media (min-width: 1025px) {
   .bottom-nav { display: none !important; }
+  .section-subnav { display: none !important; }
 }
 
 
