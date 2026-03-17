@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v8';  // bumped: force cache refresh on all clients
+const CACHE_NAME = 'courtiq-v9';  // bumped: force cache refresh after file renames
 const STATIC_ASSETS = [
   './',
   './index.html',
