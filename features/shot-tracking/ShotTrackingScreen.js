@@ -227,48 +227,29 @@
   function openScreen() {
     buildHTML();
     els.screen.classList.add('active');
-    phase = 'rimlock';
-    rimCenter = null;
-    rimLocked = false;
-    rimSize = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
     shots = [];
     streak = 0;
     maxStreak = 0;
 
-    // Reset 3PT state
+    // Reset rim/3PT state
+    rimCenter = null;
+    rimLocked = false;
+    rimSize = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
     threePtPoint = null;
     threePtDistance = 0;
 
-    // Try to load saved calibration
-    var savedCal = loadCalibration();
-
-    // Show rim lock overlay
-    els.rimlock.classList.add('active');
+    // Skip rimlock — go straight to tracking with auto-detection
+    els.rimlock.classList.remove('active');
     els.threept.classList.remove('active');
     els.tracking.classList.remove('active');
     els.summary.classList.remove('active');
 
-    if (savedCal) {
-      // Restore saved calibration
-      rimCenter = savedCal.rimCenter;
-      rimSize = savedCal.rimSize;
-      threePtPoint = savedCal.threePtPoint;
-      threePtDistance = savedCal.threePtDistance || 0;
-      updateRimIndicator();
-      toggleCrosshairs(false);
-      els.sizeControls.classList.add('active');
-      els.lockBtn.classList.add('active');
-      els.rimlockText.textContent = 'Previous calibration restored. Tap to adjust or "Lock Rim & Start"';
-    } else {
-      // Show crosshairs for new calibration
-      toggleCrosshairs(true);
-      els.rimIndicator.style.display = 'none';
-      els.sizeControls.classList.remove('active');
-      els.lockBtn.classList.remove('active');
-      els.rimlockText.textContent = 'Tap the center of the basketball rim';
-    }
-
     startCamera();
+
+    // Go straight to tracking phase (auto-detect hoop via YOLOX)
+    setTimeout(function () {
+      startTrackingWithAutoDetect();
+    }, 300);
   }
 
   function closeScreen() {
@@ -520,6 +501,13 @@
   }
 
   /* ══════════════════════════════════════════════════════════════
+     AUTO-DETECT TRACKING (skips rimlock)
+     ══════════════════════════════════════════════════════════════ */
+  function startTrackingWithAutoDetect() {
+    enterTrackingPhase();
+  }
+
+  /* ══════════════════════════════════════════════════════════════
      TRACKING PHASE
      ══════════════════════════════════════════════════════════════ */
   function enterTrackingPhase() {
@@ -574,11 +562,35 @@
 
     // Configure detection engine
     var engine = window.ShotDetectionEngine;
-    engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    if (rimCenter) {
+      engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    }
     engine.setThreePtDistance(threePtDistance);
     engine.onShotDetected = onShotDetected;
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
+
+    // Auto-detect hoop from YOLOX + continuous re-anchoring
+    engine.onHoopDetected = function (hoop) {
+      if (!rimLocked && hoop.score > 0.15) {
+        // First detection — auto-calibrate
+        rimCenter = { x: hoop.cx, y: hoop.cy };
+        rimSize = { w: Math.max(hoop.bw, 0.10), h: Math.max(hoop.bh, 0.03) };
+        rimLocked = true;
+        engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+        onDetectionStatus('detecting');
+        console.log('[ShotTracker] Auto-detected hoop at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ') score=' + hoop.score.toFixed(3));
+      } else if (rimLocked && hoop.score > 0.3) {
+        // Re-anchor if hoop moved significantly (camera movement)
+        var dx = Math.abs(hoop.cx - rimCenter.x);
+        var dy = Math.abs(hoop.cy - rimCenter.y);
+        if (dx > 0.05 || dy > 0.05) {
+          rimCenter = { x: hoop.cx, y: hoop.cy };
+          engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+          console.log('[ShotTracker] Hoop re-anchored to (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ')');
+        }
+      }
+    };
 
     // Initialize adaptive learning system
     var learningReady = window.AdaptiveLearning
@@ -629,7 +641,7 @@
         txt.textContent = 'Retrying model load...';
         break;
       case 'ready':
-        txt.textContent = 'AI + Color active';
+        txt.textContent = rimLocked ? 'AI + Color active' : 'Scanning for hoop...';
         break;
       case 'color-only':
         txt.textContent = 'Color tracking active';
