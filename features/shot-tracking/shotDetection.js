@@ -121,13 +121,16 @@
       top: cy - h / 2, bottom: cy + h / 2,
       approachLeft: cx - w * 2.5,
       approachRight: cx + w * 2.5,
-      approachTop: cy - h * 5.0,
-      approachBottom: cy + h * 5.0
+      approachTop: cy - h * 8.0,
+      approachBottom: cy + h * 10.0
     };
   }
 
   function isInsideRim(x, y, rim) {
-    return x >= rim.left && x <= rim.right && y >= rim.top && y <= rim.bottom;
+    // Use expanded vertical zone (2x rim height) for more forgiving transit detection
+    var expandedTop = rim.top - rim.height;
+    var expandedBottom = rim.bottom + rim.height;
+    return x >= rim.left && x <= rim.right && y >= expandedTop && y <= expandedBottom;
   }
 
   function isInApproachZone(x, y, rim) {
@@ -198,6 +201,12 @@
     }
     if (approached) {
       var last = trajectory[trajectory.length - 1];
+      // Don't trigger miss if ball is above or inside the rim zone — it could still go through!
+      if (isAboveRim(last.y, rim)) return { isMiss: false, entryPoint: null };
+      var nearRimVertically = Math.abs(last.y - rim.centerY) < rim.height * 3;
+      if (nearRimVertically && isWithinHorizontalBounds(last.x, rim)) return { isMiss: false, entryPoint: null };
+      // Need at least 8 trajectory points before deciding miss (give ball time to transit)
+      if (trajectory.length < 8) return { isMiss: false, entryPoint: null };
       if (!isBelowRim(last.y, rim) || !isWithinHorizontalBounds(last.x, rim)) {
         return { isMiss: true, entryPoint: approachPoint };
       }
@@ -757,6 +766,41 @@
       updateTracker(this.tracker, null, null);
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
+
+      // Timeout-based miss: if ball was tracked near rim and disappeared
+      if (this.rimZone && this.tracker.positions.length >= MIN_TRAJECTORY_PTS && !this.tracker.isTracking) {
+        var now = Date.now();
+        if (now - this.lastShotTime < DEBOUNCE_MS) return;
+        var vw = this.videoEl ? this.videoEl.videoWidth : 1;
+        var vh = this.videoEl ? this.videoEl.videoHeight : 1;
+        var pts = this.tracker.positions;
+        var lastPt = pts[pts.length - 1];
+        if (lastPt) {
+          var normX = lastPt.x / vw;
+          var normY = lastPt.y / vh;
+          if (isInApproachZone(normX, normY, this.rimZone)) {
+            console.log('[ShotDetection] timeout miss: ball disappeared near rim');
+            this.lastShotTime = now;
+            this.stats.attempts++;
+            var launchPt = getLaunchPoint(this.tracker, vw, vh);
+            var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+            var missData = {
+              result: 'missed',
+              shotX: normX,
+              shotY: normY,
+              trajectory: getTrajectoryNormalized(this.tracker, vw, vh, 20),
+              launchPoint: launchPt,
+              shotZone: shotZone,
+              timestamp: now
+            };
+            if (window.AdaptiveLearning) {
+              window.AdaptiveLearning.onShotCompleted(missData.trajectory, 'missed', this.rimZone);
+            }
+            if (this.onShotDetected) this.onShotDetected(missData);
+            resetTracker(this.tracker);
+          }
+        }
+      }
     },
 
     _analyzeShotState: function (vw, vh, normX, normY) {
@@ -771,8 +815,11 @@
       if (!isInApproachZone(last.x, last.y, this.rimZone)) return;
 
       var trend = getYTrend(this.tracker, vh);
-      if (trend === 'rising') return;
-
+      // Only skip rising ball if it's far from the rim (>25% of frame away)
+      if (trend === 'rising') {
+        var distToRim = Math.abs(last.y - this.rimZone.centerY);
+        if (distToRim > 0.25) return;
+      }
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
 
