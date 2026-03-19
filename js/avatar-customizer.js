@@ -751,7 +751,7 @@
 
       if (typeof window.currentUser !== 'undefined' && window.currentUser &&
           typeof DataService !== 'undefined') {
-        DataService.saveUserData({ onboarding_data: ob }).catch(function () {});
+        DataService.saveUserData({ onboarding_data: ob }).catch(function (e) { console.warn('[Avatar] Sync failed:', e); });
       }
     } catch (e) { /* silent */ }
 

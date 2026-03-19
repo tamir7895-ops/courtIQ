@@ -2,7 +2,86 @@
    COMPONENTS.CSS — Reusable UI components for CourtIQ
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── BUTTON VARIANTS ───────────────────────────────────────── */
+/* ─── BUTTON SIZES (Standardized) ──────────────────────────── */
+
+.btn-sm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-md {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 24px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-lg {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+/* Button colors */
+.btn-amber {
+  background: linear-gradient(135deg, #f5a623, #e09020);
+  color: #0c0d0f;
+  box-shadow: 0 4px 20px rgba(245,166,35,0.3);
+}
+.btn-amber:hover {
+  box-shadow: 0 6px 28px rgba(245,166,35,0.45);
+  transform: translateY(-2px);
+}
+.btn-amber:active { transform: scale(0.96); }
+
+.btn-surface {
+  background: rgba(255,255,255,0.06);
+  color: rgba(240,237,230,0.8);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+.btn-surface:hover {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(245,166,35,0.2);
+}
+.btn-surface:active { transform: scale(0.96); }
+
+/* Touch target minimum 44px */
+.btn-sm, .btn-md, .btn-lg {
+  min-height: 44px;
+}
+
+/* ─── BUTTON VARIANTS (Legacy) ─────────────────────────────── */
 
 .btn-ghost {
   display: inline-flex;
@@ -30,8 +109,8 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   background: rgba(255,255,255,0.04);
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);

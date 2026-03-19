@@ -5,6 +5,13 @@
    save-to-plan (localStorage), and lazy animation loading.
    ============================================================ */
 
+/* ── Inject timer-button styles ─────────────────────────────── */
+(function(){
+  var s = document.createElement('style');
+  s.textContent = '.drill-timer-btn{background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;transition:all 0.2s;font-family:inherit;}.drill-timer-btn:hover{background:rgba(245,166,35,0.2);}';
+  document.head.appendChild(s);
+})();
+
 /* ── Drill Database ──────────────────────────────────────────
    Each drill has:
      id, name, description, duration_minutes, reps_or_sets,
@@ -2638,6 +2645,7 @@ function _buildCard(drill, idx) {
   </div>
 
   <div class="drill-card-actions">
+    <button class="drill-timer-btn" onclick="if(typeof WorkoutTimer!=='undefined'){var d=_DRILLS_DB.find(function(x){return x.id==='${drill.id}'});if(d)WorkoutTimer.open(d);}">⏱ Timer</button>
     <button
       class="${saveClass}"
       id="drill-save-btn-${drill.id}"

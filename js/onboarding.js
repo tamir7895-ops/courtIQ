@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var TOTAL_STEPS = 7;
+  var TOTAL_STEPS = 5;
   var current = 1;
   var direction = 'forward';
   var data = {};
@@ -43,7 +43,11 @@
     document.querySelectorAll('.ob-step').forEach(function (s) {
       s.classList.remove('active', 'ob-exit');
     });
-    var step = document.getElementById('ob-step-' + n);
+
+    // Map logical step to HTML element ID
+    // Steps 1-4 map directly; step 5 shows the analysis loading (ob-step-6)
+    var htmlStepId = n <= 4 ? n : 6;
+    var step = document.getElementById('ob-step-' + htmlStepId);
     if (step) {
       step.classList.add('active');
       if (direction === 'back') {
@@ -55,8 +59,7 @@
 
     // Init step-specific features
     if (n === 3 && !radarChart) initRadar();
-    if (n === 5) initAvatar();
-    if (n === 6) runAnalysis();
+    if (n === 5) runAnalysis();
   }
 
   function nextStep() {
@@ -96,7 +99,7 @@
 
   var STEP_NAMES = [
     'Basic Info', 'Play Style', 'Skills', 'Goals',
-    'Your Avatar', 'AI Analysis', 'Scouting Report'
+    'Scouting Report'
   ];
 
   function updateProgress() {
@@ -125,17 +128,13 @@
 
     backBtn.style.display = current <= 1 ? 'none' : '';
 
-    if (current === 6) {
-      // Analysis step — hide nav
+    if (current === 5) {
+      // Analysis/Report step — hide nav during analysis, show finish after
       backBtn.style.display = 'none';
       nextBtn.style.display = 'none';
-    } else if (current === 7) {
-      backBtn.style.display = 'none';
-      nextBtn.style.display = '';
-      nextBtn.textContent = 'ENTER THE COURT \u2192';
     } else {
       nextBtn.style.display = '';
-      nextBtn.textContent = current === 5 ? 'ANALYZE MY GAME \u2192' : 'NEXT \u2192';
+      nextBtn.textContent = current === 4 ? 'ANALYZE MY GAME \u2192' : 'NEXT \u2192';
     }
   }
 
@@ -149,9 +148,7 @@
       case 2: return validatePlaystyle();
       case 3: return true; // sliders always valid
       case 4: return validateGoals();
-      case 5: return true; // avatar always valid
-      case 6: return true;
-      case 7: return true;
+      case 5: return true; // report
     }
     return true;
   }
@@ -259,15 +256,18 @@
         });
         break;
 
+      /* Avatar customization moved to profile — set defaults */
       case 5:
-        data.avatar = {
-          skinTone: getPickerValue('skinTone') || AvatarBuilder.defaults.skinTone,
-          hairStyle: getPickerValue('hairStyle') || AvatarBuilder.defaults.hairStyle,
-          hairColor: getPickerValue('hairColor') || AvatarBuilder.defaults.hairColor,
-          beardStyle: getPickerValue('beardStyle') || AvatarBuilder.defaults.beardStyle,
-          bodyType: getPickerValue('bodyType') || AvatarBuilder.defaults.bodyType,
-          accessory: getPickerValue('accessory') || 'none'
-        };
+        if (!data.avatar) {
+          data.avatar = {
+            skinTone: 'edb98a',
+            hairStyle: 'shortFlat',
+            hairColor: '2c1b18',
+            beardStyle: 'none',
+            bodyType: 'athletic',
+            accessory: 'none'
+          };
+        }
         break;
     }
   }
@@ -346,38 +346,19 @@
     var container = document.getElementById('ob-avatar-container');
     if (!container) return;
 
-    var d = (typeof AvatarBuilder !== 'undefined') ? AvatarBuilder.defaults : {
-      skinTone: '#C68642', hairStyle: 'short', hairColor: '#1a1a1a',
-      beardStyle: 'none', bodyType: 'athletic'
-    };
-
     var cfg = {
-      skinTone: getPickerValue('skinTone') || d.skinTone,
-      hairStyle: getPickerValue('hairStyle') || d.hairStyle,
-      hairColor: getPickerValue('hairColor') || d.hairColor,
-      beardStyle: getPickerValue('beardStyle') || d.beardStyle,
-      bodyType: getPickerValue('bodyType') || d.bodyType,
+      skinTone: getPickerValue('skinTone') || 'edb98a',
+      hairStyle: getPickerValue('hairStyle') || 'shortFlat',
+      hairColor: getPickerValue('hairColor') || '2c1b18',
+      beardStyle: getPickerValue('beardStyle') || 'none',
+      bodyType: getPickerValue('bodyType') || 'athletic',
       accessory: getPickerValue('accessory') || 'none',
       position: data.position || 'SG'
     };
 
-    // Use 3D bridge
+    // Use DiceBear bridge
     if (typeof AvatarBridge !== 'undefined') {
-      // First render or update
-      if (container.querySelector('canvas')) {
-        AvatarBridge.update(container, cfg);
-      } else {
-        AvatarBridge.render(container, cfg, { width: 200, height: 280, interactive: true, animate: true });
-      }
-    } else if (typeof AvatarBuilder !== 'undefined') {
-      // Fallback: create canvas and draw 2D
-      if (!container.querySelector('canvas')) {
-        var canvas = document.createElement('canvas');
-        canvas.width = 200; canvas.height = 280;
-        container.innerHTML = '';
-        container.appendChild(canvas);
-      }
-      AvatarBuilder.draw(container.querySelector('canvas'), cfg);
+      AvatarBridge.render(container, cfg, { width: 200, height: 280 });
     }
   }
 
@@ -420,13 +401,21 @@
       XPSystem.grantXP(50, 'Scouting Report Unlocked');
     }
 
-    // Render report and go to step 7
+    // Render report in-place on step 5
     renderScoutingReport();
-    direction = 'forward';
-    current = 7;
-    updateProgress();
-    showStep(7);
-    updateNav();
+
+    // Hide loading, show report content
+    var loadingEl = document.getElementById('ob-step-6');
+    var reportEl = document.getElementById('ob-step-7');
+    if (loadingEl) loadingEl.classList.remove('active');
+    if (reportEl) reportEl.classList.add('active');
+
+    // Show finish button
+    var nextBtn = document.getElementById('ob-btn-next');
+    if (nextBtn) {
+      nextBtn.style.display = '';
+      nextBtn.textContent = 'ENTER THE COURT \u2192';
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════

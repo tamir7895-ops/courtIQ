@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com https://storage.googleapis.com https://tfhub.dev https://cdn.jsdelivr.net https://www.kaggle.com; img-src 'self' data: blob: https://api.dicebear.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none';" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#0e1014" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="apple-touch-icon" href="assets/favicon.svg" />
@@ -27,6 +27,7 @@
   <link rel="stylesheet" href="styles/shop.css?v=3" />
   <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
   <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
+  <link rel="stylesheet" href="styles/feature-heroes.css?v=1" />
   <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css?v=3" />
   <link rel="stylesheet" href="styles/charts.css?v=3" />
   <link rel="stylesheet" href="styles/move-library.css?v=3" />
@@ -34,8 +35,8 @@
   <link rel="stylesheet" href="styles/archetype.css?v=3" />
   <link rel="stylesheet" href="styles/onboarding.css?v=3" />
   <link rel="stylesheet" href="styles/components.css?v=3" />
-  <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
   <link rel="stylesheet" href="styles/social.css?v=3" />
+  <link rel="stylesheet" href="styles/badges.css?v=3" />
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
@@ -112,18 +113,37 @@
   <!-- DESKTOP TOP NAV BAR -->
   <nav class="top-nav" id="top-nav">
     <div class="top-nav-brand">
-      <span class="top-nav-logo">Court<span class="top-nav-logo-accent">IQ</span></span>
+      <img src="assets/logo-icon.svg" alt="CourtIQ" class="top-nav-logo-img" width="32" height="32">
     </div>
     <div class="top-nav-tabs">
-      <button class="top-nav-item active" data-section="home" onclick="bottomNavSwitch('home')">Home</button>
-      <button class="top-nav-item" data-section="train" onclick="bottomNavSwitch('train')">Train</button>
-      <button class="top-nav-item" data-section="track" onclick="bottomNavSwitch('track')">Track</button>
-      <button class="top-nav-item" data-section="coach" onclick="bottomNavSwitch('coach')">Coach</button>
-      <button class="top-nav-item" data-section="me" onclick="bottomNavSwitch('me')">Me</button>
+      <button class="top-nav-item active" data-section="home" onclick="bottomNavSwitch('home')" aria-label="Home">
+        <span class="top-nav-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </span>
+      </button>
+      <button class="top-nav-item" data-section="drills" onclick="bottomNavSwitch('drills')" aria-label="Drills">
+        <span class="top-nav-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
+        </span>
+      </button>
+      <button class="top-nav-item" data-section="coach" onclick="bottomNavSwitch('coach')" aria-label="Coach">
+        <span class="top-nav-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
+        </span>
+      </button>
+      <button class="top-nav-item" data-section="shots" onclick="bottomNavSwitch('shots')" aria-label="Shot Tracker">
+        <span class="top-nav-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+        </span>
+      </button>
+      <button class="top-nav-item" data-section="profile" onclick="bottomNavSwitch('profile')" aria-label="Profile">
+        <span class="top-nav-icon-box">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+        </span>
+      </button>
     </div>
     <div class="top-nav-user">
       <div class="top-nav-avatar" id="top-nav-avatar"></div>
-      <span class="top-nav-badge" id="top-nav-badge">Rookie</span>
     </div>
   </nav>
 
@@ -263,46 +283,6 @@
       </div>
     </div>
 
-    <!-- Welcome Hero -->
-    <div class="db-welcome-hero">
-      <div class="db-court-bg" aria-hidden="true"></div>
-      <div class="db-welcome-content">
-        <h1 class="db-welcome-title">Hey, <span id="db-welcome-name">Player</span>!</h1>
-        <p class="db-welcome-sub">Ready to level up your game today?</p>
-      </div>
-      <div class="db-profile-mini" id="db-profile-mini">
-        <div class="db-profile-mini-avatar" id="db-profile-mini-avatar"></div>
-        <div class="db-profile-mini-info">
-          <span class="db-profile-mini-name" id="db-profile-mini-name">Player</span>
-          <span class="db-profile-mini-level" id="db-profile-mini-level">Rookie</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Stats Summary -->
-    <div class="db-stats-row">
-      <div class="db-stat-card">
-        <div class="db-stat-icon" data-icon="sessions"></div>
-        <div class="db-stat-info">
-          <span class="db-stat-value" id="db-stat-sessions">0</span>
-          <span class="db-stat-label">Sessions This Week</span>
-        </div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-icon" data-icon="streak"></div>
-        <div class="db-stat-info">
-          <span class="db-stat-value" id="db-stat-streak">0</span>
-          <span class="db-stat-label">Day Streak</span>
-        </div>
-      </div>
-      <div class="db-stat-card">
-        <div class="db-stat-icon" data-icon="xp"></div>
-        <div class="db-stat-info">
-          <span class="db-stat-value" id="db-stat-xp">0 XP</span>
-          <span class="db-stat-label">Total XP</span>
-        </div>
-      </div>
-    </div>
 
     <!-- Section Sub-Navigation (shown when bottom nav section is active) -->
     <div class="section-subnav" id="subnav-train" style="display:none">
@@ -440,6 +420,15 @@
           <span class="db-quick-card-desc">AI performance report</span>
         </div>
       </button>
+    </div>
+
+    <!-- Achievements / Badges -->
+    <div class="db-card" style="margin-bottom:20px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="font-family:var(--font-display);font-size:16px;font-weight:800;text-transform:uppercase;color:var(--c-white);">Achievements</div>
+        <button style="background:none;border:none;color:var(--c-amber);font-size:12px;font-weight:600;cursor:pointer;" onclick="if(typeof dbSwitchTabById==='function')dbSwitchTabById('archetype')">View All</button>
+      </div>
+      <div id="home-badges-row" class="badge-scroll-row"></div>
     </div>
 
     <!-- Skills Overview -->
@@ -643,12 +632,38 @@
       </div>
 
       <!-- 1.5 Recent Sessions Table -->
-      <div class="db-recent-sessions" id="db-recent-sessions"></div>
+      <div class="db-recent-sessions" id="db-recent-sessions">
+        <!-- Skeleton loading placeholder (replaced by JS on load) -->
+        <div class="skeleton-card" style="height:28px;width:160px;margin-bottom:14px;"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+        <div class="skeleton-card"></div>
+      </div>
 
     </div><!-- /db-panel-home -->
 
     <!-- ── TAB: LOG ── -->
     <div class="db-panel" id="db-panel-log">
+
+      <!-- Log Session Hero -->
+      <div class="fh-hero fh-log">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-log-board"></div>
+            <div class="fh-art-log-lines"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">DAILY TRACKER</div>
+          <h2 class="fh-hero-title">Log Session</h2>
+          <p class="fh-hero-desc">Track shots, dribbling, verticals, and sprints every session.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="document.getElementById('db-shots-made').focus()">Add Session</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="dbGenerate()">AI Summary</button>
+          </div>
+        </div>
+      </div>
+
       <div class="db-layout">
 
         <!-- Input form -->
@@ -659,24 +674,24 @@
             <div class="db-row-2">
               <div class="db-field">
                 <label class="db-label">Shots Made</label>
-                <input class="db-input" id="db-shots-made" type="number" min="0" placeholder="e.g. 28" />
+                <input class="db-input" id="db-shots-made" type="number" inputmode="numeric" min="0" placeholder="e.g. 28" />
               </div>
               <div class="db-field">
                 <label class="db-label">Shots Attempted</label>
-                <input class="db-input" id="db-shots-att" type="number" min="0" placeholder="e.g. 45" />
+                <input class="db-input" id="db-shots-att" type="number" inputmode="numeric" min="0" placeholder="e.g. 45" />
               </div>
             </div>
             <div class="db-field">
               <label class="db-label">Dribbling Practice <span style="color:var(--c-dimmer)">(minutes)</span></label>
-              <input class="db-input" id="db-dribbling" type="number" min="0" step="0.5" placeholder="e.g. 20" />
+              <input class="db-input" id="db-dribbling" type="number" inputmode="numeric" min="0" step="0.5" placeholder="e.g. 20" />
             </div>
             <div class="db-field">
               <label class="db-label">Vertical Jump <span style="color:var(--c-dimmer)">(inches)</span></label>
-              <input class="db-input" id="db-vertical" type="number" min="0" step="0.5" placeholder="e.g. 27" />
+              <input class="db-input" id="db-vertical" type="number" inputmode="numeric" min="0" step="0.5" placeholder="e.g. 27" />
             </div>
             <div class="db-field">
               <label class="db-label">Sprint Time <span style="color:var(--c-dimmer)">(seconds — lower is better)</span></label>
-              <input class="db-input" id="db-sprint" type="number" min="0" step="0.1" placeholder="e.g. 4.3" />
+              <input class="db-input" id="db-sprint" type="number" inputmode="numeric" min="0" step="0.1" placeholder="e.g. 4.3" />
             </div>
             <div class="db-field">
               <label class="db-label">Session Notes <span style="color:var(--c-dimmer)">(optional)</span></label>
@@ -717,6 +732,29 @@
 
     <!-- ── TAB: SUMMARY ── -->
     <div class="db-panel" id="db-panel-summary">
+
+      <!-- Weekly Summary Hero -->
+      <div class="fh-hero fh-summary">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-summary-chart">
+              <div class="fh-art-summary-bar"></div>
+              <div class="fh-art-summary-bar"></div>
+              <div class="fh-art-summary-bar"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">SMART ANALYTICS</div>
+          <h2 class="fh-hero-title">Weekly Summary</h2>
+          <p class="fh-hero-desc">AI-generated performance analysis from your logged sessions.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="dbGenerate()">Generate Summary</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="dbSwitchTabById('log')">Log Sessions</button>
+          </div>
+        </div>
+      </div>
+
       <div id="db-summary-empty" style="text-align:center;padding:60px 0;color:var(--c-muted);">
         <div style="font-size:48px;margin-bottom:16px;">📊</div>
         <div style="font-family:var(--font-display);font-size:24px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:8px;">No Summary Yet</div>
@@ -807,18 +845,67 @@
 
     <!-- ── TAB: HISTORY ── -->
     <div class="db-panel" id="db-panel-history">
+
+      <!-- History Hero -->
+      <div class="fh-hero fh-history">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-history-clock"></div>
+            <div class="fh-art-history-orbit"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">YOUR JOURNEY</div>
+          <h2 class="fh-hero-title">Session History</h2>
+          <p class="fh-hero-desc">Browse all your past training weeks and track your progress.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="document.getElementById('db-history-list').scrollIntoView({behavior:'smooth'})">View All</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="dbSwitchTabById('log')">Log New</button>
+          </div>
+        </div>
+      </div>
+
       <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;margin-bottom:6px;">All Weeks</div>
       <div style="font-size:13px;color:var(--c-muted);margin-bottom:24px;" id="db-history-count">3 weeks tracked</div>
-      <div id="db-history-list"></div>
+      <div id="db-history-list">
+        <div class="skeleton-row" style="margin-bottom:12px;"><div class="skeleton-card" style="height:96px;"></div></div>
+        <div class="skeleton-row" style="margin-bottom:12px;"><div class="skeleton-card" style="height:96px;"></div></div>
+        <div class="skeleton-row"><div class="skeleton-card" style="height:96px;"></div></div>
+      </div>
     </div>
 
     <!-- ── TAB: NOTIFICATIONS ── -->
     <div class="db-panel" id="db-panel-notifications">
 
+      <!-- Notifications Hero -->
+      <div class="fh-hero fh-notifications">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-notif-bell"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">SMART ALERTS</div>
+          <h2 class="fh-hero-title">Notifications</h2>
+          <p class="fh-hero-desc">AI-crafted motivational push alerts for every training day.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="notifGenerate()">Generate Alerts</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Real Push Notification Preferences -->
+      <div class="db-card" style="margin-bottom:24px;">
+        <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:4px;">Push Notifications</div>
+        <div style="font-size:13px;color:var(--c-muted);margin-bottom:16px;">Get reminders to train, streak warnings, and weekly summaries.</div>
+        <div id="notif-preferences-container"></div>
+      </div>
+
+      <!-- AI-Generated Notification Text (existing) -->
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
         <div>
-          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Workout Notifications</div>
-          <div style="font-size:13px;color:var(--c-muted);">AI-generated push & email alerts for your upcoming week — personalized by name, drills, and focus area.</div>
+          <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">AI Workout Messages</div>
+          <div style="font-size:13px;color:var(--c-muted);">AI-generated motivational messages for your upcoming week — personalized by name, drills, and focus area.</div>
         </div>
         <button class="db-generate-btn" id="notif-gen-btn" onclick="notifGenerate()" style="width:auto;padding:12px 24px;margin-top:0;font-size:15px;">
           🔔 Generate Notifications
@@ -891,6 +978,25 @@
     <!-- ── TAB: AI COACH ── -->
     <div class="db-panel" id="db-panel-coach">
 
+      <!-- AI Coach Hero -->
+      <div class="fh-hero fh-coach">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-coach-brain"></div>
+            <div class="fh-art-coach-nodes"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">AI-POWERED</div>
+          <h2 class="fh-hero-title">AI Coach</h2>
+          <p class="fh-hero-desc">Get a personalized weekly training plan powered by AI analysis.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="coachGenerate()">Generate Plan</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="dbSwitchTabById('calendar')">View Calendar</button>
+          </div>
+        </div>
+      </div>
+
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:26px;">
         <div>
           <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">AI Coach Adjustment</div>
@@ -914,10 +1020,10 @@
               <span class="coach-area-badge" id="badge-shooting">—</span>
             </div>
             <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-shooting-sets" type="number" min="0" max="20" placeholder="e.g. 8" oninput="coachUpdateBadge('shooting')"/></div>
-              <div class="db-field"><label class="db-label">Success % (make rate)</label><input class="db-input coach-input" id="c-shooting-pct" type="number" min="0" max="100" placeholder="e.g. 62" oninput="coachUpdateBadge('shooting')"/></div>
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-shooting-sets" type="number" inputmode="numeric" min="0" max="20" placeholder="e.g. 8" oninput="coachUpdateBadge('shooting')"/></div>
+              <div class="db-field"><label class="db-label">Success % (make rate)</label><input class="db-input coach-input" id="c-shooting-pct" type="number" inputmode="numeric" min="0" max="100" placeholder="e.g. 62" oninput="coachUpdateBadge('shooting')"/></div>
             </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-shooting-time" type="number" min="0" placeholder="e.g. 25" oninput="coachUpdateBadge('shooting')"/></div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-shooting-time" type="number" inputmode="numeric" min="0" placeholder="e.g. 25" oninput="coachUpdateBadge('shooting')"/></div>
             <div class="coach-notes-field"><textarea class="db-input" id="c-shooting-notes" rows="2" placeholder="Any notes? e.g. struggled from corner, missed short shots…"></textarea></div>
           </div>
 
@@ -928,10 +1034,10 @@
               <span class="coach-area-badge" id="badge-ballhandling">—</span>
             </div>
             <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-ballhandling-sets" type="number" min="0" max="20" placeholder="e.g. 6" oninput="coachUpdateBadge('ballhandling')"/></div>
-              <div class="db-field"><label class="db-label">Success % (clean reps)</label><input class="db-input coach-input" id="c-ballhandling-pct" type="number" min="0" max="100" placeholder="e.g. 75" oninput="coachUpdateBadge('ballhandling')"/></div>
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-ballhandling-sets" type="number" inputmode="numeric" min="0" max="20" placeholder="e.g. 6" oninput="coachUpdateBadge('ballhandling')"/></div>
+              <div class="db-field"><label class="db-label">Success % (clean reps)</label><input class="db-input coach-input" id="c-ballhandling-pct" type="number" inputmode="numeric" min="0" max="100" placeholder="e.g. 75" oninput="coachUpdateBadge('ballhandling')"/></div>
             </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-ballhandling-time" type="number" min="0" placeholder="e.g. 20" oninput="coachUpdateBadge('ballhandling')"/></div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-ballhandling-time" type="number" inputmode="numeric" min="0" placeholder="e.g. 20" oninput="coachUpdateBadge('ballhandling')"/></div>
             <div class="coach-notes-field"><textarea class="db-input" id="c-ballhandling-notes" rows="2" placeholder="Any notes? e.g. crossover was good but speed needs work…"></textarea></div>
           </div>
 
@@ -942,10 +1048,10 @@
               <span class="coach-area-badge" id="badge-athleticism">—</span>
             </div>
             <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-athleticism-sets" type="number" min="0" max="20" placeholder="e.g. 5" oninput="coachUpdateBadge('athleticism')"/></div>
-              <div class="db-field"><label class="db-label">Success % (form quality)</label><input class="db-input coach-input" id="c-athleticism-pct" type="number" min="0" max="100" placeholder="e.g. 80" oninput="coachUpdateBadge('athleticism')"/></div>
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-athleticism-sets" type="number" inputmode="numeric" min="0" max="20" placeholder="e.g. 5" oninput="coachUpdateBadge('athleticism')"/></div>
+              <div class="db-field"><label class="db-label">Success % (form quality)</label><input class="db-input coach-input" id="c-athleticism-pct" type="number" inputmode="numeric" min="0" max="100" placeholder="e.g. 80" oninput="coachUpdateBadge('athleticism')"/></div>
             </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-athleticism-time" type="number" min="0" placeholder="e.g. 18" oninput="coachUpdateBadge('athleticism')"/></div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-athleticism-time" type="number" inputmode="numeric" min="0" placeholder="e.g. 18" oninput="coachUpdateBadge('athleticism')"/></div>
             <div class="coach-notes-field"><textarea class="db-input" id="c-athleticism-notes" rows="2" placeholder="Any notes? e.g. box jumps felt easy, sprint was tiring…"></textarea></div>
           </div>
 
@@ -956,10 +1062,10 @@
               <span class="coach-area-badge" id="badge-defense">—</span>
             </div>
             <div class="db-row-2" style="margin-top:10px;">
-              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-defense-sets" type="number" min="0" max="20" placeholder="e.g. 4" oninput="coachUpdateBadge('defense')"/></div>
-              <div class="db-field"><label class="db-label">Success % (execution)</label><input class="db-input coach-input" id="c-defense-pct" type="number" min="0" max="100" placeholder="e.g. 58" oninput="coachUpdateBadge('defense')"/></div>
+              <div class="db-field"><label class="db-label">Sets Completed</label><input class="db-input coach-input" id="c-defense-sets" type="number" inputmode="numeric" min="0" max="20" placeholder="e.g. 4" oninput="coachUpdateBadge('defense')"/></div>
+              <div class="db-field"><label class="db-label">Success % (execution)</label><input class="db-input coach-input" id="c-defense-pct" type="number" inputmode="numeric" min="0" max="100" placeholder="e.g. 58" oninput="coachUpdateBadge('defense')"/></div>
             </div>
-            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-defense-time" type="number" min="0" placeholder="e.g. 15" oninput="coachUpdateBadge('defense')"/></div>
+            <div class="db-field" style="margin-top:10px;"><label class="db-label">Time Spent (minutes)</label><input class="db-input coach-input" id="c-defense-time" type="number" inputmode="numeric" min="0" placeholder="e.g. 15" oninput="coachUpdateBadge('defense')"/></div>
             <div class="coach-notes-field"><textarea class="db-input" id="c-defense-notes" rows="2" placeholder="Any notes? e.g. closeouts felt slow, lateral speed improving…"></textarea></div>
           </div>
 
@@ -1035,6 +1141,31 @@
     <!-- ── TAB: WEEKLY CALENDAR ── -->
     <div class="db-panel" id="db-panel-calendar">
 
+      <!-- Calendar Hero -->
+      <div class="fh-hero fh-calendar">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-calendar-grid">
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+              <div class="fh-art-calendar-day"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">SMART PLANNER</div>
+          <h2 class="fh-hero-title">Weekly Calendar</h2>
+          <p class="fh-hero-desc">Turn AI training plans into a live interactive week view.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="calGenerate()">Build Calendar</button>
+          </div>
+        </div>
+      </div>
+
       <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px;">
         <div>
           <div style="font-family:var(--font-display);font-size:28px;font-weight:900;text-transform:uppercase;letter-spacing:0.02em;color:var(--c-white);margin-bottom:4px;">Weekly Calendar</div>
@@ -1106,6 +1237,25 @@
 
     <!-- ── TAB: PERSONALIZED DRILLS ── -->
     <div class="db-panel" id="db-panel-drills">
+
+      <!-- Drills Hero -->
+      <div class="fh-hero fh-drills">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-drills-whistle"></div>
+            <div class="fh-art-drills-cone"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">PERSONALIZED</div>
+          <h2 class="fh-hero-title">Personalized Drills</h2>
+          <p class="fh-hero-desc">AI-tailored drills matched to your position, level, and goals.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="drillsShowMode('generator')">Generate Drills</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="drillsShowMode('library')">Browse Library</button>
+          </div>
+        </div>
+      </div>
 
       <!-- Today's Workout -->
       <div class="daily-workout">
@@ -1392,6 +1542,29 @@
     <!-- ── TAB: WORKOUTS ── -->
     <div class="db-panel" id="db-panel-workouts">
 
+      <!-- Workouts Hero -->
+      <div class="fh-hero fh-workouts">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-workouts-wrap">
+              <div class="fh-art-workouts-bar">
+                <div class="fh-art-workouts-wl"></div>
+                <div class="fh-art-workouts-wr"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">PRO LIBRARY</div>
+          <h2 class="fh-hero-title">Pre-Built Workouts</h2>
+          <p class="fh-hero-desc">25 curated sessions across shooting, handles, and conditioning.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="workoutsSetFilter('All',this)">Browse All</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="workoutsSetFilter('Shooting',this)">Shooting</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Header -->
       <div class="workouts-header">
         <div>
@@ -1476,11 +1649,11 @@
             <div class="st-row-2">
               <div class="st-field">
                 <label class="st-label">Made</label>
-                <input class="st-input" id="st-fg-made" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-fg-made" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
               <div class="st-field">
                 <label class="st-label">Missed</label>
-                <input class="st-input" id="st-fg-missed" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-fg-missed" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
             </div>
 
@@ -1489,11 +1662,11 @@
             <div class="st-row-2">
               <div class="st-field">
                 <label class="st-label">Made</label>
-                <input class="st-input" id="st-3pt-made" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-3pt-made" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
               <div class="st-field">
                 <label class="st-label">Missed</label>
-                <input class="st-input" id="st-3pt-missed" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-3pt-missed" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
             </div>
 
@@ -1502,11 +1675,11 @@
             <div class="st-row-2">
               <div class="st-field">
                 <label class="st-label">Made</label>
-                <input class="st-input" id="st-ft-made" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-ft-made" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
               <div class="st-field">
                 <label class="st-label">Missed</label>
-                <input class="st-input" id="st-ft-missed" type="number" min="0" placeholder="0" />
+                <input class="st-input" id="st-ft-missed" type="number" inputmode="numeric" min="0" placeholder="0" />
               </div>
             </div>
 
@@ -1576,10 +1749,37 @@
       <!-- ── AI Shot Analysis Feedback Panel ── -->
       <div class="sa-feedback-wrap" id="st-ai-feedback" style="display:none;"></div>
 
+      <!-- ── Court Heatmap / Shot Chart ── -->
+      <div class="db-card" style="margin-top:24px;">
+        <div style="font-family:var(--font-display);font-size:20px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:4px;">Shot Chart</div>
+        <div style="font-size:13px;color:var(--c-muted);margin-bottom:16px;">Where you shoot from and your accuracy per zone. Data from AI Shot Tracker sessions.</div>
+        <div id="court-heatmap-container"></div>
+      </div>
+
     </div><!-- /shots panel -->
 
     <!-- ── TAB: PRO MOVES ── -->
     <div class="db-panel" id="db-panel-moves">
+
+      <!-- Move Library Hero -->
+      <div class="fh-hero fh-moves">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-moves-head"></div>
+            <div class="fh-art-moves-body"></div>
+            <div class="fh-art-moves-ball"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">PRO MOVES</div>
+          <h2 class="fh-hero-title">Move Library</h2>
+          <p class="fh-hero-desc">Master signature moves with animated breakdowns and drills.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="document.querySelector('.mv-grid').scrollIntoView({behavior:'smooth'})">Browse Moves</button>
+          </div>
+        </div>
+      </div>
+
       <div class="mv-header">
         <div class="mv-header-title">Pro Moves Library</div>
         <div class="mv-header-sub">Master signature moves from the game's greatest players. Each move includes an animated breakdown and a practice drill.</div>
@@ -1589,6 +1789,28 @@
 
     <!-- ── TAB: ARCHETYPE ── -->
     <div class="db-panel" id="db-panel-archetype">
+
+      <!-- Archetype Hero -->
+      <div class="fh-hero fh-archetype">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-archetype-wrap">
+              <div class="fh-art-archetype-s1"></div>
+              <div class="fh-art-archetype-s2"></div>
+              <div class="fh-art-archetype-rungs"></div>
+            </div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">AI ANALYSIS</div>
+          <h2 class="fh-hero-title">Player Archetype</h2>
+          <p class="fh-hero-desc">Discover your basketball DNA with AI-powered playstyle analysis.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="document.getElementById('at-submit-btn').click()">Analyze Me</button>
+          </div>
+        </div>
+      </div>
+
       <div class="at-layout">
 
         <!-- Input Form -->
@@ -1600,7 +1822,7 @@
 
           <div class="at-field">
             <label class="at-label">Height (inches)</label>
-            <input class="at-input" id="at-height" type="number" min="48" max="96" placeholder="e.g. 74" />
+            <input class="at-input" id="at-height" type="number" inputmode="numeric" min="48" max="96" placeholder="e.g. 74" />
           </div>
 
           <div class="at-row-2">
@@ -1647,6 +1869,27 @@
 
     <!-- ── TAB: SHOP ── -->
     <div class="db-panel" id="db-panel-shop">
+
+      <!-- Avatar Shop Hero -->
+      <div class="fh-hero fh-shop">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-shop-sleeve-l"></div>
+            <div class="fh-art-shop-jersey"></div>
+            <div class="fh-art-shop-sleeve-r"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">CUSTOMIZE</div>
+          <h2 class="fh-hero-title">Avatar Shop</h2>
+          <p class="fh-hero-desc">Spend earned coins to unlock gear, hairstyles, and accessories.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="document.getElementById('shop-grid').scrollIntoView({behavior:'smooth'})">Browse Shop</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="if(typeof AvatarCustomizer!=='undefined')AvatarCustomizer.open()">Customize</button>
+          </div>
+        </div>
+      </div>
+
       <div class="shop-header">
         <div>
           <h2 class="shop-title">🛍️ Avatar Shop</h2>
@@ -1680,6 +1923,25 @@
          ═══════════════════════════════════════════════════════ -->
     <div class="db-panel" id="db-panel-social">
 
+      <!-- Social Hub Hero -->
+      <div class="fh-hero fh-social">
+        <div class="fh-hero-visual">
+          <div class="fh-hero-art">
+            <div class="fh-art-social-cup"></div>
+            <div class="fh-art-social-base"></div>
+          </div>
+        </div>
+        <div class="fh-hero-content">
+          <div class="fh-hero-badge">COMMUNITY</div>
+          <h2 class="fh-hero-title">Social Hub</h2>
+          <p class="fh-hero-desc">Challenge friends, climb leaderboards, and share your stats.</p>
+          <div class="fh-hero-actions">
+            <button class="fh-hero-btn fh-hero-btn-primary" onclick="shSwitchTab('challenges')">Create Challenge</button>
+            <button class="fh-hero-btn fh-hero-btn-secondary" onclick="shSwitchTab('leaderboard')">Leaderboard</button>
+          </div>
+        </div>
+      </div>
+
       <div class="sh-header">
         <h2 class="sh-title">🏆 Social Hub</h2>
         <p class="sh-subtitle">Challenge friends, climb the leaderboard, and share your season recap</p>
@@ -1709,11 +1971,11 @@
             </div>
             <div class="sh-form-group">
               <label class="sh-form-label">Target (shots)</label>
-              <input class="sh-form-input" id="sh-ch-target" type="number" min="5" max="500" value="50" />
+              <input class="sh-form-input" id="sh-ch-target" type="number" inputmode="numeric" min="5" max="500" value="50" />
             </div>
             <div class="sh-form-group">
               <label class="sh-form-label">Time Limit (min)</label>
-              <input class="sh-form-input" id="sh-ch-time" type="number" min="1" max="60" value="10" />
+              <input class="sh-form-input" id="sh-ch-time" type="number" inputmode="numeric" min="1" max="60" value="10" />
             </div>
             <button class="sh-create-btn" onclick="shCreateChallenge()">Generate Link</button>
           </div>
@@ -1810,7 +2072,7 @@
       <div class="sh-modal">
         <div class="sh-modal-title">Log Attempt</div>
         <div class="sh-modal-sub" id="sh-modal-sub">Enter your score:</div>
-        <input class="sh-modal-input" id="sh-attempt-input" type="number" min="0" max="999" placeholder="0"
+        <input class="sh-modal-input" id="sh-attempt-input" type="number" inputmode="numeric" min="0" max="999" placeholder="0"
                onkeydown="if(event.key==='Enter')shSubmitAttempt()" />
         <div class="sh-modal-actions">
           <button class="sh-modal-submit" onclick="shSubmitAttempt()">Submit Score</button>
@@ -1825,39 +2087,34 @@
   <!-- BOTTOM NAV BAR (mobile only) -->
   <nav class="bottom-nav" id="bottom-nav" aria-label="Mobile navigation">
     <button class="bottom-nav-item active" data-section="home" onclick="bottomNavSwitch('home')">
-      <span class="bottom-nav-icon">
+      <span class="bottom-nav-icon-box">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
       </span>
       <span class="bottom-nav-label">Home</span>
-      <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-section="train" onclick="bottomNavSwitch('train')">
-      <span class="bottom-nav-icon">
+    <button class="bottom-nav-item" data-section="drills" onclick="bottomNavSwitch('drills')">
+      <span class="bottom-nav-icon-box">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
       </span>
-      <span class="bottom-nav-label">Train</span>
-      <span class="bottom-nav-dot"></span>
-    </button>
-    <button class="bottom-nav-item" data-section="track" onclick="bottomNavSwitch('track')">
-      <span class="bottom-nav-icon">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-      </span>
-      <span class="bottom-nav-label">Track</span>
-      <span class="bottom-nav-dot"></span>
+      <span class="bottom-nav-label">Drills</span>
     </button>
     <button class="bottom-nav-item" data-section="coach" onclick="bottomNavSwitch('coach')">
-      <span class="bottom-nav-icon">
+      <span class="bottom-nav-icon-box">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a4 4 0 0 1 4 4v2a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z"/><path d="M16 14H8a4 4 0 0 0-4 4v2h16v-2a4 4 0 0 0-4-4z"/><circle cx="9" cy="9" r="1"/><circle cx="15" cy="9" r="1"/></svg>
       </span>
       <span class="bottom-nav-label">Coach</span>
-      <span class="bottom-nav-dot"></span>
     </button>
-    <button class="bottom-nav-item" data-section="me" onclick="bottomNavSwitch('me')">
-      <span class="bottom-nav-icon">
+    <button class="bottom-nav-item" data-section="shots" onclick="bottomNavSwitch('shots')">
+      <span class="bottom-nav-icon-box">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+      </span>
+      <span class="bottom-nav-label">Shots</span>
+    </button>
+    <button class="bottom-nav-item" data-section="profile" onclick="bottomNavSwitch('profile')">
+      <span class="bottom-nav-icon-box">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </span>
-      <span class="bottom-nav-label">Me</span>
-      <span class="bottom-nav-dot"></span>
+      <span class="bottom-nav-label">Profile</span>
     </button>
   </nav>
 
@@ -1988,11 +2245,11 @@
       <div class="profile-form-row">
         <div class="profile-form-field">
           <label class="profile-form-label" for="pp-height">Height (inches)</label>
-          <input class="profile-form-input" id="pp-height" type="number" min="48" max="96" placeholder="e.g. 72" />
+          <input class="profile-form-input" id="pp-height" type="number" inputmode="numeric" min="48" max="96" placeholder="e.g. 72" />
         </div>
         <div class="profile-form-field">
           <label class="profile-form-label" for="pp-age">Age</label>
-          <input class="profile-form-input" id="pp-age" type="number" min="8" max="99" placeholder="e.g. 22" />
+          <input class="profile-form-input" id="pp-age" type="number" inputmode="numeric" min="8" max="99" placeholder="e.g. 22" />
         </div>
       </div>
       <div class="profile-form-field">
@@ -2070,8 +2327,6 @@
         <div class="ob-dot"></div>
         <div class="ob-dot"></div>
         <div class="ob-dot"></div>
-        <div class="ob-dot"></div>
-        <div class="ob-dot"></div>
       </div>
     </div>
 
@@ -2091,16 +2346,16 @@
         </div>
         <div class="ob-field">
           <label class="ob-label">Age</label>
-          <input class="ob-input" id="ob-age" type="number" min="8" max="99" placeholder="22">
+          <input class="ob-input" id="ob-age" type="number" inputmode="numeric" min="8" max="99" placeholder="22">
           <div class="ob-error">Enter a valid age</div>
         </div>
         <div class="ob-field">
           <label class="ob-label">Height <button type="button" class="ob-unit-toggle" id="ob-height-unit" data-unit="in">in / cm</button></label>
-          <input class="ob-input" id="ob-height" type="number" min="48" max="250" placeholder="74">
+          <input class="ob-input" id="ob-height" type="number" inputmode="numeric" min="48" max="250" placeholder="74">
         </div>
         <div class="ob-field">
           <label class="ob-label">Weight <button type="button" class="ob-unit-toggle" id="ob-weight-unit" data-unit="lbs">lbs / kg</button></label>
-          <input class="ob-input" id="ob-weight" type="number" min="30" max="400" placeholder="185">
+          <input class="ob-input" id="ob-weight" type="number" inputmode="numeric" min="30" max="400" placeholder="185">
         </div>
       </div>
 
@@ -2551,42 +2806,58 @@
   <span>You're in guest mode. <a href="#" onclick="openAuth('signup');return false;">Sign up</a> to save your progress across devices.</span>
   <button onclick="this.parentElement.style.display='none'" aria-label="Dismiss">&times;</button>
 </div>
+<div class="guest-banner" id="offline-banner" style="display:none;background:rgba(248,81,73,0.12);border-color:rgba(248,81,73,0.3);">
+  <span style="color:#f85149;">You're offline — data will sync when you reconnect.</span>
+  <button onclick="this.parentElement.style.display='none'" aria-label="Dismiss" style="color:#f85149;">&times;</button>
+</div>
+<script>
+(function() {
+  function updateBanner() {
+    var b = document.getElementById('offline-banner');
+    if (b) b.style.display = navigator.onLine ? 'none' : 'flex';
+  }
+  window.addEventListener('online', updateBanner);
+  window.addEventListener('offline', updateBanner);
+  updateBanner();
+})();
+</script>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" integrity="sha384-g4NTh/Iv5PPU4xPyhEWqPcwtNXOvdaDI8LLnyYfyNZOjKJeYQyjzQ9X5275eBjpt" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" integrity="sha384-RRHfJ6w1mTlKUBMYT/hvnRiOzEB/vyRV3DrQOseb6oYfvaZSfdd0byS4bHps0k2R" crossorigin="anonymous"></script>
-<script src="js/orbit-controls-lite.js"></script>
-<script src="js/gsap-animations.js"></script>
 <!-- Security utilities — load first so escapeHTML is available to all scripts -->
+<!-- Core (load order matters) -->
 <script src="js/utils.js"></script>
 <script src="js/supabase-client.js?v=5"></script>
 <script src="js/data-service.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/auth.js?v=5"></script>
-<script src="js/sound-effects.js"></script>
 <script src="js/dashboard.js?v=5"></script>
-<script src="js/ai-coach.js"></script>
-<script src="js/drill-animations.js"></script>
-<script src="js/drill-engine.js"></script>
-<script src="js/animations.js"></script>
-<script src="js/player-profile.js"></script>
-<script src="js/daily-workout.js"></script>
-<script src="js/shot-tracker.js"></script>
-<script src="js/progress-charts.js"></script>
-<script src="js/move-animations.js"></script>
-<script src="js/move-library.js"></script>
-<script src="js/daily-challenge.js"></script>
-<script src="js/archetype-engine.js"></script>
-<script src="js/avatar-3d.js"></script>
-<script src="js/avatar-bridge.js"></script>
-<script src="js/avatar-builder.js"></script>
-<script src="js/player-analysis.js"></script>
-<script src="js/onboarding.js"></script>
-<script src="js/gamification.js"></script>
-<script src="js/streak.js"></script>
-<script src="js/shot-analysis.js"></script>
-<script src="js/avatar-shop.js"></script>
-<script src="js/avatar-customizer.js"></script>
-<script src="js/social-hub.js"></script>
+<!-- Deferred: features load after core without blocking render -->
+<script src="js/sound-effects.js" defer></script>
+<script src="js/ai-coach.js" defer></script>
+<script src="js/animations.js" defer></script>
+<script src="js/drill-animations.js" defer></script>
+<script src="js/drill-engine.js" defer></script>
+<script src="js/player-profile.js" defer></script>
+<script src="js/daily-workout.js" defer></script>
+<script src="js/shot-tracker.js" defer></script>
+<script src="js/progress-charts.js" defer></script>
+<script src="js/move-animations.js" defer></script>
+<script src="js/move-library.js" defer></script>
+<script src="js/daily-challenge.js" defer></script>
+<script src="js/archetype-engine.js" defer></script>
+<script src="js/avatar-bridge.js" defer></script>
+<script src="js/player-analysis.js" defer></script>
+<script src="js/onboarding.js" defer></script>
+<script src="js/gamification.js" defer></script>
+<script src="js/streak.js" defer></script>
+<script src="js/shot-analysis.js" defer></script>
+<script src="js/avatar-shop.js" defer></script>
+<script src="js/avatar-customizer.js" defer></script>
+<script src="js/social-hub.js" defer></script>
+<script src="js/notifications.js" defer></script>
+<script src="js/workout-timer.js" defer></script>
+<script src="js/badges.js" defer></script>
+<script src="js/video-review.js" defer></script>
 <!-- AI Detection: ONNX Runtime Web (WASM) — used by shotDetection.js for YOLOX-tiny -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous" defer></script>
 <!-- Shot Tracking Module (unified system) -->
@@ -2595,6 +2866,8 @@
 <script src="features/shot-tracking/shotService.js" defer></script>
 <script src="features/shot-tracking/ShotTrackingScreen.js" defer></script>
 <script src="features/shot-tracking/index.js" defer></script>
+<script src="features/shot-tracking/utils/heatmapGenerator.js" defer></script>
+<script src="js/court-heatmap.js" defer></script>
 
 <script>
 if ('serviceWorker' in navigator) {
@@ -2780,7 +3053,7 @@ if ('serviceWorker' in navigator) {
 })();
 </script>
 
-<script src="js/redesign-wiring.js"></script>
+<script src="js/redesign-wiring.js" defer></script>
 
 <!-- ═══════════════════════════════════════════════════════
      NIGHT TRAINING OVERLAY
@@ -2803,7 +3076,7 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
-<script src="js/night-training.js"></script>
+<script src="js/night-training.js" defer></script>
 
 
 </body>

@@ -121,9 +121,9 @@
     renderHistory(sessions);
     clearForm();
 
-    // Async sync to Supabase (non-blocking, write-through)
-    if (window.currentUser && typeof DataService !== 'undefined') {
-      DataService.addShotSession(session).catch(function () {});
+    // Async sync to Supabase (non-blocking, write-through, dedup by date)
+    if (window.currentUser && !window.courtiqGuest && typeof DataService !== 'undefined') {
+      DataService.addShotSession(session).catch(function (e) { console.warn('[ShotTracker] Sync failed:', e); });
     }
 
     // Sound effect
@@ -293,6 +293,15 @@
     });
   }
 
+  /* ── Expose globally BEFORE init so init can set ready=true ── */
+  window.ShotTracker = {
+    load: load,
+    addSession: addSession,
+    renderHistory: renderHistory,
+    ready: false
+  };
+  if (typeof CourtIQ !== 'undefined') CourtIQ.register('ShotTracker', window.ShotTracker);
+
   /* ── Init ──────────────────────────────────────────────────── */
   function init() {
     var btn = document.getElementById('st-submit-btn');
@@ -311,11 +320,4 @@
   } else {
     init();
   }
-
-  window.ShotTracker = {
-    load: load,
-    addSession: addSession,
-    renderHistory: renderHistory,
-    ready: false
-  };
 })();

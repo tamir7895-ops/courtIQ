@@ -37,6 +37,34 @@
     }
   }
 
+  // Async version: merge localStorage + Supabase sessions for complete data
+  async function loadAllSessions() {
+    var local = loadSessions();
+    if (typeof DataService === 'undefined' || !window.currentUser || window.courtiqGuest) {
+      return local;
+    }
+    try {
+      var remote = await DataService.getShotSessions(50);
+      if (!remote || remote.length === 0) return local;
+      // Merge: use date as dedup key, prefer remote data
+      var byDate = {};
+      local.forEach(function (s) { byDate[s.date] = s; });
+      remote.forEach(function (s) {
+        byDate[s.session_date || s.date] = {
+          date: s.session_date || s.date,
+          fg_made: s.fg_made || 0, fg_missed: s.fg_missed || 0,
+          three_made: s.three_made || 0, three_missed: s.three_missed || 0,
+          ft_made: s.ft_made || 0, ft_missed: s.ft_missed || 0
+        };
+      });
+      return Object.values(byDate).sort(function (a, b) {
+        return new Date(b.date) - new Date(a.date);
+      });
+    } catch (e) {
+      return local;
+    }
+  }
+
   function calcPct(made, missed) {
     var total = made + missed;
     return total === 0 ? 0 : Math.round((made / total) * 100);
@@ -77,13 +105,13 @@
   }
 
   /* ── Draw ─────────────────────────────────────────────────── */
-  function draw() {
+  function draw(sessionsOverride) {
     var canvas = document.getElementById('pc-canvas');
     var emptyEl = document.getElementById('pc-empty');
     if (!canvas) return;
 
     var ctx = canvas.getContext('2d');
-    var sessions = loadSessions();
+    var sessions = sessionsOverride || loadSessions();
     var data = buildSeries(sessions);
 
     // Need 2+ sessions
@@ -199,7 +227,8 @@
 
   /* ── Refresh (called after new session) ────────────────── */
   function refresh() {
-    draw();
+    // Try to merge Supabase + localStorage data, fall back to local only
+    loadAllSessions().then(function (all) { draw(all); }).catch(function () { draw(); });
   }
 
   /* ── Lazy load via IntersectionObserver ─────────────────── */

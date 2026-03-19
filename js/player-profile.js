@@ -68,8 +68,9 @@
       var onboarding = null;
       try { onboarding = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch (e) {}
       var avatarHtml = '';
-      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
-        avatarHtml = '<canvas id="profile-mini-avatar" width="48" height="48" style="border-radius:50%;flex-shrink:0;cursor:pointer" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar"></canvas>';
+      if (typeof AvatarBridge !== 'undefined') {
+        var avatarUrl = AvatarBridge.getAvatarUrl(onboarding && onboarding.avatar, 48);
+        avatarHtml = '<img src="' + avatarUrl + '" width="48" height="48" alt="Avatar" style="border-radius:50%;flex-shrink:0;cursor:pointer;object-fit:cover;" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar">';
       } else {
         avatarHtml = '<div class="profile-summary-avatar">' + data.position + '</div>';
       }
@@ -89,13 +90,7 @@
           '<div class="profile-summary-pills">' + archetypePill + pills + '</div>' +
         '</div>';
 
-      // Draw mini avatar after DOM insert
-      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
-        setTimeout(function () {
-          var c = document.getElementById('profile-mini-avatar');
-          if (c) AvatarBuilder.drawMini(c, onboarding.avatar);
-        }, 0);
-      }
+      // Avatar is rendered as <img> via DiceBear — no canvas drawing needed
     },
 
     openEditor: function () {
