@@ -98,4 +98,23 @@
   window.LS                  = LS;
   window.COURTIQ_LEVELS      = COURTIQ_LEVELS;
   window.sanitizePromptStr   = sanitizePromptStr;
+
+  /* ── CourtIQ Namespace Registry ────────────────────────────
+     Central registry for all CourtIQ modules. Detects naming
+     collisions early and provides a single lookup point.
+     Usage: CourtIQ.register('ModuleName', moduleObject)
+  ─────────────────────────────────────────────────────────── */
+  var _registry = {};
+  window.CourtIQ = {
+    register: function (name, obj) {
+      if (_registry[name]) {
+        console.warn('[CourtIQ] Module "' + name + '" already registered — possible collision');
+      }
+      _registry[name] = obj;
+      return obj;
+    },
+    get: function (name) { return _registry[name] || null; },
+    list: function () { return Object.keys(_registry); },
+    version: '2.0.0'
+  };
 })();

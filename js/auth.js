@@ -71,7 +71,8 @@
 
   function showAuthSuccess(type, name) {
     // Hide form content
-    document.getElementById('auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
+    var authTabsEl = document.querySelector('.auth-tabs');
+    if (authTabsEl) authTabsEl.style.display = 'none';
     document.getElementById('auth-error').style.display = 'none';
     document.querySelectorAll('.auth-form-pane').forEach(p => p.style.display = 'none');
 
@@ -223,8 +224,41 @@
     if (typeof initDashboard === 'function') initDashboard();
   }
 
-  function socialAuth(provider) {
-    showAuthError('Social login coming soon. Please use email and password.');
+  async function socialAuth(provider) {
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      return;
+    }
+
+    // Supported providers
+    var supported = ['google', 'apple'];
+    if (supported.indexOf(provider) === -1) {
+      showAuthError('This login method is not supported yet.');
+      return;
+    }
+
+    try {
+      var redirectUrl = window.location.origin + window.location.pathname;
+      var { data, error } = await sb.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        // If provider not configured in Supabase, show helpful message
+        if (error.message && error.message.indexOf('not enabled') !== -1) {
+          showAuthError(provider.charAt(0).toUpperCase() + provider.slice(1) + ' login is not configured yet. Please use email and password.');
+        } else {
+          showAuthError(error.message);
+        }
+      }
+      // If successful, Supabase redirects to the OAuth provider page
+      // User returns to redirectUrl after authentication
+    } catch (e) {
+      showAuthError('Failed to start ' + provider + ' login. Please try again.');
+    }
   }
 
   async function showForgot() {
@@ -265,7 +299,7 @@
     }
     if (session) {
       // Update nav buttons if on landing page
-      const navBtns = document.querySelector('.nav-buttons');
+      const navBtns = document.querySelector('.nav-cta') || document.querySelector('.nav-buttons');
       if (navBtns && !document.getElementById('db-panel-log')) {
         navBtns.innerHTML = `
           <a href="index.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>

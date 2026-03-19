@@ -39,7 +39,7 @@
     } catch (e) { /* silent */ }
     // Write-through: async sync to Supabase (non-blocking)
     if (window.currentUser && typeof DataService !== 'undefined') {
-      DataService.saveUserData({ xp_data: data }).catch(function () {});
+      DataService.saveUserData({ xp_data: data }).catch(function (e) { console.warn('[XP] Sync failed:', e); });
     }
   }
 
@@ -104,7 +104,12 @@
 
     if (leveled) {
       showLevelUp(newLevel);
+      // Notify via push notification
+      if (typeof NotificationManager !== 'undefined') NotificationManager.showLevelUpNotification(newLevel);
     }
+
+    // Check badge conditions after XP change
+    if (typeof BadgeSystem !== 'undefined') BadgeSystem.checkAll();
 
     return data.xp;
   }
@@ -131,13 +136,17 @@
     var rank = document.getElementById('xp-rank');
     if (rank) rank.textContent = level.name;
 
-    // Numbers
+    // Numbers (use DOM API to avoid innerHTML XSS risk)
     var nums = document.getElementById('xp-numbers');
     if (nums) {
+      nums.textContent = '';
+      var strong = document.createElement('strong');
+      strong.textContent = xp + ' XP';
+      nums.appendChild(strong);
       if (next) {
-        nums.innerHTML = '<strong>' + xp + ' XP</strong> / ' + next.threshold + ' XP to ' + next.name;
+        nums.appendChild(document.createTextNode(' / ' + next.threshold + ' XP to ' + next.name));
       } else {
-        nums.innerHTML = '<strong>' + xp + ' XP</strong> — Max Level';
+        nums.appendChild(document.createTextNode(' \u2014 Max Level'));
       }
     }
 
@@ -234,10 +243,21 @@
   }
 
   /* ── Init ─────────────────────────────────────────────────── */
+  var _hookRetries = 0;
   function init() {
     render();
-    // Delay hook setup to ensure other scripts are loaded
-    setTimeout(hookActions, 500);
+    // Retry hook setup until target functions exist (up to 5s)
+    tryHookActions();
+  }
+  function tryHookActions() {
+    hookActions();
+    _hookRetries++;
+    // Keep retrying if key functions haven't been hooked yet (max 10 attempts over 5s)
+    var allHooked = (typeof dbAddSession === 'undefined' || (dbAddSession._xpHooked)) &&
+                    (typeof drillsGenerate === 'undefined' || (drillsGenerate._xpHooked));
+    if (!allHooked && _hookRetries < 10) {
+      setTimeout(tryHookActions, 500);
+    }
   }
 
   if (document.readyState === 'loading') {
@@ -246,11 +266,11 @@
     init();
   }
 
-  window.XPSystem = {
+  window.XPSystem = CourtIQ.register('XPSystem', {
     grantXP: grantXP,
     load: load,
     getLevel: getLevel,
     getProgress: getProgress,
     render: render
-  };
+  });
 })();

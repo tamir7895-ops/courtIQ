@@ -34,14 +34,6 @@
   window.hideWelcomeScreen = hideWelcomeScreen;
 
   (async function authGuard() {
-    /* TEMP TEST BYPASS */
-    if (location.hostname === '127.0.0.1' || location.hostname === 'localhost') {
-      window.currentUser = { id: 'test', email: 'test@test.com', user_metadata: { display_name: 'Tamir' } };
-      window.currentSession = { user: window.currentUser };
-      hideWelcomeScreen();
-      initDashboard(); return;
-    }
-
     // Check guest mode
     if (localStorage.getItem('courtiq-guest-mode') === 'true') {
       window.courtiqGuest = true;
@@ -189,9 +181,12 @@
     if (trialBtn) trialBtn.style.display = 'none';
     if (drawerSignout) drawerSignout.style.display = '';
 
-    // Listen for session expiry
-    sb.auth.onAuthStateChange((event) => {
+    // Listen for session expiry (store subscription to avoid leaks)
+    var _authSub = sb.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
+        if (_authSub && _authSub.data && _authSub.data.subscription) {
+          _authSub.data.subscription.unsubscribe();
+        }
         window.location.href = 'index.html';
       }
     });
@@ -203,12 +198,19 @@
   /* ══════════════════════════════════════════════════════════════
      INIT — load profile + weeks from Supabase
   ══════════════════════════════════════════════════════════════ */
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise(function (_, rej) { setTimeout(function () { rej(new Error('Request timed out')); }, ms); })
+    ]);
+  }
+
   async function initDashboard() {
     try {
       // ── Sync user_data from Supabase → localStorage (new device restore) ──
       if (typeof DataService !== 'undefined') {
         try {
-          const userData = await DataService.getUserData();
+          const userData = await withTimeout(DataService.getUserData(), 10000);
           if (userData) {
             // Restore XP if not already in localStorage
             if (userData.xp_data && !localStorage.getItem('courtiq-xp')) {
@@ -257,7 +259,7 @@
       }
 
       // Load profile → populate player name & position
-      const profile = await DataService.getProfile();
+      const profile = await withTimeout(DataService.getProfile(), 10000);
       const positionMap = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward', PF: 'Power Forward', C: 'Center' };
       if (profile) {
         const playerEl = document.getElementById('db-player');
@@ -341,7 +343,7 @@
       })();
 
       // Load all weeks with sessions
-      const weeks = await DataService.getWeeks();
+      const weeks = await withTimeout(DataService.getWeeks(), 10000);
 
       // Find weeks that have a summary (completed) vs the current in-progress week
       const completedWeeks = weeks.filter(w => w.summary_json);
@@ -380,8 +382,13 @@
       } else {
         // Create a new week
         currentWeekNum = completedWeeks.length + 1;
-        const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
-        currentWeekId = newWeek.id;
+        try {
+          const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
+          if (newWeek) currentWeekId = newWeek.id;
+        } catch (weekErr) {
+          console.warn('Could not create new week:', weekErr);
+          // Dashboard still loads — user can view history, just can't add sessions until refresh
+        }
         dbSessions = [];
       }
 
@@ -562,6 +569,8 @@
       window._workoutsInitialized = true; workoutsInit();
     }
     if (id === 'drills' && typeof drillsInit === 'function') drillsInit();
+    if (id === 'shots' && typeof CourtHeatmap !== 'undefined') CourtHeatmap.render('court-heatmap-container');
+    if (id === 'notifications' && typeof NotificationManager !== 'undefined') NotificationManager.renderPreferences('notif-preferences-container');
     if (id === 'archetype' && typeof archetypeInit === 'function') archetypeInit();
     if (id === 'shop') {
       if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
@@ -599,11 +608,11 @@
 
   /* ── bottom nav section switching ── */
   var bottomNavSections = {
-    home:  { tabs: ['home'], default: 'home' },
-    train: { tabs: ['drills', 'workouts', 'log', 'moves'], default: 'drills' },
-    track: { tabs: ['shots', 'log', 'history'], default: 'shots' },
-    coach: { tabs: ['coach', 'summary', 'calendar', 'notifications'], default: 'coach' },
-    me:    { tabs: ['archetype', 'social', 'shop'], default: 'archetype' }
+    home:    { tabs: ['home'], default: 'home' },
+    drills:  { tabs: ['drills', 'workouts', 'log'], default: 'drills' },
+    coach:   { tabs: ['coach', 'calendar', 'notifications', 'summary'], default: 'coach' },
+    shots:   { tabs: ['shots', 'history'], default: 'shots' },
+    profile: { tabs: ['archetype', 'social', 'shop', 'moves'], default: 'archetype' }
   };
 
   function bottomNavSwitch(section) {
@@ -723,6 +732,12 @@
     }
     if (sp > 15 || sp < 1) {
       err.textContent = '\u26a0 Sprint time should be between 1.0 and 15.0 seconds.'; err.style.display = 'block'; return;
+    }
+
+    if (!currentWeekId) {
+      err.textContent = '\u26a0 Still loading your data — please wait a moment and try again.';
+      err.style.display = 'block';
+      return;
     }
 
     const notes = clampLength(document.getElementById('db-notes').value || '', 500);
@@ -891,8 +906,28 @@
     // feedback text
     document.getElementById('db-headline').textContent     = result.feedback.headline;
     document.getElementById('db-summary-text').textContent = result.feedback.summary;
-    document.getElementById('db-strengths').innerHTML = result.feedback.strengths.map(s => `<div class="db-feedback-item">\u00b7 ${sanitize(s)}</div>`).join('');
-    document.getElementById('db-focus').innerHTML     = result.feedback.focus_areas.map(f => `<div class="db-feedback-item">\u00b7 ${sanitize(f)}</div>`).join('');
+    // Strengths (safe DOM)
+    var strengthsEl = document.getElementById('db-strengths');
+    if (strengthsEl) {
+      while (strengthsEl.firstChild) strengthsEl.removeChild(strengthsEl.firstChild);
+      (result.feedback.strengths || []).forEach(function (s) {
+        var div = document.createElement('div');
+        div.className = 'db-feedback-item';
+        div.textContent = '\u00b7 ' + s;
+        strengthsEl.appendChild(div);
+      });
+    }
+    // Focus areas (safe DOM)
+    var focusEl = document.getElementById('db-focus');
+    if (focusEl) {
+      while (focusEl.firstChild) focusEl.removeChild(focusEl.firstChild);
+      (result.feedback.focus_areas || []).forEach(function (f) {
+        var div = document.createElement('div');
+        div.className = 'db-feedback-item';
+        div.textContent = '\u00b7 ' + f;
+        focusEl.appendChild(div);
+      });
+    }
     document.getElementById('db-drill').textContent   = result.feedback.drill_recommendation;
     document.getElementById('db-coach-note').textContent = '\u201c' + result.feedback.coach_note + '\u201d';
 

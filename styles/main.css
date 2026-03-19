@@ -8,8 +8,8 @@
       --c-amber-dim: rgba(245,166,35,0.12);
       --c-amber-glow:rgba(245,166,35,0.25);
       --c-white:     #f0ede6;
-      --c-muted:     rgba(240,237,230,0.45);
-      --c-dimmer:    rgba(240,237,230,0.22);
+      --c-muted:     rgba(240,237,230,0.60);
+      --c-dimmer:    rgba(240,237,230,0.38);
       --c-red:       #e84040;
       --c-teal:      #2dd4bf;
       --c-teal-dim:  rgba(45,212,191,0.10);
@@ -120,6 +120,18 @@
       --duration-slow: 0.4s;
     }
 
+    /* ─── FOCUS VISIBLE (Accessibility) ───────────────────────── */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [role="tab"]:focus-visible,
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--c-amber);
+      outline-offset: 2px;
+    }
+
     /* ─── RESET & BASE ─────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html {
@@ -140,6 +152,8 @@
       line-height: 1.6;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: contain;
     }
 
     img { display: block; max-width: 100%; }
@@ -2625,6 +2639,7 @@
     .db-sidebar {
       position: fixed;
       top: 0; left: 0; bottom: 0;
+      padding-top: env(safe-area-inset-top, 0px);
       width: 260px;
       background: linear-gradient(180deg, #161921 0%, #10131a 100%);
       border-right: 1px solid rgba(245,166,35,0.08);

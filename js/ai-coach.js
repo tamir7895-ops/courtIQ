@@ -1,3 +1,4 @@
+  /* ══════════════════════════════════════════════════════════════
      AI COACH — adaptive weekly program adjustment
      Prompt: Analyze performance data (sets, success %, time),
      increase/decrease intensity, focus on weak areas, suggest

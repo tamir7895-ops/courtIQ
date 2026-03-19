@@ -592,6 +592,11 @@
         engine.start(videoEl);
         startOverlayLoop();
 
+        // Start video recording for replay
+        if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
+          VideoReview.startRecording(stream);
+        }
+
         // Show learning status
         if (window.AdaptiveLearning) {
           var stats = window.AdaptiveLearning.getStats();
@@ -663,6 +668,11 @@
       timestamp:   new Date(data.timestamp).toISOString(),
       shot_number: shots.length + 1
     });
+
+    // Record shot event for video replay
+    if (typeof VideoReview !== 'undefined') VideoReview.recordShotEvent(data);
+    // Save shot position for heatmap
+    if (typeof CourtHeatmap !== 'undefined') CourtHeatmap.savePosition(data);
 
     // Streak
     if (isMade) {
@@ -803,8 +813,24 @@
   /* ══════════════════════════════════════════════════════════════
      SUMMARY PHASE
      ══════════════════════════════════════════════════════════════ */
+  var _videoReviewData = null; // Stored for replay button
+
   function enterSummaryPhase() {
     phase = 'summary';
+
+    // Stop video recording and save
+    if (typeof VideoReview !== 'undefined') {
+      VideoReview.stopRecording().then(function (data) {
+        if (data && data.blob) {
+          _videoReviewData = data;
+          VideoReview.saveClip(sessionId, data.blob, data.shots).catch(function () {});
+          // Show replay button
+          var replayBtn = document.getElementById('st-video-replay-btn');
+          if (replayBtn) replayBtn.style.display = '';
+        }
+      }).catch(function () {});
+    }
+
     stopCamera();
     els.tracking.classList.remove('active');
     els.summary.classList.add('active');
@@ -1088,6 +1114,7 @@
     html.push(
       '<div class="st-actions">',
         '<button class="st-save-btn" id="st-save-btn">Save to CourtIQ</button>',
+        '<button class="st-done-btn" id="st-video-replay-btn" style="display:none;background:rgba(245,166,35,0.12);color:#f5a623;border-color:rgba(245,166,35,0.3);" onclick="if(_videoReviewData)VideoReview.openReplay(\'' + (sessionId || '') + '\',_videoReviewData.blob,_videoReviewData.shots);">\uD83C\uDFAC Video Review</button>',
         '<button class="st-done-btn" id="st-done-btn">Done</button>',
       '</div>'
     );
