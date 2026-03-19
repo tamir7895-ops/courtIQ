@@ -642,9 +642,15 @@
 
         // Detection logging
         if (self._frameCount % 30 === 0) {
+          var hoopStr = 'none';
+          if (self._lastHoopDetection) {
+            var hd = self._lastHoopDetection;
+            hoopStr = 'score=' + hd.score.toFixed(3) + ' cx=' + hd.cx.toFixed(1) + ' cy=' + hd.cy.toFixed(1);
+          }
           console.log('[ShotDetection] f=' + self._frameCount +
-            ' ball=' + (mlBall ? 'ML(' + mlBall.score.toFixed(3) + ')' : (colorBall ? 'color' : 'none')) +
-            ' hoop=' + (self._lastHoopDetection ? self._lastHoopDetection.score.toFixed(3) : 'none'));
+            ' vw=' + vw + ' vh=' + vh + ' pw=' + pw + ' ph=' + ph +
+            ' ball=' + (mlBall ? 'ML(' + mlBall.score.toFixed(3) + ' cx=' + mlBall.cx.toFixed(1) + ')' : (colorBall ? 'color' : 'none')) +
+            ' hoop=' + hoopStr);
         }
 
         if (mlBall) {
@@ -673,9 +679,38 @@
       });
     },
 
+    /* ── YOLOX grid+stride postprocess (required for raw ONNX output) ── */
+    /* The ONNX model outputs raw grid offsets, not decoded pixel coords.
+       This applies: cx = (raw_cx + grid_x) * stride, w = exp(raw_w) * stride */
+    _yoloxPostprocess: function (output) {
+      var sz = YOLOX_INPUT_SIZE; // 416
+      var strides = [8, 16, 32];
+      var idx = 0;
+      for (var s = 0; s < strides.length; s++) {
+        var stride = strides[s];
+        var hsize = Math.floor(sz / stride);
+        var wsize = Math.floor(sz / stride);
+        for (var y = 0; y < hsize; y++) {
+          for (var x = 0; x < wsize; x++) {
+            var off = idx * YOLOX_STRIDE;
+            output[off]     = (output[off]     + x) * stride; // cx
+            output[off + 1] = (output[off + 1] + y) * stride; // cy
+            output[off + 2] = Math.exp(output[off + 2]) * stride; // w
+            output[off + 3] = Math.exp(output[off + 3]) * stride; // h
+            idx++;
+          }
+        }
+      }
+      return output;
+    },
+
     /* ── YOLOX output decode (custom 2-class model) ─────────── */
     /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
+    /* After _yoloxPostprocess, cx/cy/w/h are in 416x416 input space */
     _yoloxDecode: function (output, ratio, pw, ph) {
+      // Apply grid+stride decoding (converts raw offsets → pixel coords in 416x416 space)
+      this._yoloxPostprocess(output);
+
       var numDets = output.length / YOLOX_STRIDE;
       var best = null;
       var bestScore = 0;

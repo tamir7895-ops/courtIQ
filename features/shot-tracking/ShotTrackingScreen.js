@@ -572,6 +572,10 @@
 
     // Auto-detect hoop from YOLOX + continuous re-anchoring
     engine.onHoopDetected = function (hoop) {
+      // Reject garbage detections near edges or with impossible size
+      if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
+      if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
+
       if (!rimLocked && hoop.score > 0.15) {
         // First detection — auto-calibrate
         rimCenter = { x: hoop.cx, y: hoop.cy };
