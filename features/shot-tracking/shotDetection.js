@@ -289,7 +289,7 @@
       for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
         var idx = (y * vw + x) * 4;
         var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 140 && g > 50 && g < 180 && b < 100 && r > g * 1.2 && r > b * 2.0) {
+        if (r > 100 && g > 30 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.5) {
           var gx = Math.floor(x / CELL);
           var gy = Math.floor(y / CELL);
           grid[gy * gridW + gx]++;
@@ -405,6 +405,10 @@
     _detectorType: 'none',   // 'yolox' | 'none'
     _procW: 0,
     _procH: 0,
+    _lastMLBallPos: null,    // { x, y, frame } — last YOLOX ball detection for guided color search
+    _shotState: 'idle',      // idle | shot_started | near_hoop | cooldown
+    _shotStateTime: 0,       // timestamp when current state started
+    _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
 
     init: function () {
       var self = this;
@@ -495,6 +499,10 @@
       this.lastShotTime = 0;
       this._mlMissCount = 0;
       this._frameCount = 0;
+      this._shotState = 'idle';
+      this._shotStateTime = 0;
+      this._ballMinY = 1.0;
+      this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -653,6 +661,7 @@
 
         if (mlBall) {
           self._mlMissCount = 0;
+          self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
           self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
         } else if (colorBall) {
           self._mlMissCount++;
@@ -784,7 +793,7 @@
         for (var px = 0; px < w; px += 2) {
           var idx = (py * w + px) * 4;
           var r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-          if (r > 140 && g > 50 && g < 180 && b < 100 && r > g * 1.2 && r > b * 2.0) {
+          if (r > 100 && g > 30 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.5) {
             orangeCount++;
           }
         }
@@ -854,71 +863,123 @@
       }
     },
 
+    /* ── Simplified shot state machine ─────────────────────────
+       States: idle → shot_started → near_hoop → cooldown → idle
+
+       idle:         ball below hoop, watching for rising motion
+       shot_started: ball rising (Y decreasing for 3+ frames)
+       near_hoop:    ball reached hoop height area, waiting for result
+       cooldown:     shot counted, 1.5s lockout before next shot
+    ────────────────────────────────────────────────────────────── */
     _analyzeShotState: function (vw, vh, normX, normY) {
       if (!this.rimZone) return;
-
       var now = Date.now();
-      if (now - this.lastShotTime < DEBOUNCE_MS) return;
-      if (this.tracker.positions.length < MIN_TRAJECTORY_PTS) return;
+      var rim = this.rimZone;
 
-      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 30);
-      var last = traj[traj.length - 1];
-      if (!isInApproachZone(last.x, last.y, this.rimZone)) return;
-
-      var trend = getYTrend(this.tracker, vh);
-      // Only skip rising ball if it's far from the rim (>25% of frame away)
-      if (trend === 'rising') {
-        var distToRim = Math.abs(last.y - this.rimZone.centerY);
-        if (distToRim > 0.25) return;
-      }
-      var launchPt = getLaunchPoint(this.tracker, vw, vh);
-      var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
-
-      // Check made
-      var madeResult = analyzeMade(traj, this.rimZone);
-      if (madeResult.isMade) {
-        this.lastShotTime = now;
-        this.stats.made++;
-        this.stats.attempts++;
-        var shotData = {
-          result: 'made',
-          shotX: madeResult.entryPoint ? madeResult.entryPoint.x : normX,
-          shotY: madeResult.entryPoint ? madeResult.entryPoint.y : normY,
-          trajectory: traj.slice(-20),
-          launchPoint: launchPt,
-          shotZone: shotZone,
-          timestamp: now
-        };
-        /* Level 2: Trajectory learning */
-        if (window.AdaptiveLearning) {
-          window.AdaptiveLearning.onShotCompleted(traj, 'made', this.rimZone);
+      // Cooldown state
+      if (this._shotState === 'cooldown') {
+        if (now - this._shotStateTime > DEBOUNCE_MS) {
+          this._shotState = 'idle';
+          this._ballMinY = 1.0;
         }
-        if (this.onShotDetected) this.onShotDetected(shotData);
-        resetTracker(this.tracker);
         return;
       }
 
-      // Check miss
-      var missResult = analyzeMiss(traj, this.rimZone);
-      if (missResult.isMiss) {
-        this.lastShotTime = now;
-        this.stats.attempts++;
-        var missData = {
-          result: 'missed',
-          shotX: missResult.entryPoint ? missResult.entryPoint.x : normX,
-          shotY: missResult.entryPoint ? missResult.entryPoint.y : normY,
-          trajectory: traj.slice(-20),
-          launchPoint: launchPt,
-          shotZone: shotZone,
-          timestamp: now
-        };
-        /* Level 2: Trajectory learning */
-        if (window.AdaptiveLearning) {
-          window.AdaptiveLearning.onShotCompleted(traj, 'missed', this.rimZone);
+      // Track the highest point the ball reaches (lowest Y value)
+      if (normY < this._ballMinY) this._ballMinY = normY;
+
+      var trend = getYTrend(this.tracker, vh);
+      var pts = this.tracker.positions;
+      if (pts.length < MIN_TRAJECTORY_PTS) return;
+
+      // ── IDLE: watch for ball starting to rise ──
+      if (this._shotState === 'idle') {
+        // Ball must be below hoop level AND rising
+        if (normY > rim.centerY + 0.10 && trend === 'rising') {
+          this._shotState = 'shot_started';
+          this._shotStateTime = now;
+          this._ballMinY = normY;
         }
-        if (this.onShotDetected) this.onShotDetected(missData);
-        resetTracker(this.tracker);
+        return;
       }
+
+      // ── SHOT_STARTED: ball is rising, watch for it reaching hoop height ──
+      if (this._shotState === 'shot_started') {
+        // Ball reached near hoop height (within 20% of frame from hoop)
+        if (this._ballMinY < rim.centerY + 0.20) {
+          this._shotState = 'near_hoop';
+          this._shotStateTime = now;
+          return;
+        }
+        // Timeout: if ball has been "rising" for >3 seconds without reaching hoop, reset
+        if (now - this._shotStateTime > 3000) {
+          this._shotState = 'idle';
+          this._ballMinY = 1.0;
+        }
+        return;
+      }
+
+      // ── NEAR_HOOP: ball is near hoop, determine make or miss ──
+      if (this._shotState === 'near_hoop') {
+        var hoopXDist = Math.abs(normX - rim.centerX);
+        var nearHoopX = hoopXDist < rim.width * 2.0; // within 2x rim width horizontally
+
+        // MADE: ball went from above hoop to below hoop while near hoop X
+        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX) {
+          this._countShot('made', vw, vh, normX, normY, now);
+          return;
+        }
+
+        // MISS: ball was near hoop but now clearly moved away or fell without going through
+        var ballFarFromHoop = normY > rim.centerY + 0.25 || hoopXDist > rim.width * 4;
+        var ballWentBack = trend === 'rising' && normY < rim.centerY - 0.10;
+        var timeout = now - this._shotStateTime > 2000;
+
+        if (ballFarFromHoop || ballWentBack || timeout) {
+          // Only count as shot attempt if ball actually got near the hoop
+          if (this._ballMinY < rim.centerY + 0.15) {
+            this._countShot('missed', vw, vh, normX, normY, now);
+          } else {
+            // Ball never really reached hoop — not a shot, just movement
+            this._shotState = 'idle';
+            this._ballMinY = 1.0;
+          }
+          return;
+        }
+      }
+    },
+
+    _countShot: function (result, vw, vh, normX, normY, now) {
+      this.lastShotTime = now;
+      this._shotState = 'cooldown';
+      this._shotStateTime = now;
+      this._ballMinY = 1.0;
+
+      if (result === 'made') this.stats.made++;
+      this.stats.attempts++;
+
+      var launchPt = getLaunchPoint(this.tracker, vw, vh);
+      var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
+
+      var shotData = {
+        result: result,
+        shotX: normX,
+        shotY: normY,
+        trajectory: traj,
+        launchPoint: launchPt,
+        shotZone: shotZone,
+        timestamp: now
+      };
+
+      console.log('[ShotTracker] ' + result.toUpperCase() + ' — minY=' + this._ballMinY.toFixed(3) +
+        ' hoopY=' + this.rimZone.centerY.toFixed(3) + ' ballX=' + normX.toFixed(3) + ' hoopX=' + this.rimZone.centerX.toFixed(3));
+
+      if (window.AdaptiveLearning) {
+        window.AdaptiveLearning.onShotCompleted(traj, result, this.rimZone);
+      }
+      if (this.onShotDetected) this.onShotDetected(shotData);
+      resetTracker(this.tracker);
     },
 
     _setStatus: function (status) {
