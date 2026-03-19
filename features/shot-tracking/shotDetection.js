@@ -395,6 +395,7 @@
     ballPosition: null,
     onShotDetected: null,
     onBallUpdate: null,
+    onHoopDetected: null,
     onStatusChange: null,
     _isDetecting: false,
     _mlFailed: false,
@@ -621,12 +622,29 @@
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
 
+        // Fire hoop detection callback (normalized 0-1 coords)
+        if (self.onHoopDetected && self._lastHoopDetection) {
+          var h = self._lastHoopDetection;
+          self.onHoopDetected({
+            cx: h.cx / pw, cy: h.cy / ph,
+            bw: h.bw / pw, bh: h.bh / ph,
+            score: h.score
+          });
+        }
+
         if (mlBall) {
           // For low-confidence detections, verify orange color in the region
           if (mlBall.score < 0.15) {
             var verified = self._verifyOrange(mlBall.cx, mlBall.cy, Math.max(mlBall.bw, mlBall.bh), pw, ph);
             if (!verified) { mlBall = null; }
           }
+        }
+
+        // Detection logging
+        if (self._frameCount % 30 === 0) {
+          console.log('[ShotDetection] f=' + self._frameCount +
+            ' ball=' + (mlBall ? 'ML(' + mlBall.score.toFixed(3) + ')' : (colorBall ? 'color' : 'none')) +
+            ' hoop=' + (self._lastHoopDetection ? self._lastHoopDetection.score.toFixed(3) : 'none'));
         }
 
         if (mlBall) {
