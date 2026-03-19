@@ -22,7 +22,7 @@
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
   var BALL_CONFIDENCE      = 0.005; // Ultra-low threshold for YOLOX basketball (verified with orange color)
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
-  var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
+  var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
   var YOLOX_INPUT_SIZE     = 416;
@@ -551,10 +551,8 @@
     _detectFrame: function () {
       var self = this;
       if (!self.isRunning || !self.videoEl) return;
-      if (self._isDetecting) { self._scheduleDetection(); return; }
       if (self.videoEl.readyState < 2) { self._scheduleDetection(); return; }
 
-      self._isDetecting = true;
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
 
@@ -563,7 +561,7 @@
       var pw = self._procW || vw;
       var ph = self._procH || vh;
 
-      /* ── Color detection (primary, every frame) ─────────────── */
+      /* ── Color detection runs EVERY frame (not blocked by YOLOX) ── */
       var colorBall = null;
       if (canvasReady) {
         colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
@@ -573,23 +571,23 @@
       var scaleX = pw > 0 ? vw / pw : 1;
       var scaleY = ph > 0 ? vh / ph : 1;
 
-      /* ── YOLOX detection (every 3rd frame) ──────────────────── */
+      /* Process color detection immediately — don't wait for YOLOX */
+      if (!self._isDetecting) {
+        // Only process color if YOLOX isn't about to give us a better result
+        if (colorBall) {
+          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+        } else {
+          self._processNoBall();
+        }
+      }
+
+      /* ── YOLOX detection (every 6th frame, async, non-blocking) ── */
       self._frameCount++;
-      if (self.model && !self._colorOnlyMode && canvasReady && self._frameCount % 3 === 0) {
+      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % 6 === 0) {
+        self._isDetecting = true;
         self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, colorBall);
-        return; // async — will call _scheduleDetection when done
       }
 
-      /* Non-ML frames: use color only */
-      if (colorBall) {
-        self._mlMissCount++;
-        self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
-      } else {
-        self._mlMissCount++;
-        self._processNoBall();
-      }
-
-      self._isDetecting = false;
       self._scheduleDetection();
     },
 
