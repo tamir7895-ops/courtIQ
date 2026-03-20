@@ -629,6 +629,7 @@
     if (overlayAnimFrame) { cancelAnimationFrame(overlayAnimFrame); overlayAnimFrame = null; }
     var engine = window.ShotDetectionEngine;
     if (engine) engine.stop();
+    if (window.TrailRenderer) TrailRenderer.reset();
   }
 
   function onDetectionStatus(status) {
@@ -667,6 +668,7 @@
 
   /* ── Shot callback ──────────────────────────────────────────── */
   function onShotDetected(data) {
+    if (window.TrailRenderer) TrailRenderer.snapshotArc(data.result);
     var isMade = data.result === 'made';
 
     // Record shot with launch point and zone
@@ -760,7 +762,13 @@
 
   /* ── Ball update callback → canvas overlay ──────────────────── */
   var currentBall = null;
-  function onBallUpdate(pos) { currentBall = pos; }
+  function onBallUpdate(pos) {
+    currentBall = pos;
+    if (window.TrailRenderer) {
+      if (pos) TrailRenderer.update(pos.normX, pos.normY, Date.now());
+      else TrailRenderer.clearCurrent();
+    }
+  }
 
   function startOverlayLoop() {
     function draw() {
@@ -791,6 +799,11 @@
         canvasCtx.fillStyle = 'rgba(245,166,35,0.06)';
         canvasCtx.fill();
         canvasCtx.restore();
+      }
+
+      // Draw motion trail
+      if (window.TrailRenderer) {
+        TrailRenderer.draw(canvasCtx, cw, ch);
       }
 
       // Draw ball tracking dot
