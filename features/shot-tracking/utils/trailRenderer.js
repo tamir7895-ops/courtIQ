@@ -88,14 +88,15 @@ window.TrailRenderer = (function () {
     var tailW = HEAD_WIDTH * TAIL_WIDTH_RATIO;
 
     for (var band = 0; band < OPACITY_BANDS; band++) {
-      var startIdx = band * bandSize;
-      var endIdx = Math.min(startIdx + bandSize, total - 1);
+      // Overlap by 1 point to eliminate gaps between bands
+      var startIdx = Math.max(0, band * bandSize - 1);
+      var endIdx = Math.min((band + 1) * bandSize, total - 1);
       if (startIdx >= total - 1) break;
 
       // Opacity: tail (index 0) = 0, head (last index) = 1
       var midIdx = Math.floor((startIdx + endIdx) / 2);
       var opacity = (midIdx / (total - 1));
-      if (opacity < 0.04) continue; // skip invisible segments
+      if (opacity < 0.05) continue; // skip nearly invisible segments
 
       // Width at this band position
       var progress = midIdx / (total - 1);
@@ -108,7 +109,7 @@ window.TrailRenderer = (function () {
       ctx.lineJoin = 'round';
       ctx.beginPath();
       ctx.moveTo(smooth[startIdx].x * cw, smooth[startIdx].y * ch);
-      for (var j = startIdx + 1; j <= endIdx + 1 && j < total; j++) {
+      for (var j = startIdx + 1; j <= endIdx; j++) {
         ctx.lineTo(smooth[j].x * cw, smooth[j].y * ch);
       }
       ctx.stroke();
