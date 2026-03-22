@@ -898,6 +898,15 @@
         }
       }
 
+      // Debug: log detection counts every 30 frames
+      if (!this._dbgFrame) this._dbgFrame = 0;
+      if (++this._dbgFrame % 30 === 0) {
+        var bestHoop = hoopCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+        var bestBall = ballCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+        console.log('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length +
+          ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3));
+      }
+
       // Apply NMS (IoU threshold 0.45)
       var NMS_THRESH = 0.45;
       var ballKeep = this._greedyNMS(ballCandidates, NMS_THRESH);
