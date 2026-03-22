@@ -663,9 +663,13 @@
         if (mlBall) {
           self._mlMissCount = 0;
           self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
+          self._lastDetSource = 'ml';
+          self._lastDetConf = mlBall.score;
           self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
         } else if (colorBall) {
           self._mlMissCount++;
+          self._lastDetSource = 'color';
+          self._lastDetConf = 0;
           self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
         } else {
           self._mlMissCount++;
@@ -832,7 +836,11 @@
       updateTracker(this.tracker, cx, cy);
       var normX = cx / vw;
       var normY = cy / vh;
-      this.ballPosition = { normX: normX, normY: normY };
+      this.ballPosition = {
+        normX: normX, normY: normY,
+        source: this._lastDetSource || 'color',
+        confidence: this._lastDetConf || 0
+      };
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
 
       /* Feed to adaptive learning (Level 1 + 3) */

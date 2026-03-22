@@ -722,6 +722,56 @@
   font-weight: 700;
 }
 
+/* ── End session confirmation modal ────────────────────────────── */
+.st-confirm-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10010;
+  background: rgba(0,0,0,0.65);
+  align-items: center;
+  justify-content: center;
+}
+.st-confirm-modal.active { display: flex; }
+.st-confirm-box {
+  background: #1a1a2e;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 16px;
+  padding: 28px 32px;
+  text-align: center;
+  max-width: 320px;
+  width: 90%;
+}
+.st-confirm-box p {
+  color: #fff;
+  font-size: 17px;
+  font-weight: 600;
+  margin: 0 0 20px;
+}
+.st-confirm-btns { display: flex; gap: 12px; }
+.st-confirm-yes {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 10px;
+  background: #f5a623;
+  color: #000;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+}
+.st-confirm-no {
+  flex: 1;
+  padding: 12px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 10px;
+  background: transparent;
+  color: #fff;
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+
 /* ── Animations ───────────────────────────────────────────────── */
 @keyframes st-fadeInDown {
   from { opacity: 0; transform: translateY(16px); }

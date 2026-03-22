@@ -127,6 +127,16 @@
             '<span class="st-stop-text">End Session</span>',
           '</button>',
         '</div>',
+        /* ── End session confirmation modal ── */
+        '<div class="st-confirm-modal" id="st-confirm-modal">',
+          '<div class="st-confirm-box">',
+            '<p>End session and view your results?</p>',
+            '<div class="st-confirm-btns">',
+              '<button class="st-confirm-yes" id="st-confirm-yes">End Session</button>',
+              '<button class="st-confirm-no" id="st-confirm-no">Keep Going</button>',
+            '</div>',
+          '</div>',
+        '</div>',
       '</div>',
 
       /* ── Summary overlay ── */
@@ -652,10 +662,10 @@
         txt.textContent = 'Color tracking active';
         break;
       case 'detecting':
-        txt.textContent = 'Tracking';
+        txt.textContent = rimLocked ? 'Tracking' : 'Tracking (no hoop)';
         break;
       case 'detecting-learned':
-        txt.textContent = 'Tracking (AI learned)';
+        txt.textContent = rimLocked ? 'Tracking (AI learned)' : 'Tracking (no hoop)';
         break;
       case 'error':
         dot.classList.add('error');
@@ -806,24 +816,25 @@
         TrailRenderer.draw(canvasCtx, cw, ch);
       }
 
-      // Draw ball tracking dot
+      // Draw ball tracking dot (color by detection source)
       if (currentBall) {
         var bx = currentBall.normX * cw;
         var by = currentBall.normY * ch;
+        var dotColor = currentBall.source === 'ml' ? '#00ff88' : '#ffaa00';
         canvasCtx.save();
         canvasCtx.beginPath();
         canvasCtx.arc(bx, by, 7, 0, Math.PI * 2);
-        canvasCtx.fillStyle = '#ffaa00';
+        canvasCtx.fillStyle = dotColor;
         canvasCtx.fill();
         canvasCtx.strokeStyle = '#fff';
         canvasCtx.lineWidth = 2;
         canvasCtx.stroke();
         // Glow
-        canvasCtx.shadowColor = '#ffaa00';
+        canvasCtx.shadowColor = dotColor;
         canvasCtx.shadowBlur = 10;
         canvasCtx.beginPath();
         canvasCtx.arc(bx, by, 4, 0, Math.PI * 2);
-        canvasCtx.fillStyle = '#ffaa00';
+        canvasCtx.fillStyle = dotColor;
         canvasCtx.fill();
         canvasCtx.restore();
       }
@@ -834,9 +845,17 @@
 
   /* ── Stop session ───────────────────────────────────────────── */
   function onStopSession() {
-    if (!confirm('End session and view your results?')) return;
-    stopTracking();
-    enterSummaryPhase();
+    var modal = document.getElementById('st-confirm-modal');
+    if (!modal) return;
+    modal.classList.add('active');
+    document.getElementById('st-confirm-yes').onclick = function () {
+      modal.classList.remove('active');
+      stopTracking();
+      enterSummaryPhase();
+    };
+    document.getElementById('st-confirm-no').onclick = function () {
+      modal.classList.remove('active');
+    };
   }
 
   /* ══════════════════════════════════════════════════════════════
