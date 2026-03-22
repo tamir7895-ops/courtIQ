@@ -48,36 +48,121 @@
   var COLOR_MIN_PIXELS     = 12;   // Minimum orange pixels to count as ball
   var COLOR_MAX_PIXELS     = 8000; // Maximum (too large = not a ball)
 
-  /* ── Tracker ────────────────────────────────────────────────── */
+  /* ── 2D Kalman Filter (position + velocity) ─────────────────── */
+  /* State: [x, y, vx, vy]  —  constant-velocity model with gravity */
+  var KALMAN_PROCESS_NOISE = 0.5;   // How much we trust the physics model
+  var KALMAN_MEASURE_NOISE = 3.0;   // How noisy the detections are (pixels)
+  var KALMAN_GRAVITY       = 0.8;   // Gravity pull per frame (pixels, downward = positive Y)
+  var KALMAN_MAX_PREDICT   = 18;    // Max frames to predict without measurement
+
+  function createKalman() {
+    return {
+      x: 0, y: 0, vx: 0, vy: 0,    // State estimate
+      // Covariance diagonal (simplified — no cross-terms needed for this use case)
+      px: 100, py: 100, pvx: 100, pvy: 100,
+      initialized: false,
+      predictCount: 0                 // Frames since last measurement
+    };
+  }
+
+  function kalmanPredict(kf) {
+    // State prediction (constant velocity + gravity on Y)
+    kf.x  += kf.vx;
+    kf.y  += kf.vy + KALMAN_GRAVITY * 0.5;
+    kf.vy += KALMAN_GRAVITY;
+    // Covariance grows with process noise
+    kf.px  += kf.pvx + KALMAN_PROCESS_NOISE;
+    kf.py  += kf.pvy + KALMAN_PROCESS_NOISE;
+    kf.pvx += KALMAN_PROCESS_NOISE;
+    kf.pvy += KALMAN_PROCESS_NOISE;
+    kf.predictCount++;
+  }
+
+  function kalmanUpdate(kf, mx, my) {
+    if (!kf.initialized) {
+      kf.x = mx; kf.y = my; kf.vx = 0; kf.vy = 0;
+      kf.px = KALMAN_MEASURE_NOISE; kf.py = KALMAN_MEASURE_NOISE;
+      kf.pvx = 10; kf.pvy = 10;
+      kf.initialized = true;
+      kf.predictCount = 0;
+      return;
+    }
+    // Kalman gains (simplified diagonal)
+    var kx  = kf.px  / (kf.px  + KALMAN_MEASURE_NOISE);
+    var ky  = kf.py  / (kf.py  + KALMAN_MEASURE_NOISE);
+    // Innovation (measurement residual)
+    var ix = mx - kf.x;
+    var iy = my - kf.y;
+    // Update velocity from position correction
+    kf.vx += ix * 0.3;  // Smooth velocity update
+    kf.vy += iy * 0.3;
+    // Update position
+    kf.x += kx * ix;
+    kf.y += ky * iy;
+    // Update covariance
+    kf.px  *= (1 - kx);
+    kf.py  *= (1 - ky);
+    kf.pvx *= 0.95;  // Velocity covariance decays slowly
+    kf.pvy *= 0.95;
+    kf.predictCount = 0;
+  }
+
+  function kalmanReset(kf) {
+    kf.x = 0; kf.y = 0; kf.vx = 0; kf.vy = 0;
+    kf.px = 100; kf.py = 100; kf.pvx = 100; kf.pvy = 100;
+    kf.initialized = false;
+    kf.predictCount = 0;
+  }
+
+  /* ── Tracker (with Kalman filter) ──────────────────────────── */
   function createTracker() {
     return {
       positions: [],
       lastSeenFrame: -1,
       isTracking: false,
-      frameCount: 0
+      frameCount: 0,
+      kalman: createKalman()
     };
   }
 
   function updateTracker(tracker, x, y) {
     var frameNum = tracker.frameCount++;
+    var kf = tracker.kalman;
+
     if (x !== null && y !== null) {
+      // Measurement available — update Kalman
+      kalmanUpdate(kf, x, y);
+      // Use Kalman-smoothed position
+      var sx = kf.x;
+      var sy = kf.y;
+
       var last = tracker.positions[tracker.positions.length - 1];
       if (last) {
-        var dx = Math.abs(x - last.x);
-        var dy = Math.abs(y - last.y);
+        var dx = Math.abs(sx - last.x);
+        var dy = Math.abs(sy - last.y);
         if (dx < MIN_MOVEMENT_PX && dy < MIN_MOVEMENT_PX) {
           tracker.lastSeenFrame = frameNum;
           return;
         }
       }
-      tracker.positions.push({ x: x, y: y, frame: frameNum, ts: Date.now() });
+      tracker.positions.push({ x: sx, y: sy, frame: frameNum, ts: Date.now() });
       if (tracker.positions.length > MAX_HISTORY) {
         tracker.positions = tracker.positions.slice(-MAX_HISTORY);
       }
       tracker.lastSeenFrame = frameNum;
       tracker.isTracking = true;
     } else {
-      if (tracker.isTracking && frameNum - tracker.lastSeenFrame > MAX_GAP_FRAMES) {
+      // No measurement — predict with Kalman if still within prediction window
+      if (kf.initialized && kf.predictCount < KALMAN_MAX_PREDICT) {
+        kalmanPredict(kf);
+        // Push predicted position (marked as predicted)
+        tracker.positions.push({ x: kf.x, y: kf.y, frame: frameNum, ts: Date.now(), predicted: true });
+        if (tracker.positions.length > MAX_HISTORY) {
+          tracker.positions = tracker.positions.slice(-MAX_HISTORY);
+        }
+        tracker.lastSeenFrame = frameNum;
+        // Keep tracking alive during prediction
+      } else if (tracker.isTracking && frameNum - tracker.lastSeenFrame > MAX_GAP_FRAMES) {
         tracker.isTracking = false;
       }
     }
@@ -87,6 +172,7 @@
     tracker.positions = [];
     tracker.lastSeenFrame = -1;
     tracker.isTracking = false;
+    kalmanReset(tracker.kalman);
   }
 
   function getTrajectoryNormalized(tracker, w, h, count) {
@@ -858,6 +944,20 @@
 
     _processNoBall: function () {
       updateTracker(this.tracker, null, null);
+      // If Kalman is predicting, show predicted position to UI
+      var kf = this.tracker.kalman;
+      if (kf.initialized && kf.predictCount > 0 && kf.predictCount <= KALMAN_MAX_PREDICT) {
+        var vw = this.videoEl ? this.videoEl.videoWidth : 1;
+        var vh = this.videoEl ? this.videoEl.videoHeight : 1;
+        this.ballPosition = {
+          normX: kf.x / vw, normY: kf.y / vh,
+          source: 'predicted', confidence: 0
+        };
+        if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
+        // Continue analyzing shot state with predicted position
+        this._analyzeShotState(vw, vh, kf.x / vw, kf.y / vh);
+        return;
+      }
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
 

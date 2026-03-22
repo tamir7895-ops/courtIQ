@@ -820,7 +820,8 @@
       if (currentBall) {
         var bx = currentBall.normX * cw;
         var by = currentBall.normY * ch;
-        var dotColor = currentBall.source === 'ml' ? '#00ff88' : '#ffaa00';
+        var dotColor = currentBall.source === 'ml' ? '#00ff88' :
+                       currentBall.source === 'predicted' ? '#ff66ff' : '#ffaa00';
         canvasCtx.save();
         canvasCtx.beginPath();
         canvasCtx.arc(bx, by, 7, 0, Math.PI * 2);
