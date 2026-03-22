@@ -866,7 +866,8 @@
 
       for (var i = 0; i < numDets; i++) {
         var off = i * YOLOX_STRIDE;
-        var obj = output[off + 4];
+        // Apply sigmoid to objectness and class scores (ONNX outputs raw logits)
+        var obj = 1 / (1 + Math.exp(-output[off + 4]));
         if (obj < 0.01) continue;
 
         var cx = output[off]     / ratio;
@@ -874,9 +875,9 @@
         var bw = output[off + 2] / ratio;
         var bh = output[off + 3] / ratio;
 
-        // Score = objectness × class_score
-        var ballScore = obj * output[off + 5];  // class 0 = Basketball
-        var hoopScore = obj * output[off + 6];  // class 1 = Hoop
+        // Score = sigmoid(objectness) × sigmoid(class_score)
+        var ballScore = obj * (1 / (1 + Math.exp(-output[off + 5])));  // class 0 = Basketball
+        var hoopScore = obj * (1 / (1 + Math.exp(-output[off + 6])));  // class 1 = Hoop
 
         var area = bw * bh;
         var det = { cx: cx, cy: cy, bw: bw, bh: bh };
