@@ -36,6 +36,14 @@
   var _yoloxCanvas = null;
   var _yoloxCtx    = null;
 
+  // Web Worker for CHW preprocessing (offloads ~520K array writes from main thread)
+  var _chwWorker   = null;
+  try {
+    _chwWorker = new Worker('features/shot-tracking/yoloxWorker.js');
+  } catch (e) {
+    console.warn('[ShotDetection] Web Worker unavailable, using main thread CHW');
+  }
+
   /* Area thresholds as fractions of total frame area */
   var BALL_MIN_AREA_FRAC   = 0.00005;  // Very small — distant shots
   var BALL_MAX_AREA_FRAC   = 0.18;     // Very large — close-up shots
@@ -701,16 +709,28 @@
       _yoloxCtx.drawImage(self._canvas, 0, 0, pw, ph, 0, 0, newW, newH);
 
       var imgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
-      var chSize = sz * sz;
-      for (var i = 0; i < chSize; i++) {
-        _yoloxBuf[i]              = imgData[i * 4];     // R
-        _yoloxBuf[chSize + i]     = imgData[i * 4 + 1]; // G
-        _yoloxBuf[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+
+      // CHW transposition: use Web Worker if available, else inline
+      var chwReady;
+      if (_chwWorker) {
+        chwReady = new Promise(function (resolve) {
+          _chwWorker.onmessage = function (ev) { resolve(ev.data.buffer); };
+          _chwWorker.postMessage({ imageData: imgData, size: sz }, [imgData.buffer]);
+        });
+      } else {
+        var chSize = sz * sz;
+        for (var i = 0; i < chSize; i++) {
+          _yoloxBuf[i]              = imgData[i * 4];
+          _yoloxBuf[chSize + i]     = imgData[i * 4 + 1];
+          _yoloxBuf[chSize * 2 + i] = imgData[i * 4 + 2];
+        }
+        chwReady = Promise.resolve(_yoloxBuf);
       }
 
-      var inputTensor = new ort.Tensor('float32', _yoloxBuf, [1, 3, sz, sz]);
-
-      self.model.run({ images: inputTensor }).then(function (results) {
+      chwReady.then(function (chwBuf) {
+        var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
+        return self.model.run({ images: inputTensor });
+      }).then(function (results) {
         var outputData = results.output.data;
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
@@ -1089,15 +1109,36 @@
       this._shotStateTime = now;
       this._ballMinY = 1.0;
 
-      if (result === 'made') this.stats.made++;
-      this.stats.attempts++;
-
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
       var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
 
+      // ── Trajectory-based verification (analyzeMade/analyzeMiss) ──
+      // Normalize pixel trajectory to 0-1 space to match rimZone coordinates
+      var rawPts = this.tracker.positions.slice(-30);
+      var normTraj = rawPts.map(function (pt) {
+        return { x: pt.x / vw, y: pt.y / vh, frame: pt.frame };
+      });
+      var madeAnalysis = analyzeMade(normTraj, this.rimZone);
+      var missAnalysis = analyzeMiss(normTraj, this.rimZone);
+
+      // Cross-check state machine result with trajectory analysis
+      var finalResult = result;
+      if (result === 'made' && !madeAnalysis.isMade && missAnalysis.isMiss) {
+        // State machine said made, but trajectory says miss — trust trajectory
+        finalResult = 'missed';
+        console.log('[ShotTracker] Override: made → missed (trajectory analysis)');
+      } else if (result === 'missed' && madeAnalysis.isMade) {
+        // State machine said miss, but trajectory clearly shows made — trust trajectory
+        finalResult = 'made';
+        console.log('[ShotTracker] Override: missed → made (trajectory analysis)');
+      }
+
+      if (finalResult === 'made') this.stats.made++;
+      this.stats.attempts++;
+
       var shotData = {
-        result: result,
+        result: finalResult,
         shotX: normX,
         shotY: normY,
         trajectory: traj,
@@ -1106,7 +1147,9 @@
         timestamp: now
       };
 
-      console.log('[ShotTracker] ' + result.toUpperCase() + ' — minY=' + this._ballMinY.toFixed(3) +
+      console.log('[ShotTracker] ' + finalResult.toUpperCase() +
+        ' (sm=' + result + ' traj_made=' + madeAnalysis.isMade + ' traj_miss=' + missAnalysis.isMiss + ')' +
+        ' minY=' + this._ballMinY.toFixed(3) +
         ' hoopY=' + this.rimZone.centerY.toFixed(3) + ' ballX=' + normX.toFixed(3) + ' hoopX=' + this.rimZone.centerX.toFixed(3));
 
       if (window.AdaptiveLearning) {
