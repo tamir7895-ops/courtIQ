@@ -82,6 +82,9 @@
         shot_result:            s.shot_result,
         shot_x:                 s.shot_x,
         shot_y:                 s.shot_y,
+        launch_x:               s.launch_x,
+        launch_y:               s.launch_y,
+        shot_zone:              s.shot_zone,
         ball_trajectory_points: s.ball_trajectory_points,
         timestamp:              s.timestamp,
         shot_number:            s.shot_number

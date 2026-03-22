@@ -452,7 +452,7 @@
 
       var modelPath = 'models/basketball_yolox_tiny.onnx';
       ort.InferenceSession.create(modelPath, {
-        executionProviders: ['wasm'],
+        executionProviders: ['webgpu', 'webgl', 'wasm'],
         graphOptimizationLevel: 'all'
       }).then(function (session) {
         self.model = session;
@@ -579,9 +579,10 @@
       var scaleX = pw > 0 ? vw / pw : 1;
       var scaleY = ph > 0 ? vh / ph : 1;
 
-      /* Process color detection immediately — don't wait for YOLOX */
-      if (!self._isDetecting) {
-        // Only process color if YOLOX isn't about to give us a better result
+      /* Process color detection — skip on frames where YOLOX will run */
+      var isYoloxFrame = self.model && !self._colorOnlyMode && canvasReady &&
+                         (self._frameCount + 1) % 6 === 0;
+      if (!self._isDetecting && !isYoloxFrame) {
         if (colorBall) {
           self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
         } else {
@@ -711,6 +712,36 @@
       return output;
     },
 
+    /* ── IoU helper for NMS ──────────────────────────────────── */
+    _computeIoU: function (a, b) {
+      var ax1 = a.cx - a.bw / 2, ay1 = a.cy - a.bh / 2;
+      var ax2 = a.cx + a.bw / 2, ay2 = a.cy + a.bh / 2;
+      var bx1 = b.cx - b.bw / 2, by1 = b.cy - b.bh / 2;
+      var bx2 = b.cx + b.bw / 2, by2 = b.cy + b.bh / 2;
+      var ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+      var ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+      var inter = Math.max(0, ix2 - ix1) * Math.max(0, iy2 - iy1);
+      var union = a.bw * a.bh + b.bw * b.bh - inter;
+      return union > 0 ? inter / union : 0;
+    },
+
+    /* ── Greedy NMS ──────────────────────────────────────────── */
+    _greedyNMS: function (dets, iouThresh) {
+      dets.sort(function (a, b) { return b.score - a.score; });
+      var keep = [];
+      for (var i = 0; i < dets.length; i++) {
+        var suppressed = false;
+        for (var j = 0; j < keep.length; j++) {
+          if (this._computeIoU(dets[i], keep[j]) > iouThresh) {
+            suppressed = true;
+            break;
+          }
+        }
+        if (!suppressed) keep.push(dets[i]);
+      }
+      return keep;
+    },
+
     /* ── YOLOX output decode (custom 2-class model) ─────────── */
     /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
     /* After _yoloxPostprocess, cx/cy/w/h are in 416x416 input space */
@@ -719,10 +750,8 @@
       this._yoloxPostprocess(output);
 
       var numDets = output.length / YOLOX_STRIDE;
-      var best = null;
-      var bestScore = 0;
-      var bestHoop = null;
-      var bestHoopScore = 0;
+      var ballCandidates = [];
+      var hoopCandidates = [];
       var frameArea = pw * ph;
 
       for (var i = 0; i < numDets; i++) {
@@ -739,37 +768,34 @@
         var ballScore = obj * output[off + 5];  // class 0 = Basketball
         var hoopScore = obj * output[off + 6];  // class 1 = Hoop
 
-        // Size filter
         var area = bw * bh;
-        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) {
-          // Still check for hoop (hoops can be larger)
-          if (hoopScore > 0.15 && hoopScore > bestHoopScore && area < frameArea * 0.4) {
-            bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-            bestHoopScore = hoopScore;
-          }
-          continue;
+        var det = { cx: cx, cy: cy, bw: bw, bh: bh };
+
+        // Hoop candidates (looser size filter)
+        if (hoopScore > 0.15 && area < frameArea * 0.4) {
+          det.score = hoopScore;
+          hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
         }
 
-        // Aspect ratio check for ball
+        // Ball candidates — size + aspect ratio filter
+        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) continue;
         var aspect = Math.max(bw, bh) / (Math.min(bw, bh) || 1);
         if (aspect > 3.0) continue;
 
-        if (ballScore >= BALL_CONFIDENCE && ballScore > bestScore) {
-          best = { cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore };
-          bestScore = ballScore;
-        }
-
-        // Also track hoop detections
-        if (hoopScore > 0.15 && hoopScore > bestHoopScore) {
-          bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-          bestHoopScore = hoopScore;
+        if (ballScore >= BALL_CONFIDENCE) {
+          ballCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore });
         }
       }
 
-      // Store latest hoop detection for auto rim-lock
-      this._lastHoopDetection = bestHoop;
+      // Apply NMS (IoU threshold 0.45)
+      var NMS_THRESH = 0.45;
+      var ballKeep = this._greedyNMS(ballCandidates, NMS_THRESH);
+      var hoopKeep = this._greedyNMS(hoopCandidates, NMS_THRESH);
 
-      return best;
+      // Store latest hoop detection for auto rim-lock
+      this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
+
+      return ballKeep.length > 0 ? ballKeep[0] : null;
     },
 
     /* ── Orange color verification for low-confidence ML hits ─── */
