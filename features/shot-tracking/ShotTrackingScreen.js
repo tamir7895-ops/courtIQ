@@ -586,10 +586,14 @@
       if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
       if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
 
+      // Reject hoops that are impossibly large (> 30% of frame width)
+      if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
+
       if (!rimLocked && hoop.score > 0.05) {
         // First detection — auto-calibrate
         rimCenter = { x: hoop.cx, y: hoop.cy };
-        rimSize = { w: Math.max(hoop.bw, 0.10), h: Math.max(hoop.bh, 0.03) };
+        // Clamp rim size to realistic range (8-25% of frame width, 3-15% height)
+        rimSize = { w: Math.min(Math.max(hoop.bw, 0.08), 0.25), h: Math.min(Math.max(hoop.bh, 0.03), 0.15) };
         rimLocked = true;
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');

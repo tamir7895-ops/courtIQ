@@ -383,7 +383,7 @@
       for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
         var idx = (y * vw + x) * 4;
         var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 100 && g > 30 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.5) {
+        if (r > 140 && g > 50 && g < 160 && b < 80 && r > g * 1.3 && r > b * 2.0) {
           var gx = Math.floor(x / CELL);
           var gy = Math.floor(y / CELL);
           grid[gy * gridW + gx]++;
@@ -775,8 +775,10 @@
         }
 
         if (mlBall) {
-          // For low-confidence detections, verify orange color in the region
-          if (mlBall.score < 0.15) {
+          // Reject ML detections with very low confidence — likely false positives
+          if (mlBall.score < 0.02) { mlBall = null; }
+          // For medium-confidence, verify orange color in the region
+          else if (mlBall.score < 0.15) {
             var verified = self._verifyOrange(mlBall.cx, mlBall.cy, Math.max(mlBall.bw, mlBall.bh), pw, ph);
             if (!verified) { mlBall = null; }
           }
@@ -801,7 +803,9 @@
           self._lastDetSource = 'ml';
           self._lastDetConf = mlBall.score;
           self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
-        } else if (colorBall) {
+        } else if (colorBall && self._mlMissCount < 15) {
+          // Only use color fallback if ML recently saw a ball (within 15 frames)
+          // This prevents color from tracking skin/clothes when ball isn't in frame
           self._mlMissCount++;
           self._lastDetSource = 'color';
           self._lastDetConf = 0;
@@ -984,7 +988,7 @@
         for (var px = 0; px < w; px += 2) {
           var idx = (py * w + px) * 4;
           var r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-          if (r > 100 && g > 30 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.5) {
+          if (r > 140 && g > 50 && g < 160 && b < 80 && r > g * 1.3 && r > b * 2.0) {
             orangeCount++;
           }
         }
