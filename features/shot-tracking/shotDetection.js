@@ -892,11 +892,25 @@
       var hoopCandidates = [];
       var frameArea = pw * ph;
 
+      // Auto-detect: if any obj/cls value is negative, output is raw logits (needs sigmoid)
+      // ORT-Web may skip fused sigmoid depending on version/backend
+      var needsSigmoid = false;
+      for (var si = 0; si < Math.min(output.length, 700); si += YOLOX_STRIDE) {
+        if (output[si + 4] < 0 || output[si + 5] < 0 || output[si + 6] < 0) {
+          needsSigmoid = true;
+          break;
+        }
+      }
+      if (!this._dbgSigmoidLogged) {
+        this._dbgSigmoidLogged = true;
+        console.log('[YOLOX] needsSigmoid=' + needsSigmoid);
+      }
+
+      function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
       for (var i = 0; i < numDets; i++) {
         var off = i * YOLOX_STRIDE;
-        // ONNX model already outputs sigmoid'd objectness & class scores
-        // (yolo_head.py line 188: obj_output.sigmoid(), cls_output.sigmoid())
-        var obj = output[off + 4];
+        var obj = needsSigmoid ? sigmoid(output[off + 4]) : output[off + 4];
         if (obj < 0.01) continue;
 
         var cx = output[off]     / ratio;
@@ -904,9 +918,10 @@
         var bw = output[off + 2] / ratio;
         var bh = output[off + 3] / ratio;
 
-        // Score = objectness × class_score (both already sigmoid'd)
-        var ballScore = obj * output[off + 5];  // class 0 = Basketball
-        var hoopScore = obj * output[off + 6];  // class 1 = Hoop
+        var rawBall = needsSigmoid ? sigmoid(output[off + 5]) : output[off + 5];
+        var rawHoop = needsSigmoid ? sigmoid(output[off + 6]) : output[off + 6];
+        var ballScore = obj * rawBall;  // class 0 = Basketball
+        var hoopScore = obj * rawHoop;  // class 1 = Hoop
 
         var area = bw * bh;
         var det = { cx: cx, cy: cy, bw: bw, bh: bh };
