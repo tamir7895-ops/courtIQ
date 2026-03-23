@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Shot Tracker Debug</title>
+<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/ort.min.js"></script>
+<style>
+body { background: #111; color: #0f0; font-family: monospace; padding: 20px; }
+canvas { border: 1px solid #333; margin: 10px 0; }
+#log { white-space: pre-wrap; font-size: 12px; max-height: 600px; overflow-y: auto; }
+button { padding: 10px 20px; font-size: 16px; margin: 5px; cursor: pointer; }
+video { max-width: 640px; display: block; margin: 10px 0; }
+</style>
+</head>
+<body>
+<h1>🏀 Shot Tracker Debug</h1>
+<input type="file" id="fileInput" accept="video/*">
+<button onclick="runDebug()">▶ Analyze Current Frame</button>
+<button onclick="togglePlay()">⏯ Play/Pause</button>
+<br>
+<video id="vid" controls muted></video>
+<canvas id="overlay" width="640" height="360"></canvas>
+<div id="log"></div>
+
+<script>
+var vid = document.getElementById('vid');
+var canvas = document.getElementById('overlay');
+var ctx = canvas.getContext('2d');
+var logEl = document.getElementById('log');
+var session = null;
+
+function log(msg) {
+  logEl.textContent += msg + '\n';
+  logEl.scrollTop = logEl.scrollHeight;
+  console.log(msg);
+}
+
+document.getElementById('fileInput').onchange = function(e) {
+  var file = e.target.files[0];
+  if (!file) return;
+  vid.src = URL.createObjectURL(file);
+  vid.onloadeddata = function() {
+    canvas.width = vid.videoWidth;
+    canvas.height = vid.videoHeight;
+    log('Video loaded: ' + vid.videoWidth + 'x' + vid.videoHeight);
+    vid.play();
+    vid.pause();
+    vid.currentTime = 2; // Skip to 2 seconds
+  };
+};
+
+function togglePlay() {
+  if (vid.paused) vid.play(); else vid.pause();
+}
+
+async function loadModel() {
+  if (session) return session;
+  log('Loading ONNX model...');
+  session = await ort.InferenceSession.create('models/basketball_yolox_tiny.onnx', {
+    executionProviders: ['wasm'],
+    graphOptimizationLevel: 'all'
+  });
+  log('Model loaded. Input: ' + session.inputNames + ' Output: ' + session.outputNames);
+  return session;
+}
+
+function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
+
+async function runDebug() {
+  log('\n=== FRAME ANALYSIS ===');
+  var sess = await loadModel();
+
+  var vw = vid.videoWidth, vh = vid.videoHeight;
+  log('Video: ' + vw + 'x' + vh + ' time=' + vid.currentTime.toFixed(2) + 's');
+
+  // Step 1: Draw frame
+  ctx.drawImage(vid, 0, 0, vw, vh);
+
+  // Step 2: Letterbox to 416x416
+  var sz = 416;
+  var ratio = Math.min(sz / vh, sz / vw);
+  var newW = Math.round(vw * ratio);
+  var newH = Math.round(vh * ratio);
+  log('Letterbox: ratio=' + ratio.toFixed(4) + ' newSize=' + newW + 'x' + newH);
+
+  var yoloxCanvas = document.createElement('canvas');
+  yoloxCanvas.width = sz;
+  yoloxCanvas.height = sz;
+  var yoloxCtx = yoloxCanvas.getContext('2d');
+  yoloxCtx.fillStyle = 'rgb(114,114,114)';
+  yoloxCtx.fillRect(0, 0, sz, sz);
+  yoloxCtx.drawImage(vid, 0, 0, vw, vh, 0, 0, newW, newH);
+
+  // Step 3: CHW transposition (0-255 range)
+  var imgData = yoloxCtx.getImageData(0, 0, sz, sz).data;
+  var chSize = sz * sz;
+  var buf = new Float32Array(3 * chSize);
+  for (var i = 0; i < chSize; i++) {
+    buf[i]              = imgData[i * 4];
+    buf[chSize + i]     = imgData[i * 4 + 1];
+    buf[chSize * 2 + i] = imgData[i * 4 + 2];
+  }
+  log('Input range: ' + Math.min(...buf.slice(0,1000)).toFixed(0) + '-' + Math.max(...buf.slice(0,1000)).toFixed(0));
+
+  // Step 4: Run inference
+  var inputTensor = new ort.Tensor('float32', buf, [1, 3, sz, sz]);
+  var t0 = performance.now();
+  var results = await sess.run({ images: inputTensor });
+  var t1 = performance.now();
+
+  var outputKey = Object.keys(results)[0];
+  var output = results[outputKey].data;
+  log('Inference: ' + (t1-t0).toFixed(0) + 'ms, outputKey=' + outputKey + ' len=' + output.length);
+
+  // Step 5: Raw output stats
+  var maxObj = 0, maxBall = 0, maxHoop = 0, hasNeg = false;
+  for (var i = 0; i < output.length; i += 7) {
+    if (output[i+4] > maxObj) maxObj = output[i+4];
+    if (output[i+5] > maxBall) maxBall = output[i+5];
+    if (output[i+6] > maxHoop) maxHoop = output[i+6];
+    if (output[i+4] < 0 || output[i+5] < 0 || output[i+6] < 0) hasNeg = true;
+  }
+  log('RAW: maxObj=' + maxObj.toFixed(4) + ' maxBall=' + maxBall.toFixed(4) + ' maxHoop=' + maxHoop.toFixed(4) + ' hasNeg=' + hasNeg);
+
+  // Step 6: Grid+stride decode
+  var decoded = new Float32Array(output.length);
+  decoded.set(output);
+  var strides = [8, 16, 32];
+  var idx = 0;
+  for (var s = 0; s < strides.length; s++) {
+    var stride = strides[s];
+    var hsize = Math.floor(sz / stride);
+    for (var y = 0; y < hsize; y++) {
+      for (var x = 0; x < hsize; x++) {
+        var off = idx * 7;
+        decoded[off]     = (decoded[off]     + x) * stride;
+        decoded[off + 1] = (decoded[off + 1] + y) * stride;
+        decoded[off + 2] = Math.exp(Math.min(decoded[off + 2], 10)) * stride;
+        decoded[off + 3] = Math.exp(Math.min(decoded[off + 3], 10)) * stride;
+        idx++;
+      }
+    }
+  }
+
+  // Step 7: Extract candidates
+  var needsSigmoid = hasNeg;
+  var numDets = decoded.length / 7;
+  var ballCands = [], hoopCands = [];
+  var frameArea = vw * vh;
+
+  for (var i = 0; i < numDets; i++) {
+    var off = i * 7;
+    var obj = needsSigmoid ? sigmoid(decoded[off+4]) : decoded[off+4];
+    if (obj < 0.01) continue;
+
+    var cx = decoded[off] / ratio;
+    var cy = decoded[off+1] / ratio;
+    var bw = decoded[off+2] / ratio;
+    var bh = decoded[off+3] / ratio;
+
+    var rawBall = needsSigmoid ? sigmoid(decoded[off+5]) : decoded[off+5];
+    var rawHoop = needsSigmoid ? sigmoid(decoded[off+6]) : decoded[off+6];
+    var ballScore = obj * rawBall;
+    var hoopScore = obj * rawHoop;
+
+    var area = bw * bh;
+
+    if (hoopScore > 0.05) {
+      hoopCands.push({cx:cx, cy:cy, bw:bw, bh:bh, score:hoopScore, obj:obj, raw:rawHoop});
+    }
+    if (ballScore > 0.005 && area > frameArea*0.00005 && area < frameArea*0.18) {
+      var aspect = Math.max(bw,bh) / (Math.min(bw,bh)||1);
+      if (aspect <= 3.0) {
+        ballCands.push({cx:cx, cy:cy, bw:bw, bh:bh, score:ballScore, obj:obj, raw:rawBall});
+      }
+    }
+  }
+
+  // Sort by score
+  ballCands.sort(function(a,b) { return b.score - a.score; });
+  hoopCands.sort(function(a,b) { return b.score - a.score; });
+
+  log('\n--- BALL DETECTIONS (' + ballCands.length + ') ---');
+  for (var i = 0; i < Math.min(5, ballCands.length); i++) {
+    var d = ballCands[i];
+    log('  #' + (i+1) + ' score=' + d.score.toFixed(4) + ' obj=' + d.obj.toFixed(4) + ' cls=' + d.raw.toFixed(4) +
+        ' pos=(' + d.cx.toFixed(0) + ',' + d.cy.toFixed(0) + ') size=' + d.bw.toFixed(0) + 'x' + d.bh.toFixed(0));
+  }
+
+  log('\n--- HOOP DETECTIONS (' + hoopCands.length + ') ---');
+  for (var i = 0; i < Math.min(5, hoopCands.length); i++) {
+    var d = hoopCands[i];
+    log('  #' + (i+1) + ' score=' + d.score.toFixed(4) + ' obj=' + d.obj.toFixed(4) + ' cls=' + d.raw.toFixed(4) +
+        ' pos=(' + d.cx.toFixed(0) + ',' + d.cy.toFixed(0) + ') size=' + d.bw.toFixed(0) + 'x' + d.bh.toFixed(0));
+  }
+
+  // Step 8: Draw on overlay
+  ctx.drawImage(vid, 0, 0, vw, vh);
+
+  // Draw all ball detections (green)
+  ctx.strokeStyle = '#0f0';
+  ctx.lineWidth = 2;
+  for (var i = 0; i < Math.min(5, ballCands.length); i++) {
+    var d = ballCands[i];
+    ctx.beginPath();
+    ctx.arc(d.cx, d.cy, Math.max(d.bw, d.bh)/2, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.fillStyle = '#0f0';
+    ctx.font = '12px monospace';
+    ctx.fillText('B:' + d.score.toFixed(3), d.cx + d.bw/2 + 5, d.cy);
+  }
+
+  // Draw all hoop detections (red)
+  ctx.strokeStyle = '#f00';
+  ctx.lineWidth = 2;
+  for (var i = 0; i < Math.min(3, hoopCands.length); i++) {
+    var d = hoopCands[i];
+    ctx.strokeRect(d.cx - d.bw/2, d.cy - d.bh/2, d.bw, d.bh);
+    ctx.fillStyle = '#f00';
+    ctx.fillText('H:' + d.score.toFixed(3), d.cx + d.bw/2 + 5, d.cy);
+  }
+
+  log('\n✅ Frame analysis complete. Green=ball, Red=hoop on overlay.');
+}
+</script>
+</body>
+</html>
