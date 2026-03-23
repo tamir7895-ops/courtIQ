@@ -544,7 +544,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny.onnx';
+      var modelPath = 'models/basketball_yolox_tiny.onnx?v=4';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['webgpu', 'webgl', 'wasm'],
         graphOptimizationLevel: 'all'
@@ -729,9 +729,37 @@
 
       chwReady.then(function (chwBuf) {
         var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
+        // Debug: log input stats once
+        if (!self._dbgInputLogged) {
+          self._dbgInputLogged = true;
+          var mn = Infinity, mx = -Infinity;
+          for (var di = 0; di < Math.min(1000, chwBuf.length); di++) {
+            if (chwBuf[di] < mn) mn = chwBuf[di];
+            if (chwBuf[di] > mx) mx = chwBuf[di];
+          }
+          console.log('[YOLOX-DBG] input range: ' + mn.toFixed(1) + ' - ' + mx.toFixed(1) + ' len=' + chwBuf.length);
+        }
         return self.model.run({ images: inputTensor });
       }).then(function (results) {
         var outputData = results.output.data;
+        // Debug: log raw output stats once
+        if (!self._dbgOutputLogged) {
+          self._dbgOutputLogged = true;
+          console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (3549*7) + ')');
+          // Check raw obj/cls values before postprocess
+          var maxObj = 0, maxC0 = 0, maxC1 = 0;
+          for (var di = 0; di < outputData.length; di += 7) {
+            if (outputData[di+4] > maxObj) maxObj = outputData[di+4];
+            if (outputData[di+5] > maxC0) maxC0 = outputData[di+5];
+            if (outputData[di+6] > maxC1) maxC1 = outputData[di+6];
+          }
+          console.log('[YOLOX-DBG] raw maxObj=' + maxObj.toFixed(4) + ' maxBall=' + maxC0.toFixed(4) + ' maxHoop=' + maxC1.toFixed(4));
+          var hasNeg = false;
+          for (var di = 0; di < outputData.length; di += 7) {
+            if (outputData[di+4] < 0 || outputData[di+5] < 0 || outputData[di+6] < 0) { hasNeg = true; break; }
+          }
+          console.log('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits)');
+        }
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
 
