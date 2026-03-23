@@ -581,31 +581,62 @@
     engine.onStatusChange = onDetectionStatus;
 
     // Auto-detect hoop from YOLOX + continuous re-anchoring
+    // Smoothing buffer: accumulate detections before locking/re-anchoring
+    var hoopBuffer = [];
+    var HOOP_BUFFER_SIZE = 5;
+
     engine.onHoopDetected = function (hoop) {
       // Reject garbage detections near edges or with impossible size
       if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
       if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
-
-      // Reject hoops that are impossibly large (> 30% of frame width)
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
+      if (hoop.score < 0.10) return;
 
-      if (!rimLocked && hoop.score > 0.05) {
-        // First detection — auto-calibrate
-        rimCenter = { x: hoop.cx, y: hoop.cy };
-        // Clamp rim size to realistic range (8-25% of frame width, 3-15% height)
-        rimSize = { w: Math.min(Math.max(hoop.bw, 0.08), 0.25), h: Math.min(Math.max(hoop.bh, 0.03), 0.15) };
+      // Accumulate detections for smoothing
+      hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score });
+      if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
+
+      // Need at least 3 consistent detections before acting
+      if (hoopBuffer.length < 3) return;
+
+      // Compute average position from buffer
+      var avgCX = 0, avgCY = 0, avgBW = 0, avgBH = 0;
+      for (var hi = 0; hi < hoopBuffer.length; hi++) {
+        avgCX += hoopBuffer[hi].cx;
+        avgCY += hoopBuffer[hi].cy;
+        avgBW += hoopBuffer[hi].bw;
+        avgBH += hoopBuffer[hi].bh;
+      }
+      avgCX /= hoopBuffer.length;
+      avgCY /= hoopBuffer.length;
+      avgBW /= hoopBuffer.length;
+      avgBH /= hoopBuffer.length;
+
+      // Check consistency — reject if detections are too spread out (std > 5%)
+      var maxSpread = 0;
+      for (var hi = 0; hi < hoopBuffer.length; hi++) {
+        var spread = Math.abs(hoopBuffer[hi].cx - avgCX) + Math.abs(hoopBuffer[hi].cy - avgCY);
+        if (spread > maxSpread) maxSpread = spread;
+      }
+      if (maxSpread > 0.08) return; // Detections too inconsistent
+
+      if (!rimLocked) {
+        rimCenter = { x: avgCX, y: avgCY };
+        rimSize = { w: Math.min(Math.max(avgBW, 0.08), 0.25), h: Math.min(Math.max(avgBH, 0.03), 0.15) };
         rimLocked = true;
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');
-        console.log('[ShotTracker] Auto-detected hoop at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ') score=' + hoop.score.toFixed(3));
-      } else if (rimLocked && hoop.score > 0.15) {
-        // Re-anchor if hoop moved significantly (camera movement)
-        var dx = Math.abs(hoop.cx - rimCenter.x);
-        var dy = Math.abs(hoop.cy - rimCenter.y);
-        if (dx > 0.05 || dy > 0.05) {
-          rimCenter = { x: hoop.cx, y: hoop.cy };
+        console.log('[ShotTracker] Hoop locked at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ') from ' + hoopBuffer.length + ' detections');
+      } else {
+        // Smooth re-anchor: blend 90% old + 10% new (prevents jitter)
+        var dx = Math.abs(avgCX - rimCenter.x);
+        var dy = Math.abs(avgCY - rimCenter.y);
+        if (dx > 0.08 || dy > 0.08) {
+          // Significant movement — camera shifted
+          rimCenter.x = 0.7 * rimCenter.x + 0.3 * avgCX;
+          rimCenter.y = 0.7 * rimCenter.y + 0.3 * avgCY;
           engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
-          console.log('[ShotTracker] Hoop re-anchored to (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ')');
+          console.log('[ShotTracker] Hoop smoothly re-anchored to (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ')');
         }
       }
     };

@@ -61,7 +61,7 @@
   var KALMAN_PROCESS_NOISE = 0.5;   // How much we trust the physics model
   var KALMAN_MEASURE_NOISE = 3.0;   // How noisy the detections are (pixels)
   var KALMAN_GRAVITY       = 0.4;   // Gravity pull per frame (halved — 0.8 was too aggressive)
-  var KALMAN_MAX_PREDICT   = 28;    // Max frames to predict without measurement (covers full shot arc)
+  var KALMAN_MAX_PREDICT   = 45;    // Max frames to predict (~1.5s at 30fps — covers long 3-pointers)
 
   function createKalman() {
     return {
@@ -101,9 +101,9 @@
     // Innovation (measurement residual)
     var ix = mx - kf.x;
     var iy = my - kf.y;
-    // Update velocity from position correction
-    kf.vx += ix * 0.3;  // Smooth velocity update
-    kf.vy += iy * 0.3;
+    // Update velocity from position correction (clamped to prevent jitter explosions)
+    kf.vx = Math.max(-100, Math.min(100, kf.vx + ix * 0.3));
+    kf.vy = Math.max(-120, Math.min(120, kf.vy + iy * 0.3));
     // Update position
     kf.x += kx * ix;
     kf.y += ky * iy;
@@ -784,6 +784,21 @@
           }
         }
 
+        // Temporal consistency: require 2 consecutive frames with detection
+        // Prevents single-frame false positives from triggering tracking
+        if (mlBall) {
+          if (!self._prevMLBall) {
+            // First detection — hold, don't use yet
+            self._prevMLBall = mlBall;
+            mlBall = null;
+          } else {
+            // Second consecutive — accept and clear
+            self._prevMLBall = mlBall;
+          }
+        } else {
+          self._prevMLBall = null;
+        }
+
         // Detection logging
         if (self._frameCount % 30 === 0) {
           var hoopStr = 'none';
@@ -931,8 +946,8 @@
         var area = bw * bh;
         var det = { cx: cx, cy: cy, bw: bw, bh: bh };
 
-        // Hoop candidates (looser size filter) — lowered from 0.15 to 0.05 for v4 model
-        if (hoopScore > 0.05 && area < frameArea * 0.4) {
+        // Hoop candidates — threshold 0.10 balances precision vs recall
+        if (hoopScore > 0.10 && area < frameArea * 0.4) {
           det.score = hoopScore;
           hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
         }
