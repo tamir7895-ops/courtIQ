@@ -741,10 +741,11 @@
         }
         return self.model.run({ images: inputTensor });
       }).then(function (results) {
-        var outputData = results.output.data;
-        // Debug: log raw output stats once
-        if (!self._dbgOutputLogged) {
-          self._dbgOutputLogged = true;
+        var outputKey = Object.keys(results)[0];
+        var outputData = results[outputKey].data;
+        // Debug: log raw output stats — EVERY 30 FRAMES for v4 diagnosis
+        if (!self._dbgOutputCount) self._dbgOutputCount = 0;
+        if (self._dbgOutputCount++ % 30 === 0) {
           console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (3549*7) + ')');
           // Check raw obj/cls values before postprocess
           var maxObj = 0, maxC0 = 0, maxC1 = 0;
@@ -758,7 +759,7 @@
           for (var di = 0; di < outputData.length; di += 7) {
             if (outputData[di+4] < 0 || outputData[di+5] < 0 || outputData[di+6] < 0) { hasNeg = true; break; }
           }
-          console.log('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits)');
+          console.log('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits) outputKey=' + outputKey);
         }
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
@@ -926,8 +927,8 @@
         var area = bw * bh;
         var det = { cx: cx, cy: cy, bw: bw, bh: bh };
 
-        // Hoop candidates (looser size filter)
-        if (hoopScore > 0.15 && area < frameArea * 0.4) {
+        // Hoop candidates (looser size filter) — lowered from 0.15 to 0.05 for v4 model
+        if (hoopScore > 0.05 && area < frameArea * 0.4) {
           det.score = hoopScore;
           hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
         }

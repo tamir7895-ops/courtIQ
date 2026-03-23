@@ -586,7 +586,7 @@
       if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
       if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
 
-      if (!rimLocked && hoop.score > 0.15) {
+      if (!rimLocked && hoop.score > 0.05) {
         // First detection — auto-calibrate
         rimCenter = { x: hoop.cx, y: hoop.cy };
         rimSize = { w: Math.max(hoop.bw, 0.10), h: Math.max(hoop.bh, 0.03) };
@@ -594,7 +594,7 @@
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');
         console.log('[ShotTracker] Auto-detected hoop at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ') score=' + hoop.score.toFixed(3));
-      } else if (rimLocked && hoop.score > 0.3) {
+      } else if (rimLocked && hoop.score > 0.15) {
         // Re-anchor if hoop moved significantly (camera movement)
         var dx = Math.abs(hoop.cx - rimCenter.x);
         var dy = Math.abs(hoop.cy - rimCenter.y);
