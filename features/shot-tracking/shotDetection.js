@@ -18,7 +18,7 @@
   var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
   var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
   var MAX_HISTORY          = 50;   // Larger rolling buffer
-  var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
+  var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
   var BALL_CONFIDENCE      = 0.005; // Ultra-low threshold for YOLOX basketball (verified with orange color)
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
@@ -60,8 +60,8 @@
   /* State: [x, y, vx, vy]  —  constant-velocity model with gravity */
   var KALMAN_PROCESS_NOISE = 0.5;   // How much we trust the physics model
   var KALMAN_MEASURE_NOISE = 3.0;   // How noisy the detections are (pixels)
-  var KALMAN_GRAVITY       = 0.8;   // Gravity pull per frame (pixels, downward = positive Y)
-  var KALMAN_MAX_PREDICT   = 18;    // Max frames to predict without measurement
+  var KALMAN_GRAVITY       = 0.4;   // Gravity pull per frame (halved — 0.8 was too aggressive)
+  var KALMAN_MAX_PREDICT   = 28;    // Max frames to predict without measurement (covers full shot arc)
 
   function createKalman() {
     return {
