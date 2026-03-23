@@ -383,7 +383,7 @@
       for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
         var idx = (y * vw + x) * 4;
         var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 140 && g > 50 && g < 160 && b < 80 && r > g * 1.3 && r > b * 2.0) {
+        if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
           var gx = Math.floor(x / CELL);
           var gy = Math.floor(y / CELL);
           grid[gy * gridW + gx]++;
@@ -634,20 +634,86 @@
       var vh = this.videoEl.videoHeight;
       if (vw < 10 || vh < 10) return false;
 
-      /* Downscale to max 480px wide for processing performance */
-      var maxW = 480;
-      var scale = vw > maxW ? maxW / vw : 1;
-      var pw = Math.floor(vw * scale);
-      var ph = Math.floor(vh * scale);
+      /* ── Auto-detect UI overlay (screen recording) ──────────── */
+      /* If video has overlay UI (nav bar at top, buttons at bottom),
+         crop it out before processing. Detected once on first frame. */
+      if (this._cropRegion === undefined) {
+        this._cropRegion = this._detectUIOverlay(vw, vh);
+      }
+      var crop = this._cropRegion;
+
+      /* Source region from video (after crop) */
+      var srcX = crop.x, srcY = crop.y;
+      var srcW = crop.w, srcH = crop.h;
+
+      /* Downscale to max 640px wide for processing (was 480 — too small for distant balls) */
+      var maxW = 640;
+      var scale = srcW > maxW ? maxW / srcW : 1;
+      var pw = Math.floor(srcW * scale);
+      var ph = Math.floor(srcH * scale);
 
       if (this._canvas.width !== pw) this._canvas.width = pw;
       if (this._canvas.height !== ph) this._canvas.height = ph;
-      this._ctx.drawImage(this.videoEl, 0, 0, pw, ph);
+      /* Draw only the cropped region of the video */
+      this._ctx.drawImage(this.videoEl, srcX, srcY, srcW, srcH, 0, 0, pw, ph);
 
-      /* Store processed dimensions for downstream use */
+      /* Store crop info for coordinate mapping back to full video */
       this._procW = pw;
       this._procH = ph;
+      this._cropOffsetX = srcX;
+      this._cropOffsetY = srcY;
+      this._cropScaleX = srcW / pw;
+      this._cropScaleY = srcH / ph;
       return true;
+    },
+
+    /* ── Detect if video has UI overlay (screen recording) ─────── */
+    /* Checks for dark bands at top/bottom that indicate app chrome */
+    _detectUIOverlay: function (vw, vh) {
+      /* Draw first frame to a temp canvas for analysis */
+      var tc = document.createElement('canvas');
+      tc.width = vw; tc.height = vh;
+      var tctx = tc.getContext('2d');
+      tctx.drawImage(this.videoEl, 0, 0, vw, vh);
+
+      /* Sample darkness at top and bottom bands */
+      var topDark = 0, botDark = 0;
+      var sampleRows = Math.min(Math.floor(vh * 0.12), 100);
+      var step = 8;
+
+      try {
+        /* Top band */
+        var topData = tctx.getImageData(0, 0, vw, sampleRows).data;
+        var topTotal = 0;
+        for (var i = 0; i < topData.length; i += step * 4) {
+          var brightness = (topData[i] + topData[i+1] + topData[i+2]) / 3;
+          if (brightness < 50) topDark++;
+          topTotal++;
+        }
+        /* Bottom band */
+        var botData = tctx.getImageData(0, vh - sampleRows, vw, sampleRows).data;
+        var botTotal = 0;
+        for (var i = 0; i < botData.length; i += step * 4) {
+          var brightness = (botData[i] + botData[i+1] + botData[i+2]) / 3;
+          if (brightness < 50) botDark++;
+          botTotal++;
+        }
+      } catch(e) {
+        return { x: 0, y: 0, w: vw, h: vh };
+      }
+
+      var topDarkRatio = topTotal > 0 ? topDark / topTotal : 0;
+      var botDarkRatio = botTotal > 0 ? botDark / botTotal : 0;
+
+      /* If >60% of top/bottom is dark = likely UI overlay from screen recording */
+      var cropTop = topDarkRatio > 0.6 ? Math.floor(vh * 0.13) : 0;
+      var cropBot = botDarkRatio > 0.6 ? Math.floor(vh * 0.12) : 0;
+
+      if (cropTop > 0 || cropBot > 0) {
+        console.log('[ShotDetection] UI overlay detected — cropping top=' + cropTop + 'px bottom=' + cropBot + 'px (darkRatio top=' + topDarkRatio.toFixed(2) + ' bot=' + botDarkRatio.toFixed(2) + ')');
+      }
+
+      return { x: 0, y: cropTop, w: vw, h: vh - cropTop - cropBot };
     },
 
     _detectFrame: function () {
@@ -669,16 +735,19 @@
         colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
       }
 
-      /* Scale ball positions from processing canvas back to video coords */
-      var scaleX = pw > 0 ? vw / pw : 1;
-      var scaleY = ph > 0 ? vh / ph : 1;
+      /* Scale ball positions from processing canvas back to FULL video coords
+         (accounts for UI crop: proc canvas → cropped region → full video) */
+      var scaleX = self._cropScaleX || (pw > 0 ? vw / pw : 1);
+      var scaleY = self._cropScaleY || (ph > 0 ? vh / ph : 1);
+      var offsetX = self._cropOffsetX || 0;
+      var offsetY = self._cropOffsetY || 0;
 
       /* Process color detection — skip on frames where YOLOX will run */
       var isYoloxFrame = self.model && !self._colorOnlyMode && canvasReady &&
                          (self._frameCount + 1) % 6 === 0;
       if (!self._isDetecting && !isYoloxFrame) {
         if (colorBall) {
-          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
           self._processNoBall();
         }
@@ -764,12 +833,12 @@
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
 
-        // Fire hoop detection callback (normalized 0-1 coords)
+        // Fire hoop detection callback (normalized 0-1 coords relative to full video)
         if (self.onHoopDetected && self._lastHoopDetection) {
           var h = self._lastHoopDetection;
           self.onHoopDetected({
-            cx: h.cx / pw, cy: h.cy / ph,
-            bw: h.bw / pw, bh: h.bh / ph,
+            cx: (h.cx * scaleX + offsetX) / vw, cy: (h.cy * scaleY + offsetY) / vh,
+            bw: (h.bw * scaleX) / vw, bh: (h.bh * scaleY) / vh,
             score: h.score
           });
         }
@@ -814,17 +883,18 @@
 
         if (mlBall) {
           self._mlMissCount = 0;
+          self._mlEverDetected = true;
           self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
           self._lastDetSource = 'ml';
           self._lastDetConf = mlBall.score;
-          self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
-        } else if (colorBall && self._mlMissCount < 15) {
-          // Only use color fallback if ML recently saw a ball (within 15 frames)
-          // This prevents color from tracking skin/clothes when ball isn't in frame
+          self._processBallDetection(mlBall.cx * scaleX + offsetX, mlBall.cy * scaleY + offsetY, vw, vh);
+        } else if (colorBall && (self._mlMissCount < 30 || !self._mlEverDetected)) {
+          // Color fallback: use if ML recently saw ball OR ML never detected anything
+          // (ML may not work on all videos — e.g. outdoor, dark, screen recordings)
           self._mlMissCount++;
           self._lastDetSource = 'color';
           self._lastDetConf = 0;
-          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
           self._mlMissCount++;
           self._processNoBall();
@@ -836,7 +906,7 @@
         console.warn('[ShotDetection] YOLOX inference error:', e);
         // Fallback to color
         if (colorBall) {
-          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
           self._processNoBall();
         }
@@ -1003,7 +1073,7 @@
         for (var px = 0; px < w; px += 2) {
           var idx = (py * w + px) * 4;
           var r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-          if (r > 140 && g > 50 && g < 160 && b < 80 && r > g * 1.3 && r > b * 2.0) {
+          if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
             orangeCount++;
           }
         }
