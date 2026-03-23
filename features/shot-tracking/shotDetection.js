@@ -20,7 +20,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.005; // Ultra-low threshold for YOLOX basketball (verified with orange color)
+  var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
 
@@ -60,8 +60,8 @@
   /* State: [x, y, vx, vy]  —  constant-velocity model with gravity */
   var KALMAN_PROCESS_NOISE = 0.5;   // How much we trust the physics model
   var KALMAN_MEASURE_NOISE = 3.0;   // How noisy the detections are (pixels)
-  var KALMAN_GRAVITY       = 0.4;   // Gravity pull per frame (halved — 0.8 was too aggressive)
-  var KALMAN_MAX_PREDICT   = 45;    // Max frames to predict (~1.5s at 30fps — covers long 3-pointers)
+  var KALMAN_GRAVITY       = 0.6;   // Gravity pull per frame (0.4 was too weak, ball stalled mid-flight)
+  var KALMAN_MAX_PREDICT   = 60;    // Max frames to predict (~2s at 30fps — covers long 3-pointers)
 
   function createKalman() {
     return {
@@ -161,7 +161,9 @@
       tracker.isTracking = true;
     } else {
       // No measurement — predict with Kalman if still within prediction window
-      if (kf.initialized && kf.predictCount < KALMAN_MAX_PREDICT) {
+      // Extended window during active shot (RISING/FALLING) via _activeShot flag
+      var maxPredict = tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
+      if (kf.initialized && kf.predictCount < maxPredict) {
         kalmanPredict(kf);
         // Push predicted position (marked as predicted)
         tracker.positions.push({ x: kf.x, y: kf.y, frame: frameNum, ts: Date.now(), predicted: true });
@@ -463,6 +465,10 @@
     var aspect = Math.max(blobW, blobH) / Math.min(blobW, blobH);
     if (aspect > 3.0) return null;
 
+    // Cluster compactness: w/h ratio between 0.5-2.0 rejects elongated shapes (arms/legs)
+    var whRatio = blobW / (blobH || 1);
+    if (whRatio < 0.5 || whRatio > 2.0) return null;
+
     var blobArea = blobW * blobH;
     var frameArea = vw * vh;
     if (blobArea < frameArea * BALL_MIN_AREA_FRAC || blobArea > frameArea * BALL_MAX_AREA_FRAC) return null;
@@ -503,6 +509,8 @@
     _shotState: 'idle',      // idle | shot_started | near_hoop | cooldown
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
+    _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
+    _risingFrameCount: 0,    // consecutive frames of upward movement
 
     init: function () {
       var self = this;
@@ -596,6 +604,8 @@
       this._shotState = 'idle';
       this._shotStateTime = 0;
       this._ballMinY = 1.0;
+      this._shotStartY = 1.0;
+      this._risingFrameCount = 0;
       this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
@@ -1017,9 +1027,14 @@
         var det = { cx: cx, cy: cy, bw: bw, bh: bh };
 
         // Hoop candidates — threshold 0.10 balances precision vs recall
-        if (hoopScore > 0.10 && area < frameArea * 0.4) {
-          det.score = hoopScore;
-          hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
+        // Area filter: hoop should be 0.1%-8% of frame (not 40%)
+        // Aspect ratio: hoops are wider than tall (1.5-5.0 w/h ratio)
+        if (hoopScore > 0.10 && area > frameArea * 0.001 && area < frameArea * 0.08) {
+          var hoopAspect = bw / (bh || 1);
+          if (hoopAspect >= 1.5 && hoopAspect <= 5.0) {
+            det.score = hoopScore;
+            hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
+          }
         }
 
         // Ball candidates — size + aspect ratio filter
@@ -1082,10 +1097,30 @@
       return orangeCount > totalPx * 0.08; // at least 8% orange pixels
     },
 
+    _consecutiveDets: 0,       // consecutive detection count for velocity jump rejection
+    _prevBallNorm: null,       // previous ball normalized position {x, y}
+
     _processBallDetection: function (cx, cy, vw, vh) {
-      updateTracker(this.tracker, cx, cy);
       var normX = cx / vw;
       var normY = cy / vh;
+
+      // Velocity jump rejection: if ball jumps > 0.15 normalized distance
+      // and fewer than 3 consecutive detections, reject as likely player switch
+      if (this._prevBallNorm) {
+        var dx = normX - this._prevBallNorm.x;
+        var dy = normY - this._prevBallNorm.y;
+        var jumpDist = Math.sqrt(dx * dx + dy * dy);
+        if (jumpDist > 0.15 && this._consecutiveDets < 3) {
+          // Reject this detection — likely jumped to a player
+          this._consecutiveDets = 0;
+          this._prevBallNorm = { x: normX, y: normY };
+          return;
+        }
+      }
+      this._consecutiveDets++;
+      this._prevBallNorm = { x: normX, y: normY };
+
+      updateTracker(this.tracker, cx, cy);
       this.ballPosition = {
         normX: normX, normY: normY,
         source: this._lastDetSource || 'color',
@@ -1107,10 +1142,12 @@
     },
 
     _processNoBall: function () {
+      this._consecutiveDets = 0;  // Reset consecutive detection count
       updateTracker(this.tracker, null, null);
       // If Kalman is predicting, show predicted position to UI
       var kf = this.tracker.kalman;
-      if (kf.initialized && kf.predictCount > 0 && kf.predictCount <= KALMAN_MAX_PREDICT) {
+      var maxPredictNoBall = this.tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
+      if (kf.initialized && kf.predictCount > 0 && kf.predictCount <= maxPredictNoBall) {
         var vw = this.videoEl ? this.videoEl.videoWidth : 1;
         var vh = this.videoEl ? this.videoEl.videoHeight : 1;
         this.ballPosition = {
@@ -1179,6 +1216,8 @@
         if (now - this._shotStateTime > DEBOUNCE_MS) {
           this._shotState = 'idle';
           this._ballMinY = 1.0;
+          this._shotStartY = 1.0;
+          this._risingFrameCount = 0;
         }
         return;
       }
@@ -1190,13 +1229,25 @@
       var pts = this.tracker.positions;
       if (pts.length < MIN_TRAJECTORY_PTS) return;
 
+      // Set extended Kalman prediction flag during active shot states
+      var isActiveShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
+      this.tracker._activeShotExtend = isActiveShotState;
+
       // ── IDLE: watch for ball starting to rise ──
       if (this._shotState === 'idle') {
-        // Ball must be below hoop level AND rising
-        if (normY > rim.centerY + 0.10 && trend === 'rising') {
+        // Count consecutive frames of upward movement
+        if (trend === 'rising') {
+          this._risingFrameCount++;
+        } else {
+          this._risingFrameCount = 0;
+        }
+        // Ball must be below hoop level AND have 5+ consecutive rising frames
+        if (normY > rim.centerY + 0.10 && this._risingFrameCount >= 5) {
           this._shotState = 'shot_started';
           this._shotStateTime = now;
           this._ballMinY = normY;
+          this._shotStartY = normY;  // Record start Y for arc height check
+          this._risingFrameCount = 0;
         }
         return;
       }
@@ -1223,7 +1274,9 @@
         var nearHoopX = hoopXDist < rim.width * 2.0; // within 2x rim width horizontally
 
         // MADE: ball went from above hoop to below hoop while near hoop X
-        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX) {
+        // Require minimum arc height of 0.15 normalized from shot start
+        var madeArcHeight = this._shotStartY - this._ballMinY;
+        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX && madeArcHeight >= 0.15) {
           this._countShot('made', vw, vh, normX, normY, now);
           return;
         }
@@ -1235,12 +1288,15 @@
 
         if (ballFarFromHoop || ballWentBack || timeout) {
           // Only count as shot attempt if ball actually got near the hoop
-          if (this._ballMinY < rim.centerY + 0.15) {
+          // AND ball rose at least 0.15 normalized height from shot start to peak
+          var arcHeight = this._shotStartY - this._ballMinY;
+          if (this._ballMinY < rim.centerY + 0.15 && arcHeight >= 0.15) {
             this._countShot('missed', vw, vh, normX, normY, now);
           } else {
-            // Ball never really reached hoop — not a shot, just movement
+            // Ball never really reached hoop or insufficient arc — not a shot
             this._shotState = 'idle';
             this._ballMinY = 1.0;
+            this._shotStartY = 1.0;
           }
           return;
         }
@@ -1252,6 +1308,7 @@
       this._shotState = 'cooldown';
       this._shotStateTime = now;
       this._ballMinY = 1.0;
+      this._shotStartY = 1.0;
 
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
