@@ -284,7 +284,7 @@
       freshVideo.preload     = 'auto';
       freshVideo.setAttribute('playsinline', '');
       freshVideo.setAttribute('muted', '');
-      freshVideo.style.cssText = 'width:100%;height:100%;object-fit:cover;background:#000;';
+      freshVideo.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#000;';
 
       // Replace old video element in the DOM
       var wrap = videoEl.parentNode;
@@ -377,8 +377,39 @@
 
   function resizeCanvas() {
     if (!canvasEl || !videoEl) return;
-    canvasEl.width = videoEl.videoWidth || videoEl.clientWidth;
-    canvasEl.height = videoEl.videoHeight || videoEl.clientHeight;
+    /* Match canvas to visible video area (respects object-fit:contain) */
+    var containerW = videoEl.clientWidth;
+    var containerH = videoEl.clientHeight;
+    var vidW = videoEl.videoWidth || containerW;
+    var vidH = videoEl.videoHeight || containerH;
+
+    if (containerW > 0 && containerH > 0 && vidW > 0 && vidH > 0) {
+      /* Calculate displayed size with object-fit:contain */
+      var vidAspect = vidW / vidH;
+      var containerAspect = containerW / containerH;
+      var displayW, displayH, offsetX, offsetY;
+      if (vidAspect > containerAspect) {
+        /* Video wider than container — letterbox top/bottom */
+        displayW = containerW;
+        displayH = containerW / vidAspect;
+        offsetX = 0;
+        offsetY = (containerH - displayH) / 2;
+      } else {
+        /* Video taller than container — pillarbox left/right */
+        displayH = containerH;
+        displayW = containerH * vidAspect;
+        offsetX = (containerW - displayW) / 2;
+        offsetY = 0;
+      }
+      canvasEl.width = Math.round(displayW);
+      canvasEl.height = Math.round(displayH);
+      canvasEl.style.position = 'absolute';
+      canvasEl.style.left = Math.round(offsetX) + 'px';
+      canvasEl.style.top = Math.round(offsetY) + 'px';
+    } else {
+      canvasEl.width = containerW || vidW;
+      canvasEl.height = containerH || vidH;
+    }
   }
 
   /* ══════════════════════════════════════════════════════════════
