@@ -552,7 +552,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny.onnx?v=4';
+      var modelPath = 'models/basketball_yolox_tiny.onnx?v=5';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['webgpu', 'webgl', 'wasm'],
         graphOptimizationLevel: 'all'
