@@ -37,7 +37,7 @@
   <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
   <link rel="stylesheet" href="styles/social.css?v=3" />
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
-  <link rel="stylesheet" href="styles/glassmorphism.css?v=4" />
+  <link rel="stylesheet" href="styles/glassmorphism.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
 </head>
@@ -244,6 +244,29 @@
           <span class="db-profile-widget-badge" id="db-pw-badge">Rookie</span>
         </button>
       </div>
+    </div>
+
+    <!-- Sub-navigation rows (shown per main tab) -->
+    <div class="glass-sub-nav" id="glass-sub-nav-train" style="display:none;">
+      <button class="glass-sub-nav-btn active" data-sub-tab="log">Log Session</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="drills">Drills</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="workouts">Workouts</button>
+    </div>
+    <div class="glass-sub-nav" id="glass-sub-nav-stats" style="display:none;">
+      <button class="glass-sub-nav-btn active" data-sub-tab="summary">Summary</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="history">History</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="shots">Shot Tracker</button>
+    </div>
+    <div class="glass-sub-nav" id="glass-sub-nav-coach" style="display:none;">
+      <button class="glass-sub-nav-btn active" data-sub-tab="coach">AI Coach</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="calendar">Calendar</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="notifications">Alerts</button>
+    </div>
+    <div class="glass-sub-nav" id="glass-sub-nav-profile" style="display:none;">
+      <button class="glass-sub-nav-btn active" data-sub-tab="archetype">Archetype</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="shop">Shop</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="moves">Pro Moves</button>
+      <button class="glass-sub-nav-btn" data-sub-tab="social">Social</button>
     </div>
 
     <!-- Welcome Hero -->
@@ -2084,6 +2107,30 @@
 
     </div><!-- /db-main-inner -->
   </main><!-- /db-main -->
+
+  <!-- ═══ FLOATING BOTTOM NAV BAR (5 Main Tabs) ═══ -->
+  <nav class="glass-bottom-nav" id="glass-bottom-nav" role="navigation" aria-label="Main tabs">
+    <button class="glass-nav-tab active" data-main-tab="home" aria-label="Home">
+      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span class="glass-nav-label">Home</span>
+    </button>
+    <button class="glass-nav-tab" data-main-tab="train" aria-label="Train">
+      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
+      <span class="glass-nav-label">Train</span>
+    </button>
+    <button class="glass-nav-tab" data-main-tab="stats" aria-label="Stats">
+      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+      <span class="glass-nav-label">Stats</span>
+    </button>
+    <button class="glass-nav-tab" data-main-tab="coach" aria-label="Coach">
+      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+      <span class="glass-nav-label">Coach</span>
+    </button>
+    <button class="glass-nav-tab" data-main-tab="profile" aria-label="Profile">
+      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span class="glass-nav-label">Profile</span>
+    </button>
+  </nav>
 
 </div><!-- /db-layout-root -->
 

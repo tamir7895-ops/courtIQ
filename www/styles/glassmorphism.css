@@ -1704,6 +1704,228 @@ h3[class*="title"] {
   }
 }
 
+/* ── 37. FLOATING BOTTOM NAV BAR (5 Tabs) ───────────────── */
+
+/* Hide the sidebar entirely */
+.db-sidebar,
+.db-sidebar-mobile-toggle,
+.db-sidebar-overlay {
+  display: none !important;
+}
+
+/* Remove sidebar margin from main */
+.db-layout-root {
+  display: block !important;
+}
+
+.db-main {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.db-main-inner {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  padding-bottom: 100px !important; /* space for floating nav */
+}
+
+/* ── The Floating Glass Nav Bar ── */
+.glass-bottom-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 28px;
+  background: rgba(15, 17, 22, 0.75);
+  backdrop-filter: blur(40px) saturate(1.6);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 60px rgba(245,166,35,0.03);
+}
+
+/* Each tab button */
+.glass-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-nav-tab:hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.04);
+}
+
+/* Active tab */
+.glass-nav-tab.active {
+  color: #f5a623;
+  background: rgba(245,166,35,0.1);
+  box-shadow: 0 0 20px rgba(245,166,35,0.1);
+}
+
+.glass-nav-tab.active .glass-nav-icon {
+  filter: drop-shadow(0 0 6px rgba(245,166,35,0.4));
+}
+
+/* Active indicator dot */
+.glass-nav-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f5a623;
+  box-shadow: 0 0 8px rgba(245,166,35,0.6);
+}
+
+/* Icon sizing */
+.glass-nav-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* Label */
+.glass-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── Sub-Navigation Pill Row (inside panels) ── */
+.glass-sub-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: fit-content;
+}
+
+.glass-sub-nav-btn {
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.glass-sub-nav-btn:hover {
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.04);
+}
+
+.glass-sub-nav-btn.active {
+  color: #f5a623;
+  background: rgba(245,166,35,0.12);
+  box-shadow: 0 0 12px rgba(245,166,35,0.08);
+}
+
+/* ── Desktop: wider nav, centered ── */
+@media (min-width: 769px) {
+  .glass-bottom-nav {
+    bottom: 28px;
+    padding: 10px 16px;
+    gap: 6px;
+    border-radius: 32px;
+  }
+
+  .glass-nav-tab {
+    padding: 12px 24px;
+    border-radius: 22px;
+    gap: 5px;
+  }
+
+  .glass-nav-label {
+    font-size: 11px;
+  }
+}
+
+/* ── Mobile: full width at bottom ── */
+@media (max-width: 768px) {
+  .glass-bottom-nav {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 20px 20px 0 0;
+    padding: 8px 10px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 2px;
+    justify-content: space-around;
+  }
+
+  .glass-nav-tab {
+    padding: 8px 8px;
+    flex: 1;
+    border-radius: 14px;
+  }
+
+  .glass-nav-label {
+    font-size: 9px;
+  }
+
+  .db-main-inner {
+    padding-bottom: 90px !important;
+  }
+}
+
+/* ── Very small screens ── */
+@media (max-width: 380px) {
+  .glass-nav-tab {
+    padding: 6px 4px;
+  }
+  .glass-nav-label {
+    font-size: 8px;
+  }
+  .glass-nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ── Hide the old topbar breadcrumb (replaced by sub-nav) ── */
+.db-topbar {
+  display: none !important;
+}
+
 /* ── 36. ANIMATIONS ──────────────────────────────────────── */
 
 /* Shimmer animation for glass cards */

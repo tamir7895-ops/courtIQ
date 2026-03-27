@@ -1158,4 +1158,79 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
     }
   })();
 
+  /* ══════════════════════════════════════════════════════════════════
+     FLOATING BOTTOM NAV (5 Main Tabs)
+  ══════════════════════════════════════════════════════════════════ */
+  (function initGlassNav() {
+    // Map main tab -> default sub-panel + sub-nav group
+    var mainTabMap = {
+      home:    { panel: 'home',      subNav: null },
+      train:   { panel: 'log',       subNav: 'glass-sub-nav-train' },
+      stats:   { panel: 'summary',   subNav: 'glass-sub-nav-stats' },
+      coach:   { panel: 'coach',     subNav: 'glass-sub-nav-coach' },
+      profile: { panel: 'archetype', subNav: 'glass-sub-nav-profile' }
+    };
+
+    var currentMainTab = 'home';
+
+    function switchMainTab(tabId) {
+      currentMainTab = tabId;
+      var config = mainTabMap[tabId];
+      if (!config) return;
+
+      // Update active state on bottom nav
+      document.querySelectorAll('.glass-nav-tab').forEach(function(btn) {
+        btn.classList.toggle('active', btn.dataset.mainTab === tabId);
+      });
+
+      // Hide all sub-navs
+      document.querySelectorAll('.glass-sub-nav').forEach(function(nav) {
+        nav.style.display = 'none';
+      });
+
+      // Show relevant sub-nav and reset its active state
+      if (config.subNav) {
+        var subNav = document.getElementById(config.subNav);
+        if (subNav) {
+          subNav.style.display = 'flex';
+          // Reset sub-nav active to first button
+          subNav.querySelectorAll('.glass-sub-nav-btn').forEach(function(b, i) {
+            b.classList.toggle('active', i === 0);
+          });
+        }
+      }
+
+      // Show/hide welcome hero + outer elements (only on home)
+      var outerEls = document.querySelectorAll('.db-welcome-hero, .db-stats-row, .dc-card, .db-quick-grid, .db-skills-circle-grid, .db-home-stats-row, .db-home-nav-grid, .glass-session-counter, .glass-streak-card, .glass-season-progress, .glass-daily-drills, .glass-recent-sessions, .db-top-widgets, .xp-gain-toast, #streak-toast, .db-donuts-row');
+      outerEls.forEach(function(el) {
+        el.style.display = (tabId === 'home') ? '' : 'none';
+      });
+
+      // Switch to the default sub-panel
+      dbSwitchTab(config.panel, null);
+    }
+
+    // Bottom nav click handlers
+    document.querySelectorAll('.glass-nav-tab').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        switchMainTab(btn.dataset.mainTab);
+      });
+    });
+
+    // Sub-nav click handlers
+    document.querySelectorAll('.glass-sub-nav-btn').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var parent = btn.parentElement;
+        parent.querySelectorAll('.glass-sub-nav-btn').forEach(function(b) {
+          b.classList.remove('active');
+        });
+        btn.classList.add('active');
+        dbSwitchTab(btn.dataset.subTab, null);
+      });
+    });
+
+    // Initialize: show home
+    switchMainTab('home');
+  })();
+
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
