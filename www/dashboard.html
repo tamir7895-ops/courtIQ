@@ -37,6 +37,7 @@
   <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
   <link rel="stylesheet" href="styles/social.css?v=3" />
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
+  <link rel="stylesheet" href="styles/glassmorphism.css?v=4" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
 </head>
@@ -445,6 +446,11 @@
         <h1 class="db-home-greeting" id="db-home-greeting">Hey, <strong>Player</strong>!</h1>
         <p class="db-home-subtitle">Ready to level up your game today?</p>
         <div class="db-home-date-pill" id="db-home-date"></div>
+        <div class="glass-session-counter">
+          <span class="glass-session-num">SESSION 12</span>
+          <span class="glass-session-sep">//</span>
+          <span class="glass-session-focus">HIGH INTENSITY FOCUS</span>
+        </div>
       </div>
 
       <!-- 1.2 Quick Stats Row -->
@@ -470,6 +476,18 @@
             <span class="db-home-stat-label">Total XP</span>
           </div>
         </div>
+      </div>
+
+      <!-- Stitch-inspired Training Streak Card -->
+      <div class="glass-streak-card">
+        <div class="glass-streak-icon">🔥</div>
+        <div class="glass-streak-content">
+          <div class="glass-streak-title">TRAINING STREAK</div>
+          <div class="glass-streak-number" id="glass-streak-val">0 DAYS</div>
+          <div class="glass-streak-bar"><div class="glass-streak-fill" id="glass-streak-fill" style="width:0%"></div></div>
+          <div class="glass-streak-msg">Keep pushing — consistency is everything</div>
+        </div>
+        <div class="glass-streak-badge">PRO-LEAGUE QUALIFIER</div>
       </div>
 
       <!-- 1.3 Skill Donut Charts -->
@@ -505,6 +523,93 @@
           </div>
           <div class="db-donut-label">0%</div>
           <div class="db-donut-name">GAME IQ</div>
+        </div>
+      </div>
+
+      <!-- Season Progress -->
+      <div class="glass-season-progress">
+        <div class="glass-section-header">
+          <span class="glass-section-title">SEASON PROGRESS</span>
+          <span class="glass-section-link">SEASON 1</span>
+        </div>
+        <div class="glass-season-bar-wrap">
+          <div class="glass-season-bar">
+            <div class="glass-season-fill" style="width:35%"></div>
+            <div class="glass-season-milestone" style="left:25%" title="Bronze"></div>
+            <div class="glass-season-milestone" style="left:50%" title="Silver"></div>
+            <div class="glass-season-milestone" style="left:75%" title="Gold"></div>
+          </div>
+          <div class="glass-season-labels">
+            <span>0 XP</span>
+            <span>BRONZE</span>
+            <span>SILVER</span>
+            <span>GOLD</span>
+            <span>ELITE</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Daily Drills Checklist -->
+      <div class="glass-daily-drills">
+        <div class="glass-section-header">
+          <span class="glass-section-title">DAILY DRILLS</span>
+          <span class="glass-section-link" id="glass-drills-done">0/4 DONE</span>
+        </div>
+        <div class="glass-drill-checklist">
+          <label class="glass-drill-check">
+            <input type="checkbox">
+            <span class="glass-check-mark"></span>
+            <span class="glass-check-text">Morning Shooting (15 min)</span>
+          </label>
+          <label class="glass-drill-check">
+            <input type="checkbox">
+            <span class="glass-check-mark"></span>
+            <span class="glass-check-text">Ball Handling Basics (10 min)</span>
+          </label>
+          <label class="glass-drill-check">
+            <input type="checkbox">
+            <span class="glass-check-mark"></span>
+            <span class="glass-check-text">Defensive Slides (12 min)</span>
+          </label>
+          <label class="glass-drill-check">
+            <input type="checkbox">
+            <span class="glass-check-mark"></span>
+            <span class="glass-check-text">Free Throw Practice (10 min)</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Recent Sessions -->
+      <div class="glass-recent-sessions">
+        <div class="glass-section-header">
+          <span class="glass-section-title">RECENT SESSIONS</span>
+          <span class="glass-section-link" onclick="dbSwitchTab('history')">View All →</span>
+        </div>
+        <div class="glass-recent-list" id="glass-recent-list">
+          <div class="glass-recent-item">
+            <div class="glass-recent-date">MAR 27</div>
+            <div class="glass-recent-info">
+              <div class="glass-recent-name">Shooting Drills</div>
+              <div class="glass-recent-detail">45 min · 3-Point Focus</div>
+            </div>
+            <div class="glass-recent-grade glass-grade-a">A+</div>
+          </div>
+          <div class="glass-recent-item">
+            <div class="glass-recent-date">MAR 26</div>
+            <div class="glass-recent-info">
+              <div class="glass-recent-name">Ball Handling</div>
+              <div class="glass-recent-detail">30 min · Crossover Drills</div>
+            </div>
+            <div class="glass-recent-grade glass-grade-b">B</div>
+          </div>
+          <div class="glass-recent-item">
+            <div class="glass-recent-date">MAR 25</div>
+            <div class="glass-recent-info">
+              <div class="glass-recent-name">Full Court Workout</div>
+              <div class="glass-recent-detail">60 min · Mixed Training</div>
+            </div>
+            <div class="glass-recent-grade glass-grade-a">A</div>
+          </div>
         </div>
       </div>
 
@@ -916,6 +1021,37 @@
         <div style="font-size:13px;color:var(--c-muted);">Analyzing performance gaps, weak areas, and equipment to build next week's optimal schedule.</div>
       </div>
 
+      <!-- AI Intelligence Picks -->
+      <div class="glass-ai-picks">
+        <div class="glass-section-header">
+          <span class="glass-section-title">AI INTELLIGENCE PICKS</span>
+          <span class="glass-ai-tag">🤖 SMART</span>
+        </div>
+        <div class="glass-picks-grid">
+          <div class="glass-pick-card">
+            <div class="glass-pick-icon">🎯</div>
+            <div class="glass-pick-content">
+              <div class="glass-pick-title">3PT Corner Drill</div>
+              <div class="glass-pick-reason">Based on your weak spot</div>
+            </div>
+          </div>
+          <div class="glass-pick-card">
+            <div class="glass-pick-icon">⚡</div>
+            <div class="glass-pick-content">
+              <div class="glass-pick-title">Speed Ladder</div>
+              <div class="glass-pick-reason">Improve first step</div>
+            </div>
+          </div>
+          <div class="glass-pick-card">
+            <div class="glass-pick-icon">💪</div>
+            <div class="glass-pick-content">
+              <div class="glass-pick-title">Core Strength</div>
+              <div class="glass-pick-reason">Stability under contact</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="coach-empty" style="text-align:center;padding:16px 0 40px;">
         <div style="font-size:52px;margin-bottom:14px;">🏋️</div>
         <div style="font-family:var(--font-display);font-size:22px;font-weight:900;text-transform:uppercase;color:var(--c-white);margin-bottom:6px;">Ready to Adapt</div>
@@ -1033,6 +1169,80 @@
 
     <!-- ── TAB: PERSONALIZED DRILLS ── -->
     <div class="db-panel" id="db-panel-drills">
+
+      <!-- Stitch-inspired Training Hero -->
+      <div class="glass-training-hero">
+        <div class="glass-training-hero-bg"></div>
+        <div class="glass-training-hero-content">
+          <div class="glass-training-hero-tag">TODAY'S ELITE PROGRAM</div>
+          <div class="glass-training-hero-title">HYPER-ELITE<br>ISO SHOT CREATION</div>
+          <div class="glass-training-hero-meta">
+            <span class="glass-hero-meta-item">🔥 ADVANCED</span>
+            <span class="glass-hero-meta-item">⏱ 45 MIN</span>
+            <span class="glass-hero-meta-item">🎯 SHOOTING</span>
+          </div>
+          <button class="glass-training-hero-btn" onclick="if(typeof drillsGenerate==='function')drillsGenerate()">START TRAINING →</button>
+        </div>
+      </div>
+
+      <!-- Elite Recommendations -->
+      <div class="glass-section-header" style="margin-top:20px;">
+        <span class="glass-section-title">ELITE RECOMMENDATIONS</span>
+        <span class="glass-ai-tag">🤖 AI POWERED</span>
+      </div>
+      <div class="glass-recommendations">
+        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+          <div class="glass-rec-icon">🎯</div>
+          <div class="glass-rec-content">
+            <div class="glass-rec-title">Catch &amp; Shoot Drill</div>
+            <div class="glass-rec-desc">Improve spot-up shooting consistency</div>
+          </div>
+          <div class="glass-rec-tag">SHOOTING</div>
+        </div>
+        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+          <div class="glass-rec-icon">⚡</div>
+          <div class="glass-rec-content">
+            <div class="glass-rec-title">Killer Crossover</div>
+            <div class="glass-rec-desc">Break down defenders with elite handles</div>
+          </div>
+          <div class="glass-rec-tag">HANDLES</div>
+        </div>
+        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+          <div class="glass-rec-icon">🛡️</div>
+          <div class="glass-rec-content">
+            <div class="glass-rec-title">Defensive Slides</div>
+            <div class="glass-rec-desc">Lateral quickness &amp; closeout drills</div>
+          </div>
+          <div class="glass-rec-tag">DEFENSE</div>
+        </div>
+      </div>
+
+      <!-- Browse by Focus Grid -->
+      <div class="glass-section-header" style="margin-top:20px;">
+        <span class="glass-section-title">BROWSE BY FOCUS</span>
+      </div>
+      <div class="glass-focus-grid">
+        <div class="glass-focus-card glass-focus-shooting" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Shooting',null)}">
+          <div class="glass-focus-emoji">🎯</div>
+          <div class="glass-focus-name">SHOOTING</div>
+          <div class="glass-focus-count">24 drills</div>
+        </div>
+        <div class="glass-focus-card glass-focus-handles" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Ball Handling',null)}">
+          <div class="glass-focus-emoji">⚡</div>
+          <div class="glass-focus-name">HANDLES</div>
+          <div class="glass-focus-count">18 drills</div>
+        </div>
+        <div class="glass-focus-card glass-focus-defense" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Defense',null)}">
+          <div class="glass-focus-emoji">🛡️</div>
+          <div class="glass-focus-name">DEFENSE</div>
+          <div class="glass-focus-count">15 drills</div>
+        </div>
+        <div class="glass-focus-card glass-focus-vertical" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Conditioning',null)}">
+          <div class="glass-focus-emoji">🦅</div>
+          <div class="glass-focus-name">VERTICAL</div>
+          <div class="glass-focus-count">12 drills</div>
+        </div>
+      </div>
 
       <!-- Today's Workout -->
       <div class="daily-workout">
@@ -1375,6 +1585,51 @@
       </div>
       <input type="file" accept="video/*" id="ast-file-input" capture="environment" style="display:none">
 
+      <!-- Shot Map Card -->
+      <div class="glass-shot-map-card">
+        <div class="glass-section-header">
+          <span class="glass-section-title">SHOT MAP</span>
+          <span class="glass-section-link">Full Court →</span>
+        </div>
+        <div class="glass-court-map">
+          <svg viewBox="0 0 500 470" class="glass-court-svg">
+            <rect x="10" y="10" width="480" height="450" rx="4" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
+            <rect x="175" y="10" width="150" height="190" rx="2" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <circle cx="250" cy="200" r="60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <path d="M 60 10 L 60 140 Q 250 420 440 140 L 440 10" fill="none" stroke="rgba(245,166,35,0.15)" stroke-width="1.5"/>
+            <circle cx="250" cy="52" r="8" fill="none" stroke="rgba(245,166,35,0.4)" stroke-width="2"/>
+            <line x1="220" y1="40" x2="280" y2="40" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+            <circle cx="180" cy="150" r="6" fill="rgba(86,211,100,0.7)"/>
+            <circle cx="300" cy="180" r="6" fill="rgba(86,211,100,0.7)"/>
+            <circle cx="120" cy="200" r="6" fill="rgba(248,81,73,0.7)"/>
+            <circle cx="350" cy="250" r="6" fill="rgba(86,211,100,0.7)"/>
+            <circle cx="250" cy="100" r="6" fill="rgba(86,211,100,0.7)"/>
+            <circle cx="400" cy="180" r="6" fill="rgba(248,81,73,0.7)"/>
+            <circle cx="100" cy="300" r="6" fill="rgba(86,211,100,0.7)"/>
+            <circle cx="380" cy="300" r="6" fill="rgba(248,81,73,0.7)"/>
+          </svg>
+        </div>
+        <div class="glass-shot-map-stats">
+          <div class="glass-map-stat">
+            <div class="glass-map-stat-val" style="color:#56d364">67%</div>
+            <div class="glass-map-stat-label">PAINT</div>
+          </div>
+          <div class="glass-map-stat">
+            <div class="glass-map-stat-val" style="color:#f5a623">42%</div>
+            <div class="glass-map-stat-label">MID-RANGE</div>
+          </div>
+          <div class="glass-map-stat">
+            <div class="glass-map-stat-val" style="color:#4ca3ff">38%</div>
+            <div class="glass-map-stat-label">3-POINT</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="glass-shot-actions">
+        <button class="glass-ai-analysis-btn" onclick="document.getElementById('ast-launch-btn').click()">🤖 AI ANALYSIS</button>
+        <button class="glass-stop-tracking-btn">⏹ STOP TRACKING</button>
+      </div>
+
       <!-- Court Size Preset -->
       <div class="ast-settings-card">
         <div class="ast-settings-row">
@@ -1695,6 +1950,20 @@
 
       <!-- ── LEADERBOARD ────────────────────────────────────── -->
       <div class="sh-section" id="sh-leaderboard">
+        <!-- Glass Rank Display -->
+        <div class="glass-rank-display">
+          <div class="glass-rank-number">#42</div>
+          <div class="glass-rank-label">YOUR GLOBAL RANK</div>
+          <div class="glass-rank-toggle">
+            <button class="glass-toggle-btn active" onclick="this.classList.add('active');this.nextElementSibling.classList.remove('active')">GLOBAL</button>
+            <button class="glass-toggle-btn" onclick="this.classList.add('active');this.previousElementSibling.classList.remove('active')">LOCAL</button>
+          </div>
+        </div>
+
+        <div class="glass-section-header" style="margin-bottom:12px">
+          <span class="glass-section-title">TOP ELITES</span>
+        </div>
+
         <div class="sh-lb-filter-row">
           <span class="sh-lb-filter-label">🌍 Filter by country:</span>
           <select class="sh-lb-filter-select" id="sh-lb-country" onchange="shFilterLeaderboard()">
@@ -1720,6 +1989,44 @@
           <div class="sh-lb-loading">Click "Leaderboard" tab to load…</div>
         </div>
       </div><!-- /sh-leaderboard -->
+
+      <!-- Social Feed Section -->
+      <div class="sh-section" id="sh-social-feed" style="display:none">
+        <div class="glass-social-feed">
+          <div class="glass-section-header">
+            <span class="glass-section-title">SOCIAL FEED</span>
+          </div>
+          <div class="glass-feed-list">
+            <div class="glass-feed-item">
+              <div class="glass-feed-avatar">🏀</div>
+              <div class="glass-feed-content">
+                <div class="glass-feed-user">Marcus R.</div>
+                <div class="glass-feed-action">completed a 45-min shooting session</div>
+                <div class="glass-feed-time">2 hours ago</div>
+              </div>
+              <div class="glass-feed-badge">🔥</div>
+            </div>
+            <div class="glass-feed-item">
+              <div class="glass-feed-avatar">⚡</div>
+              <div class="glass-feed-content">
+                <div class="glass-feed-user">Jordan K.</div>
+                <div class="glass-feed-action">hit a 7-day training streak!</div>
+                <div class="glass-feed-time">5 hours ago</div>
+              </div>
+              <div class="glass-feed-badge">🏆</div>
+            </div>
+            <div class="glass-feed-item">
+              <div class="glass-feed-avatar">🎯</div>
+              <div class="glass-feed-content">
+                <div class="glass-feed-user">Alex T.</div>
+                <div class="glass-feed-action">scored 92% in free throw practice</div>
+                <div class="glass-feed-time">1 day ago</div>
+              </div>
+              <div class="glass-feed-badge">⭐</div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- ── SHARE CARD ─────────────────────────────────────── -->
       <div class="sh-section" id="sh-share">
