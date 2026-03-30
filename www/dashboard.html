@@ -15,7 +15,7 @@
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles/main.css?v=3" />
   <link rel="stylesheet" href="styles/drills.css?v=3" />
@@ -37,6 +37,7 @@
   <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
   <link rel="stylesheet" href="styles/social.css?v=3" />
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
+  <link rel="stylesheet" href="styles/kinetic-elite.css?v=1" />
   <link rel="stylesheet" href="styles/glassmorphism.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
@@ -461,244 +462,165 @@
     </div>
 
 
-    <!-- ── TAB: HOME ── -->
+    <!-- ── TAB: HOME (Kinetic Elite) ── -->
     <div class="db-panel active" id="db-panel-home">
 
-      <!-- 1.1 Hero Greeting -->
-      <div class="db-home-hero">
-        <h1 class="db-home-greeting" id="db-home-greeting">Hey, <strong>Player</strong>!</h1>
-        <p class="db-home-subtitle">Ready to level up your game today?</p>
-        <div class="db-home-date-pill" id="db-home-date"></div>
-        <div class="glass-session-counter">
-          <span class="glass-session-num">SESSION 12</span>
-          <span class="glass-session-sep">//</span>
-          <span class="glass-session-focus">HIGH INTENSITY FOCUS</span>
+      <!-- Kinetic Elite Top Header -->
+      <header class="ke-header">
+        <div class="ke-header-brand">COURT<span>IQ</span></div>
+        <div class="ke-header-actions">
+          <button class="ke-header-icon" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="ke-notif-dot"></span>
+          </button>
         </div>
-      </div>
+      </header>
 
-      <!-- 1.2 Quick Stats Row -->
-      <div class="db-home-stats-row">
-        <div class="db-home-stat">
-          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          <div class="db-home-stat-info">
-            <span class="db-home-stat-value" id="db-home-sessions">0</span>
-            <span class="db-home-stat-label">Sessions This Week</span>
+      <!-- PRO Status Card -->
+      <div class="ke-pro-card">
+        <div class="ke-pro-badge">PRO</div>
+        <div class="ke-pro-info">
+          <div class="ke-pro-level">ELITE LEVEL <span id="ke-level">42</span></div>
+          <div class="ke-pro-xp-row">
+            <span class="ke-pro-xp-current" id="ke-xp-current">12,450</span>
+            <span class="ke-pro-xp-sep">/</span>
+            <span class="ke-pro-xp-max">15,000 XP</span>
           </div>
-        </div>
-        <div class="db-home-stat">
-          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-          <div class="db-home-stat-info">
-            <span class="db-home-stat-value" id="db-home-streak">0</span>
-            <span class="db-home-stat-label">Day Streak</span>
-          </div>
-        </div>
-        <div class="db-home-stat">
-          <svg class="db-home-stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          <div class="db-home-stat-info">
-            <span class="db-home-stat-value" id="db-home-xp">0</span>
-            <span class="db-home-stat-label">Total XP</span>
+          <div class="ke-pro-xp-bar">
+            <div class="ke-pro-xp-fill" id="ke-xp-fill" style="width:83%"></div>
           </div>
         </div>
       </div>
 
-      <!-- Stitch-inspired Training Streak Card -->
-      <div class="glass-streak-card">
-        <div class="glass-streak-icon">🔥</div>
-        <div class="glass-streak-content">
-          <div class="glass-streak-title">TRAINING STREAK</div>
-          <div class="glass-streak-number" id="glass-streak-val">0 DAYS</div>
-          <div class="glass-streak-bar"><div class="glass-streak-fill" id="glass-streak-fill" style="width:0%"></div></div>
-          <div class="glass-streak-msg">Keep pushing — consistency is everything</div>
+      <!-- Weekly Output -->
+      <div class="ke-section-label">WEEKLY OUTPUT</div>
+      <div class="ke-weekly-output">
+        <div class="ke-weekly-stat">
+          <div class="ke-weekly-number" id="ke-shots-made">1,240</div>
+          <div class="ke-weekly-label">Shots Made</div>
         </div>
-        <div class="glass-streak-badge">PRO-LEAGUE QUALIFIER</div>
-      </div>
-
-      <!-- 1.3 Skill Donut Charts -->
-      <div class="db-donuts-row" id="db-donuts-row">
-        <div class="db-donut" data-skill="shooting" data-pct="0" role="img" aria-label="Shooting: 0%">
-          <div class="db-donut-ring"></div>
-          <div class="db-donut-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-          </div>
-          <div class="db-donut-label">0%</div>
-          <div class="db-donut-name">SHOOTING</div>
-        </div>
-        <div class="db-donut" data-skill="dribbling" data-pct="0" role="img" aria-label="Dribbling: 0%">
-          <div class="db-donut-ring"></div>
-          <div class="db-donut-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M12 2a15.3 15.3 0 0 0-4 10 15.3 15.3 0 0 0 4 10"/></svg>
-          </div>
-          <div class="db-donut-label">0%</div>
-          <div class="db-donut-name">DRIBBLING</div>
-        </div>
-        <div class="db-donut" data-skill="defense" data-pct="0" role="img" aria-label="Defense: 0%">
-          <div class="db-donut-ring"></div>
-          <div class="db-donut-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div class="db-donut-label">0%</div>
-          <div class="db-donut-name">DEFENSE</div>
-        </div>
-        <div class="db-donut" data-skill="gameiq" data-pct="0" role="img" aria-label="Game IQ: 0%">
-          <div class="db-donut-ring"></div>
-          <div class="db-donut-center">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 14 18.469V19a2 2 0 1 1-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
-          </div>
-          <div class="db-donut-label">0%</div>
-          <div class="db-donut-name">GAME IQ</div>
+        <div class="ke-weekly-stat">
+          <div class="ke-weekly-number" id="ke-training-hrs">18.5</div>
+          <div class="ke-weekly-label">Training Hours</div>
         </div>
       </div>
 
-      <!-- Season Progress -->
-      <div class="glass-season-progress">
-        <div class="glass-section-header">
-          <span class="glass-section-title">SEASON PROGRESS</span>
-          <span class="glass-section-link">SEASON 1</span>
+      <!-- Next Session -->
+      <div class="ke-next-session" onclick="dbSwitchTab('drills')">
+        <div class="ke-next-label">NEXT SESSION</div>
+        <div class="ke-next-title">Elite Ball Handling</div>
+        <div class="ke-next-meta">
+          <span class="ke-next-duration">45 MIN</span>
+          <span class="ke-next-difficulty">ADVANCED</span>
         </div>
-        <div class="glass-season-bar-wrap">
-          <div class="glass-season-bar">
-            <div class="glass-season-fill" style="width:35%"></div>
-            <div class="glass-season-milestone" style="left:25%" title="Bronze"></div>
-            <div class="glass-season-milestone" style="left:50%" title="Silver"></div>
-            <div class="glass-season-milestone" style="left:75%" title="Gold"></div>
+        <button class="ke-next-play" aria-label="Start session">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </button>
+      </div>
+
+      <!-- Skill Breakdown -->
+      <div class="ke-skills">
+        <div class="ke-section-label">SKILL BREAKDOWN</div>
+        <div class="ke-skill-item">
+          <div class="ke-skill-header">
+            <span class="ke-skill-name">Shooting</span>
+            <span class="ke-skill-pct">78%</span>
           </div>
-          <div class="glass-season-labels">
-            <span>0 XP</span>
-            <span>BRONZE</span>
-            <span>SILVER</span>
-            <span>GOLD</span>
-            <span>ELITE</span>
+          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:78%" data-color="orange"></div></div>
+        </div>
+        <div class="ke-skill-item">
+          <div class="ke-skill-header">
+            <span class="ke-skill-name">Ball Handling</span>
+            <span class="ke-skill-pct">74%</span>
           </div>
+          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:74%" data-color="blue"></div></div>
+        </div>
+        <div class="ke-skill-item">
+          <div class="ke-skill-header">
+            <span class="ke-skill-name">Defense</span>
+            <span class="ke-skill-pct">85%</span>
+          </div>
+          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:85%" data-color="green"></div></div>
+        </div>
+        <div class="ke-skill-item">
+          <div class="ke-skill-header">
+            <span class="ke-skill-name">Game IQ</span>
+            <span class="ke-skill-pct">92%</span>
+          </div>
+          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:92%" data-color="purple"></div></div>
         </div>
       </div>
 
-      <!-- Daily Drills Checklist -->
-      <div class="glass-daily-drills">
-        <div class="glass-section-header">
-          <span class="glass-section-title">DAILY DRILLS</span>
-          <span class="glass-section-link" id="glass-drills-done">0/4 DONE</span>
-        </div>
-        <div class="glass-drill-checklist">
-          <label class="glass-drill-check">
-            <input type="checkbox">
-            <span class="glass-check-mark"></span>
-            <span class="glass-check-text">Morning Shooting (15 min)</span>
-          </label>
-          <label class="glass-drill-check">
-            <input type="checkbox">
-            <span class="glass-check-mark"></span>
-            <span class="glass-check-text">Ball Handling Basics (10 min)</span>
-          </label>
-          <label class="glass-drill-check">
-            <input type="checkbox">
-            <span class="glass-check-mark"></span>
-            <span class="glass-check-text">Defensive Slides (12 min)</span>
-          </label>
-          <label class="glass-drill-check">
-            <input type="checkbox">
-            <span class="glass-check-mark"></span>
-            <span class="glass-check-text">Free Throw Practice (10 min)</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Recent Sessions -->
-      <div class="glass-recent-sessions">
-        <div class="glass-section-header">
-          <span class="glass-section-title">RECENT SESSIONS</span>
-          <span class="glass-section-link" onclick="dbSwitchTab('history')">View All →</span>
-        </div>
-        <div class="glass-recent-list" id="glass-recent-list">
-          <div class="glass-recent-item">
-            <div class="glass-recent-date">MAR 27</div>
-            <div class="glass-recent-info">
-              <div class="glass-recent-name">Shooting Drills</div>
-              <div class="glass-recent-detail">45 min · 3-Point Focus</div>
+      <!-- Game Log -->
+      <div class="ke-game-log">
+        <div class="ke-section-label">GAME LOG</div>
+        <div class="ke-log-list" id="ke-game-log-list">
+          <div class="ke-log-entry">
+            <div class="ke-log-icon" style="background:rgba(255,136,0,0.15);color:#FF8800;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
             </div>
-            <div class="glass-recent-grade glass-grade-a">A+</div>
-          </div>
-          <div class="glass-recent-item">
-            <div class="glass-recent-date">MAR 26</div>
-            <div class="glass-recent-info">
-              <div class="glass-recent-name">Ball Handling</div>
-              <div class="glass-recent-detail">30 min · Crossover Drills</div>
+            <div class="ke-log-info">
+              <div class="ke-log-name">Summer League GM 4</div>
+              <div class="ke-log-stats">28 PTS · 7 AST · 5 REB</div>
             </div>
-            <div class="glass-recent-grade glass-grade-b">B</div>
+            <div class="ke-log-grade ke-grade-a">A+</div>
           </div>
-          <div class="glass-recent-item">
-            <div class="glass-recent-date">MAR 25</div>
-            <div class="glass-recent-info">
-              <div class="glass-recent-name">Full Court Workout</div>
-              <div class="glass-recent-detail">60 min · Mixed Training</div>
+          <div class="ke-log-entry">
+            <div class="ke-log-icon" style="background:rgba(52,211,153,0.15);color:#34D399;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
             </div>
-            <div class="glass-recent-grade glass-grade-a">A</div>
+            <div class="ke-log-info">
+              <div class="ke-log-name">Vertical Jump Drill</div>
+              <div class="ke-log-stats">32.4 IN · Personal Best</div>
+            </div>
+            <div class="ke-log-grade ke-grade-a">A</div>
+          </div>
+          <div class="ke-log-entry">
+            <div class="ke-log-icon" style="background:rgba(4,152,241,0.15);color:#0498F1;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            </div>
+            <div class="ke-log-info">
+              <div class="ke-log-name">3PT Contest</div>
+              <div class="ke-log-stats">18/25 · 72% Accuracy</div>
+            </div>
+            <div class="ke-log-grade ke-grade-b">B+</div>
           </div>
         </div>
       </div>
 
-      <!-- 1.4 Navigation Cards Grid -->
-      <div class="db-home-nav-grid">
-        <button class="db-home-nav-card" onclick="dbSwitchTab('drills')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">Drills</span>
-            <span class="db-home-nav-sub">Practice fundamentals</span>
+      <!-- Recent Personal Bests -->
+      <div class="ke-personal-bests">
+        <div class="ke-section-label">RECENT PERSONAL BESTS</div>
+        <div class="ke-pb-list">
+          <div class="ke-pb-item">
+            <div class="ke-pb-icon">&#x1F3C0;</div>
+            <div class="ke-pb-info">
+              <div class="ke-pb-name">Fastest Drill Finish</div>
+              <div class="ke-pb-detail">"Crossover Chase" – 5:42.1s</div>
+              <div class="ke-pb-meta">NEW RECORD · 2H AGO</div>
+            </div>
           </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
-        <button class="db-home-nav-card" onclick="dbSwitchTab('workouts')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">Workouts</span>
-            <span class="db-home-nav-sub">Full training sessions</span>
+          <div class="ke-pb-item">
+            <div class="ke-pb-icon">&#x26A1;</div>
+            <div class="ke-pb-info">
+              <div class="ke-pb-name">Peak Vertical</div>
+              <div class="ke-pb-detail">Max Height – 34.5 inches</div>
+              <div class="ke-pb-meta">TOP 1% REGIONAL · YESTERDAY</div>
+            </div>
           </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
-        <button class="db-home-nav-card" onclick="dbSwitchTab('shots')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">Shot Tracker</span>
-            <span class="db-home-nav-sub">Log your shooting</span>
+          <div class="ke-pb-item">
+            <div class="ke-pb-icon">&#x1F3AF;</div>
+            <div class="ke-pb-info">
+              <div class="ke-pb-name">Volume King</div>
+              <div class="ke-pb-detail">500 Made 3-Pointers</div>
+              <div class="ke-pb-meta">MILESTONE REACHED · 3D AGO</div>
+            </div>
           </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
-        <button class="db-home-nav-card" onclick="dbSwitchTab('summary')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">Weekly Summary</span>
-            <span class="db-home-nav-sub">AI performance report</span>
-          </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
-        <button class="db-home-nav-card" onclick="dbSwitchTab('coach')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">AI Coach</span>
-            <span class="db-home-nav-sub">Get personalized tips</span>
-          </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
-        <button class="db-home-nav-card" onclick="dbSwitchTab('moves')">
-          <span class="db-home-nav-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </span>
-          <div class="db-home-nav-text">
-            <span class="db-home-nav-title">Pro Moves</span>
-            <span class="db-home-nav-sub">Learn new techniques</span>
-          </div>
-          <span class="db-home-nav-arrow">&rsaquo;</span>
-        </button>
+        </div>
       </div>
+
+      <!-- Spacer for bottom nav -->
+      <div style="height:80px"></div>
 
     </div><!-- /db-panel-home -->
 
@@ -1552,49 +1474,197 @@
     <!-- ── TAB: WORKOUTS ── -->
     <div class="db-panel" id="db-panel-workouts">
 
-      <!-- Header -->
-      <div class="workouts-header">
-        <div>
-          <div class="workouts-header-title">Pre-Built Workouts</div>
-          <div class="workouts-header-sub">25 curated training sessions — click a workout to see the drills inside and select which ones to do.</div>
-        </div>
-        <div class="workouts-header-stats">
-          <div class="workouts-stat">
-            <div class="workouts-stat-num">25</div>
-            <div class="workouts-stat-label">Workouts</div>
-          </div>
-          <div class="workouts-stat">
-            <div class="workouts-stat-num">200+</div>
-            <div class="workouts-stat-label">Total Drills</div>
-          </div>
-          <div class="workouts-stat">
-            <div class="workouts-stat-num">6</div>
-            <div class="workouts-stat-label">Categories</div>
-          </div>
-        </div>
+      <!-- Section Label -->
+      <div class="ke-section-title" style="margin:20px 0 12px">WORKOUTS</div>
+
+      <!-- Filter Chips -->
+      <div class="ke-hscroll" style="margin-bottom:16px;gap:8px">
+        <button class="ke-chip ke-chip--active" onclick="workoutsSetFilter('All',this)">All</button>
+        <button class="ke-chip" onclick="workoutsSetFilter('Shooting',this)">Shooting</button>
+        <button class="ke-chip" onclick="workoutsSetFilter('Ball Handling',this)">Handles</button>
+        <button class="ke-chip" onclick="workoutsSetFilter('Defense',this)">Defense</button>
+        <button class="ke-chip" onclick="workoutsSetFilter('Conditioning',this)">Conditioning</button>
+        <button class="ke-chip" onclick="workoutsSetFilter('Strength',this)">Strength</button>
       </div>
 
-      <!-- Filter Bar -->
-      <div class="workouts-filter-bar">
-        <button class="workouts-filter-btn active" onclick="workoutsSetFilter('All',this)">All</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Shooting',this)">🎯 Shooting</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Scoring',this)">⚡ Scoring</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Ball Handling',this)">🔄 Handles</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Defense',this)">🛡️ Defense</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Conditioning',this)">💪 Conditioning</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Strength',this)">🏋️ Strength</button>
-        <button class="workouts-filter-btn" onclick="workoutsSetFilter('Fundamentals',this)">⭐ Beginner</button>
+      <!-- Featured Workout Card -->
+      <div class="ke-workout-featured">
+        <div class="ke-workout-featured__gradient"></div>
+        <div class="ke-workout-featured__content">
+          <div class="ke-workout-featured__title">ELITE SHOOTING DRILL</div>
+          <div class="ke-workout-featured__subtitle">Master the pull-up jumper with 5 progressive stations</div>
+          <div class="ke-workout-featured__meta">45 MIN &middot; ADVANCED &middot; 12 DRILLS</div>
+          <button class="ke-workout-btn" onclick="workoutsOpenDetail && workoutsOpenDetail('elite-shooting')">START WORKOUT</button>
+        </div>
       </div>
 
       <!-- Workout Cards Grid -->
-      <div id="workouts-grid"></div>
+      <div class="ke-workout-grid" id="workouts-grid">
+
+        <!-- Quick Handles -->
+        <div class="ke-workout-card" data-category="Ball Handling">
+          <div class="ke-workout-icon" style="background:rgba(4,152,241,0.15);color:#0498F1">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">Quick Handles</div>
+            <div class="ke-workout-card__meta">15 MIN &middot; Beginner</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#0498F1;border-color:rgba(4,152,241,0.2);background:rgba(4,152,241,0.1)">Ball Handling</span>
+        </div>
+
+        <!-- Defensive Slides -->
+        <div class="ke-workout-card" data-category="Defense">
+          <div class="ke-workout-icon" style="background:rgba(52,211,153,0.15);color:#34D399">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">Defensive Slides</div>
+            <div class="ke-workout-card__meta">20 MIN &middot; Intermediate</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#34D399;border-color:rgba(52,211,153,0.2);background:rgba(52,211,153,0.1)">Defense</span>
+        </div>
+
+        <!-- 3PT Masterclass -->
+        <div class="ke-workout-card" data-category="Shooting">
+          <div class="ke-workout-icon" style="background:rgba(255,136,0,0.15);color:#FF8800">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">3PT Masterclass</div>
+            <div class="ke-workout-card__meta">30 MIN &middot; Advanced</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#FF8800;border-color:rgba(255,136,0,0.2);background:rgba(255,136,0,0.1)">Shooting</span>
+        </div>
+
+        <!-- Full Body Power -->
+        <div class="ke-workout-card" data-category="Strength">
+          <div class="ke-workout-icon" style="background:rgba(168,85,247,0.15);color:#A855F7">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M3 10h3v4H3z"/><path d="M18 10h3v4h-3z"/><path d="M8 8h8v8H8z"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">Full Body Power</div>
+            <div class="ke-workout-card__meta">40 MIN &middot; Intermediate</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#A855F7;border-color:rgba(168,85,247,0.2);background:rgba(168,85,247,0.1)">Strength</span>
+        </div>
+
+        <!-- Court Sprints -->
+        <div class="ke-workout-card" data-category="Conditioning">
+          <div class="ke-workout-icon" style="background:rgba(239,68,68,0.15);color:#EF4444">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">Court Sprints</div>
+            <div class="ke-workout-card__meta">25 MIN &middot; Advanced</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#EF4444;border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.1)">Conditioning</span>
+        </div>
+
+        <!-- Finishing Package -->
+        <div class="ke-workout-card" data-category="Scoring">
+          <div class="ke-workout-icon" style="background:rgba(20,184,166,0.15);color:#14B8A6">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div class="ke-workout-card__info">
+            <div class="ke-workout-card__name">Finishing Package</div>
+            <div class="ke-workout-card__meta">35 MIN &middot; Intermediate</div>
+          </div>
+          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#14B8A6;border-color:rgba(20,184,166,0.2);background:rgba(20,184,166,0.1)">Scoring</span>
+        </div>
+
+      </div>
+
+      <!-- Bottom spacer for nav clearance -->
+      <div style="height:80px"></div>
 
     </div><!-- /workouts panel -->
 
     <!-- ── TAB: SHOT TRACKER ── -->
     <div class="db-panel" id="db-panel-shots">
 
-      <!-- AI Tracking Banner -->
+      <!-- KE: Stats & Analytics Section -->
+      <div class="ke-section-label" style="margin-top:16px;">STATS &amp; ANALYTICS</div>
+
+      <!-- Period Selector Chips -->
+      <div class="ke-chip-row">
+        <span class="ke-chip ke-chip--active" onclick="keStatsPeriod('week',this)">This Week</span>
+        <span class="ke-chip" onclick="keStatsPeriod('month',this)">This Month</span>
+        <span class="ke-chip" onclick="keStatsPeriod('all',this)">All Time</span>
+      </div>
+
+      <!-- Stats Overview Grid (2x2) -->
+      <div class="ke-stats-grid">
+        <div class="ke-stat-card">
+          <div class="ke-stat-number">67%</div>
+          <div class="ke-stat-label">Shooting %</div>
+          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +5.2%</div>
+        </div>
+        <div class="ke-stat-card">
+          <div class="ke-stat-number">24</div>
+          <div class="ke-stat-label">Sessions</div>
+          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +3</div>
+        </div>
+        <div class="ke-stat-card">
+          <div class="ke-stat-number">42 <span style="font-size:16px;font-weight:500;color:rgba(255,255,255,0.5)">min</span></div>
+          <div class="ke-stat-label">Avg Duration</div>
+          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +8 min</div>
+        </div>
+        <div class="ke-stat-card">
+          <div class="ke-stat-number">7 <span style="font-size:16px;font-weight:500;color:rgba(255,255,255,0.5)">days</span></div>
+          <div class="ke-stat-label">Streak</div>
+          <div class="ke-stat-trend ke-stat-trend--neutral">&#128293;</div>
+        </div>
+      </div>
+
+      <!-- Shooting Breakdown Card -->
+      <div class="ke-shooting-breakdown">
+        <div class="ke-shooting-breakdown__title">SHOOTING BREAKDOWN</div>
+        <div class="ke-shooting-breakdown__list">
+          <div class="ke-shooting-item">
+            <div class="ke-shooting-item__header">
+              <span class="ke-shooting-item__label">Paint</span>
+              <span class="ke-shooting-item__pct">72%</span>
+            </div>
+            <div class="ke-shooting-bar">
+              <div class="ke-shooting-fill ke-shooting-fill--paint" style="width:72%"></div>
+            </div>
+          </div>
+          <div class="ke-shooting-item">
+            <div class="ke-shooting-item__header">
+              <span class="ke-shooting-item__label">Mid-Range</span>
+              <span class="ke-shooting-item__pct">54%</span>
+            </div>
+            <div class="ke-shooting-bar">
+              <div class="ke-shooting-fill ke-shooting-fill--midrange" style="width:54%"></div>
+            </div>
+          </div>
+          <div class="ke-shooting-item">
+            <div class="ke-shooting-item__header">
+              <span class="ke-shooting-item__label">Three-Point</span>
+              <span class="ke-shooting-item__pct">41%</span>
+            </div>
+            <div class="ke-shooting-bar">
+              <div class="ke-shooting-fill ke-shooting-fill--three" style="width:41%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- KE: AI Shot Tracker Card -->
+      <div class="ke-ai-tracker">
+        <div class="ke-ai-tracker__header">
+          <div class="ke-ai-tracker__icon">&#128247;</div>
+          <div class="ke-ai-tracker__label">AI SHOT TRACKER</div>
+        </div>
+        <div class="ke-ai-tracker__sub">Analyze your shots with AI-powered detection</div>
+        <div class="ke-ai-tracker__btns">
+          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--primary" onclick="document.getElementById('ast-launch-btn').click()">&#128247; Live Camera</button>
+          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--secondary" onclick="document.getElementById('ast-upload-btn').click()">&#127916; Upload Video</button>
+        </div>
+      </div>
+
+      <!-- AI Tracking Banner (hidden by KE, preserved for JS compatibility) -->
       <div class="ast-launch-card">
         <div class="ast-launch-icon">📷</div>
         <div class="ast-launch-text">
@@ -1810,6 +1880,9 @@
       <!-- ── AI Shot Analysis Feedback Panel ── -->
       <div class="sa-feedback-wrap" id="st-ai-feedback" style="display:none;"></div>
 
+      <!-- Bottom spacer -->
+      <div class="ke-shots-spacer"></div>
+
     </div><!-- /shots panel -->
 
     <!-- ── TAB: PRO MOVES ── -->
@@ -1823,61 +1896,130 @@
 
     <!-- ── TAB: ARCHETYPE ── -->
     <div class="db-panel" id="db-panel-archetype">
-      <div class="at-layout">
+      <!-- Hidden legacy element for JS compatibility -->
+      <div id="at-result" style="display:none"></div>
 
-        <!-- Input Form -->
-        <div class="at-card">
-          <div class="at-card-title">Discover Your Basketball Archetype</div>
-          <div class="at-card-sub">Enter your physical profile and playstyle — the engine analyzes your inputs and assigns your basketball archetype with personalized training.</div>
-
-          <div class="at-error" id="at-error"></div>
-
-          <div class="at-field">
-            <label class="at-label">Height (inches)</label>
-            <input class="at-input" id="at-height" type="number" min="48" max="96" placeholder="e.g. 74" />
-          </div>
-
-          <div class="at-row-2">
-            <div class="at-field">
-              <label class="at-label">Position</label>
-              <select class="at-select" id="at-position">
-                <option value="" disabled selected>Select position</option>
-                <option value="PG">PG — Point Guard</option>
-                <option value="SG">SG — Shooting Guard</option>
-                <option value="SF">SF — Small Forward</option>
-                <option value="PF">PF — Power Forward</option>
-                <option value="C">C — Center</option>
-              </select>
-            </div>
-            <div class="at-field">
-              <label class="at-label">Playstyle</label>
-              <select class="at-select" id="at-playstyle">
-                <option value="" disabled selected>Select playstyle</option>
-                <option value="shooter">Shooter</option>
-                <option value="playmaker">Playmaker</option>
-                <option value="slasher">Slasher</option>
-                <option value="defender">Defender</option>
-                <option value="all-around">All-Around</option>
-              </select>
-            </div>
-          </div>
-
-          <button class="at-submit-btn" id="at-submit-btn">🧬 Analyze My Archetype</button>
+      <!-- 1. Profile Header Card -->
+      <div class="ke-profile-header">
+        <div class="ke-profile-avatar">T</div>
+        <div class="ke-profile-name">Tamir</div>
+        <div class="ke-profile-handle">@tamir_hoops</div>
+        <div class="ke-profile-badges">
+          <span class="ke-chip ke-chip--pro">PRO</span>
+          <span class="ke-chip">Level 42</span>
         </div>
-
-        <!-- Result -->
-        <div class="at-card">
-          <div class="at-result" id="at-result"></div>
-          <div class="at-empty" id="at-empty">
-            <div class="at-empty-icon">🧬</div>
-            <div class="at-empty-title">No Archetype Yet</div>
-            <div class="at-empty-text">Fill out the form and hit <strong style="color:var(--c-amber)">Analyze</strong> to discover your basketball archetype with tailored drills.</div>
-            <button class="db-generate-btn" onclick="document.getElementById('at-submit-btn').click()" style="width:auto;padding:10px 24px;margin:12px auto 0;display:inline-block;font-size:13px;">🧬 Analyze My Archetype</button>
-          </div>
-        </div>
-
+        <div class="ke-profile-member">Member since Jan 2024</div>
       </div>
-    </div><!-- /archetype panel -->
+
+      <!-- 2. Stats Summary Row -->
+      <div class="ke-profile-stats">
+        <div class="ke-profile-stat">
+          <div class="ke-profile-stat__value">186</div>
+          <div class="ke-profile-stat__label">Sessions</div>
+        </div>
+        <div class="ke-profile-stat">
+          <div class="ke-profile-stat__value">72%</div>
+          <div class="ke-profile-stat__label">Win Rate</div>
+        </div>
+        <div class="ke-profile-stat">
+          <div class="ke-profile-stat__value">21</div>
+          <div class="ke-profile-stat__label">Best Streak</div>
+        </div>
+      </div>
+
+      <!-- 3. Achievements Section -->
+      <div class="ke-section-label">ACHIEVEMENTS</div>
+      <div class="ke-hscroll" style="margin-bottom:16px">
+        <div class="ke-achievement-card">
+          <div class="ke-achievement-card__icon">&#127942;</div>
+          <div class="ke-achievement-card__title">500 Club</div>
+          <div class="ke-achievement-card__subtitle">500 shots made</div>
+        </div>
+        <div class="ke-achievement-card">
+          <div class="ke-achievement-card__icon">&#128293;</div>
+          <div class="ke-achievement-card__title">On Fire</div>
+          <div class="ke-achievement-card__subtitle">7-day streak</div>
+        </div>
+        <div class="ke-achievement-card">
+          <div class="ke-achievement-card__icon">&#127919;</div>
+          <div class="ke-achievement-card__title">Sharpshooter</div>
+          <div class="ke-achievement-card__subtitle">70%+ shooting</div>
+        </div>
+        <div class="ke-achievement-card">
+          <div class="ke-achievement-card__icon">&#9889;</div>
+          <div class="ke-achievement-card__title">Speed Demon</div>
+          <div class="ke-achievement-card__subtitle">Fastest drill time</div>
+        </div>
+        <div class="ke-achievement-card">
+          <div class="ke-achievement-card__icon">&#128170;</div>
+          <div class="ke-achievement-card__title">Iron Will</div>
+          <div class="ke-achievement-card__subtitle">30-day streak</div>
+        </div>
+      </div>
+
+      <!-- 4. Settings Menu -->
+      <div class="ke-section-label">SETTINGS</div>
+      <div class="ke-settings-list">
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#128100;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Edit Profile</div>
+            <div class="ke-list-item__subtitle">Update your info</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#127919;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Training Goals</div>
+            <div class="ke-list-item__subtitle">Customize targets</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#128276;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Notifications</div>
+            <div class="ke-list-item__subtitle">Manage alerts</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#127912;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Appearance</div>
+            <div class="ke-list-item__subtitle">Theme & display</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#128202;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Data & Privacy</div>
+            <div class="ke-list-item__subtitle">Export & delete</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+        <div class="ke-list-item">
+          <div class="ke-list-item__icon">&#10067;</div>
+          <div class="ke-list-item__content">
+            <div class="ke-list-item__title">Help & Support</div>
+            <div class="ke-list-item__subtitle">FAQ & contact</div>
+          </div>
+          <div class="ke-list-item__trailing">&#8250;</div>
+        </div>
+      </div>
+
+      <!-- 5. Sign Out Button -->
+      <button class="ke-signout-btn" onclick="signOut()">Sign Out</button>
+
+      <!-- 6. App Version Footer -->
+      <div class="ke-app-version">CourtIQ v2.0 &middot; Kinetic Elite</div>
+
+      <!-- 7. Bottom Spacer -->
+      <div style="height:80px"></div>
+
+    </div><!-- /archetype panel (Profile) -->
 
     <!-- ── TAB: SHOP ── -->
     <div class="db-panel" id="db-panel-shop">
@@ -2108,27 +2250,23 @@
     </div><!-- /db-main-inner -->
   </main><!-- /db-main -->
 
-  <!-- ═══ FLOATING BOTTOM NAV BAR (5 Main Tabs) ═══ -->
-  <nav class="glass-bottom-nav" id="glass-bottom-nav" role="navigation" aria-label="Main tabs">
-    <button class="glass-nav-tab active" data-main-tab="home" aria-label="Home">
-      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span class="glass-nav-label">Home</span>
+  <!-- Kinetic Elite Bottom Nav -->
+  <nav class="ke-bottom-nav" id="ke-bottom-nav">
+    <button class="ke-nav-item active" data-tab="home" onclick="dbSwitchTab('home',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+      <span>Dashboard</span>
     </button>
-    <button class="glass-nav-tab" data-main-tab="train" aria-label="Train">
-      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>
-      <span class="glass-nav-label">Train</span>
+    <button class="ke-nav-item" data-tab="workouts" onclick="dbSwitchTab('workouts',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
+      <span>Workouts</span>
     </button>
-    <button class="glass-nav-tab" data-main-tab="stats" aria-label="Stats">
-      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
-      <span class="glass-nav-label">Stats</span>
+    <button class="ke-nav-item" data-tab="shots" onclick="dbSwitchTab('shots',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Stats</span>
     </button>
-    <button class="glass-nav-tab" data-main-tab="coach" aria-label="Coach">
-      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-      <span class="glass-nav-label">Coach</span>
-    </button>
-    <button class="glass-nav-tab" data-main-tab="profile" aria-label="Profile">
-      <svg class="glass-nav-icon" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span class="glass-nav-label">Profile</span>
+    <button class="ke-nav-item" data-tab="archetype" onclick="dbSwitchTab('archetype',this)">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Profile</span>
     </button>
   </nav>
 
@@ -2826,6 +2964,16 @@
 <script src="features/shot-tracking/shotService.js" defer></script>
 <script src="features/shot-tracking/ShotTrackingScreen.js" defer></script>
 <script src="features/shot-tracking/index.js" defer></script>
+
+<!-- KE Stats period chip toggler -->
+<script>
+function keStatsPeriod(period, el) {
+  var row = el.parentElement;
+  var chips = row.querySelectorAll('.ke-chip');
+  chips.forEach(function(c) { c.classList.remove('ke-chip--active'); });
+  el.classList.add('ke-chip--active');
+}
+</script>
 
 <script>
 if ('serviceWorker' in navigator) {

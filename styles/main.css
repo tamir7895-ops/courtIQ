@@ -26,8 +26,8 @@
       --glass-bg:     rgba(22,25,33,0.7);
       --glass-border: rgba(255,255,255,0.08);
       --glass-blur:   20px;
-      --font-display:'Barlow Condensed', sans-serif;
-      --font-body:   'Barlow', sans-serif;
+      --font-display:'Lexend', 'Barlow Condensed', sans-serif;
+      --font-body:   'Lexend', 'Barlow', sans-serif;
       --transition:  0.25s cubic-bezier(0.4,0,0.2,1);
 
       /* ─── EXTENDED DESIGN SYSTEM ─────────────────────────────── */
