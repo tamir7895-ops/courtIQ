@@ -299,6 +299,11 @@
       if (sidebarBtn) sidebarBtn.classList.add('active');
     }
 
+    // Sync Kinetic Elite bottom nav active state
+    document.querySelectorAll('.ke-nav-item').forEach(function(navBtn) {
+      navBtn.classList.toggle('active', navBtn.getAttribute('data-tab') === id);
+    });
+
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('db-panel-' + id);
