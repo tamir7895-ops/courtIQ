@@ -539,8 +539,12 @@
     // Panel-specific init calls
     if (id === 'history') dbRenderHistory();
     if (id === 'calendar' && typeof calSetSource === 'function') {
-      calSetSource(typeof calSource !== 'undefined' ? calSource : 'coach',
-        document.getElementById('cal-src-' + (typeof calSource !== 'undefined' ? calSource : 'coach')));
+      // Auto-pick best source: prefer coach if output exists, fall back to log if sessions exist
+      var bestSrc = typeof calSource !== 'undefined' ? calSource : 'coach';
+      var hasCoachResult = typeof coachResult !== 'undefined' && coachResult !== null;
+      if (bestSrc === 'coach' && !hasCoachResult && dbSessions.length > 0) bestSrc = 'log';
+      var calSrcBtn = document.getElementById('cal-src-' + bestSrc);
+      calSetSource(bestSrc, calSrcBtn);
     }
     if (id === 'moves' && typeof movesInit === 'function' && !window._movesInitialized) {
       window._movesInitialized = true; movesInit();
@@ -699,7 +703,14 @@
     dbUpdateLabels();
     dbRenderSessions();
     if (typeof SFX !== 'undefined') SFX.success();
-    showToast('Session logged for ' + day + '!');
+
+    // Award XP for logging a session
+    var xpEarned = 25;
+    if (typeof XPSystem !== 'undefined' && XPSystem.addXP) {
+      try { XPSystem.addXP(xpEarned, 'Session logged'); } catch(e) {}
+    }
+
+    showToast('Session logged for ' + day + '! +' + xpEarned + ' XP');
   }
 
   /* ── chart helpers ── */
@@ -891,11 +902,16 @@
       const s = dbWeekStats(w);
       const isLatest = i === 0 && dbResult;
       const isInProgress = w._inProgress;
+      const hasSummary = !!w.summary_json;
+      const clickAttr = hasSummary ? ` onclick="dbLoadWeekSummary('${sanitize(String(w.id))}')" style="cursor:pointer"` : '';
       return `
-        <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : isInProgress ? 'border-color:rgba(76,163,255,0.28)' : ''}">
+        <div class="db-history-card"${clickAttr} style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : isInProgress ? 'border-color:rgba(76,163,255,0.28)' : ''}">
           <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : isInProgress ? 'background:linear-gradient(135deg,rgba(76,163,255,0.07) 0%,transparent 60%)' : ''}">
             <div class="db-history-week" style="color:${isLatest ? '#f5a623' : isInProgress ? '#4ca3ff' : 'var(--c-white)'}">${sanitize(w.week)}${isLatest ? ' <span style="font-size:13px;font-weight:400;">\u00b7 Latest</span>' : isInProgress ? ' <span style="font-size:13px;font-weight:400;">\u00b7 In Progress</span>' : ''}</div>
-            <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} session${w.days.length !== 1 ? 's' : ''}</div>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} session${w.days.length !== 1 ? 's' : ''}</div>
+              ${hasSummary ? '<span style="font-size:11px;font-weight:700;color:#f5a623;letter-spacing:0.05em;">View Summary \u2192</span>' : ''}
+            </div>
           </div>
           <div class="db-history-body">
             <div class="db-history-stats">
@@ -917,6 +933,15 @@
           </div>
         </div>`;
     }).join('');
+  }
+
+  /* ── load a past week's summary from history card click ── */
+  function dbLoadWeekSummary(weekId) {
+    const week = dbWeeks.find(w => String(w.id) === String(weekId));
+    if (!week || !week.summary_json) return;
+    dbResult = week.summary_json;
+    dbRenderSummary(dbResult);
+    dbSwitchTab('summary');
   }
 
   /* ── copy JSON ── */
