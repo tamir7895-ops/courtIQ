@@ -37,6 +37,20 @@ body.is-dashboard > *:not(script):not(style):not(link) {
   z-index: 1;
 }
 
+/* ── FIX: body-level overlays must stay fixed so they don't add to page scroll height ── */
+body.is-dashboard > .auth-overlay,
+body.is-dashboard > .profile-modal-overlay,
+body.is-dashboard > .mv-modal-overlay,
+body.is-dashboard > .nt-overlay,
+body.is-dashboard > .sts-overlay,
+body.is-dashboard > .ob-overlay,
+body.is-dashboard > .ac-overlay,
+body.is-dashboard > [class*="-overlay"],
+body.is-dashboard > [class*="-modal-overlay"] {
+  position: fixed !important;
+  inset: 0;
+}
+
 /* ── 2. UNIVERSAL GLASS CARD MIXIN ──────────────────────── */
 
 /* Glass effect for ALL card-like elements */
