@@ -2609,3 +2609,280 @@ body.is-dashboard #xp-gain-toast {
 body.is-dashboard #streak-toast {
   display: flex !important;
 }
+
+
+/* ─── 44. NIGHT TRAINING OVERLAY ────────────────────────────────────────── */
+
+/* Backdrop */
+.nt-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.nt-overlay.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Modal card */
+.nt-modal {
+  position: relative;
+  width: 100%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: var(--ks-surface, #131313);
+  border: 1px solid var(--ks-white-5, rgba(255,255,255,0.05));
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,107,0,0.12);
+  transform: translateY(24px) scale(0.97);
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.nt-overlay.active .nt-modal {
+  transform: translateY(0) scale(1);
+}
+
+/* Modal header */
+.nt-modal-header {
+  position: relative;
+  padding: 28px 28px 20px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--ks-white-5, rgba(255,255,255,0.05));
+}
+
+/* Star field */
+.nt-stars {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.nt-star {
+  position: absolute;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: #ffffff;
+  opacity: 0.1;
+  transition: opacity 0.6s ease;
+}
+
+/* Badge */
+.nt-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 107, 0, 0.15);
+  color: var(--ks-primary, #ff6b00);
+  border: 1px solid rgba(255, 107, 0, 0.3);
+  border-radius: 999px;
+  font-family: var(--ks-font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  margin-bottom: 12px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Title */
+.nt-title {
+  font-family: var(--ks-font-headline, 'Lexend', sans-serif);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ks-text, #e5e2e1);
+  line-height: 1.2;
+  margin-bottom: 6px;
+  position: relative;
+  z-index: 1;
+}
+
+/* Subtitle */
+.nt-subtitle {
+  font-family: var(--ks-font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.875rem;
+  color: var(--ks-text-muted, #a1a1aa);
+  line-height: 1.5;
+  position: relative;
+  z-index: 1;
+}
+
+/* Close button */
+.nt-close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--ks-white-5, rgba(255,255,255,0.05));
+  background: var(--ks-white-5, rgba(255,255,255,0.05));
+  color: var(--ks-text-muted, #a1a1aa);
+  font-size: 0.85rem;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s;
+}
+
+.nt-close:hover {
+  background: rgba(255, 107, 0, 0.15);
+  color: var(--ks-primary, #ff6b00);
+  border-color: rgba(255, 107, 0, 0.3);
+}
+
+/* Modal body */
+.nt-body {
+  padding: 20px 28px 28px;
+}
+
+/* Drill grid */
+.nt-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .nt-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Drill card */
+.nt-drill-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--ks-white-5, rgba(255,255,255,0.05));
+  border: 1px solid var(--ks-white-5, rgba(255,255,255,0.05));
+  border-radius: var(--ks-radius, 1rem);
+  padding: 14px 12px;
+  transition: background 0.2s, border-color 0.2s, transform 0.15s;
+  cursor: default;
+}
+
+.nt-drill-card:hover {
+  background: rgba(255, 107, 0, 0.07);
+  border-color: rgba(255, 107, 0, 0.2);
+  transform: translateY(-2px);
+}
+
+/* Drill icon */
+.nt-drill-icon {
+  font-size: 1.75rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* Drill info */
+.nt-drill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.nt-drill-name {
+  font-family: var(--ks-font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--ks-text, #e5e2e1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nt-drill-desc {
+  font-family: var(--ks-font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.75rem;
+  color: var(--ks-text-muted, #a1a1aa);
+  margin-top: 2px;
+}
+
+/* Drill meta (category + duration) */
+.nt-drill-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.nt-drill-cat {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--ks-primary, #ff6b00);
+  background: rgba(255, 107, 0, 0.12);
+  border: 1px solid rgba(255, 107, 0, 0.25);
+  border-radius: 999px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.nt-drill-dur {
+  font-size: 0.72rem;
+  color: var(--ks-text-muted, #a1a1aa);
+  white-space: nowrap;
+}
+
+/* Footer */
+.nt-footer {
+  text-align: center;
+  padding-top: 4px;
+}
+
+/* Totals */
+.nt-totals {
+  font-family: var(--ks-font-body, 'Plus Jakarta Sans', sans-serif);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--ks-primary, #ff6b00);
+  margin-bottom: 16px;
+}
+
+/* Start button */
+.nt-start-btn {
+  display: block;
+  width: 100%;
+  padding: 14px 24px;
+  background: var(--ks-primary, #ff6b00);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--ks-radius-xl, 3rem);
+  font-family: var(--ks-font-headline, 'Lexend', sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.nt-start-btn:hover {
+  background: #ff8f33;
+  transform: scale(1.02);
+}
+
+.nt-start-btn:active {
+  transform: scale(0.98);
+}
