@@ -398,6 +398,15 @@
 
     init: function () {
       var self = this;
+
+      // Model already loaded — reset only runtime state, keep detector type
+      if (self.model) {
+        self.tracker = createTracker();
+        self._mlMissCount = 0;
+        self._frameCount = 0;
+        return Promise.resolve(true);
+      }
+
       self.tracker = createTracker();
       self._mlFailed = false;
       self._colorOnlyMode = false;
@@ -411,13 +420,18 @@
         self._ctx = self._canvas.getContext('2d', { willReadFrequently: true });
       }
 
-      if (self.model) return Promise.resolve(true);
+      // Guard: if a load is already in progress, return the same promise
+      if (self._loadingPromise) return self._loadingPromise;
 
       self._setStatus('loading');
 
-      return new Promise(function (resolve) {
-        self._tryLoadModel(resolve);
+      self._loadingPromise = new Promise(function (resolve) {
+        self._tryLoadModel(function (result) {
+          self._loadingPromise = null;  // clear guard when done
+          resolve(result);
+        });
       });
+      return self._loadingPromise;
     },
 
     _tryLoadModel: function (resolve) {
@@ -436,7 +450,8 @@
       var modelPath = 'models/basketball_yolox_tiny.onnx';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['wasm'],
-        graphOptimizationLevel: 'all'
+        graphOptimizationLevel: 'basic',
+        executionMode: 'sequential'
       }).then(function (session) {
         self.model = session;
         self._detectorType = 'yolox';
