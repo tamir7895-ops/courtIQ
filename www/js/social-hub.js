@@ -283,6 +283,7 @@
     }
 
     renderLeaderboard();
+    updateMyRank();
   }
 
   function demoBoardData() {
@@ -314,6 +315,36 @@
   window.shFilterLeaderboard = function () { renderLeaderboard(); };
   window.shRefreshLeaderboard = function () { lbLoaded = false; loadLeaderboard(); };
 
+  /* Wire GLOBAL/LOCAL toggle buttons */
+  window.shToggleGlobal = function () {
+    var sel = document.getElementById('sh-lb-country');
+    if (sel) sel.value = 'All';
+    renderLeaderboard();
+  };
+  window.shToggleLocal = function () {
+    var ob = {};
+    try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+    var sel = document.getElementById('sh-lb-country');
+    if (sel) sel.value = ob.country || 'All';
+    renderLeaderboard();
+  };
+
+  /* Update the glass rank badge with user's real global position */
+  function updateMyRank() {
+    if (!lbData.length) return;
+    var myXP = 0;
+    try { myXP = JSON.parse(localStorage.getItem('courtiq-xp') || '{}').xp || 0; } catch(e) {}
+    var myId = window.currentUser ? window.currentUser.id : null;
+    var rank = lbData.length + 1;
+    for (var i = 0; i < lbData.length; i++) {
+      if (myId && lbData[i].id === myId) { rank = i + 1; break; }
+      if (!myId && lbData[i].xp <= myXP) { rank = i + 1; break; }
+    }
+    if (!myId) rank = lbData.filter(function(r) { return r.xp > myXP; }).length + 1;
+    var el = document.querySelector('.glass-rank-number');
+    if (el) el.textContent = '#' + rank;
+  }
+
   function renderLeaderboard() {
     var list = document.getElementById('sh-lb-list');
     if (!list || !lbLoaded) return;
@@ -331,19 +362,22 @@
     }
 
     var myId = window.currentUser ? window.currentUser.id : null;
-    list.innerHTML = rows.map(function (row, i) {
+    var userInView = false;
+    var rowsHtml = rows.map(function (row, i) {
       var rank  = i + 1;
       var level = getLevel(row.xp);
       var inits = initials(row.name);
       var isMe  = myId && row.id === myId;
-      var rankStr = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      if (isMe) userInView = true;
+      var medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49'];
+      var rankStr = rank <= 3 ? medals[rank] : String(rank);
       var rankCls = rank <= 3 ? 'sh-lb-rank-' + rank : '';
       return '<div class="sh-lb-row' + (isMe ? ' sh-me' : '') + '">' +
         '<div class="sh-lb-rank ' + rankCls + '">' + rankStr + '</div>' +
         '<div class="sh-lb-avatar">' + inits + '</div>' +
         '<div class="sh-lb-info">' +
           '<div class="sh-lb-name">' + esc(row.name) + (isMe ? '<span class="sh-me-tag">YOU</span>' : '') + '</div>' +
-          '<div class="sh-lb-sub">' + level.icon + ' ' + level.name + (row.country ? ' · ' + esc(row.country) : '') + '</div>' +
+          '<div class="sh-lb-sub">' + level.icon + ' ' + level.name + (row.country ? ' \u00b7 ' + esc(row.country) : '') + '</div>' +
         '</div>' +
         '<div class="sh-lb-xp">' +
           '<div class="sh-lb-xp-val">' + row.xp.toLocaleString() + '</div>' +
@@ -351,6 +385,34 @@
         '</div>' +
       '</div>';
     }).join('');
+
+    /* Pin user at bottom when not in visible top 20 */
+    var pinnedHtml = '';
+    if (!userInView && myId) {
+      var myXP2 = 0;
+      try { myXP2 = JSON.parse(localStorage.getItem('courtiq-xp') || '{}').xp || 0; } catch(e2) {}
+      var myName2 = 'You';
+      var nEl = document.getElementById('db-sidebar-name');
+      if (nEl && nEl.textContent && nEl.textContent !== 'Player') myName2 = nEl.textContent;
+      var myLevel2 = getLevel(myXP2);
+      var myRank2  = lbData.filter(function(r) { return r.xp > myXP2; }).length + 1;
+      pinnedHtml =
+        '<div style="text-align:center;padding:6px 0;color:rgba(229,226,225,0.3);font-size:11px">&#8226; &#8226; &#8226;</div>' +
+        '<div class="sh-lb-row sh-me" style="border:1px solid rgba(255,182,147,0.3)">' +
+          '<div class="sh-lb-rank">' + myRank2 + '</div>' +
+          '<div class="sh-lb-avatar">' + initials(myName2) + '</div>' +
+          '<div class="sh-lb-info">' +
+            '<div class="sh-lb-name">' + esc(myName2) + '<span class="sh-me-tag">YOU</span></div>' +
+            '<div class="sh-lb-sub">' + myLevel2.icon + ' ' + myLevel2.name + '</div>' +
+          '</div>' +
+          '<div class="sh-lb-xp">' +
+            '<div class="sh-lb-xp-val">' + myXP2.toLocaleString() + '</div>' +
+            '<div class="sh-lb-xp-label">XP</div>' +
+          '</div>' +
+        '</div>';
+    }
+
+    list.innerHTML = rowsHtml + pinnedHtml;
   }
 
   /* ══════════════════════════════════════════════════════════════
