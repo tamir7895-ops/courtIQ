@@ -23,6 +23,46 @@
     window.currentUser = session.user;
     window.currentSession = session;
 
+    // ── Kinetic Stitch UI — populate live user data ──────────────────────
+    (function ksPopulateUser() {
+      const u = session.user;
+      const firstName  = u.user_metadata?.first_name || '';
+      const lastName   = u.user_metadata?.last_name  || '';
+      const email      = u.email || '';
+      const fullName   = [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0] || 'Player';
+      const displayName = firstName || fullName;
+
+      // Hero title (Home panel)
+      const heroName = document.getElementById('ke-player-name');
+      if (heroName) heroName.textContent = displayName;
+
+      // Profile panel full name
+      const profileName = document.getElementById('ks-profile-full-name');
+      if (profileName) profileName.textContent = fullName;
+
+      // Settings email
+      const profileEmail = document.getElementById('ks-profile-email');
+      if (profileEmail) profileEmail.textContent = email || '—';
+
+      // Header avatar: replace AI image with initials if no real avatar
+      const avatarWrap = document.getElementById('ks-header-avatar');
+      const avatarImg  = document.getElementById('ks-header-avatar-img');
+      if (avatarWrap && avatarImg) {
+        const initials = fullName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
+        // Use Google avatar URL if available, else show initials circle
+        const googlePic = u.user_metadata?.avatar_url || u.user_metadata?.picture || '';
+        if (googlePic) {
+          avatarImg.src = googlePic;
+        } else {
+          avatarImg.style.display = 'none';
+          const span = document.createElement('span');
+          span.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:var(--ks-font-headline);font-size:14px;font-weight:700;color:#fff;letter-spacing:0.05em';
+          span.textContent = initials;
+          avatarWrap.appendChild(span);
+        }
+      }
+    })();
+
     // Update sidebar user info
     const sidebarName = document.getElementById('db-sidebar-name');
     const sidebarAvatar = document.getElementById('db-sidebar-avatar');
@@ -307,7 +347,17 @@
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('db-panel-' + id);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+      panel.classList.add('active');
+      // Restart ks-reveal-up animations (CSS animations don't fire on hidden panels)
+      setTimeout(() => {
+        panel.querySelectorAll('.ks-reveal-up').forEach(el => {
+          el.style.animationName = 'none';
+          void el.offsetHeight; // force reflow
+          el.style.animationName = '';
+        });
+      }, 16);
+    }
 
     // Update breadcrumb
     // Show/hide context row (only for log panel)

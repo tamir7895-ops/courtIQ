@@ -212,6 +212,11 @@ body.is-dashboard .ke-bottom-nav {
   animation: ks-revealUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards;
   opacity: 0;
 }
+/* When reveal-up and glow-pulse coexist, combine both animations */
+.ks-reveal-up.ks-glow-pulse {
+  animation: ks-revealUp 0.8s cubic-bezier(0.23, 1, 0.32, 1) forwards,
+             ks-glowPulse 4s 0.9s infinite alternate;
+}
 
 .ks-bar-grow {
   animation: ks-barGrow 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -1779,6 +1784,20 @@ body.is-dashboard .ke-bottom-nav {
   justify-content: center;
   text-align: center;
   min-height: 400px;
+  background: rgba(255,107,0,0.07) !important;
+  border: 1px solid rgba(255,107,0,0.2) !important;
+  position: relative;
+  overflow: hidden;
+}
+.ks-goal-card::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 180px;
+  height: 180px;
+  background: radial-gradient(circle, rgba(255,107,0,0.18) 0%, transparent 70%);
+  pointer-events: none;
 }
 
 .ks-goal-number {
@@ -2059,6 +2078,32 @@ body.is-dashboard .st-submit-btn {
   text-transform: uppercase;
   letter-spacing: 0.1em;
 }
+
+
+/* ─── 36. INTERACTIVITY — cursor + hover for all clickable elements ──────── */
+
+.ks-stat-card                { cursor: pointer; }
+.ks-stat-card:hover          { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.4), 0 0 20px rgba(255,107,0,0.12); }
+
+.ks-insight-card             { cursor: pointer; }
+.ks-insight-card:hover       { background: var(--ks-surface-high) !important; transform: translateY(-2px); }
+
+.ks-activity-item            { cursor: pointer; }
+
+.ks-settings-item            { cursor: pointer; }
+
+.ks-featured                 { cursor: pointer; }
+.ks-hero-card                { cursor: pointer; }
+.ks-hero-card:hover          { filter: brightness(1.05); }
+
+.ks-glass.ks-kinetic-hover   { cursor: pointer; }
+
+/* View Analytics / section links */
+.ks-section-link             { cursor: pointer; }
+
+/* Trophy case tappable */
+.ks-trophy-item:not(.ks-trophy-item--locked) { cursor: pointer; }
+.ks-trophy-item:not(.ks-trophy-item--locked):hover { transform: scale(1.08); }
 
 
 /* ─── 35. RESPONSIVE FINE-TUNING ───────────────────────────────────────── */
