@@ -1715,3 +1715,141 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
 
   window.TheLabSystem = { render: init };
 })();
+
+// ── PROFILE SYSTEM ─────────────────────────────────────────────────────────
+(function ProfileSystem() {
+  var POSITION_MAP = { PG:'Point Guard', SG:'Shooting Guard', SF:'Small Forward', PF:'Power Forward', C:'Center' };
+  var ARCH_BIO = {
+    scorer:      'An elite scorer with an unstoppable offensive arsenal and a deadly shooting touch.',
+    playmaker:   'A floor general who elevates teammates and controls the game with elite vision.',
+    defender:    'A lockdown defender anchoring the defensive end with intensity and high IQ.',
+    'two-way':   'Dominant on both ends of the floor — a versatile two-way force every team needs.',
+    'rim-runner':'An interior beast who controls the paint and changes the game at the rim.'
+  };
+
+  function loadXP() {
+    try { return JSON.parse(localStorage.getItem('courtiq-xp') || '{}'); } catch(e) { return {}; }
+  }
+  function loadOB() {
+    try { return JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) { return {}; }
+  }
+  function loadArch() {
+    try { var a = JSON.parse(localStorage.getItem('courtiq-archetype') || '{}'); return a.key || ''; } catch(e) { return ''; }
+  }
+
+  function renderHeader() {
+    var xpData = loadXP(), xp = xpData.xp || 0;
+    var level = (typeof XPSystem !== 'undefined' && XPSystem.getLevel) ? XPSystem.getLevel(xp) : { name: 'Rookie', icon: '\ud83c\udfc0' };
+    var ob = loadOB(), arch = loadArch();
+    var badge = document.getElementById('ks-profile-level-badge');
+    if (badge) badge.textContent = level.icon + ' ' + level.name;
+    var posTag = document.getElementById('ks-profile-position-tag');
+    if (posTag) {
+      var pos = ob.position ? (POSITION_MAP[ob.position.toUpperCase()] || ob.position) : (arch ? arch.charAt(0).toUpperCase() + arch.slice(1) : null);
+      posTag.textContent = pos || '\u2014';
+    }
+    var bioEl = document.getElementById('ks-profile-bio');
+    if (bioEl && ARCH_BIO[arch]) bioEl.textContent = ARCH_BIO[arch];
+  }
+
+  function renderQuickStats() {
+    var sessions = window.dbSessions || [];
+    var count = sessions.length;
+    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
+    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
+    var avgShots  = count ? (totalMade / count).toFixed(1) : '\u2014';
+    var fgPct     = totalAtt > 0 ? ((totalMade / totalAtt) * 100).toFixed(1) + '%' : '\u2014';
+    var v1 = document.getElementById('prof-stat1-val');
+    var v2 = document.getElementById('prof-stat2-val');
+    var v3 = document.getElementById('prof-stat3-val');
+    if (v1) v1.textContent = count || '\u2014';
+    if (v2) v2.textContent = avgShots;
+    if (v3) v3.textContent = fgPct;
+  }
+
+  function gradeFromFG(made, attempts) {
+    if (!attempts) return 'C';
+    var pct = made / attempts;
+    if (pct >= 0.70) return 'A+';
+    if (pct >= 0.60) return 'A';
+    if (pct >= 0.55) return 'A-';
+    if (pct >= 0.50) return 'B+';
+    if (pct >= 0.40) return 'B';
+    return 'C';
+  }
+
+  function relDate(isoStr) {
+    var days = Math.floor((Date.now() - new Date(isoStr)) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return days + ' days ago';
+  }
+
+  function renderActivity() {
+    var list = document.getElementById('ks-activity-list');
+    if (!list) return;
+    var sessions = (window.dbSessions || []).slice().reverse().slice(0, 3);
+    if (!sessions.length) {
+      list.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(229,226,225,0.4);font-size:13px">No sessions yet \u2014 complete a drill to see activity here</div>';
+      return;
+    }
+    list.innerHTML = sessions.map(function(s, i) {
+      var grade = gradeFromFG(s.made || 0, s.attempts || 0);
+      var gcls  = grade.charAt(0) === 'A' ? 'ks-activity-grade--a' : 'ks-activity-grade--b';
+      var hi    = i === 0 ? ' ks-activity-item--highlight' : '';
+      var name  = s.drill_name || s.type || 'Training Session';
+      var date  = s.created_at ? relDate(s.created_at) : 'Recent';
+      return '<div class="ks-activity-item' + hi + '">' +
+        '<div><div class="ks-activity-name">' + name + '</div>' +
+        '<div class="ks-activity-date">' + date + '</div></div>' +
+        '<div style="text-align:right">' +
+        '<div class="ks-activity-grade ' + gcls + '">' + grade + '</div>' +
+        '<div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>' +
+        '</div></div>';
+    }).join('');
+  }
+
+  function renderTrophies() {
+    var grid = document.getElementById('ks-trophy-grid');
+    if (!grid) return;
+    var sessions  = window.dbSessions || [];
+    var xp        = (loadXP().xp) || 0;
+    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
+    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
+    var bestFG    = totalAtt > 0 ? totalMade / totalAtt : 0;
+    var TROPHIES = [
+      { icon: 'workspace_premium', label: 'First Session',   unlocked: sessions.length >= 1  },
+      { icon: 'sports_basketball', label: 'Dedicated (10+)', unlocked: sessions.length >= 10 },
+      { icon: 'target',            label: 'Sniper Mode',     unlocked: bestFG >= 0.50        },
+      { icon: 'military_tech',     label: 'All-Star Rank',   unlocked: xp >= 600             }
+    ];
+    grid.innerHTML = TROPHIES.map(function(t) {
+      var cls  = t.unlocked ? 'ks-trophy-item' : 'ks-trophy-item ks-trophy-item--locked';
+      var icon = t.unlocked ? t.icon : 'lock';
+      return '<div class="' + cls + '">' +
+        '<span class="material-symbols-outlined">' + icon + '</span>' +
+        '<span class="ks-label" style="font-size:9px;line-height:1.3">' + t.label + '</span>' +
+        '</div>';
+    }).join('');
+  }
+
+  function init() {
+    renderHeader();
+    renderQuickStats();
+    renderActivity();
+    renderTrophies();
+  }
+
+  var _origP = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
+  if (_origP) {
+    window.dbSwitchTab = function(tab) {
+      _origP(tab);
+      if (tab === 'archetype') setTimeout(init, 100);
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.ProfileSystem = { render: init };
+})();
