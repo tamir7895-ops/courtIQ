@@ -330,7 +330,8 @@
   };
 })();
 
-/* ── AI Shot Tracker Panel — button handlers ─────────────────── */
+/* ── AI Shot Tracker Panel — court/notif handlers ────────────── */
+/* Camera/upload/stop are handled by ShotTrackingScreen.js         */
 (function () {
   'use strict';
 
@@ -341,71 +342,8 @@
     hs:   'HS: 3PT line at 19.75 ft, Court 50×84 ft'
   };
 
-  function _astToast(msg) {
-    if (typeof showToast === 'function') showToast(msg);
-  }
-
-  /* ── Camera / upload handlers ──────────────────────────────── */
-  function launchCamera() {
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      _astToast('Camera not available on this device');
-      return;
-    }
-    _astToast('Opening camera...');
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(function (stream) {
-        // Stop the stream immediately — real integration handled by ShotTracking module
-        stream.getTracks().forEach(function (t) { t.stop(); });
-        _astToast('Camera ready - AI tracking starting');
-      })
-      .catch(function () {
-        _astToast('Camera not available on this device');
-      });
-  }
-
-  function triggerUpload() {
-    var input = document.getElementById('ast-file-input');
-    if (input) input.click();
-  }
-
   /* ── Init ──────────────────────────────────────────────────── */
   function initASTHandlers() {
-    /* Live Camera button */
-    var launchBtn = document.getElementById('ast-launch-btn');
-    if (launchBtn) {
-      launchBtn.addEventListener('click', launchCamera);
-    }
-
-    /* Upload Video button */
-    var uploadBtn = document.getElementById('ast-upload-btn');
-    if (uploadBtn) {
-      uploadBtn.addEventListener('click', triggerUpload);
-    }
-
-    /* Hidden file input */
-    var fileInput = document.getElementById('ast-file-input');
-    if (fileInput) {
-      fileInput.addEventListener('change', function () {
-        var file = fileInput.files && fileInput.files[0];
-        if (file) {
-          _astToast('Video uploaded: ' + file.name + ' — AI analysis starting...');
-          fileInput.value = '';
-        }
-      });
-    }
-
-    /* Glass AI analysis button (same as launch) */
-    document.querySelectorAll('.glass-ai-analysis-btn').forEach(function (btn) {
-      btn.addEventListener('click', launchCamera);
-    });
-
-    /* Stop tracking button */
-    document.querySelectorAll('.glass-stop-tracking-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        _astToast('Tracking stopped');
-      });
-    });
-
     /* Court preset buttons */
     document.querySelectorAll('.ast-court-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
