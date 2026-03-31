@@ -4,36 +4,59 @@
 
 const DataService = {
 
+  /* ── Cache helper: Supabase-first with localStorage fallback ── */
+  _cache: function (key, data) {
+    try { localStorage.setItem('courtiq-cache-' + key, JSON.stringify({ data: data, ts: Date.now() })); } catch (e) {}
+  },
+  _getCached: function (key) {
+    try {
+      var raw = localStorage.getItem('courtiq-cache-' + key);
+      if (!raw) return null;
+      return JSON.parse(raw).data;
+    } catch (e) { return null; }
+  },
+
   /* ── Profile ─────────────────────────────────────────────── */
   async getProfile() {
-    const { data, error } = await sb
-      .from('profiles')
-      .select('*')
-      .eq('id', window.currentUser.id)
-      .single();
-    if (error) throw error;
-    return data;
+    try {
+      const { data, error } = await sb
+        .from('profiles')
+        .select('*')
+        .eq('id', window.currentUser.id)
+        .single();
+      if (error) throw error;
+      if (data) this._cache('profile', data);
+      return data;
+    } catch (e) {
+      console.warn('[DataService] getProfile fallback to cache:', e);
+      return this._getCached('profile');
+    }
   },
 
   async updateProfile(updates) {
     const { error } = await sb
       .from('profiles')
-      .upsert(
-        { id: window.currentUser.id, ...updates, updated_at: new Date().toISOString() },
-        { onConflict: 'id' }
-      );
+      .update({ ...updates, updated_at: new Date().toISOString() })
+      .eq('id', window.currentUser.id);
     if (error) throw error;
   },
 
   /* ── Training Weeks ──────────────────────────────────────── */
   async getWeeks() {
-    const { data, error } = await sb
-      .from('training_weeks')
-      .select('*, training_sessions(*)')
-      .eq('user_id', window.currentUser.id)
-      .order('week_number', { ascending: true });
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await sb
+        .from('training_weeks')
+        .select('*, training_sessions(*)')
+        .eq('user_id', window.currentUser.id)
+        .order('week_number', { ascending: true });
+      if (error) throw error;
+      var result = data || [];
+      this._cache('weeks', result);
+      return result;
+    } catch (e) {
+      console.warn('[DataService] getWeeks fallback to cache:', e);
+      return this._getCached('weeks') || [];
+    }
   },
 
   async createWeek(weekNumber, label) {
@@ -90,34 +113,44 @@ const DataService = {
   },
 
   /* ── User Data (JSONB blob — XP, archetype, onboarding) ── */
+  _saveQueue: Promise.resolve(),
+
   async getUserData() {
-    const { data, error } = await sb
-      .from('profiles')
-      .select('user_data')
-      .eq('id', window.currentUser.id)
-      .single();
-    if (error) throw error;
-    return data?.user_data || {};
+    try {
+      const { data, error } = await sb
+        .from('profiles')
+        .select('user_data')
+        .eq('id', window.currentUser.id)
+        .single();
+      if (error) throw error;
+      var result = data?.user_data || {};
+      this._cache('userData', result);
+      return result;
+    } catch (e) {
+      console.warn('[DataService] getUserData fallback to cache:', e);
+      return this._getCached('userData') || {};
+    }
   },
 
-  async saveUserData(patch) {
-    // Read current user_data from localStorage for merge — no extra round-trip
-    var existing = {};
-    try {
-      var raw = localStorage.getItem('_sb_user_data_cache');
-      if (raw) existing = JSON.parse(raw);
-    } catch(e) {}
-    var merged = Object.assign({}, existing, patch);
-
-    const { error } = await sb.from('profiles')
-      .upsert(
-        { id: window.currentUser.id, user_data: merged, updated_at: new Date().toISOString() },
-        { onConflict: 'id' }
-      );
-    if (error) throw error;
-
-    // Update local cache for next merge
-    try { localStorage.setItem('_sb_user_data_cache', JSON.stringify(merged)); } catch(e) {}
+  saveUserData(patch) {
+    // Queue saves sequentially to prevent read-modify-write races
+    this._saveQueue = this._saveQueue.then(async () => {
+      const { data: current, error: fetchErr } = await sb
+        .from('profiles')
+        .select('user_data')
+        .eq('id', window.currentUser.id)
+        .single();
+      if (fetchErr) throw fetchErr;
+      const merged = Object.assign({}, current?.user_data || {}, patch);
+      const { error } = await sb
+        .from('profiles')
+        .update({ user_data: merged, updated_at: new Date().toISOString() })
+        .eq('id', window.currentUser.id);
+      if (error) throw error;
+    }).catch(function (e) {
+      console.warn('[DataService] saveUserData failed:', e);
+    });
+    return this._saveQueue;
   },
 
   /* ── Shot Sessions ─────────────────────────────────────── */
@@ -141,13 +174,20 @@ const DataService = {
   },
 
   async getShotSessions(limit) {
-    const { data, error } = await sb
-      .from('shot_sessions')
-      .select('*')
-      .eq('user_id', window.currentUser.id)
-      .order('session_date', { ascending: false })
-      .limit(limit || 50);
-    if (error) throw error;
-    return data || [];
+    try {
+      const { data, error } = await sb
+        .from('shot_sessions')
+        .select('*')
+        .eq('user_id', window.currentUser.id)
+        .order('session_date', { ascending: false })
+        .limit(limit || 50);
+      if (error) throw error;
+      var result = data || [];
+      this._cache('shotSessions', result);
+      return result;
+    } catch (e) {
+      console.warn('[DataService] getShotSessions fallback to cache:', e);
+      return this._getCached('shotSessions') || [];
+    }
   },
 };

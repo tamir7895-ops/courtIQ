@@ -18,6 +18,30 @@
   border-radius: var(--r-lg);
   padding: 28px;
   box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.at-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.at-card:hover {
+  border-color: rgba(245,166,35,0.2);
+  box-shadow: var(--shadow-card), 0 0 20px rgba(245,166,35,0.04);
+}
+
+.at-card:hover::before {
+  opacity: 1;
 }
 
 .at-card-title {
@@ -228,6 +252,13 @@
   border-radius: var(--r-sm);
   font-size: 13px;
   color: var(--c-white);
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.at-drill-item:hover {
+  border-color: rgba(245,166,35,0.15);
+  background: rgba(255,255,255,0.06);
+  transform: translateX(2px);
 }
 
 .at-drill-icon {

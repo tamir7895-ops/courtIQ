@@ -127,5 +127,5 @@
         }, dur / steps);
       });
     }
-  }, { threshold:0.5 }).observe(document.querySelector('.stats-bar'));
+  }, { threshold:0.5 }).observe(document.querySelector('.stats-bar') || document.createElement('div'));
 

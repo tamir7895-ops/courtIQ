@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var TOTAL_STEPS = 7;
+  var TOTAL_STEPS = 5;
   var current = 1;
   var direction = 'forward';
   var data = {};
@@ -43,7 +43,11 @@
     document.querySelectorAll('.ob-step').forEach(function (s) {
       s.classList.remove('active', 'ob-exit');
     });
-    var step = document.getElementById('ob-step-' + n);
+
+    // Map logical step to HTML element ID
+    // Steps 1-4 map directly; step 5 shows the analysis loading (ob-step-6)
+    var htmlStepId = n <= 4 ? n : 6;
+    var step = document.getElementById('ob-step-' + htmlStepId);
     if (step) {
       step.classList.add('active');
       if (direction === 'back') {
@@ -55,8 +59,7 @@
 
     // Init step-specific features
     if (n === 3 && !radarChart) initRadar();
-    if (n === 5) initAvatar();
-    if (n === 6) runAnalysis();
+    if (n === 5) runAnalysis();
   }
 
   function nextStep() {
@@ -96,7 +99,7 @@
 
   var STEP_NAMES = [
     'Basic Info', 'Play Style', 'Skills', 'Goals',
-    'Your Avatar', 'AI Analysis', 'Scouting Report'
+    'Scouting Report'
   ];
 
   function updateProgress() {
@@ -125,17 +128,13 @@
 
     backBtn.style.display = current <= 1 ? 'none' : '';
 
-    if (current === 6) {
-      // Analysis step — hide nav
+    if (current === 5) {
+      // Analysis/Report step — hide nav during analysis, show finish after
       backBtn.style.display = 'none';
       nextBtn.style.display = 'none';
-    } else if (current === 7) {
-      backBtn.style.display = 'none';
-      nextBtn.style.display = '';
-      nextBtn.textContent = 'ENTER THE COURT \u2192';
     } else {
       nextBtn.style.display = '';
-      nextBtn.textContent = current === 5 ? 'ANALYZE MY GAME \u2192' : 'NEXT \u2192';
+      nextBtn.textContent = current === 4 ? 'ANALYZE MY GAME \u2192' : 'NEXT \u2192';
     }
   }
 
@@ -149,9 +148,7 @@
       case 2: return validatePlaystyle();
       case 3: return true; // sliders always valid
       case 4: return validateGoals();
-      case 5: return true; // avatar always valid
-      case 6: return true;
-      case 7: return true;
+      case 5: return true; // report
     }
     return true;
   }
@@ -222,8 +219,14 @@
       case 1:
         data.name = (document.getElementById('ob-name').value || '').trim();
         data.age = parseInt(document.getElementById('ob-age').value) || 0;
-        data.height = parseInt(document.getElementById('ob-height').value) || 72;
-        data.weight = parseInt(document.getElementById('ob-weight').value) || 0;
+        var rawH = parseInt(document.getElementById('ob-height').value) || 72;
+        var hUnit = document.getElementById('ob-height-unit');
+        data.heightUnit = hUnit ? hUnit.dataset.unit : 'in';
+        data.height = data.heightUnit === 'cm' ? Math.round(rawH / 2.54) : rawH;
+        var rawW = parseInt(document.getElementById('ob-weight').value) || 0;
+        var wUnit = document.getElementById('ob-weight-unit');
+        data.weightUnit = wUnit ? wUnit.dataset.unit : 'lbs';
+        data.weight = data.weightUnit === 'kg' ? Math.round(rawW / 0.4536) : rawW;
         var handBtn = document.querySelector('.ob-hand-btn.selected');
         data.hand = handBtn ? handBtn.dataset.hand : 'right';
         var posCard = document.querySelector('.ob-position-card.selected');
@@ -253,15 +256,18 @@
         });
         break;
 
+      /* Avatar customization moved to profile — set defaults */
       case 5:
-        data.avatar = {
-          skinTone: getPickerValue('skinTone') || AvatarBuilder.defaults.skinTone,
-          hairStyle: getPickerValue('hairStyle') || AvatarBuilder.defaults.hairStyle,
-          hairColor: getPickerValue('hairColor') || AvatarBuilder.defaults.hairColor,
-          beardStyle: getPickerValue('beardStyle') || AvatarBuilder.defaults.beardStyle,
-          bodyType: getPickerValue('bodyType') || AvatarBuilder.defaults.bodyType,
-          accessory: getPickerValue('accessory') || 'none'
-        };
+        if (!data.avatar) {
+          data.avatar = {
+            skinTone: 'edb98a',
+            hairStyle: 'shortFlat',
+            hairColor: '2c1b18',
+            beardStyle: 'none',
+            bodyType: 'athletic',
+            accessory: 'none'
+          };
+        }
         break;
     }
   }
@@ -340,38 +346,19 @@
     var container = document.getElementById('ob-avatar-container');
     if (!container) return;
 
-    var d = (typeof AvatarBuilder !== 'undefined') ? AvatarBuilder.defaults : {
-      skinTone: '#C68642', hairStyle: 'short', hairColor: '#1a1a1a',
-      beardStyle: 'none', bodyType: 'athletic'
-    };
-
     var cfg = {
-      skinTone: getPickerValue('skinTone') || d.skinTone,
-      hairStyle: getPickerValue('hairStyle') || d.hairStyle,
-      hairColor: getPickerValue('hairColor') || d.hairColor,
-      beardStyle: getPickerValue('beardStyle') || d.beardStyle,
-      bodyType: getPickerValue('bodyType') || d.bodyType,
+      skinTone: getPickerValue('skinTone') || 'edb98a',
+      hairStyle: getPickerValue('hairStyle') || 'shortFlat',
+      hairColor: getPickerValue('hairColor') || '2c1b18',
+      beardStyle: getPickerValue('beardStyle') || 'none',
+      bodyType: getPickerValue('bodyType') || 'athletic',
       accessory: getPickerValue('accessory') || 'none',
       position: data.position || 'SG'
     };
 
-    // Use 3D bridge
+    // Use DiceBear bridge
     if (typeof AvatarBridge !== 'undefined') {
-      // First render or update
-      if (container.querySelector('canvas')) {
-        AvatarBridge.update(container, cfg);
-      } else {
-        AvatarBridge.render(container, cfg, { width: 200, height: 280, interactive: true, animate: true });
-      }
-    } else if (typeof AvatarBuilder !== 'undefined') {
-      // Fallback: create canvas and draw 2D
-      if (!container.querySelector('canvas')) {
-        var canvas = document.createElement('canvas');
-        canvas.width = 200; canvas.height = 280;
-        container.innerHTML = '';
-        container.appendChild(canvas);
-      }
-      AvatarBuilder.draw(container.querySelector('canvas'), cfg);
+      AvatarBridge.render(container, cfg, { width: 200, height: 280 });
     }
   }
 
@@ -414,13 +401,21 @@
       XPSystem.grantXP(50, 'Scouting Report Unlocked');
     }
 
-    // Render report and go to step 7
+    // Render report in-place on step 5
     renderScoutingReport();
-    direction = 'forward';
-    current = 7;
-    updateProgress();
-    showStep(7);
-    updateNav();
+
+    // Hide loading, show report content
+    var loadingEl = document.getElementById('ob-step-6');
+    var reportEl = document.getElementById('ob-step-7');
+    if (loadingEl) loadingEl.classList.remove('active');
+    if (reportEl) reportEl.classList.add('active');
+
+    // Show finish button
+    var nextBtn = document.getElementById('ob-btn-next');
+    if (nextBtn) {
+      nextBtn.style.display = '';
+      nextBtn.textContent = 'ENTER THE COURT \u2192';
+    }
   }
 
   /* ═══════════════════════════════════════════════════════════
@@ -441,7 +436,7 @@
 
     // Header: avatar + name + archetype
     html += '<div class="ob-report-header">';
-    html += '<div class="ob-report-avatar"><div id="ob-report-avatar-container" class="avatar-3d-viewport" style="width:120px;height:168px"></div></div>';
+    html += '<div class="ob-report-avatar"><div id="ob-report-avatar-container" style="width:120px;height:120px;border-radius:50%;overflow:hidden;background:rgba(245,166,35,0.1);display:flex;align-items:center;justify-content:center;font-size:48px">🏀</div></div>';
     html += '<div class="ob-report-info">';
     html += '<div class="ob-report-name">' + esc(data.name || 'Player') + '</div>';
     html += '<div class="ob-report-archetype">' + (archetype ? archetype.icon + ' ' : '') + (archetype ? archetype.name : archetypeKey) + '</div>';
@@ -499,20 +494,22 @@
 
     container.innerHTML = html;
 
-    // Draw avatar on report
+    // Draw DiceBear avatar on report
     setTimeout(function () {
-      var reportContainer = document.getElementById('ob-report-avatar-container');
-      if (reportContainer && typeof AvatarBridge !== 'undefined') {
-        AvatarBridge.render(reportContainer, Object.assign({}, data.avatar || {}, { position: data.position }), { width: 120, height: 168, interactive: false, animate: true });
-      } else {
-        // Fallback to 2D canvas
-        var c = document.getElementById('ob-report-avatar-container');
-        if (c && typeof AvatarBuilder !== 'undefined') {
-          var canvas = document.createElement('canvas');
-          canvas.width = 120; canvas.height = 168;
-          c.innerHTML = '';
-          c.appendChild(canvas);
-          AvatarBuilder.draw(canvas, Object.assign({}, data.avatar || {}, { position: data.position }));
+      var reportEl = document.getElementById('ob-report-avatar-container');
+      if (reportEl) {
+        var avatarUrl = localStorage.getItem('courtiq_avatar_url');
+        if (!avatarUrl) {
+          try { var od = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); avatarUrl = od.dicebear_avatar_url; } catch(e) {}
+        }
+        if (avatarUrl && typeof AvatarCustomizer !== 'undefined' && AvatarCustomizer.injectAvatarIntoEl) {
+          AvatarCustomizer.injectAvatarIntoEl(reportEl, avatarUrl, '120px', '120px');
+        } else if (avatarUrl) {
+          var img = document.createElement('img');
+          img.src = avatarUrl; img.alt = 'Avatar';
+          img.style.cssText = 'width:120px;height:120px;object-fit:cover;border-radius:50%;object-position:center top;';
+          reportEl.textContent = '';
+          reportEl.appendChild(img);
         }
       }
     }, 50);
@@ -571,20 +568,8 @@
       DataService.saveUserData({
         onboarding_data: data,
         archetype: data.archetype || null,
-        avatar: data.avatar || null,
-        player_profile: {
-          position:    data.position || '',
-          height:      String(data.height || ''),
-          age:         String(data.age || ''),
-          skillLevel:  skillLevel,
-          primaryGoal: data.goals ? data.goals[0] : ''
-        }
+        avatar: data.avatar || null
       }).catch(function (e) { console.warn('Supabase onboarding sync error:', e); });
-
-      DataService.updateProfile({
-        first_name: data.name || '',
-        position:   data.position || ''
-      }).catch(function (e) { console.warn('Profile column upsert error:', e); });
     }
 
     // Close overlay
@@ -636,6 +621,52 @@
         btn.classList.add('selected');
       });
     });
+
+    // Unit toggles (height: in/cm, weight: lbs/kg)
+    var heightUnitBtn = document.getElementById('ob-height-unit');
+    var weightUnitBtn = document.getElementById('ob-weight-unit');
+    var heightInput = document.getElementById('ob-height');
+    var weightInput = document.getElementById('ob-weight');
+
+    if (heightUnitBtn && heightInput) {
+      heightUnitBtn.addEventListener('click', function () {
+        var cur = heightUnitBtn.dataset.unit;
+        var val = parseFloat(heightInput.value) || 0;
+        if (cur === 'in') {
+          heightUnitBtn.dataset.unit = 'cm';
+          heightUnitBtn.textContent = 'cm / in';
+          heightInput.placeholder = '188';
+          heightInput.min = '120'; heightInput.max = '250';
+          if (val) heightInput.value = Math.round(val * 2.54);
+        } else {
+          heightUnitBtn.dataset.unit = 'in';
+          heightUnitBtn.textContent = 'in / cm';
+          heightInput.placeholder = '74';
+          heightInput.min = '48'; heightInput.max = '96';
+          if (val) heightInput.value = Math.round(val / 2.54);
+        }
+      });
+    }
+
+    if (weightUnitBtn && weightInput) {
+      weightUnitBtn.addEventListener('click', function () {
+        var cur = weightUnitBtn.dataset.unit;
+        var val = parseFloat(weightInput.value) || 0;
+        if (cur === 'lbs') {
+          weightUnitBtn.dataset.unit = 'kg';
+          weightUnitBtn.textContent = 'kg / lbs';
+          weightInput.placeholder = '84';
+          weightInput.min = '30'; weightInput.max = '180';
+          if (val) weightInput.value = Math.round(val * 0.4536);
+        } else {
+          weightUnitBtn.dataset.unit = 'lbs';
+          weightUnitBtn.textContent = 'lbs / kg';
+          weightInput.placeholder = '185';
+          weightInput.min = '60'; weightInput.max = '400';
+          if (val) weightInput.value = Math.round(val / 0.4536);
+        }
+      });
+    }
 
     // Playstyle choices
     document.querySelectorAll('.ob-question').forEach(function (q) {

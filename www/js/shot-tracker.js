@@ -7,6 +7,7 @@
   'use strict';
 
   var LS_KEY = 'courtiq-shot-sessions';
+  var _shotWarningConfirmed = false;
 
   /* ── Data ─────────────────────────────────────────────────── */
   function load() {
@@ -77,20 +78,6 @@
       return;
     }
 
-    // Made cannot exceed attempted for each category
-    if (fgMade > fgMade + fgMissed && fgMade + fgMissed > 0) {
-      showError(errEl, 'FG made can\u2019t exceed total FG attempts.');
-      return;
-    }
-    if (threeMade > threeMade + threeMissed && threeMade + threeMissed > 0) {
-      showError(errEl, '3PT made can\u2019t exceed total 3PT attempts.');
-      return;
-    }
-    if (ftMade > ftMade + ftMissed && ftMade + ftMissed > 0) {
-      showError(errEl, 'FT made can\u2019t exceed total FT attempts.');
-      return;
-    }
-
     // Total shots cap
     if (totalAttempts > 500) {
       showError(errEl, 'Max 500 total shots per session. You entered ' + totalAttempts + '.');
@@ -99,13 +86,13 @@
 
     // Warn on unrealistic but still allow
     if (totalAttempts > 300) {
-      if (!window._shotWarningConfirmed) {
+      if (!_shotWarningConfirmed) {
         showError(errEl, 'That\u2019s ' + totalAttempts + ' total shots \u2014 are you sure? Click again to confirm.');
-        window._shotWarningConfirmed = true;
-        setTimeout(function () { window._shotWarningConfirmed = false; }, 10000);
+        _shotWarningConfirmed = true;
+        setTimeout(function () { _shotWarningConfirmed = false; }, 10000);
         return;
       }
-      window._shotWarningConfirmed = false;
+      _shotWarningConfirmed = false;
     }
 
     hideError(errEl);
@@ -134,9 +121,9 @@
     renderHistory(sessions);
     clearForm();
 
-    // Async sync to Supabase (non-blocking, write-through)
-    if (window.currentUser && typeof DataService !== 'undefined') {
-      DataService.addShotSession(session).catch(function () {});
+    // Async sync to Supabase (non-blocking, write-through, dedup by date)
+    if (window.currentUser && !window.courtiqGuest && typeof DataService !== 'undefined') {
+      DataService.addShotSession(session).catch(function (e) { console.warn('[ShotTracker] Sync failed:', e); });
     }
 
     // Sound effect
@@ -306,6 +293,15 @@
     });
   }
 
+  /* ── Expose globally BEFORE init so init can set ready=true ── */
+  window.ShotTracker = {
+    load: load,
+    addSession: addSession,
+    renderHistory: renderHistory,
+    ready: false
+  };
+  if (typeof CourtIQ !== 'undefined') CourtIQ.register('ShotTracker', window.ShotTracker);
+
   /* ── Init ──────────────────────────────────────────────────── */
   function init() {
     var btn = document.getElementById('st-submit-btn');
@@ -315,63 +311,13 @@
 
     // Load existing history
     renderHistory();
+    window.ShotTracker.ready = true;
+    document.dispatchEvent(new CustomEvent('courtiq:shotTrackerReady'));
   }
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
-  }
-
-  window.ShotTracker = {
-    load: load,
-    addSession: addSession,
-    renderHistory: renderHistory
-  };
-})();
-
-/* ── AI Shot Tracker Panel — court/notif handlers ────────────── */
-/* Camera/upload/stop are handled by ShotTrackingScreen.js         */
-(function () {
-  'use strict';
-
-  /* ── Court presets ─────────────────────────────────────────── */
-  var COURT_PRESETS = {
-    nba:  'NBA: 3PT line at 23.75 ft, Court 50×94 ft',
-    fiba: 'FIBA: 3PT line at 22.15 ft, Court 49.2×91.9 ft',
-    hs:   'HS: 3PT line at 19.75 ft, Court 50×84 ft'
-  };
-
-  /* ── Init ──────────────────────────────────────────────────── */
-  function initASTHandlers() {
-    /* Court preset buttons */
-    document.querySelectorAll('.ast-court-btn').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        document.querySelectorAll('.ast-court-btn').forEach(function (b) {
-          b.classList.remove('ast-court-active');
-        });
-        btn.classList.add('ast-court-active');
-        var preset = COURT_PRESETS[btn.dataset.preset] || '';
-        var infoEl = document.getElementById('ast-court-info');
-        if (infoEl && preset) infoEl.textContent = preset;
-      });
-    });
-
-    /* Training Reminders toggle */
-    var notifToggle = document.getElementById('ast-notif-toggle');
-    var notifOptions = document.getElementById('ast-notif-options');
-    if (notifToggle && notifOptions) {
-      // Set initial state
-      notifOptions.style.display = notifToggle.checked ? 'flex' : 'none';
-      notifToggle.addEventListener('change', function () {
-        notifOptions.style.display = notifToggle.checked ? 'flex' : 'none';
-      });
-    }
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initASTHandlers);
-  } else {
-    initASTHandlers();
   }
 })();

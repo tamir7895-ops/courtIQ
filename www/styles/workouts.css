@@ -75,6 +75,9 @@
   border-color: rgba(245,166,35,0.35);
   color: var(--c-amber);
 }
+.workouts-filter-btn.active {
+  box-shadow: 0 0 12px rgba(245,166,35,0.15);
+}
 
 /* Workout cards */
 #workouts-grid {
@@ -86,11 +89,28 @@
   background: var(--c-surface2);
   border: 1px solid var(--c-border);
   border-radius: var(--r-md);
+  position: relative;
   overflow: hidden;
-  transition: border-color 0.2s;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.wkt-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 .wkt-card:hover {
   border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+}
+.wkt-card:hover::before {
+  opacity: 1;
 }
 .wkt-card-header {
   display: flex;
@@ -148,12 +168,14 @@
   text-transform: uppercase;
   color: #0c0d0f;
   cursor: pointer;
-  transition: opacity 0.2s, transform 0.15s;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
   white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(245,166,35,0.25);
 }
 .wkt-start-btn:hover {
   opacity: 0.9;
   transform: translateY(-1px);
+  box-shadow: 0 6px 24px rgba(245,166,35,0.35);
 }
 .wkt-expand-arrow {
   font-size: 14px;
@@ -207,7 +229,8 @@
   padding: 10px 12px;
   background: rgba(255,255,255,0.02);
   border-radius: 8px;
-  border-left: 2px solid var(--c-amber-dim);
+  border-left: 3px solid rgba(245,166,35,0.3);
+  backdrop-filter: blur(4px);
 }
 .wkt-drills-list {
   display: flex;
@@ -223,11 +246,12 @@
   background: rgba(255,255,255,0.03);
   border: 1px solid rgba(255,255,255,0.05);
   border-radius: 10px;
-  transition: border-color 0.2s, background 0.2s;
+  transition: all 0.2s ease;
 }
 .wkt-drill-row:hover {
   background: rgba(255,255,255,0.06);
   border-color: rgba(245,166,35,0.15);
+  transform: translateX(2px);
 }
 .wkt-drill-check-wrap {
   position: relative;
@@ -334,6 +358,7 @@
   color: #0c0d0f;
   cursor: pointer;
   transition: opacity 0.2s, transform 0.15s;
+  box-shadow: 0 4px 16px rgba(245,166,35,0.25);
 }
 .wkt-footer-start-btn:hover {
   opacity: 0.9;
