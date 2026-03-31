@@ -1491,3 +1491,88 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
   })();
 
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
+
+  /* ══════════════════════════════════════════════════════════════
+     DAILY CHALLENGE SYSTEM — rotates every calendar day
+  ══════════════════════════════════════════════════════════════ */
+  (function DailyChallengeSystem() {
+    var CHALLENGES = [
+      { icon:'🎯', title:'Make 25 Mid-Range Shots',         sub:'+40 XP • Shooting Focus',        xp:40, tab:'drills',   filter:'shooting'  },
+      { icon:'⚡', title:'Complete 3 Ball Handling Drills', sub:'+30 XP • Unlocks streak bonus',   xp:30, tab:'drills',   filter:'dribbling' },
+      { icon:'🏀', title:'Log a Full Shooting Session',     sub:'+50 XP • New Record unlock',      xp:50, tab:'log',      filter:null        },
+      { icon:'🔥', title:'5 Defensive Footwork Drills',     sub:'+35 XP • Defense Boost',          xp:35, tab:'drills',   filter:'defense'   },
+      { icon:'💪', title:'Vertical Jump Test + 3 Drills',   sub:'+45 XP • Athleticism',            xp:45, tab:'log',      filter:null        },
+      { icon:'🏆', title:'Run the Full Weekly Workout',     sub:'+60 XP • Weekly Champion',        xp:60, tab:'workouts', filter:null        },
+      { icon:'🎪', title:'3 Court Vision Drills',           sub:'+30 XP • Game IQ Boost',          xp:30, tab:'drills',   filter:'gameiq'    },
+      { icon:'🚀', title:'Sprint Drill — Beat Your Time',   sub:'+40 XP • Speed Record',           xp:40, tab:'log',      filter:null        },
+      { icon:'🌙', title:'Night Training Session',          sub:'+55 XP • Night Warrior',          xp:55, tab:'home',     filter:'night'     },
+      { icon:'🎯', title:'50 Free Throws',                  sub:'+40 XP • Free Throw Pro',         xp:40, tab:'drills',   filter:'shooting'  },
+      { icon:'🏃', title:'Agility Ladder — 5 Rounds',       sub:'+35 XP • Agility Boost',          xp:35, tab:'drills',   filter:'defense'   },
+      { icon:'🔁', title:'Crossover + Euro-Step Combo',     sub:'+30 XP • Ball Magic',             xp:30, tab:'drills',   filter:'dribbling' },
+      { icon:'📊', title:'Log All 5 Stats Today',           sub:'+50 XP • Full Data Day',          xp:50, tab:'log',      filter:null        },
+      { icon:'🎪', title:'3-Point Shooting Marathon',       sub:'+45 XP • Perimeter King',         xp:45, tab:'drills',   filter:'shooting'  },
+      { icon:'🛡️', title:'On-Ball Defense — 20 Possessions', sub:'+35 XP • Lockdown',             xp:35, tab:'drills',   filter:'defense'   },
+      { icon:'🌟', title:'Generate AI Weekly Summary',      sub:'+20 XP • Insight Unlocked',       xp:20, tab:'log',      filter:null        },
+      { icon:'🏀', title:'Shoot 30 Catch-and-Shoot Attempts', sub:'+40 XP • Quick Release',       xp:40, tab:'drills',   filter:'shooting'  },
+      { icon:'⚡', title:'Full Dribble Workout — 45min',    sub:'+55 XP • Handles Elite',          xp:55, tab:'drills',   filter:'dribbling' },
+      { icon:'💡', title:'Study 2 Move Library Breakdowns', sub:'+30 XP • Film Study',             xp:30, tab:'moves',    filter:null        },
+      { icon:'🔥', title:'7-Day Streak Challenge',          sub:'+70 XP • Streak Legend',          xp:70, tab:'log',      filter:null        },
+    ];
+
+    function getTodayChallenge() {
+      return CHALLENGES[Math.floor(Date.now() / 86400000) % CHALLENGES.length];
+    }
+    function todayKey() {
+      var d = new Date();
+      return 'ciq-dc-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
+    }
+    function isDoneToday() { return localStorage.getItem(todayKey()) === '1'; }
+    function markDone()    { localStorage.setItem(todayKey(), '1'); }
+
+    function render() {
+      var ch = getTodayChallenge(), done = isDoneToday();
+      var iconEl  = document.querySelector('.ks-home-challenge-icon');
+      var labelEl = document.querySelector('.ks-home-challenge-label');
+      var titleEl = document.querySelector('.ks-home-challenge-title');
+      var subEl   = document.querySelector('.ks-home-challenge-sub');
+      var ctaEl   = document.querySelector('.ks-home-challenge-cta');
+      var banner  = document.querySelector('.ks-home-challenge');
+      if (!banner) return;
+      if (iconEl)  iconEl.textContent  = ch.icon;
+      if (titleEl) titleEl.textContent = ch.title;
+      if (subEl)   subEl.textContent   = ch.sub;
+      if (labelEl) labelEl.textContent = done ? '✅ Completed Today!' : 'Daily Challenge';
+      if (done) {
+        banner.style.opacity = '0.6';
+        if (ctaEl) { ctaEl.textContent = '✓ Done'; ctaEl.disabled = true; }
+      } else {
+        banner.style.opacity = '';
+        if (ctaEl) { ctaEl.textContent = 'Start'; ctaEl.disabled = false; }
+      }
+      banner.onclick = function() { startChallenge(ch); };
+      if (ctaEl) ctaEl.onclick = function(e) { e.stopPropagation(); startChallenge(ch); };
+    }
+
+    function startChallenge(ch) {
+      if (isDoneToday()) return;
+      if (ch.tab === 'home' && ch.filter === 'night') {
+        if (typeof NightTraining !== 'undefined') NightTraining.open();
+      } else if (typeof dbSwitchTab === 'function') {
+        dbSwitchTab(ch.tab);
+        if (ch.filter && ch.tab === 'drills') {
+          setTimeout(function() {
+            if (typeof drillsSetFilter === 'function') drillsSetFilter(ch.filter);
+          }, 250);
+        }
+      }
+      markDone();
+      if (typeof XPSystem !== 'undefined' && XPSystem.award) XPSystem.award(ch.xp, 'Daily Challenge');
+      render();
+    }
+
+    function init() { render(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+
+    window.DailyChallengeSystem = { render: render, startChallenge: startChallenge, getTodayChallenge: getTodayChallenge };
+  })();
