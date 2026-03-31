@@ -86,11 +86,21 @@
     statsDiv.appendChild(attBlock);
     statsDiv.appendChild(pctWrap);
 
-    /* Mode badge */
+    /* Mode badge — show correct initial state based on pre-warm status */
     var badge = document.createElement('div');
     badge.id = 'sts-mode-badge';
     badge.className = 'sts-mode-badge';
-    badge.textContent = 'Loading AI\u2026';
+    var _eng = window.ShotDetectionEngine;
+    if (_eng && _eng.model) {
+      badge.textContent = '\uD83D\uDD34 LIVE';
+      badge.className = 'sts-mode-badge sts-mode-badge--detecting';
+    } else if (_eng && _eng._loadingPromise) {
+      badge.textContent = '\u23F3 Loading AI\u2026';
+      badge.className = 'sts-mode-badge sts-mode-badge--loading';
+    } else {
+      badge.textContent = '\u23F3 Loading AI\u2026';
+      badge.className = 'sts-mode-badge sts-mode-badge--loading';
+    }
 
     /* Stop button */
     var stopBtn = document.createElement('button');
@@ -553,10 +563,33 @@
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', _wireButtons);
-  } else {
+  /* ── Pre-warm the YOLOX model in the background ─────────── */
+  /* Start loading the 19MB ONNX model as soon as the page is ready,   */
+  /* so by the time the user taps Upload/Camera it's already in memory. */
+  function _preWarmModel() {
+    var engine = window.ShotDetectionEngine;
+    if (!engine || engine.model) return;   // already loaded or unavailable
+    /* Run silently — no status UI change, no callbacks */
+    var savedCb = engine.onStatusChange;
+    engine.onStatusChange = null;
+    engine.init().then(function () {
+      engine.onStatusChange = savedCb;
+      console.log('[ShotTrackingScreen] Model pre-warmed ✓');
+    }).catch(function () {
+      engine.onStatusChange = savedCb;
+    });
+  }
+
+  function _boot() {
     _wireButtons();
+    /* Delay pre-warm slightly so the page finishes rendering first */
+    setTimeout(_preWarmModel, 1500);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', _boot);
+  } else {
+    _boot();
   }
 
 })();
