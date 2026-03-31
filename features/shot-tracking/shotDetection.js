@@ -20,7 +20,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.005; // Ultra-low threshold for YOLOX basketball (verified with orange color)
+  var BALL_CONFIDENCE      = 0.008; // obj*cls — both already probabilities (sigmoid in model)
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
 
@@ -658,9 +658,35 @@
       });
     },
 
+    /* ── YOLOX grid table (pre-computed once, input 416×416) ── */
+    /* Strides [8,16,32] → grids [52×52, 26×26, 13×13] = 3549 anchors total */
+    _buildGrid: function () {
+      var strides = [8, 16, 32];
+      var grids = [52, 26, 13];
+      var table = new Float32Array(3549 * 3); // [grid_x, grid_y, stride] per anchor
+      var idx = 0;
+      for (var s = 0; s < 3; s++) {
+        var gs = grids[s], stride = strides[s];
+        for (var gy = 0; gy < gs; gy++) {
+          for (var gx = 0; gx < gs; gx++) {
+            table[idx * 3]     = gx;
+            table[idx * 3 + 1] = gy;
+            table[idx * 3 + 2] = stride;
+            idx++;
+          }
+        }
+      }
+      this._gridTable = table;
+    },
+
     /* ── YOLOX output decode (custom 2-class model) ─────────── */
-    /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
+    /* Output: [1, N, 7] = [cx_off, cy_off, w_log, h_log, obj_prob, ball_prob, hoop_prob]
+       - Coords are RAW offsets: decode via (offset + grid) * stride, exp(w)*stride
+       - obj/cls are already sigmoid probabilities (applied inside model)           */
     _yoloxDecode: function (output, ratio, pw, ph) {
+      if (!this._gridTable) this._buildGrid();
+      var grid = this._gridTable;
+
       var numDets = output.length / YOLOX_STRIDE;
       var best = null;
       var bestScore = 0;
@@ -670,15 +696,22 @@
 
       for (var i = 0; i < numDets; i++) {
         var off = i * YOLOX_STRIDE;
+
+        // obj and cls are already sigmoid probabilities
         var obj = output[off + 4];
-        if (obj < 0.01) continue;
+        if (obj < 0.001) continue;  // fast reject near-zero anchors
 
-        var cx = output[off]     / ratio;
-        var cy = output[off + 1] / ratio;
-        var bw = output[off + 2] / ratio;
-        var bh = output[off + 3] / ratio;
+        // Decode absolute pixel coordinates from raw offsets + grid
+        var gx     = grid[i * 3];
+        var gy     = grid[i * 3 + 1];
+        var stride = grid[i * 3 + 2];
 
-        // Score = objectness × class_score
+        var cx = ((output[off]     + gx) * stride) / ratio;
+        var cy = ((output[off + 1] + gy) * stride) / ratio;
+        var bw = (Math.exp(output[off + 2]) * stride) / ratio;
+        var bh = (Math.exp(output[off + 3]) * stride) / ratio;
+
+        // Score = obj_prob × class_prob (both already probabilities)
         var ballScore = obj * output[off + 5];  // class 0 = Basketball
         var hoopScore = obj * output[off + 6];  // class 1 = Hoop
 
