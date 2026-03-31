@@ -1741,31 +1741,31 @@
         <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
           <span class="ks-stat-label">Points / GM</span>
           <div>
-            <span class="ks-stat-number">24.8</span>
-            <div class="ks-stat-trend ks-stat-trend--up" style="margin-top:4px">
-              <span class="material-symbols-outlined" style="font-size:14px">trending_up</span> 12% vs last week
+            <span class="ks-stat-number" id="lab-stat-pts">—</span>
+            <div id="lab-stat-pts-trend" class="ks-stat-trend ks-stat-trend--up" style="margin-top:4px;display:none">
+              <span class="material-symbols-outlined" style="font-size:14px">trending_up</span> <span id="lab-stat-pts-trend-val"></span>
             </div>
           </div>
         </div>
         <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
           <span class="ks-stat-label">FG% Accuracy</span>
           <div>
-            <span class="ks-stat-number">52.4</span>
-            <span style="font-size:11px;font-weight:700;color:var(--ks-text-dim);display:block;margin-top:4px">Stable Performance</span>
+            <span class="ks-stat-number" id="lab-stat-fg">—</span>
+            <span id="lab-stat-fg-sub" style="font-size:11px;font-weight:700;color:var(--ks-text-dim);display:block;margin-top:4px">Log sessions to unlock</span>
           </div>
         </div>
         <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">Efficiency</span>
+          <span class="ks-stat-label">Drill Volume</span>
           <div>
-            <span class="ks-stat-number">+18</span>
-            <span class="ks-stat-trend ks-stat-trend--up" style="display:block;margin-top:4px">Peak Intensity</span>
+            <span class="ks-stat-number" id="lab-stat-vol">—</span>
+            <span id="lab-stat-vol-sub" class="ks-stat-trend ks-stat-trend--up" style="display:block;margin-top:4px">This Week</span>
           </div>
         </div>
         <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-4" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">Win Rate</span>
+          <span class="ks-stat-label">Best Vertical</span>
           <div>
-            <span class="ks-stat-number">68%</span>
-            <span style="font-size:11px;font-weight:700;color:var(--ks-text-faint);display:block;margin-top:4px">Tier: Elite</span>
+            <span class="ks-stat-number" id="lab-stat-vert">—</span>
+            <span id="lab-stat-vert-sub" style="font-size:11px;font-weight:700;color:var(--ks-text-faint);display:block;margin-top:4px">Personal Best</span>
           </div>
         </div>
       </div>
@@ -1821,8 +1821,8 @@
             <div class="ks-pro-badge">
               <span class="material-symbols-outlined" style="font-size:14px">bolt</span> Elite DNA Match
             </div>
-            <h2 class="ks-pro-title">COMPARE:<br><span class="ks-orange">Kyrie Irving</span></h2>
-            <p class="ks-pro-desc">Your ball handling kinematics and rim finishing metrics currently align with All-Star patterns. Data suggests focusing on vertical release to match his elite mid-range spacing.</p>
+            <h2 class="ks-pro-title">COMPARE:<br><span class="ks-orange" id="lab-pro-name">Your Archetype</span></h2>
+            <p class="ks-pro-desc" id="lab-pro-desc">Complete your onboarding to unlock your personalized archetype comparison and AI-matched performance insights.</p>
             <div style="display:flex;gap:16px;align-items:center;padding-top:16px">
               <button class="ks-btn-white" style="padding:16px 32px">Data Report</button>
               <button class="ks-btn-outline" style="padding:16px 32px">Switch Pro</button>
@@ -1833,20 +1833,20 @@
             <div style="position:relative">
               <div class="ks-pro-stats-grid" style="margin-bottom:16px">
                 <div class="ks-glass ks-pro-stat-card">
-                  <div class="ks-pro-stat-label">Handle IQ</div>
+                  <div class="ks-pro-stat-label" id="lab-pro-stat1-label">Primary Skill</div>
                   <div class="ks-pro-stat-row">
-                    <span class="ks-pro-stat-value">94</span>
-                    <span class="ks-pro-stat-delta">+4.2</span>
+                    <span class="ks-pro-stat-value" id="lab-pro-stat1-val">—</span>
+                    <span class="ks-pro-stat-delta" id="lab-pro-stat1-delta"></span>
                   </div>
-                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow" style="width:94%;background:var(--ks-primary)"></div></div>
+                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow" id="lab-pro-stat1-bar" style="width:0%;background:var(--ks-primary)"></div></div>
                 </div>
                 <div class="ks-glass ks-pro-stat-card">
-                  <div class="ks-pro-stat-label">Finishing</div>
+                  <div class="ks-pro-stat-label" id="lab-pro-stat2-label">Secondary Skill</div>
                   <div class="ks-pro-stat-row">
-                    <span class="ks-pro-stat-value">88</span>
-                    <span style="font-size:10px;font-weight:700;color:var(--ks-text-dim)">ELITE</span>
+                    <span class="ks-pro-stat-value" id="lab-pro-stat2-val">—</span>
+                    <span style="font-size:10px;font-weight:700;color:var(--ks-text-dim)" id="lab-pro-stat2-tier"></span>
                   </div>
-                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow ks-stagger-1" style="width:88%;background:rgba(255,255,255,0.4)"></div></div>
+                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow ks-stagger-1" id="lab-pro-stat2-bar" style="width:0%;background:rgba(255,255,255,0.4)"></div></div>
                 </div>
               </div>
               <div class="ks-pro-player-img">
@@ -1862,29 +1862,29 @@
       <div class="ks-insights-grid">
         <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
           <div class="ks-insight-icon ks-insight-icon--blue">
-            <span class="material-symbols-outlined">bolt</span>
+            <span class="material-symbols-outlined" id="lab-insight1-icon">bolt</span>
           </div>
           <div>
-            <h4 class="ks-insight-title">Strength Spike</h4>
-            <p class="ks-insight-body">Vertical jump increased by <strong>2.4 inches</strong>. Power Plyo program is yielding maximum ROI.</p>
+            <h4 class="ks-insight-title" id="lab-insight1-title">Performance Insight</h4>
+            <p class="ks-insight-body" id="lab-insight1-body">Log your first session to unlock AI-powered insights about your training.</p>
           </div>
         </div>
         <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
           <div class="ks-insight-icon ks-insight-icon--orange">
-            <span class="material-symbols-outlined">target</span>
+            <span class="material-symbols-outlined" id="lab-insight2-icon">target</span>
           </div>
           <div>
-            <h4 class="ks-insight-title">Shot Arc Lab</h4>
-            <p class="ks-insight-body">Optimum arc achieved on <strong>82%</strong> of corner drills. Maintain elbow elevation for consistency.</p>
+            <h4 class="ks-insight-title" id="lab-insight2-title">Shooting Trend</h4>
+            <p class="ks-insight-body" id="lab-insight2-body">Your shooting accuracy will be analyzed after 2+ sessions are logged.</p>
           </div>
         </div>
         <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
           <div class="ks-insight-icon ks-insight-icon--amber">
-            <span class="material-symbols-outlined">timer</span>
+            <span class="material-symbols-outlined" id="lab-insight3-icon">timer</span>
           </div>
           <div>
-            <h4 class="ks-insight-title">Recovery Log</h4>
-            <p class="ks-insight-body">Fatigue signal detected. <strong>24hr active recovery</strong> recommended before your next high-load session.</p>
+            <h4 class="ks-insight-title" id="lab-insight3-title">Training Volume</h4>
+            <p class="ks-insight-body" id="lab-insight3-body">Track your weekly drill hours to see volume trends and recovery signals.</p>
           </div>
         </div>
       </div>
