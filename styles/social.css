@@ -39,11 +39,13 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 .sh-tab-btn:hover {
   border-color: rgba(245,166,35,0.3);
   color: var(--c-amber);
+  box-shadow: 0 2px 12px rgba(245,166,35,0.1);
+  transform: translateY(-1px);
 }
 .sh-tab-btn.active {
   background: rgba(245,166,35,0.1);
@@ -66,6 +68,26 @@
   border-radius: var(--r-lg);
   padding: 24px 28px;
   margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sh-create-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.sh-create-card:hover {
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-create-card:hover::before {
+  opacity: 1;
 }
 .sh-card-title {
   font-family: var(--font-display);
@@ -132,7 +154,8 @@
 }
 .sh-create-btn:hover {
   background: rgba(245,166,35,0.18);
-  box-shadow: 0 2px 12px rgba(245,166,35,0.15);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  transform: translateY(-1px);
 }
 
 /* Generated link box */
@@ -170,7 +193,11 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.sh-copy-btn:hover { background: rgba(245,166,35,0.2); }
+.sh-copy-btn:hover {
+  background: rgba(245,166,35,0.2);
+  box-shadow: 0 2px 10px rgba(245,166,35,0.15);
+  transform: translateY(-1px);
+}
 .sh-copy-btn.copied { color: #56d364; border-color: rgba(86,211,100,0.3); background: rgba(86,211,100,0.08); }
 
 /* Accept challenge */
@@ -180,6 +207,26 @@
   border-radius: var(--r-lg);
   padding: 24px 28px;
   margin-bottom: 16px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sh-accept-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.sh-accept-card:hover {
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-accept-card:hover::before {
+  opacity: 1;
 }
 .sh-accept-row {
   display: flex;
@@ -215,7 +262,12 @@
   transition: all 0.2s ease;
   white-space: nowrap;
 }
-.sh-accept-btn:hover { border-color: rgba(245,166,35,0.3); color: var(--c-amber); }
+.sh-accept-btn:hover {
+  border-color: rgba(245,166,35,0.3);
+  color: var(--c-amber);
+  box-shadow: 0 2px 12px rgba(245,166,35,0.12);
+  transform: translateY(-1px);
+}
 
 /* Active challenge banner */
 .sh-active-challenge {
@@ -271,7 +323,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.sh-log-attempt-btn:hover { background: rgba(245,166,35,0.18); }
+.sh-log-attempt-btn:hover {
+  background: rgba(245,166,35,0.18);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  transform: translateY(-1px);
+}
 .sh-dismiss-btn {
   padding: 10px 20px;
   background: transparent;
@@ -286,7 +342,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.sh-dismiss-btn:hover { color: var(--c-muted); border-color: rgba(255,255,255,0.15); }
+.sh-dismiss-btn:hover {
+  color: var(--c-muted);
+  border-color: rgba(255,255,255,0.15);
+  transform: translateY(-1px);
+}
 
 /* Challenge history */
 .sh-section-title {
@@ -307,9 +367,27 @@
   border-radius: var(--r-md);
   padding: 16px 20px;
   margin-bottom: 10px;
-  transition: border-color 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
-.sh-challenge-card:hover { border-color: rgba(245,166,35,0.2); }
+.sh-challenge-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.sh-challenge-card:hover {
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-challenge-card:hover::before {
+  opacity: 1;
+}
 .sh-challenge-icon {
   width: 44px;
   height: 44px;
@@ -372,6 +450,15 @@
   width: 100%;
   max-width: 380px;
   position: relative;
+  overflow: hidden;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.5), 0 0 30px rgba(245,166,35,0.06);
+}
+.sh-modal::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.3), transparent);
 }
 .sh-modal-title {
   font-family: var(--font-display);
@@ -418,7 +505,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.sh-modal-submit:hover { background: rgba(245,166,35,0.2); }
+.sh-modal-submit:hover {
+  background: rgba(245,166,35,0.2);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  transform: translateY(-1px);
+}
 .sh-modal-cancel {
   padding: 12px 16px;
   background: transparent;
@@ -432,7 +523,10 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.sh-modal-cancel:hover { color: var(--c-muted); }
+.sh-modal-cancel:hover {
+  color: var(--c-muted);
+  transform: translateY(-1px);
+}
 
 /* ══════════════════════════════════════════════════════════════
    LEADERBOARD
@@ -476,7 +570,12 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-.sh-lb-refresh-btn:hover { border-color: rgba(245,166,35,0.3); color: var(--c-amber); }
+.sh-lb-refresh-btn:hover {
+  border-color: rgba(245,166,35,0.3);
+  color: var(--c-amber);
+  box-shadow: 0 2px 12px rgba(245,166,35,0.12);
+  transform: translateY(-1px);
+}
 .sh-lb-list {
   display: flex;
   flex-direction: column;
@@ -490,11 +589,26 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
   padding: 14px 18px;
-  transition: border-color 0.2s ease, transform 0.15s ease;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
+}
+.sh-lb-row::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
+  opacity: 0;
+  transition: opacity 0.3s;
 }
 .sh-lb-row:hover {
-  border-color: rgba(245,166,35,0.15);
-  transform: translateX(2px);
+  border-color: rgba(245,166,35,0.25);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25), 0 0 20px rgba(245,166,35,0.06);
+}
+.sh-lb-row:hover::before {
+  opacity: 1;
 }
 .sh-lb-row.sh-me {
   background: rgba(245,166,35,0.04);
@@ -613,7 +727,10 @@
   border: 2px solid transparent;
   transition: all 0.2s ease;
 }
-.sh-theme-swatch:hover { transform: scale(1.12); }
+.sh-theme-swatch:hover {
+  transform: scale(1.12);
+  box-shadow: 0 0 14px rgba(245,166,35,0.15);
+}
 .sh-theme-swatch.selected {
   border-color: var(--c-white);
   box-shadow: 0 0 0 3px rgba(255,255,255,0.15);
@@ -649,13 +766,22 @@
   border-color: rgba(245,166,35,0.3);
   color: var(--c-amber);
 }
-.sh-download-btn:hover { background: rgba(245,166,35,0.18); }
+.sh-download-btn:hover {
+  background: rgba(245,166,35,0.18);
+  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  transform: translateY(-1px);
+}
 .sh-share-native-btn {
   background: transparent;
   border-color: var(--c-border);
   color: var(--c-muted);
 }
-.sh-share-native-btn:hover { border-color: rgba(255,255,255,0.2); color: var(--c-white); }
+.sh-share-native-btn:hover {
+  border-color: rgba(255,255,255,0.2);
+  color: var(--c-white);
+  box-shadow: 0 2px 12px rgba(255,255,255,0.06);
+  transform: translateY(-1px);
+}
 .sh-share-native-btn.hidden { display: none; }
 .sh-canvas-wrap { position: relative; }
 .sh-canvas-wrap canvas {

@@ -751,7 +751,7 @@
 
       if (typeof window.currentUser !== 'undefined' && window.currentUser &&
           typeof DataService !== 'undefined') {
-        DataService.saveUserData({ onboarding_data: ob }).catch(function () {});
+        DataService.saveUserData({ onboarding_data: ob }).catch(function (e) { console.warn('[Avatar] Sync failed:', e); });
       }
     } catch (e) { /* silent */ }
 
@@ -776,6 +776,27 @@
     var topbar = document.getElementById('topbar-mini-avatar');
     if (topbar) replaceWithDiceBearImg(topbar, url, '32px', '32px');
 
+    // Top nav avatar (desktop)
+    var topNavAvatar = document.getElementById('top-nav-avatar');
+    if (topNavAvatar) {
+      injectAvatarIntoEl(topNavAvatar, displayUrl, '100%', '100%');
+      topNavAvatar.style.cssText += ';padding:0;overflow:hidden;cursor:pointer';
+      topNavAvatar.onclick = function () { openModal(); };
+    }
+
+    // Profile mini widget avatar
+    var profileMini = document.getElementById('db-profile-mini-avatar');
+    if (profileMini) {
+      injectAvatarIntoEl(profileMini, displayUrl, '100%', '100%');
+      profileMini.style.cssText += ';padding:0;overflow:hidden';
+    }
+
+    // Onboarding avatar preview
+    var obPreview = document.getElementById('ob-dicebear-preview');
+    if (obPreview) {
+      injectAvatarIntoEl(obPreview, displayUrl, '100%', '100%');
+    }
+
     var placeholder = document.querySelector('.profile-summary-avatar');
     if (placeholder && !placeholder.querySelector('img')) {
       placeholder.innerHTML = '<img src="' + displayUrl + '" alt="Avatar" ' +
@@ -788,6 +809,15 @@
       shopContainer.innerHTML = '<img src="' + displayUrl + '" alt="Avatar" ' +
         'style="width:100%;height:100%;object-fit:contain;object-position:center top;" />';
     }
+  }
+
+  function injectAvatarIntoEl(el, url, w, h) {
+    var img = document.createElement('img');
+    img.src = url;
+    img.alt = 'Avatar';
+    img.style.cssText = 'width:' + w + ';height:' + h + ';object-fit:cover;border-radius:50%;object-position:center top;';
+    el.textContent = '';
+    el.appendChild(img);
   }
 
   function replaceWithDiceBearImg(el, url, w, h) {

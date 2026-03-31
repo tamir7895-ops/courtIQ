@@ -54,5 +54,3 @@
   function toggleBilling() {
     setBilling(billingMode === 'monthly' ? 'yearly' : 'monthly');
   }
-
-  /* ══════════════════════════════════════════════════════════════

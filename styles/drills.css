@@ -31,7 +31,7 @@
   font-size: 30px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   color: var(--c-white);
   margin-bottom: 6px;
   line-height: 1.1;
@@ -215,6 +215,8 @@
   color: #56d364;
   white-space: nowrap;
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .drills-today-badge::before {
@@ -256,7 +258,7 @@
   font-size: 16px;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.08em;
   color: var(--c-white);
   margin-bottom: 4px;
 }
@@ -460,7 +462,7 @@
   font-size: 22px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   color: var(--c-white);
 }
 
@@ -502,13 +504,31 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   position: relative;
 }
 
+.drill-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.25), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.drill-card:hover::before {
+  opacity: 1;
+}
+
 .drill-card:hover {
-  border-color: rgba(245, 166, 35, 0.3);
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  border-color: rgba(245, 166, 35, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
   transform: translateY(-2px);
 }
 
@@ -653,6 +673,8 @@
   border-radius: 100px;
   white-space: nowrap;
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .drill-difficulty-badge.beginner {
@@ -847,6 +869,8 @@
   font-size: 11px;
   color: #4ca3ff;
   font-weight: 500;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 
@@ -885,6 +909,8 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   margin-bottom: 10px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .drill-focus-tag.shooting {
@@ -1014,6 +1040,8 @@
   cursor: pointer;
   transition: all 0.2s;
   white-space: nowrap;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .drills-filter-pill:hover {
@@ -1116,15 +1144,33 @@
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
   position: relative;
   overflow: hidden;
 }
 
+.drill-lib-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.25), transparent);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.drill-lib-card:hover::before {
+  opacity: 1;
+}
+
 .drill-lib-card:hover {
-  border-color: rgba(245, 166, 35, 0.25);
-  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.4);
-  transform: translateY(-1px);
+  border-color: rgba(245, 166, 35, 0.2);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
 }
 
 .drill-lib-card::after {
@@ -1377,7 +1423,7 @@
   font-size: 20px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   color: var(--c-white);
 }
 
@@ -1387,6 +1433,8 @@
   padding: 3px 10px;
   background: rgba(255, 255, 255, 0.04);
   border-radius: 100px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .saved-drills-clear-btn {
@@ -1435,7 +1483,7 @@
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--r-sm);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition: border-color 0.25s ease, transform 0.25s ease, box-shadow 0.25s ease;
 }
 
 .saved-drill-row:hover {
@@ -1516,7 +1564,7 @@
   font-size: 24px;
   font-weight: 900;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.06em;
   color: var(--c-white);
   margin-bottom: 4px;
 }

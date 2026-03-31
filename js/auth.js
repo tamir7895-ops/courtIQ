@@ -71,7 +71,8 @@
 
   function showAuthSuccess(type, name) {
     // Hide form content
-    document.getElementById('auth-tabs') && (document.querySelector('.auth-tabs').style.display = 'none');
+    var authTabsEl = document.querySelector('.auth-tabs');
+    if (authTabsEl) authTabsEl.style.display = 'none';
     document.getElementById('auth-error').style.display = 'none';
     document.querySelectorAll('.auth-form-pane').forEach(p => p.style.display = 'none');
 
@@ -133,7 +134,7 @@
       }
 
       showAuthSuccess('signin', email);
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+      setTimeout(() => { window.location.reload(); }, 1500);
     } catch (err) {
       showAuthError(err.message || 'Sign in failed. Please try again.');
       if (btn) { btn.disabled = false; btn.textContent = 'Sign In \u2192'; }
@@ -196,7 +197,7 @@
       }
 
       showAuthSuccess('signup', first);
-      setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+      setTimeout(() => { window.location.reload(); }, 1500);
     } catch (err) {
       showAuthError(err.message || 'Sign up failed. Please try again.');
       if (btn) { btn.disabled = false; btn.textContent = 'Create Account \u2192'; }
@@ -204,12 +205,60 @@
   }
 
   async function signOut() {
+    localStorage.removeItem('courtiq-guest-mode');
+    window.courtiqGuest = false;
     await sb.auth.signOut();
-    window.location.href = 'index.html';
+    window.location.reload();
   }
 
-  function socialAuth(provider) {
-    showAuthError('Social login coming soon. Please use email and password.');
+  function enterGuestMode() {
+    localStorage.setItem('courtiq-guest-mode', 'true');
+    window.courtiqGuest = true;
+    if (typeof hideWelcomeScreen === 'function') hideWelcomeScreen();
+    // Show guest banner
+    var gb = document.getElementById('guest-banner');
+    if (gb) gb.style.display = 'flex';
+    // Set guest user and init dashboard
+    window.currentUser = { id: 'guest', email: 'guest@courtiq.app', user_metadata: { display_name: 'Guest' } };
+    window.currentSession = { user: window.currentUser };
+    if (typeof initDashboard === 'function') initDashboard();
+  }
+
+  async function socialAuth(provider) {
+    if (typeof sb === 'undefined') {
+      showAuthError('Connection error. Please refresh the page and try again.');
+      return;
+    }
+
+    // Supported providers
+    var supported = ['google', 'apple'];
+    if (supported.indexOf(provider) === -1) {
+      showAuthError('This login method is not supported yet.');
+      return;
+    }
+
+    try {
+      var redirectUrl = window.location.origin + window.location.pathname;
+      var { data, error } = await sb.auth.signInWithOAuth({
+        provider: provider,
+        options: {
+          redirectTo: redirectUrl
+        }
+      });
+
+      if (error) {
+        // If provider not configured in Supabase, show helpful message
+        if (error.message && error.message.indexOf('not enabled') !== -1) {
+          showAuthError(provider.charAt(0).toUpperCase() + provider.slice(1) + ' login is not configured yet. Please use email and password.');
+        } else {
+          showAuthError(error.message);
+        }
+      }
+      // If successful, Supabase redirects to the OAuth provider page
+      // User returns to redirectUrl after authentication
+    } catch (e) {
+      showAuthError('Failed to start ' + provider + ' login. Please try again.');
+    }
   }
 
   async function showForgot() {
@@ -236,16 +285,24 @@
       if (error) throw error;
       session = data.session;
     } catch (e) {
-      console.warn('Stale session cleared:', e);
-      await sb.auth.signOut();
+      // Network errors (Failed to fetch) are not auth failures.
+      // Only sign out on genuine auth errors.
+      const isNetworkError = e instanceof TypeError ||
+        (e && typeof e.message === 'string' && /fetch|network|load/i.test(e.message));
+      if (!isNetworkError) {
+        console.warn('Stale session cleared:', e);
+        await sb.auth.signOut();
+      } else {
+        console.warn('Session check skipped (network error):', e);
+      }
       return;
     }
     if (session) {
       // Update nav buttons if on landing page
-      const navBtns = document.querySelector('.nav-buttons');
+      const navBtns = document.querySelector('.nav-cta') || document.querySelector('.nav-buttons');
       if (navBtns && !document.getElementById('db-panel-log')) {
         navBtns.innerHTML = `
-          <a href="dashboard.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
+          <a href="index.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
           <button onclick="signOut()" class="btn-hamburger" style="font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;">Sign Out</button>
         `;
       }

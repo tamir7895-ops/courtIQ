@@ -1,3 +1,4 @@
+  /* ══════════════════════════════════════════════════════════════
      FEATURE MODALS — each plan feature opens a live demo
   ══════════════════════════════════════════════════════════════ */
 
@@ -633,9 +634,8 @@
     const log = document.getElementById('fw-chat-log');
     if (!log) return;
 
-    // user message — escapeHTML prevents XSS from user-typed input
-    const safemsg = typeof escapeHTML === 'function' ? escapeHTML(msg) : msg.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    log.innerHTML += `<div class="fw-msg user"><div class="fw-msg-avatar">👤</div><div class="fw-msg-bubble">${safemsg}</div></div>`;
+    // user message
+    log.innerHTML += `<div class="fw-msg user"><div class="fw-msg-avatar">👤</div><div class="fw-msg-bubble">${msg}</div></div>`;
 
     // typing indicator
     const typingId = 'fw-typing-' + Date.now();
@@ -665,5 +665,3 @@
       else if (document.getElementById('sidebar')?.classList.contains('open')) closeSidebar();
     }
   });
-
-  /* ══════════════════════════════════════════════════════════════
