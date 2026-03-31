@@ -1576,3 +1576,142 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
 
     window.DailyChallengeSystem = { render: render, startChallenge: startChallenge, getTodayChallenge: getTodayChallenge };
   })();
+
+// ── THE LAB SYSTEM ─────────────────────────────────────────────────────────
+(function TheLabSystem() {
+  var ARCHETYPE_PRO = {
+    scorer: {
+      name: 'Kevin Durant', sub: 'Elite Scorer', note: 'That is your benchmark to beat.',
+      s1l: 'Points/GM', s1v: '27.2', s2l: 'FG%', s2v: '52.1%'
+    },
+    playmaker: {
+      name: 'Chris Paul', sub: 'Floor General', note: 'Run the game like CP3.',
+      s1l: 'Assists/GM', s1v: '8.9', s2l: 'Ball IQ', s2v: '97th %ile'
+    },
+    defender: {
+      name: 'Kawhi Leonard', sub: 'Two-Way Anchor', note: 'Lock down every possession.',
+      s1l: 'Def Rating', s1v: '98.4', s2l: 'Steals/GM', s2v: '1.8'
+    },
+    'two-way': {
+      name: 'Jaylen Brown', sub: 'Two-Way Force', note: 'Dominant on both ends.',
+      s1l: 'Net Rating', s1v: '+8.2', s2l: 'Efficiency', s2v: '58.3%'
+    },
+    'rim-runner': {
+      name: 'Anthony Davis', sub: 'Interior Beast', note: 'Control the paint.',
+      s1l: 'Rebounds/GM', s1v: '12.1', s2l: 'FG% (Paint)', s2v: '68.4%'
+    },
+    default: {
+      name: 'LeBron James', sub: 'All-Around Elite', note: 'The gold standard.',
+      s1l: 'Points/GM', s1v: '27.0', s2l: 'Efficiency', s2v: '64.2%'
+    }
+  };
+
+  function renderStatCards() {
+    var sessions = window.dbSessions || [];
+    var avgShots = sessions.length
+      ? (sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0) / sessions.length).toFixed(1)
+      : null;
+    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
+    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
+    var fgPct = totalAtt > 0 ? ((totalMade / totalAtt) * 100).toFixed(1) + '%' : null;
+    var volHrs = sessions.length
+      ? ((sessions.reduce(function(a, s) { return a + (s.duration_sec || 0); }, 0) / 3600)).toFixed(1) + 'h'
+      : null;
+    var bestVert = null;
+    sessions.forEach(function(s) {
+      if (s.vertical_cm && (!bestVert || s.vertical_cm > bestVert)) bestVert = s.vertical_cm;
+    });
+    var pts = document.getElementById('lab-stat-pts');
+    var fg  = document.getElementById('lab-stat-fg');
+    var vol = document.getElementById('lab-stat-vol');
+    var vrt = document.getElementById('lab-stat-vert');
+    if (pts) pts.textContent = avgShots !== null ? avgShots : '\u2014';
+    if (fg)  fg.textContent  = fgPct    !== null ? fgPct    : '\u2014';
+    if (vol) vol.textContent = volHrs   !== null ? volHrs   : '\u2014';
+    if (vrt) vrt.textContent = bestVert !== null ? bestVert + 'cm' : '\u2014';
+    var trends = ['lab-stat-pts-trend','lab-stat-fg-trend','lab-stat-vol-trend','lab-stat-vert-trend'];
+    trends.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) el.textContent = sessions.length ? '' : 'No data yet';
+    });
+  }
+
+  function renderProCompare() {
+    var arch = localStorage.getItem('courtiq-archetype') || 'default';
+    var pro  = ARCHETYPE_PRO[arch] || ARCHETYPE_PRO['default'];
+    var nameEl = document.getElementById('lab-pro-name');
+    var descEl = document.getElementById('lab-pro-desc');
+    var s1l    = document.getElementById('lab-pro-stat1-label');
+    var s1v    = document.getElementById('lab-pro-stat1-val');
+    var s2l    = document.getElementById('lab-pro-stat2-label');
+    var s2v    = document.getElementById('lab-pro-stat2-val');
+    if (nameEl) nameEl.textContent = pro.name;
+    if (descEl) descEl.textContent = pro.sub + ' \u2022 ' + pro.note;
+    if (s1l) s1l.textContent = pro.s1l;
+    if (s1v) s1v.textContent = pro.s1v;
+    if (s2l) s2l.textContent = pro.s2l;
+    if (s2v) s2v.textContent = pro.s2v;
+  }
+
+  function renderInsights() {
+    var sessions = window.dbSessions || [];
+    var insights = [];
+    if (sessions.length === 0) {
+      insights = [
+        { icon: '\u26a1', title: 'Start Your First Session', body: 'Complete a drill or shot tracking session to unlock AI insights.' },
+        { icon: '\ud83d\udcca', title: 'Track Your Progress', body: 'Your shooting stats, volume, and trends will appear here after sessions.' },
+        { icon: '\ud83c\udfaf', title: 'Set a Daily Challenge', body: 'Complete today\'s challenge to start building your performance baseline.' }
+      ];
+    } else {
+      var best = sessions.reduce(function(a, s) { return (s.made || 0) > (a.made || 0) ? s : a; }, sessions[0]);
+      var recent = sessions.slice(-5);
+      var recentAvg = recent.reduce(function(a, s) { return a + (s.made || 0); }, 0) / recent.length;
+      var overallAvg = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0) / sessions.length;
+      var trend = recentAvg > overallAvg ? '\ud83d\udcc8 Improving' : '\ud83d\udcc9 Slipping';
+      insights = [
+        { icon: '\ud83c\udfc6', title: 'Best Session', body: 'Your peak was ' + (best.made || 0) + ' shots made. Keep chasing that high.' },
+        { icon: '\ud83d\udcc8', title: 'Shooting Trend', body: trend + ' \u2014 recent avg ' + recentAvg.toFixed(1) + ' vs overall ' + overallAvg.toFixed(1) + '.' },
+        { icon: '\u23f1', title: 'Volume', body: 'You have logged ' + sessions.length + ' sessions. Consistency is your edge.' }
+      ];
+    }
+    insights.forEach(function(ins, i) {
+      var n = i + 1;
+      var iconEl  = document.getElementById('lab-insight' + n + '-icon');
+      var titleEl = document.getElementById('lab-insight' + n + '-title');
+      var bodyEl  = document.getElementById('lab-insight' + n + '-body');
+      if (iconEl)  iconEl.textContent  = ins.icon;
+      if (titleEl) titleEl.textContent = ins.title;
+      if (bodyEl)  bodyEl.textContent  = ins.body;
+    });
+  }
+
+  function clearDemoShotMap() {
+    var svg = document.querySelector('.ast-shot-map svg, #ast-shot-svg, .shot-map-svg');
+    if (!svg) return;
+    svg.querySelectorAll('circle[data-demo], circle.demo-shot').forEach(function(c) { c.remove(); });
+    if (svg.querySelectorAll('circle').length === 0) {
+      var empty = document.querySelector('.ast-shot-map-empty, .shot-map-empty');
+      if (empty) empty.style.display = 'flex';
+    }
+  }
+
+  function init() {
+    renderStatCards();
+    renderProCompare();
+    renderInsights();
+    clearDemoShotMap();
+  }
+
+  var _origSwitch = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
+  if (_origSwitch) {
+    window.dbSwitchTab = function(tab) {
+      _origSwitch(tab);
+      if (tab === 'shots') setTimeout(init, 100);
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.TheLabSystem = { render: init };
+})();
