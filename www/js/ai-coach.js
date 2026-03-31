@@ -1,3 +1,4 @@
+/* ══════════════════════════════════════════════════════════════
      AI COACH — adaptive weekly program adjustment
      Prompt: Analyze performance data (sets, success %, time),
      increase/decrease intensity, focus on weak areas, suggest
@@ -171,6 +172,7 @@ Rules:
       document.getElementById('coach-adjustments').innerHTML=(a.key_adjustments||[]).map(row).join('');
 
       coachRenderSchedule(result.days||[]);
+      coachRenderPicks(result);
     } catch(e) {
       document.getElementById('coach-loading').style.display='none';
       document.getElementById('coach-empty').style.display='block';
@@ -231,6 +233,53 @@ Rules:
           </div>
         </div>`;
     }).join('');
+  }
+
+  /* Build real AI Intelligence Picks from the generated schedule */
+  function coachRenderPicks(result) {
+    var picksEl = document.getElementById('coach-ai-picks');
+    var gridEl  = document.getElementById('coach-ai-picks-grid');
+    if (!picksEl || !gridEl) return;
+
+    var focusIcons = {
+      'Shooting':'🎯','Ball Handling':'⚡','Athleticism':'💪',
+      'Defense':'🛡','Conditioning':'🏃','Core':'💪'
+    };
+
+    /* Top drill from each non-rest day — up to 3 picks */
+    var picks = [];
+    var days = (result.days || []).filter(function(d){ return !d.is_rest && (d.drills||[]).length; });
+    for (var i = 0; i < days.length && picks.length < 3; i++) {
+      var drill = days[i].drills[0];
+      if (!drill) continue;
+      picks.push({
+        icon:   focusIcons[drill.focus_area] || '\ud83c\udfc0',
+        title:  String(drill.name || ''),
+        reason: String(drill.reason || ('Priority for ' + (drill.focus_area || 'this week')))
+      });
+    }
+
+    /* Fallback from weak_areas when schedule has < 3 training days */
+    var weak = ((result.coach_analysis || {}).weak_areas) || [];
+    var fbIcons = ['\ud83c\udfaf','\u26a1','\ud83d\udcaa'];
+    for (var j = 0; picks.length < 3 && j < weak.length; j++) {
+      picks.push({ icon: fbIcons[j] || '\ud83c\udfc0', title: String(weak[j]), reason: 'Focus area this week' });
+    }
+
+    /* Render via DOM (no innerHTML — SEC-XSS safe) */
+    while (gridEl.firstChild) gridEl.removeChild(gridEl.firstChild);
+    picks.forEach(function(p) {
+      var card    = document.createElement('div'); card.className = 'glass-pick-card';
+      var iconEl  = document.createElement('div'); iconEl.className  = 'glass-pick-icon';  iconEl.textContent  = p.icon;
+      var cnt     = document.createElement('div'); cnt.className     = 'glass-pick-content';
+      var titleEl = document.createElement('div'); titleEl.className = 'glass-pick-title';  titleEl.textContent = p.title;
+      var rsEl    = document.createElement('div'); rsEl.className    = 'glass-pick-reason'; rsEl.textContent    = p.reason;
+      cnt.appendChild(titleEl); cnt.appendChild(rsEl);
+      card.appendChild(iconEl); card.appendChild(cnt);
+      gridEl.appendChild(card);
+    });
+
+    picksEl.style.display = picks.length ? '' : 'none';
   }
 
   function coachCopyJSON() {
