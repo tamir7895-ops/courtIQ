@@ -8,8 +8,8 @@
       --c-amber-dim: rgba(245,166,35,0.12);
       --c-amber-glow:rgba(245,166,35,0.25);
       --c-white:     #f0ede6;
-      --c-muted:     rgba(240,237,230,0.45);
-      --c-dimmer:    rgba(240,237,230,0.22);
+      --c-muted:     rgba(240,237,230,0.60);
+      --c-dimmer:    rgba(240,237,230,0.38);
       --c-red:       #e84040;
       --c-teal:      #2dd4bf;
       --c-teal-dim:  rgba(45,212,191,0.10);
@@ -47,6 +47,22 @@
       --c-red-dim:    rgba(232,64,64,0.10);
       --c-purple:     #bc8cff;
       --c-purple-dim: rgba(188,140,255,0.10);
+      --c-orange:     #ff7b54;
+      --c-orange-dim: rgba(255,123,84,0.10);
+
+      /* Feature accent colors */
+      --c-feature-drills:    #f5a623;
+      --c-feature-workouts:  #4ca3ff;
+      --c-feature-shots:     #56d364;
+      --c-feature-coach:     #bc8cff;
+      --c-feature-summary:   #2dd4bf;
+      --c-feature-moves:     #ff7b54;
+      --c-feature-social:    #56d364;
+      --c-feature-archetype: #bc8cff;
+      --c-feature-shop:      #f5a623;
+      --c-feature-calendar:  #2dd4bf;
+      --c-feature-log:       #f5a623;
+      --c-feature-history:   #4ca3ff;
 
       /* Text hierarchy */
       --c-text-primary:   #f0ede6;
@@ -104,6 +120,18 @@
       --duration-slow: 0.4s;
     }
 
+    /* ─── FOCUS VISIBLE (Accessibility) ───────────────────────── */
+    button:focus-visible,
+    a:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible,
+    [role="tab"]:focus-visible,
+    [role="button"]:focus-visible {
+      outline: 2px solid var(--c-amber);
+      outline-offset: 2px;
+    }
+
     /* ─── RESET & BASE ─────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html {
@@ -124,6 +152,8 @@
       line-height: 1.6;
       overflow-x: hidden;
       -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overscroll-behavior: contain;
     }
 
     img { display: block; max-width: 100%; }
@@ -2609,6 +2639,7 @@
     .db-sidebar {
       position: fixed;
       top: 0; left: 0; bottom: 0;
+      padding-top: env(safe-area-inset-top, 0px);
       width: 260px;
       background: linear-gradient(180deg, #161921 0%, #10131a 100%);
       border-right: 1px solid rgba(245,166,35,0.08);
@@ -3909,12 +3940,15 @@
 
 /* ══════════════════════════════════════════════════════════
    HOME SCREEN ACTIVE STATE
-   When home panel is active, hide sidebar and expand main
+   On mobile, hide sidebar and expand main when home is active.
+   Desktop keeps the sidebar visible.
    ══════════════════════════════════════════════════════════ */
-.db-layout-root.db-home-active .db-sidebar { display: none; }
-.db-layout-root.db-home-active .db-sidebar-mobile-toggle { display: none; }
-.db-layout-root.db-home-active .db-sidebar-overlay { display: none; }
-.db-layout-root.db-home-active .db-main { margin-left: 0 !important; }
+@media (max-width: 1024px) {
+  .db-layout-root.db-home-active .db-sidebar { display: none; }
+  .db-layout-root.db-home-active .db-sidebar-mobile-toggle { display: none; }
+  .db-layout-root.db-home-active .db-sidebar-overlay { display: none; }
+  .db-layout-root.db-home-active .db-main { margin-left: 0 !important; }
+}
 
 /* Hide shared widgets on home panel — they have home-specific versions */
 .db-layout-root.db-home-active .db-main-header,

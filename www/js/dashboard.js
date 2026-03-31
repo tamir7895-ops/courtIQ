@@ -12,56 +12,79 @@
   let currentWeekNum = 1;
 
   /* ══════════════════════════════════════════════════════════════
-     AUTH GUARD — redirect if not logged in
+     AUTH GUARD — show welcome screen if not logged in
   ══════════════════════════════════════════════════════════════ */
+  function showWelcomeScreen() {
+    var ws = document.getElementById('welcome-screen');
+    if (ws) ws.style.display = 'flex';
+    var layout = document.querySelector('.db-layout-root');
+    if (layout) layout.style.display = 'none';
+  }
+  function hideWelcomeScreen() {
+    var ws = document.getElementById('welcome-screen');
+    if (ws) {
+      ws.classList.add('hiding');
+      setTimeout(function() { ws.style.display = 'none'; }, 400);
+    }
+    var layout = document.querySelector('.db-layout-root');
+    if (layout) layout.style.display = '';
+  }
+  // Make available globally for auth.js
+  window.showWelcomeScreen = showWelcomeScreen;
+  window.hideWelcomeScreen = hideWelcomeScreen;
+
   (async function authGuard() {
-    const { data: { session } } = await sb.auth.getSession();
+    // Check guest mode
+    if (localStorage.getItem('courtiq-guest-mode') === 'true') {
+      window.courtiqGuest = true;
+      window.currentUser = { id: 'guest', email: 'guest@courtiq.app', user_metadata: { display_name: 'Guest' } };
+      window.currentSession = { user: window.currentUser };
+      hideWelcomeScreen();
+      // Show guest banner
+      var gb = document.getElementById('guest-banner');
+      if (gb) gb.style.display = 'flex';
+      initDashboard(); return;
+    }
+
+    let session;
+    try {
+      const { data, error } = await sb.auth.getSession();
+      if (error) throw error;
+      session = data.session;
+    } catch (e) {
+      const isNetworkError = e instanceof TypeError ||
+        (e && typeof e.message === 'string' &&
+          /fetch|network|load/i.test(e.message));
+
+      if (isNetworkError) {
+        console.warn('Token refresh failed (network error) — recovering session from cache:', e);
+        try {
+          const cacheKey = Object.keys(localStorage)
+            .find(k => k.startsWith('sb-') && k.endsWith('-auth-token'));
+          if (cacheKey) {
+            const stored = JSON.parse(localStorage.getItem(cacheKey) || 'null');
+            session = stored?.currentSession ?? stored;
+          }
+        } catch (_) { /* ignore parse errors */ }
+
+        if (!session || !session.user) {
+          showWelcomeScreen();
+          return;
+        }
+      } else {
+        console.warn('Session load failed, clearing stale auth:', e);
+        await sb.auth.signOut();
+        showWelcomeScreen();
+        return;
+      }
+    }
     if (!session) {
-      window.location.href = 'index.html';
+      showWelcomeScreen();
       return;
     }
     window.currentUser = session.user;
     window.currentSession = session;
-
-    // ── Kinetic Stitch UI — populate live user data ──────────────────────
-    (function ksPopulateUser() {
-      const u = session.user;
-      const firstName  = u.user_metadata?.first_name || '';
-      const lastName   = u.user_metadata?.last_name  || '';
-      const email      = u.email || '';
-      const fullName   = [firstName, lastName].filter(Boolean).join(' ') || email.split('@')[0] || 'Player';
-      const displayName = firstName || fullName;
-
-      // Hero title (Home panel)
-      const heroName = document.getElementById('ke-player-name');
-      if (heroName) heroName.textContent = displayName;
-
-      // Profile panel full name
-      const profileName = document.getElementById('ks-profile-full-name');
-      if (profileName) profileName.textContent = fullName;
-
-      // Settings email
-      const profileEmail = document.getElementById('ks-profile-email');
-      if (profileEmail) profileEmail.textContent = email || '—';
-
-      // Header avatar: replace AI image with initials if no real avatar
-      const avatarWrap = document.getElementById('ks-header-avatar');
-      const avatarImg  = document.getElementById('ks-header-avatar-img');
-      if (avatarWrap && avatarImg) {
-        const initials = fullName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase() || '?';
-        // Use Google avatar URL if available, else show initials circle
-        const googlePic = u.user_metadata?.avatar_url || u.user_metadata?.picture || '';
-        if (googlePic) {
-          avatarImg.src = googlePic;
-        } else {
-          avatarImg.style.display = 'none';
-          const span = document.createElement('span');
-          span.style.cssText = 'display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-family:var(--ks-font-headline);font-size:14px;font-weight:700;color:#fff;letter-spacing:0.05em';
-          span.textContent = initials;
-          avatarWrap.appendChild(span);
-        }
-      }
-    })();
+    hideWelcomeScreen();
 
     // Update sidebar user info
     const sidebarName = document.getElementById('db-sidebar-name');
@@ -70,18 +93,12 @@
       const name = session.user.user_metadata?.first_name || session.user.email;
       sidebarName.textContent = name;
 
-      // Render 2D Memoji-style mini avatar in sidebar
-      if (sidebarAvatar) {
+      // Render 3D mini avatar in sidebar
+      if (sidebarAvatar && typeof AvatarBridge !== 'undefined') {
         try {
           var obSidebar = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-          if (obSidebar.avatar && typeof AvatarBuilder !== 'undefined') {
-            sidebarAvatar.innerHTML = '';
-            var miniC = document.createElement('canvas');
-            miniC.width = 48; miniC.height = 48;
-            miniC.style.width = '100%'; miniC.style.height = '100%';
-            miniC.style.borderRadius = '50%';
-            sidebarAvatar.appendChild(miniC);
-            AvatarBuilder.drawMini(miniC, obSidebar.avatar);
+          if (obSidebar.avatar) {
+            AvatarBridge.renderMini(sidebarAvatar, obSidebar.avatar);
           } else {
             // No avatar data yet — show initials
             if (typeof name === 'string') {
@@ -98,6 +115,53 @@
       } else if (sidebarAvatar && typeof name === 'string') {
         const initials = name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase();
         sidebarAvatar.textContent = initials || name[0]?.toUpperCase() || '?';
+      }
+
+      // Populate topbar profile widget
+      var pwName = document.getElementById('db-pw-name');
+      var pwAvatar = document.getElementById('db-pw-avatar');
+      var pwBadge = document.getElementById('db-pw-badge');
+      var homeGreeting = document.getElementById('db-home-greeting');
+
+      var obData = {};
+      try { obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) {}
+
+      if (pwName) {
+        pwName.textContent = name || 'Player';
+      }
+      if (pwAvatar) {
+        if (typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          try { AvatarBridge.renderMini(pwAvatar, obData.avatar); } catch(e) {
+            var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+            pwAvatar.textContent = initials;
+          }
+        } else {
+          var initials = (name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          pwAvatar.textContent = initials;
+        }
+      }
+      if (pwBadge && typeof GamificationEngine !== 'undefined') {
+        var ge = GamificationEngine.state || {};
+        pwBadge.textContent = ge.rank || 'Rookie';
+      }
+      if (homeGreeting) {
+        var firstName = (name || 'Player').split(' ')[0];
+        // Build greeting safely using textContent + DOM
+        homeGreeting.textContent = '';
+        homeGreeting.appendChild(document.createTextNode('Hey, '));
+        var strong = document.createElement('strong');
+        strong.textContent = firstName;
+        homeGreeting.appendChild(strong);
+        homeGreeting.appendChild(document.createTextNode('!'));
+      }
+
+      // Set home date pill
+      var datePill = document.getElementById('db-home-date');
+      if (datePill) {
+        var d = new Date();
+        var days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        datePill.textContent = days[d.getDay()] + ', ' + months[d.getMonth()] + ' ' + d.getDate();
       }
     }
 
@@ -117,44 +181,44 @@
     if (trialBtn) trialBtn.style.display = 'none';
     if (drawerSignout) drawerSignout.style.display = '';
 
-    // Listen for session expiry
-    sb.auth.onAuthStateChange((event) => {
+    // Listen for session expiry (store subscription to avoid leaks)
+    var _authSub = sb.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
+        if (_authSub && _authSub.data && _authSub.data.subscription) {
+          _authSub.data.subscription.unsubscribe();
+        }
         window.location.href = 'index.html';
       }
     });
 
     // Load data
-    try { await initDashboard(); } catch(e) { /* silently continue */ }
-
-    // Always populate home panel widgets (runs even if initDashboard threw or returned early)
-    setTimeout(function() {
-      if (typeof ksUpdateHomePanel === 'function') ksUpdateHomePanel();
-    }, 200);
+    await initDashboard();
   })();
 
   /* ══════════════════════════════════════════════════════════════
      INIT — load profile + weeks from Supabase
   ══════════════════════════════════════════════════════════════ */
+  function withTimeout(promise, ms) {
+    return Promise.race([
+      promise,
+      new Promise(function (_, rej) { setTimeout(function () { rej(new Error('Request timed out')); }, ms); })
+    ]);
+  }
+
   async function initDashboard() {
     try {
       // ── Sync user_data from Supabase → localStorage (new device restore) ──
       if (typeof DataService !== 'undefined') {
         try {
-          const userData = await DataService.getUserData();
+          const userData = await withTimeout(DataService.getUserData(), 10000);
           if (userData) {
-            // Seed the saveUserData merge cache from the full cloud blob.
-            // Without this, the first saveUserData() on a restored device starts
-            // from {} and wipes all other user_data keys.
-            try { localStorage.setItem('_sb_user_data_cache', JSON.stringify(userData)); } catch(e) {}
-
-            // XP — always sync from cloud (cloud accumulates across all devices)
-            if (userData.xp_data) {
+            // Restore XP if not already in localStorage
+            if (userData.xp_data && !localStorage.getItem('courtiq-xp')) {
               localStorage.setItem('courtiq-xp', JSON.stringify(userData.xp_data));
               if (typeof XPSystem !== 'undefined' && XPSystem.render) XPSystem.render();
             }
-            // Onboarding — always sync from cloud (cloud is source of truth on login)
-            if (userData.onboarding_data) {
+            // Restore onboarding if not already done on this device
+            if (userData.onboarding_data && !localStorage.getItem('courtiq-onboarding-complete')) {
               const ob = userData.onboarding_data;
               localStorage.setItem('courtiq-onboarding-data', JSON.stringify(ob));
               localStorage.setItem('courtiq-onboarding-complete', String(ob.ts || Date.now()));
@@ -173,25 +237,6 @@
                   primaryGoal: ob.goals ? ob.goals[0] : ''
                 }));
               }
-            }
-
-            // ── Always sync avatar from cloud → works on ALL devices ──
-            // Catches avatar customizations made on any other device
-            if (userData.avatar) {
-              try {
-                const localOb = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-                if (JSON.stringify(localOb.avatar) !== JSON.stringify(userData.avatar)) {
-                  localOb.avatar = userData.avatar;
-                  localStorage.setItem('courtiq-onboarding-data', JSON.stringify(localOb));
-                }
-              } catch (e) { /* silent */ }
-            }
-
-            // ── Always sync player profile from cloud ──
-            if (userData.player_profile) {
-              try {
-                localStorage.setItem('courtiq-player-profile', JSON.stringify(userData.player_profile));
-              } catch (e) { /* silent */ }
             }
           }
         } catch (e) { /* silently skip — user still gets localStorage version */ }
@@ -213,12 +258,8 @@
         dateEl.textContent = now.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
       }
 
-      // Hide context row by default (only shows on log tab)
-      var contextRow = document.getElementById('db-context-row');
-      if (contextRow) contextRow.style.display = 'none';
-
       // Load profile → populate player name & position
-      const profile = await DataService.getProfile();
+      const profile = await withTimeout(DataService.getProfile(), 10000);
       const positionMap = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward', PF: 'Power Forward', C: 'Center' };
       if (profile) {
         const playerEl = document.getElementById('db-player');
@@ -236,14 +277,73 @@
           const playerName = profile.first_name || (onboarding && onboarding.name) || '';
           if (playerName) notifNameEl.value = playerName;
         }
-
-        // Update compact topbar profile name
-        const topbarName = document.getElementById('db-topbar-profile-name');
-        if (topbarName && profile.first_name) topbarName.textContent = profile.first_name;
       }
 
+      // ── Populate new dashboard home elements ──────────────
+      (function populateNewDashboard() {
+        var ob = null;
+        try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch(e) {}
+        var pName = (profile && profile.first_name) || (ob && ob.name) || 'Player';
+        var pLevel = 'Rookie';
+        var pXP = 0;
+        if (typeof XPSystem !== 'undefined') {
+          var xpData = null;
+          try { xpData = JSON.parse(localStorage.getItem('courtiq-xp')); } catch(e) {}
+          pXP = (xpData && xpData.total) || 0;
+          var lvl = XPSystem.getLevel(pXP);
+          if (lvl) pLevel = lvl.name || 'Rookie';
+        }
+
+        // Welcome hero name
+        var welcomeNameEl = document.getElementById('db-welcome-name');
+        if (welcomeNameEl) welcomeNameEl.textContent = pName;
+
+        // Profile mini widget
+        var miniName = document.getElementById('db-profile-mini-name');
+        var miniLevel = document.getElementById('db-profile-mini-level');
+        var miniAvatar = document.getElementById('db-profile-mini-avatar');
+        if (miniName) miniName.textContent = pName;
+        if (miniLevel) miniLevel.textContent = pLevel;
+        if (miniAvatar) {
+          var initials = pName.split(' ').map(function(w){ return w[0]; }).join('').slice(0,2).toUpperCase();
+          miniAvatar.textContent = initials;
+        }
+
+        // Stat cards
+        var statXP = document.getElementById('db-stat-xp');
+        if (statXP) statXP.textContent = pXP + ' XP';
+
+        var statStreak = document.getElementById('db-stat-streak');
+        if (statStreak) {
+          var streakData = null;
+          try { streakData = JSON.parse(localStorage.getItem('courtiq-streak')); } catch(e) {}
+          statStreak.textContent = (streakData && streakData.current) || 0;
+        }
+
+        // Skills circles — read from onboarding data
+        var skills = (ob && ob.skills) || {};
+        var skillMap = {
+          shooting: (skills.shooting || 5) * 10,
+          dribbling: (skills.dribbling || 5) * 10,
+          defense: (skills.defense || 5) * 10,
+          gameiq: (skills.gameIQ || skills.gameiq || 5) * 10
+        };
+        var circumference = 2 * Math.PI * 34; // r=34
+
+        Object.keys(skillMap).forEach(function(key) {
+          var pct = skillMap[key];
+          var pctEl = document.getElementById('stat-' + key);
+          var circleEl = document.getElementById('stat-' + key + '-circle');
+          if (pctEl) pctEl.textContent = pct + '%';
+          if (circleEl) {
+            var offset = circumference - (pct / 100) * circumference;
+            setTimeout(function() { circleEl.style.strokeDashoffset = offset; }, 300);
+          }
+        });
+      })();
+
       // Load all weeks with sessions
-      const weeks = await DataService.getWeeks();
+      const weeks = await withTimeout(DataService.getWeeks(), 10000);
 
       // Find weeks that have a summary (completed) vs the current in-progress week
       const completedWeeks = weeks.filter(w => w.summary_json);
@@ -282,8 +382,13 @@
       } else {
         // Create a new week
         currentWeekNum = completedWeeks.length + 1;
-        const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
-        currentWeekId = newWeek.id;
+        try {
+          const newWeek = await DataService.createWeek(currentWeekNum, 'W' + currentWeekNum);
+          if (newWeek) currentWeekId = newWeek.id;
+        } catch (weekErr) {
+          console.warn('Could not create new week:', weekErr);
+          // Dashboard still loads — user can view history, just can't add sessions until refresh
+        }
         dbSessions = [];
       }
 
@@ -308,157 +413,6 @@
     if (dbResult) {
       dbRenderSummary(dbResult);
     }
-
-    // Populate new home panel widgets
-    ksUpdateHomePanel();
-  }
-
-  /* ── Home panel: populate new ks-* widgets ── */
-  function ksUpdateHomePanel() {
-
-    // ── Streak & sessions count ──────────────────────────────────────────
-    const streakEl   = document.getElementById('ks-home-streak');
-    const sessionsEl = document.getElementById('ks-home-sessions');
-    if (streakEl) {
-      const streakOld = document.getElementById('db-stat-streak');
-      streakEl.textContent = (streakOld && streakOld.textContent) ? streakOld.textContent : '0';
-    }
-    if (sessionsEl) {
-      let total = dbSessions.length;
-      for (const w of dbWeeks) { total += (w.days || []).length; }
-      sessionsEl.textContent = String(total);
-    }
-
-    // ── Skill bars from onboarding data ──────────────────────────────────
-    try {
-      const ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-      const skills = ob.skills || {};
-      const toBarPct = function(v) { return Math.round(((Number(v) || 5) / 10) * 100); };
-      const skillMap = [
-        { key: 'shooting',  scoreId: 'ks-sb-shooting',  barId: 'ks-sb-shooting-bar'  },
-        { key: 'dribbling', scoreId: 'ks-sb-dribbling', barId: 'ks-sb-dribbling-bar' },
-        { key: 'defense',   scoreId: 'ks-sb-defense',   barId: 'ks-sb-defense-bar'   },
-        { key: 'gameiq',    scoreId: 'ks-sb-gameiq',    barId: 'ks-sb-gameiq-bar'    },
-      ];
-      skillMap.forEach(function(item) {
-        var raw = skills[item.key] || skills['game_iq'] || 5;
-        var val = Math.min(10, Math.max(0, Number(raw)));
-        var pct = toBarPct(val);
-        var scoreEl = document.getElementById(item.scoreId);
-        var barEl   = document.getElementById(item.barId);
-        if (scoreEl) scoreEl.textContent = val + '/10';
-        if (barEl) requestAnimationFrame(function() { barEl.style.width = pct + '%'; });
-      });
-    } catch (e) { /* no onboarding data yet */ }
-
-    // ── Game Log (DOM-safe, no innerHTML) ────────────────────────────────
-    var logList = document.getElementById('ks-game-log-list');
-    if (logList) {
-      var allSess = [];
-      dbSessions.forEach(function(s) { allSess.push({ s: s, weekLabel: 'This Week' }); });
-      if (dbWeeks.length > 0) {
-        (dbWeeks[dbWeeks.length - 1].days || []).forEach(function(s) {
-          allSess.push({ s: s, weekLabel: 'Last Week' });
-        });
-      }
-
-      while (logList.firstChild) logList.removeChild(logList.firstChild);
-
-      if (allSess.length === 0) {
-        var emptyEl = document.createElement('div');
-        emptyEl.className = 'ks-game-log-empty';
-        emptyEl.textContent = 'Log a session to see your game history';
-        logList.appendChild(emptyEl);
-      } else {
-        var recent = allSess.slice(-5).reverse();
-        recent.forEach(function(entry) {
-          var s    = entry.s;
-          var made = Number(s.shots_made) || 0;
-          var att  = Number(s.shots_attempted) || 0;
-          var pct  = att > 0 ? Math.round((made / att) * 100) : 0;
-          var grade = 'C', gradeClass = 'ks-game-log-grade--c', itemClass = 'ks-game-log-item--avg';
-          if (pct >= 60 || made >= 30)     { grade = 'A'; gradeClass = 'ks-game-log-grade--a'; itemClass = 'ks-game-log-item--great'; }
-          else if (pct >= 40 || made >= 15){ grade = 'B'; gradeClass = 'ks-game-log-grade--b'; itemClass = 'ks-game-log-item--good'; }
-
-          var row = document.createElement('div');
-          row.className = 'ks-game-log-item ' + itemClass;
-          row.style.cursor = 'pointer';
-          row.addEventListener('click', function() { dbSwitchTab('history'); });
-
-          var daySpan = document.createElement('span');
-          daySpan.className = 'ks-game-log-day';
-          daySpan.textContent = String(s.day || 'Day').slice(0, 3);
-
-          var infoDiv = document.createElement('div');
-          infoDiv.className = 'ks-game-log-info';
-
-          var titleDiv = document.createElement('div');
-          titleDiv.className = 'ks-game-log-title';
-          titleDiv.textContent = 'Training Session \u2014 ' + entry.weekLabel;
-
-          var subDiv = document.createElement('div');
-          subDiv.className = 'ks-game-log-sub';
-          if (att > 0) {
-            subDiv.textContent = made + '/' + att + ' shots \u2022 ' + pct + '%';
-          } else if (s.dribbling_min) {
-            subDiv.textContent = s.dribbling_min + ' min dribbling';
-          } else {
-            subDiv.textContent = 'Training session';
-          }
-
-          infoDiv.appendChild(titleDiv);
-          infoDiv.appendChild(subDiv);
-
-          var gradeSpan = document.createElement('span');
-          gradeSpan.className = 'ks-game-log-grade ' + gradeClass;
-          gradeSpan.textContent = grade;
-
-          row.appendChild(daySpan);
-          row.appendChild(infoDiv);
-          row.appendChild(gradeSpan);
-          logList.appendChild(row);
-        });
-      }
-    }
-
-    // ── Personal Bests ────────────────────────────────────────────────────
-    var allData = [].concat(dbSessions);
-    dbWeeks.forEach(function(w) { allData = allData.concat(w.days || []); });
-
-    if (allData.length > 0) {
-      var pbShots    = Math.max.apply(null, allData.map(function(s) { return Number(s.shots_made) || 0; }));
-      var pbVertical = Math.max.apply(null, allData.map(function(s) { return Number(s.vertical_in) || 0; }));
-      var sprintVals = allData.filter(function(s) { return Number(s.sprint_sec) > 0; }).map(function(s) { return Number(s.sprint_sec); });
-      var pbSprint   = sprintVals.length > 0 ? Math.min.apply(null, sprintVals) : 0;
-
-      var shotsEl  = document.getElementById('ks-pb-shots');
-      var vertEl   = document.getElementById('ks-pb-vertical');
-      var sprintEl = document.getElementById('ks-pb-sprint');
-
-      if (shotsEl  && pbShots > 0)    shotsEl.textContent  = pbShots + ' shots';
-      if (vertEl   && pbVertical > 0) vertEl.textContent   = pbVertical + '"';
-      if (sprintEl && pbSprint > 0)   sprintEl.textContent = pbSprint + 's';
-    }
-
-    // ── Bento stats: live data override ──────────────────────────────────
-    if (dbSessions.length > 0) {
-      var curr = dbWeekStats({ days: dbSessions });
-      var bentoCards = document.querySelectorAll('.ks-bento-grid .ks-stat-card--tall');
-      if (bentoCards[0] && curr.shooting_pct > 0) {
-        var numEl0 = bentoCards[0].querySelector('.ks-stat-number');
-        var barEl0 = bentoCards[0].querySelector('.ks-progress-fill');
-        if (numEl0) numEl0.textContent = curr.shooting_pct.toFixed(1);
-        if (barEl0) barEl0.style.width = curr.shooting_pct + '%';
-      }
-      if (bentoCards[1] && curr.vertical_in > 0) {
-        var numEl1 = bentoCards[1].querySelector('.ks-stat-number');
-        if (numEl1) numEl1.textContent = curr.vertical_in + '"';
-      }
-      if (bentoCards[2] && curr.dribbling_min > 0) {
-        var numEl2 = bentoCards[2].querySelector('.ks-stat-number');
-        if (numEl2) numEl2.textContent = (curr.dribbling_min / 60).toFixed(1) + 'h';
-      }
-    }
   }
 
   /* ── helpers ── */
@@ -473,7 +427,7 @@
     const d = w.days;
     if (!d || d.length === 0) return { shooting_pct:0, dribbling_min:0, vertical_in:0, sprint_sec:0, shots_made:0 };
     return {
-      shooting_pct: Math.round(dbMean(d, r => (r.shots_made/r.shots_attempted)*100)),
+      shooting_pct: Math.round(dbMean(d, r => r.shots_attempted > 0 ? (r.shots_made/r.shots_attempted)*100 : 0)),
       dribbling_min: +dbMean(d, r => r.dribbling_min).toFixed(1),
       vertical_in:   +dbMean(d, r => r.vertical_in).toFixed(1),
       sprint_sec:    +dbMean(d, r => r.sprint_sec).toFixed(2),
@@ -486,8 +440,45 @@
   function dbWeekNum() { return currentWeekNum; }
   function dbPrevStats() { return dbWeeks.length > 0 ? dbWeekStats(dbWeeks[dbWeeks.length-1]) : null; }
 
+  /* ── premium lock for guest mode ── */
+  function showPremiumLock(tabId) {
+    var names = { coach: 'AI Coach', summary: 'Weekly Summary', progress: 'Progress Analytics', archetype: 'Player Archetype' };
+    var existing = document.getElementById('premium-lock-dialog');
+    if (existing) existing.remove();
+    var overlay = document.createElement('div');
+    overlay.id = 'premium-lock-dialog';
+    overlay.className = 'premium-lock-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.inset = '0';
+    overlay.style.zIndex = '150000';
+    var icon = document.createElement('div');
+    icon.className = 'premium-lock-icon';
+    icon.textContent = '\uD83D\uDD12';
+    var text = document.createElement('div');
+    text.className = 'premium-lock-text';
+    text.textContent = (names[tabId] || tabId) + ' is a premium feature. Sign up to unlock full access.';
+    var btn = document.createElement('button');
+    btn.className = 'premium-lock-btn';
+    btn.textContent = 'SIGN UP TO UNLOCK';
+    btn.addEventListener('click', function() { overlay.remove(); if (typeof openAuth === 'function') openAuth('signup'); });
+    var dismiss = document.createElement('button');
+    dismiss.textContent = 'Maybe Later';
+    dismiss.style.cssText = 'background:none;border:none;color:rgba(255,255,255,0.4);font-size:13px;cursor:pointer;margin-top:12px;';
+    dismiss.addEventListener('click', function() { overlay.remove(); });
+    overlay.appendChild(icon);
+    overlay.appendChild(text);
+    overlay.appendChild(btn);
+    overlay.appendChild(dismiss);
+    document.body.appendChild(overlay);
+  }
+
   /* ── tab switching ── */
+  var GUEST_LOCKED_TABS = ['coach', 'summary', 'progress', 'archetype'];
   function dbSwitchTab(id, btn) {
+    // Guest mode: block premium tabs
+    if (window.courtiqGuest && GUEST_LOCKED_TABS.indexOf(id) !== -1) {
+      showPremiumLock(id); return;
+    }
     // Update sidebar active state
     document.querySelectorAll('.db-sidebar-item').forEach(i => i.classList.remove('active'));
     // Also clear old tab buttons if any exist
@@ -500,41 +491,65 @@
       if (sidebarBtn) sidebarBtn.classList.add('active');
     }
 
-    // Sync Kinetic Elite bottom nav active state
-    document.querySelectorAll('.ke-nav-item').forEach(function(navBtn) {
-      navBtn.classList.toggle('active', navBtn.getAttribute('data-tab') === id);
+    // Update bottom nav active state (section-aware)
+    document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      var section = btn.dataset.section;
+      var sectionDef = typeof bottomNavSections !== 'undefined' && bottomNavSections[section];
+      var isActive = sectionDef && sectionDef.tabs.indexOf(id) !== -1;
+      btn.classList.toggle('active', !!isActive);
+    });
+
+    // Update top nav active state (section-aware)
+    document.querySelectorAll('.top-nav-item').forEach(function(btn) {
+      var section = btn.dataset.section;
+      var sectionDef = typeof bottomNavSections !== 'undefined' && bottomNavSections[section];
+      var isActive = sectionDef && sectionDef.tabs.indexOf(id) !== -1;
+      btn.classList.toggle('active', !!isActive);
     });
 
     // Toggle panels
     document.querySelectorAll('.db-panel').forEach(p => p.classList.remove('active'));
     const panel = document.getElementById('db-panel-' + id);
-    if (panel) {
-      panel.classList.add('active');
-      // Restart ks-reveal-up animations (CSS animations don't fire on hidden panels)
-      setTimeout(() => {
-        panel.querySelectorAll('.ks-reveal-up').forEach(el => {
-          el.style.animationName = 'none';
-          void el.offsetHeight; // force reflow
-          el.style.animationName = '';
-        });
-      }, 16);
+    if (panel) panel.classList.add('active');
+
+    // Toggle home-active state: hide sidebar on home, show on others
+    var layoutRoot = document.querySelector('.db-layout-root');
+    if (layoutRoot) {
+      if (id === 'home') {
+        layoutRoot.classList.add('db-home-active');
+      } else {
+        layoutRoot.classList.remove('db-home-active');
+      }
+    }
+
+    // Show/hide global hero + stats (only on home)
+    var welcomeHero = document.querySelector('.db-welcome-hero');
+    var statsRow = document.querySelector('.db-stats-row');
+    if (id === 'home') {
+      if (welcomeHero) welcomeHero.style.display = '';
+      if (statsRow) statsRow.style.display = '';
+    } else {
+      if (welcomeHero) welcomeHero.style.display = 'none';
+      if (statsRow) statsRow.style.display = 'none';
     }
 
     // Update breadcrumb
-    // Show/hide context row (only for log panel)
-    var contextRow = document.getElementById('db-context-row');
-    if (contextRow) contextRow.style.display = (id === 'log') ? '' : 'none';
-
     var breadcrumbNames = {
-      home: 'Home', log: 'Log Session', history: 'History', calendar: 'Calendar',
+      home: 'Home', summary: 'Weekly Summary', shots: 'Shot Tracker', coach: 'AI Coach',
+      log: 'Log Session', history: 'History', calendar: 'Calendar',
       drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
-      shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge',
-      summary: 'Weekly Summary', coach: 'AI Coach', notifications: 'Notifications',
-      shots: 'Shot Tracker', social: 'Social Hub'
+      shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge'
     };
     var bcEl = document.getElementById('db-breadcrumb-current');
     if (bcEl) bcEl.textContent = breadcrumbNames[id] || id;
+
+    // Hide breadcrumb on home panel
+    var topbar = document.getElementById('db-topbar');
+    if (topbar) {
+      var bc = topbar.querySelector('.db-breadcrumb');
+      if (bc) bc.style.display = (id === 'home') ? 'none' : '';
+    }
 
     // GSAP tab animation (graceful fallback)
     if (panel && window.CourtIQAnimations && CourtIQAnimations.tabIn) {
@@ -544,12 +559,8 @@
     // Panel-specific init calls
     if (id === 'history') dbRenderHistory();
     if (id === 'calendar' && typeof calSetSource === 'function') {
-      // Auto-pick best source: prefer coach if output exists, fall back to log if sessions exist
-      var bestSrc = typeof calSource !== 'undefined' ? calSource : 'coach';
-      var hasCoachResult = typeof coachResult !== 'undefined' && coachResult !== null;
-      if (bestSrc === 'coach' && !hasCoachResult && dbSessions.length > 0) bestSrc = 'log';
-      var calSrcBtn = document.getElementById('cal-src-' + bestSrc);
-      calSetSource(bestSrc, calSrcBtn);
+      calSetSource(typeof calSource !== 'undefined' ? calSource : 'coach',
+        document.getElementById('cal-src-' + (typeof calSource !== 'undefined' ? calSource : 'coach')));
     }
     if (id === 'moves' && typeof movesInit === 'function' && !window._movesInitialized) {
       window._movesInitialized = true; movesInit();
@@ -558,22 +569,32 @@
       window._workoutsInitialized = true; workoutsInit();
     }
     if (id === 'drills' && typeof drillsInit === 'function') drillsInit();
+    if (id === 'shots' && typeof CourtHeatmap !== 'undefined') CourtHeatmap.render('court-heatmap-container');
+    if (id === 'notifications' && typeof NotificationManager !== 'undefined') NotificationManager.renderPreferences('notif-preferences-container');
     if (id === 'archetype' && typeof archetypeInit === 'function') archetypeInit();
     if (id === 'shop') {
       if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
       try {
         var shopContainer = document.getElementById('shop-avatar-container');
         var obData = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-        if (shopContainer && typeof AvatarBuilder !== 'undefined' && obData.avatar) {
-          shopContainer.innerHTML = '';
-          var sc = document.createElement('canvas');
-          sc.width = 200; sc.height = 280;
-          sc.style.width = '100%'; sc.style.height = '100%';
-          shopContainer.appendChild(sc);
-          AvatarBuilder.draw(sc, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }));
+        if (shopContainer && typeof AvatarBridge !== 'undefined' && obData.avatar) {
+          AvatarBridge.render(shopContainer, Object.assign({}, obData.avatar, { position: obData.position || 'SG' }), { width: 200, height: 280, interactive: true, animate: true });
         }
       } catch (e) {}
     }
+
+    // Update subnav active states
+    document.querySelectorAll('.subnav-item').forEach(function(btn) {
+      btn.classList.remove('active');
+    });
+    document.querySelectorAll('.section-subnav').forEach(function(nav) {
+      var buttons = nav.querySelectorAll('.subnav-item');
+      buttons.forEach(function(btn) {
+        if (btn.getAttribute('onclick') && btn.getAttribute('onclick').indexOf("'" + id + "'") !== -1) {
+          btn.classList.add('active');
+        }
+      });
+    });
 
     // Close mobile sidebar if open
     const sidebar = document.getElementById('db-sidebar');
@@ -585,6 +606,38 @@
     dbSwitchTab(id, null);
   }
 
+  /* ── bottom nav section switching ── */
+  var bottomNavSections = {
+    home:    { tabs: ['home'], default: 'home' },
+    drills:  { tabs: ['drills', 'workouts', 'log'], default: 'drills' },
+    coach:   { tabs: ['coach', 'calendar', 'notifications', 'summary'], default: 'coach' },
+    shots:   { tabs: ['shots', 'history'], default: 'shots' },
+    profile: { tabs: ['archetype', 'social', 'shop', 'moves'], default: 'archetype' }
+  };
+
+  function bottomNavSwitch(section) {
+    // Update active bottom nav button
+    document.querySelectorAll('.bottom-nav-item').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.section === section);
+    });
+    // Update active top nav button
+    document.querySelectorAll('.top-nav-item').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.section === section);
+    });
+    // Hide all subnavs
+    document.querySelectorAll('.section-subnav').forEach(function(nav) {
+      nav.style.display = 'none';
+    });
+    // Show correct subnav (if not home)
+    if (section !== 'home') {
+      var subnav = document.getElementById('subnav-' + section);
+      if (subnav) subnav.style.display = 'flex';
+    }
+    // Switch to default tab for this section
+    var defaultTab = bottomNavSections[section].default;
+    dbSwitchTab(defaultTab);
+  }
+
   /* ── update header labels ── */
   function dbUpdateLabels() {
     const wn = dbWeekNum();
@@ -592,7 +645,10 @@
     const weekNum = document.getElementById('db-week-num');
     if (weekLabel) weekLabel.textContent = 'Week ' + wn;
     if (weekNum) weekNum.textContent = wn;
-    document.getElementById('db-session-count').textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var scEl = document.getElementById('db-session-count');
+    if (scEl) scEl.textContent = dbSessions.length + ' session' + (dbSessions.length !== 1 ? 's' : '') + ' logged';
+    var statSessions = document.getElementById('db-stat-sessions');
+    if (statSessions) statSessions.textContent = dbSessions.length;
     const dayLabel = DB_DAYS[dbSessions.length] || 'Extra Day';
     document.getElementById('db-session-label').textContent = 'Session ' + (dbSessions.length + 1) + ' — ' + dayLabel;
     const rem = Math.max(0, 5 - dbSessions.length);
@@ -618,7 +674,7 @@
       return;
     }
     list.innerHTML = dbSessions.map((s, i) => {
-      const pct = Math.round((s.shots_made / s.shots_attempted) * 100);
+      const pct = s.shots_attempted > 0 ? Math.round((s.shots_made / s.shots_attempted) * 100) : 0;
       const bc  = pct >= 65 ? '#56d364' : pct >= 50 ? '#f5a623' : '#f85149';
       return `
         <div class="db-session-card">
@@ -678,6 +734,12 @@
       err.textContent = '\u26a0 Sprint time should be between 1.0 and 15.0 seconds.'; err.style.display = 'block'; return;
     }
 
+    if (!currentWeekId) {
+      err.textContent = '\u26a0 Still loading your data — please wait a moment and try again.';
+      err.style.display = 'block';
+      return;
+    }
+
     const notes = clampLength(document.getElementById('db-notes').value || '', 500);
     const day = DB_DAYS[dbSessions.length] || ('Day ' + (dbSessions.length + 1));
 
@@ -708,22 +770,7 @@
     dbUpdateLabels();
     dbRenderSessions();
     if (typeof SFX !== 'undefined') SFX.success();
-
-    // Award XP for logging a session
-    var xpEarned = 25;
-    if (typeof XPSystem !== 'undefined' && XPSystem.addXP) {
-      try { XPSystem.addXP(xpEarned, 'Session logged'); } catch(e) {}
-    }
-
-    // Sync updated XP to cloud (non-blocking, fire-and-forget)
-    if (window.currentUser && typeof DataService !== 'undefined') {
-      try {
-        var xpData = JSON.parse(localStorage.getItem('courtiq-xp') || '{}');
-        DataService.saveUserData({ xp_data: xpData }).catch(function() {});
-      } catch(e) {}
-    }
-
-    showToast('Session logged for ' + day + '! +' + xpEarned + ' XP');
+    showToast('Session logged for ' + day + '!');
   }
 
   /* ── chart helpers ── */
@@ -859,8 +906,28 @@
     // feedback text
     document.getElementById('db-headline').textContent     = result.feedback.headline;
     document.getElementById('db-summary-text').textContent = result.feedback.summary;
-    document.getElementById('db-strengths').innerHTML = result.feedback.strengths.map(s => `<div class="db-feedback-item">\u00b7 ${sanitize(s)}</div>`).join('');
-    document.getElementById('db-focus').innerHTML     = result.feedback.focus_areas.map(f => `<div class="db-feedback-item">\u00b7 ${sanitize(f)}</div>`).join('');
+    // Strengths (safe DOM)
+    var strengthsEl = document.getElementById('db-strengths');
+    if (strengthsEl) {
+      while (strengthsEl.firstChild) strengthsEl.removeChild(strengthsEl.firstChild);
+      (result.feedback.strengths || []).forEach(function (s) {
+        var div = document.createElement('div');
+        div.className = 'db-feedback-item';
+        div.textContent = '\u00b7 ' + s;
+        strengthsEl.appendChild(div);
+      });
+    }
+    // Focus areas (safe DOM)
+    var focusEl = document.getElementById('db-focus');
+    if (focusEl) {
+      while (focusEl.firstChild) focusEl.removeChild(focusEl.firstChild);
+      (result.feedback.focus_areas || []).forEach(function (f) {
+        var div = document.createElement('div');
+        div.className = 'db-feedback-item';
+        div.textContent = '\u00b7 ' + f;
+        focusEl.appendChild(div);
+      });
+    }
     document.getElementById('db-drill').textContent   = result.feedback.drill_recommendation;
     document.getElementById('db-coach-note').textContent = '\u201c' + result.feedback.coach_note + '\u201d';
 
@@ -915,16 +982,11 @@
       const s = dbWeekStats(w);
       const isLatest = i === 0 && dbResult;
       const isInProgress = w._inProgress;
-      const hasSummary = !!w.summary_json;
-      const clickAttr = hasSummary ? ` onclick="dbLoadWeekSummary('${sanitize(String(w.id))}')" style="cursor:pointer"` : '';
       return `
-        <div class="db-history-card"${clickAttr} style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : isInProgress ? 'border-color:rgba(76,163,255,0.28)' : ''}">
+        <div class="db-history-card" style="${isLatest ? 'border-color:rgba(245,166,35,0.28)' : isInProgress ? 'border-color:rgba(76,163,255,0.28)' : ''}">
           <div class="db-history-header" style="${isLatest ? 'background:linear-gradient(135deg,rgba(245,166,35,0.07) 0%,transparent 60%)' : isInProgress ? 'background:linear-gradient(135deg,rgba(76,163,255,0.07) 0%,transparent 60%)' : ''}">
             <div class="db-history-week" style="color:${isLatest ? '#f5a623' : isInProgress ? '#4ca3ff' : 'var(--c-white)'}">${sanitize(w.week)}${isLatest ? ' <span style="font-size:13px;font-weight:400;">\u00b7 Latest</span>' : isInProgress ? ' <span style="font-size:13px;font-weight:400;">\u00b7 In Progress</span>' : ''}</div>
-            <div style="display:flex;align-items:center;gap:10px;">
-              <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} session${w.days.length !== 1 ? 's' : ''}</div>
-              ${hasSummary ? '<span style="font-size:11px;font-weight:700;color:#f5a623;letter-spacing:0.05em;">View Summary \u2192</span>' : ''}
-            </div>
+            <div style="font-size:11px;color:var(--c-dimmer)">${w.days.length} session${w.days.length !== 1 ? 's' : ''}</div>
           </div>
           <div class="db-history-body">
             <div class="db-history-stats">
@@ -938,7 +1000,7 @@
             </div>
             <div class="db-day-bars">
               ${w.days.map(d => {
-                const pct = Math.round((d.shots_made/d.shots_attempted)*100);
+                const pct = d.shots_attempted > 0 ? Math.round((d.shots_made/d.shots_attempted)*100) : 0;
                 const bc  = pct>=65?'rgba(86,211,100,0.45)':pct>=50?'rgba(245,166,35,0.45)':'rgba(248,81,73,0.4)';
                 return `<div class="db-day-bar-wrap"><div class="db-day-bar-bg"><div class="db-day-bar-fill" style="height:${pct}%;background:${bc}"></div></div><div class="db-day-bar-label">${d.day}</div></div>`;
               }).join('')}
@@ -946,15 +1008,6 @@
           </div>
         </div>`;
     }).join('');
-  }
-
-  /* ── load a past week's summary from history card click ── */
-  function dbLoadWeekSummary(weekId) {
-    const week = dbWeeks.find(w => String(w.id) === String(weekId));
-    if (!week || !week.summary_json) return;
-    dbResult = week.summary_json;
-    dbRenderSummary(dbResult);
-    dbSwitchTab('summary');
   }
 
   /* ── copy JSON ── */
@@ -1407,584 +1460,9 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
     }
   })();
 
-  /* ══════════════════════════════════════════════════════════════════
-     FLOATING BOTTOM NAV (5 Main Tabs)
-  ══════════════════════════════════════════════════════════════════ */
-  (function initGlassNav() {
-    // Map main tab -> default sub-panel + sub-nav group
-    var mainTabMap = {
-      home:    { panel: 'home',      subNav: null },
-      train:   { panel: 'log',       subNav: 'glass-sub-nav-train' },
-      stats:   { panel: 'summary',   subNav: 'glass-sub-nav-stats' },
-      coach:   { panel: 'coach',     subNav: 'glass-sub-nav-coach' },
-      profile: { panel: 'archetype', subNav: 'glass-sub-nav-profile' }
-    };
-
-    var currentMainTab = 'home';
-
-    function switchMainTab(tabId) {
-      currentMainTab = tabId;
-      var config = mainTabMap[tabId];
-      if (!config) return;
-
-      // Update active state on bottom nav
-      document.querySelectorAll('.glass-nav-tab').forEach(function(btn) {
-        btn.classList.toggle('active', btn.dataset.mainTab === tabId);
-      });
-
-      // Hide all sub-navs
-      document.querySelectorAll('.glass-sub-nav').forEach(function(nav) {
-        nav.style.display = 'none';
-      });
-
-      // Show relevant sub-nav and reset its active state
-      if (config.subNav) {
-        var subNav = document.getElementById(config.subNav);
-        if (subNav) {
-          subNav.style.display = 'flex';
-          // Reset sub-nav active to first button
-          subNav.querySelectorAll('.glass-sub-nav-btn').forEach(function(b, i) {
-            b.classList.toggle('active', i === 0);
-          });
-        }
-      }
-
-      // Show/hide welcome hero + outer elements (only on home)
-      var outerEls = document.querySelectorAll('.db-welcome-hero, .db-stats-row, .dc-card, .db-quick-grid, .db-skills-circle-grid, .db-home-stats-row, .db-home-nav-grid, .glass-session-counter, .glass-streak-card, .glass-season-progress, .glass-daily-drills, .glass-recent-sessions, .db-top-widgets, .xp-gain-toast, #streak-toast, .db-donuts-row');
-      outerEls.forEach(function(el) {
-        el.style.display = (tabId === 'home') ? '' : 'none';
-      });
-
-      // Switch to the default sub-panel
-      dbSwitchTab(config.panel, null);
-    }
-
-    // Bottom nav click handlers
-    document.querySelectorAll('.glass-nav-tab').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        switchMainTab(btn.dataset.mainTab);
-      });
-    });
-
-    // Sub-nav click handlers
-    document.querySelectorAll('.glass-sub-nav-btn').forEach(function(btn) {
-      btn.addEventListener('click', function() {
-        var parent = btn.parentElement;
-        parent.querySelectorAll('.glass-sub-nav-btn').forEach(function(b) {
-          b.classList.remove('active');
-        });
-        btn.classList.add('active');
-        dbSwitchTab(btn.dataset.subTab, null);
-      });
-    });
-
-    // Initialize: show home
-    switchMainTab('home');
-  })();
-
-  /* ── Home panel interactive buttons ────────────────────────── */
-  (function () {
-    function initHomePanelHandlers() {
-      /* A) Edit Profile button */
-      var editProfileBtn = document.querySelector('#db-panel-home .ks-btn-primary');
-      if (editProfileBtn) {
-        editProfileBtn.addEventListener('click', function () {
-          var modal = document.getElementById('profile-modal-overlay');
-          if (modal) modal.classList.add('active');
-        });
-      }
-
-      /* B) Share button */
-      var shareBtn = document.querySelector('#db-panel-home .ks-btn-outline');
-      if (shareBtn) {
-        shareBtn.addEventListener('click', function () {
-          if (navigator.share) {
-            navigator.share({
-              title: 'CourtIQ',
-              text: 'Check out my basketball training profile!',
-              url: window.location.href
-            });
-          } else {
-            navigator.clipboard.writeText(window.location.href).then(function () {
-              if (typeof showToast === 'function') showToast('Profile link copied!');
-            });
-          }
-        });
-      }
-
-      /* C) Info button next to "Start Drill" */
-      var infoBtn = document.querySelector('.ks-info-btn');
-      if (infoBtn) {
-        infoBtn.addEventListener('click', function () {
-          if (typeof showToast === 'function') showToast('Daily workout is auto-generated based on your skill profile');
-        });
-      }
-    }
-
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', initHomePanelHandlers);
-    } else {
-      initHomePanelHandlers();
-    }
+  // Default to home panel on page load
+  (function() {
+    dbSwitchTab('home', null);
   })();
 
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
-
-  /* ══════════════════════════════════════════════════════════════
-     DAILY CHALLENGE SYSTEM — rotates every calendar day
-  ══════════════════════════════════════════════════════════════ */
-  (function DailyChallengeSystem() {
-    var CHALLENGES = [
-      { icon:'🎯', title:'Make 25 Mid-Range Shots',         sub:'+40 XP • Shooting Focus',        xp:40, tab:'drills',   filter:'shooting'  },
-      { icon:'⚡', title:'Complete 3 Ball Handling Drills', sub:'+30 XP • Unlocks streak bonus',   xp:30, tab:'drills',   filter:'dribbling' },
-      { icon:'🏀', title:'Log a Full Shooting Session',     sub:'+50 XP • New Record unlock',      xp:50, tab:'log',      filter:null        },
-      { icon:'🔥', title:'5 Defensive Footwork Drills',     sub:'+35 XP • Defense Boost',          xp:35, tab:'drills',   filter:'defense'   },
-      { icon:'💪', title:'Vertical Jump Test + 3 Drills',   sub:'+45 XP • Athleticism',            xp:45, tab:'log',      filter:null        },
-      { icon:'🏆', title:'Run the Full Weekly Workout',     sub:'+60 XP • Weekly Champion',        xp:60, tab:'workouts', filter:null        },
-      { icon:'🎪', title:'3 Court Vision Drills',           sub:'+30 XP • Game IQ Boost',          xp:30, tab:'drills',   filter:'gameiq'    },
-      { icon:'🚀', title:'Sprint Drill — Beat Your Time',   sub:'+40 XP • Speed Record',           xp:40, tab:'log',      filter:null        },
-      { icon:'🌙', title:'Night Training Session',          sub:'+55 XP • Night Warrior',          xp:55, tab:'home',     filter:'night'     },
-      { icon:'🎯', title:'50 Free Throws',                  sub:'+40 XP • Free Throw Pro',         xp:40, tab:'drills',   filter:'shooting'  },
-      { icon:'🏃', title:'Agility Ladder — 5 Rounds',       sub:'+35 XP • Agility Boost',          xp:35, tab:'drills',   filter:'defense'   },
-      { icon:'🔁', title:'Crossover + Euro-Step Combo',     sub:'+30 XP • Ball Magic',             xp:30, tab:'drills',   filter:'dribbling' },
-      { icon:'📊', title:'Log All 5 Stats Today',           sub:'+50 XP • Full Data Day',          xp:50, tab:'log',      filter:null        },
-      { icon:'🎪', title:'3-Point Shooting Marathon',       sub:'+45 XP • Perimeter King',         xp:45, tab:'drills',   filter:'shooting'  },
-      { icon:'🛡️', title:'On-Ball Defense — 20 Possessions', sub:'+35 XP • Lockdown',             xp:35, tab:'drills',   filter:'defense'   },
-      { icon:'🌟', title:'Generate AI Weekly Summary',      sub:'+20 XP • Insight Unlocked',       xp:20, tab:'log',      filter:null        },
-      { icon:'🏀', title:'Shoot 30 Catch-and-Shoot Attempts', sub:'+40 XP • Quick Release',       xp:40, tab:'drills',   filter:'shooting'  },
-      { icon:'⚡', title:'Full Dribble Workout — 45min',    sub:'+55 XP • Handles Elite',          xp:55, tab:'drills',   filter:'dribbling' },
-      { icon:'💡', title:'Study 2 Move Library Breakdowns', sub:'+30 XP • Film Study',             xp:30, tab:'moves',    filter:null        },
-      { icon:'🔥', title:'7-Day Streak Challenge',          sub:'+70 XP • Streak Legend',          xp:70, tab:'log',      filter:null        },
-    ];
-
-    function getTodayChallenge() {
-      return CHALLENGES[Math.floor(Date.now() / 86400000) % CHALLENGES.length];
-    }
-    function todayKey() {
-      var d = new Date();
-      return 'ciq-dc-' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate();
-    }
-    function isDoneToday() { return localStorage.getItem(todayKey()) === '1'; }
-    function markDone()    { localStorage.setItem(todayKey(), '1'); }
-
-    function render() {
-      var ch = getTodayChallenge(), done = isDoneToday();
-      var iconEl  = document.querySelector('.ks-home-challenge-icon');
-      var labelEl = document.querySelector('.ks-home-challenge-label');
-      var titleEl = document.querySelector('.ks-home-challenge-title');
-      var subEl   = document.querySelector('.ks-home-challenge-sub');
-      var ctaEl   = document.querySelector('.ks-home-challenge-cta');
-      var banner  = document.querySelector('.ks-home-challenge');
-      if (!banner) return;
-      if (iconEl)  iconEl.textContent  = ch.icon;
-      if (titleEl) titleEl.textContent = ch.title;
-      if (subEl)   subEl.textContent   = ch.sub;
-      if (labelEl) labelEl.textContent = done ? '✅ Completed Today!' : 'Daily Challenge';
-      if (done) {
-        banner.style.opacity = '0.6';
-        if (ctaEl) { ctaEl.textContent = '✓ Done'; ctaEl.disabled = true; }
-      } else {
-        banner.style.opacity = '';
-        if (ctaEl) { ctaEl.textContent = 'Start'; ctaEl.disabled = false; }
-      }
-      banner.onclick = function() { startChallenge(ch); };
-      if (ctaEl) ctaEl.onclick = function(e) { e.stopPropagation(); startChallenge(ch); };
-    }
-
-    function startChallenge(ch) {
-      if (isDoneToday()) return;
-      if (ch.tab === 'home' && ch.filter === 'night') {
-        if (typeof NightTraining !== 'undefined') NightTraining.open();
-      } else if (typeof dbSwitchTab === 'function') {
-        dbSwitchTab(ch.tab);
-        if (ch.filter && ch.tab === 'drills') {
-          setTimeout(function() {
-            if (typeof drillsSetFilter === 'function') drillsSetFilter(ch.filter);
-          }, 250);
-        }
-      }
-      markDone();
-      if (typeof XPSystem !== 'undefined' && XPSystem.award) XPSystem.award(ch.xp, 'Daily Challenge');
-      render();
-    }
-
-    function init() { render(); }
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-    else init();
-
-    window.DailyChallengeSystem = { render: render, startChallenge: startChallenge, getTodayChallenge: getTodayChallenge };
-  })();
-
-// ── THE LAB SYSTEM ─────────────────────────────────────────────────────────
-(function TheLabSystem() {
-  var ARCHETYPE_PRO = {
-    scorer: {
-      name: 'Kevin Durant', sub: 'Elite Scorer', note: 'That is your benchmark to beat.',
-      s1l: 'Points/GM', s1v: '27.2', s2l: 'FG%', s2v: '52.1%'
-    },
-    playmaker: {
-      name: 'Chris Paul', sub: 'Floor General', note: 'Run the game like CP3.',
-      s1l: 'Assists/GM', s1v: '8.9', s2l: 'Ball IQ', s2v: '97th %ile'
-    },
-    defender: {
-      name: 'Kawhi Leonard', sub: 'Two-Way Anchor', note: 'Lock down every possession.',
-      s1l: 'Def Rating', s1v: '98.4', s2l: 'Steals/GM', s2v: '1.8'
-    },
-    'two-way': {
-      name: 'Jaylen Brown', sub: 'Two-Way Force', note: 'Dominant on both ends.',
-      s1l: 'Net Rating', s1v: '+8.2', s2l: 'Efficiency', s2v: '58.3%'
-    },
-    'rim-runner': {
-      name: 'Anthony Davis', sub: 'Interior Beast', note: 'Control the paint.',
-      s1l: 'Rebounds/GM', s1v: '12.1', s2l: 'FG% (Paint)', s2v: '68.4%'
-    },
-    default: {
-      name: 'LeBron James', sub: 'All-Around Elite', note: 'The gold standard.',
-      s1l: 'Points/GM', s1v: '27.0', s2l: 'Efficiency', s2v: '64.2%'
-    }
-  };
-
-  function renderStatCards() {
-    var sessions = window.dbSessions || [];
-    var avgShots = sessions.length
-      ? (sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0) / sessions.length).toFixed(1)
-      : null;
-    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
-    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
-    var fgPct = totalAtt > 0 ? ((totalMade / totalAtt) * 100).toFixed(1) + '%' : null;
-    var volHrs = sessions.length
-      ? ((sessions.reduce(function(a, s) { return a + (s.duration_sec || 0); }, 0) / 3600)).toFixed(1) + 'h'
-      : null;
-    var bestVert = null;
-    sessions.forEach(function(s) {
-      if (s.vertical_cm && (!bestVert || s.vertical_cm > bestVert)) bestVert = s.vertical_cm;
-    });
-    var pts = document.getElementById('lab-stat-pts');
-    var fg  = document.getElementById('lab-stat-fg');
-    var vol = document.getElementById('lab-stat-vol');
-    var vrt = document.getElementById('lab-stat-vert');
-    if (pts) pts.textContent = avgShots !== null ? avgShots : '\u2014';
-    if (fg)  fg.textContent  = fgPct    !== null ? fgPct    : '\u2014';
-    if (vol) vol.textContent = volHrs   !== null ? volHrs   : '\u2014';
-    if (vrt) vrt.textContent = bestVert !== null ? bestVert + 'cm' : '\u2014';
-    var trends = ['lab-stat-pts-trend','lab-stat-fg-trend','lab-stat-vol-trend','lab-stat-vert-trend'];
-    trends.forEach(function(id) {
-      var el = document.getElementById(id);
-      if (el) el.textContent = sessions.length ? '' : 'No data yet';
-    });
-  }
-
-  function renderProCompare() {
-    var arch = localStorage.getItem('courtiq-archetype') || 'default';
-    var pro  = ARCHETYPE_PRO[arch] || ARCHETYPE_PRO['default'];
-    var nameEl = document.getElementById('lab-pro-name');
-    var descEl = document.getElementById('lab-pro-desc');
-    var s1l    = document.getElementById('lab-pro-stat1-label');
-    var s1v    = document.getElementById('lab-pro-stat1-val');
-    var s2l    = document.getElementById('lab-pro-stat2-label');
-    var s2v    = document.getElementById('lab-pro-stat2-val');
-    if (nameEl) nameEl.textContent = pro.name;
-    if (descEl) descEl.textContent = pro.sub + ' \u2022 ' + pro.note;
-    if (s1l) s1l.textContent = pro.s1l;
-    if (s1v) s1v.textContent = pro.s1v;
-    if (s2l) s2l.textContent = pro.s2l;
-    if (s2v) s2v.textContent = pro.s2v;
-  }
-
-  function renderInsights() {
-    var sessions = window.dbSessions || [];
-    var insights = [];
-    if (sessions.length === 0) {
-      insights = [
-        { icon: '\u26a1', title: 'Start Your First Session', body: 'Complete a drill or shot tracking session to unlock AI insights.' },
-        { icon: '\ud83d\udcca', title: 'Track Your Progress', body: 'Your shooting stats, volume, and trends will appear here after sessions.' },
-        { icon: '\ud83c\udfaf', title: 'Set a Daily Challenge', body: 'Complete today\'s challenge to start building your performance baseline.' }
-      ];
-    } else {
-      var best = sessions.reduce(function(a, s) { return (s.made || 0) > (a.made || 0) ? s : a; }, sessions[0]);
-      var recent = sessions.slice(-5);
-      var recentAvg = recent.reduce(function(a, s) { return a + (s.made || 0); }, 0) / recent.length;
-      var overallAvg = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0) / sessions.length;
-      var trend = recentAvg > overallAvg ? '\ud83d\udcc8 Improving' : '\ud83d\udcc9 Slipping';
-      insights = [
-        { icon: '\ud83c\udfc6', title: 'Best Session', body: 'Your peak was ' + (best.made || 0) + ' shots made. Keep chasing that high.' },
-        { icon: '\ud83d\udcc8', title: 'Shooting Trend', body: trend + ' \u2014 recent avg ' + recentAvg.toFixed(1) + ' vs overall ' + overallAvg.toFixed(1) + '.' },
-        { icon: '\u23f1', title: 'Volume', body: 'You have logged ' + sessions.length + ' sessions. Consistency is your edge.' }
-      ];
-    }
-    insights.forEach(function(ins, i) {
-      var n = i + 1;
-      var iconEl  = document.getElementById('lab-insight' + n + '-icon');
-      var titleEl = document.getElementById('lab-insight' + n + '-title');
-      var bodyEl  = document.getElementById('lab-insight' + n + '-body');
-      if (iconEl)  iconEl.textContent  = ins.icon;
-      if (titleEl) titleEl.textContent = ins.title;
-      if (bodyEl)  bodyEl.textContent  = ins.body;
-    });
-  }
-
-  function clearDemoShotMap() {
-    var svg = document.querySelector('.ast-shot-map svg, #ast-shot-svg, .shot-map-svg');
-    if (!svg) return;
-    svg.querySelectorAll('circle[data-demo], circle.demo-shot').forEach(function(c) { c.remove(); });
-    if (svg.querySelectorAll('circle').length === 0) {
-      var empty = document.querySelector('.ast-shot-map-empty, .shot-map-empty');
-      if (empty) empty.style.display = 'flex';
-    }
-  }
-
-  function init() {
-    renderStatCards();
-    renderProCompare();
-    renderInsights();
-    clearDemoShotMap();
-  }
-
-  var _origSwitch = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
-  if (_origSwitch) {
-    window.dbSwitchTab = function(tab) {
-      _origSwitch(tab);
-      if (tab === 'shots') setTimeout(init, 100);
-    };
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-
-  window.TheLabSystem = { render: init };
-})();
-
-// ── PROFILE SYSTEM ─────────────────────────────────────────────────────────
-(function ProfileSystem() {
-  var POSITION_MAP = { PG:'Point Guard', SG:'Shooting Guard', SF:'Small Forward', PF:'Power Forward', C:'Center' };
-  var ARCH_BIO = {
-    scorer:      'An elite scorer with an unstoppable offensive arsenal and a deadly shooting touch.',
-    playmaker:   'A floor general who elevates teammates and controls the game with elite vision.',
-    defender:    'A lockdown defender anchoring the defensive end with intensity and high IQ.',
-    'two-way':   'Dominant on both ends of the floor — a versatile two-way force every team needs.',
-    'rim-runner':'An interior beast who controls the paint and changes the game at the rim.'
-  };
-
-  function loadXP() {
-    try { return JSON.parse(localStorage.getItem('courtiq-xp') || '{}'); } catch(e) { return {}; }
-  }
-  function loadOB() {
-    try { return JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) { return {}; }
-  }
-  function loadArch() {
-    try { var a = JSON.parse(localStorage.getItem('courtiq-archetype') || '{}'); return a.key || ''; } catch(e) { return ''; }
-  }
-
-  function renderHeader() {
-    var xpData = loadXP(), xp = xpData.xp || 0;
-    var level = (typeof XPSystem !== 'undefined' && XPSystem.getLevel) ? XPSystem.getLevel(xp) : { name: 'Rookie', icon: '\ud83c\udfc0' };
-    var ob = loadOB(), arch = loadArch();
-    var badge = document.getElementById('ks-profile-level-badge');
-    if (badge) badge.textContent = level.icon + ' ' + level.name;
-    var posTag = document.getElementById('ks-profile-position-tag');
-    if (posTag) {
-      var pos = ob.position ? (POSITION_MAP[ob.position.toUpperCase()] || ob.position) : (arch ? arch.charAt(0).toUpperCase() + arch.slice(1) : null);
-      posTag.textContent = pos || '\u2014';
-    }
-    var bioEl = document.getElementById('ks-profile-bio');
-    if (bioEl && ARCH_BIO[arch]) bioEl.textContent = ARCH_BIO[arch];
-  }
-
-  function renderQuickStats() {
-    var sessions = window.dbSessions || [];
-    var count = sessions.length;
-    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
-    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
-    var avgShots  = count ? (totalMade / count).toFixed(1) : '\u2014';
-    var fgPct     = totalAtt > 0 ? ((totalMade / totalAtt) * 100).toFixed(1) + '%' : '\u2014';
-    var v1 = document.getElementById('prof-stat1-val');
-    var v2 = document.getElementById('prof-stat2-val');
-    var v3 = document.getElementById('prof-stat3-val');
-    if (v1) v1.textContent = count || '\u2014';
-    if (v2) v2.textContent = avgShots;
-    if (v3) v3.textContent = fgPct;
-  }
-
-  function gradeFromFG(made, attempts) {
-    if (!attempts) return 'C';
-    var pct = made / attempts;
-    if (pct >= 0.70) return 'A+';
-    if (pct >= 0.60) return 'A';
-    if (pct >= 0.55) return 'A-';
-    if (pct >= 0.50) return 'B+';
-    if (pct >= 0.40) return 'B';
-    return 'C';
-  }
-
-  function relDate(isoStr) {
-    var days = Math.floor((Date.now() - new Date(isoStr)) / 86400000);
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
-    return days + ' days ago';
-  }
-
-  function renderActivity() {
-    var list = document.getElementById('ks-activity-list');
-    if (!list) return;
-    var sessions = (window.dbSessions || []).slice().reverse().slice(0, 3);
-    if (!sessions.length) {
-      list.innerHTML = '<div style="padding:24px;text-align:center;color:rgba(229,226,225,0.4);font-size:13px">No sessions yet \u2014 complete a drill to see activity here</div>';
-      return;
-    }
-    list.innerHTML = sessions.map(function(s, i) {
-      var grade = gradeFromFG(s.made || 0, s.attempts || 0);
-      var gcls  = grade.charAt(0) === 'A' ? 'ks-activity-grade--a' : 'ks-activity-grade--b';
-      var hi    = i === 0 ? ' ks-activity-item--highlight' : '';
-      var name  = s.drill_name || s.type || 'Training Session';
-      var date  = s.created_at ? relDate(s.created_at) : 'Recent';
-      return '<div class="ks-activity-item' + hi + '">' +
-        '<div><div class="ks-activity-name">' + name + '</div>' +
-        '<div class="ks-activity-date">' + date + '</div></div>' +
-        '<div style="text-align:right">' +
-        '<div class="ks-activity-grade ' + gcls + '">' + grade + '</div>' +
-        '<div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>' +
-        '</div></div>';
-    }).join('');
-  }
-
-  function renderTrophies() {
-    var grid = document.getElementById('ks-trophy-grid');
-    if (!grid) return;
-    var sessions  = window.dbSessions || [];
-    var xp        = (loadXP().xp) || 0;
-    var totalMade = sessions.reduce(function(a, s) { return a + (s.made || 0); }, 0);
-    var totalAtt  = sessions.reduce(function(a, s) { return a + (s.attempts || 0); }, 0);
-    var bestFG    = totalAtt > 0 ? totalMade / totalAtt : 0;
-    var TROPHIES = [
-      { icon: 'workspace_premium', label: 'First Session',   unlocked: sessions.length >= 1  },
-      { icon: 'sports_basketball', label: 'Dedicated (10+)', unlocked: sessions.length >= 10 },
-      { icon: 'target',            label: 'Sniper Mode',     unlocked: bestFG >= 0.50        },
-      { icon: 'military_tech',     label: 'All-Star Rank',   unlocked: xp >= 600             }
-    ];
-    grid.innerHTML = TROPHIES.map(function(t) {
-      var cls  = t.unlocked ? 'ks-trophy-item' : 'ks-trophy-item ks-trophy-item--locked';
-      var icon = t.unlocked ? t.icon : 'lock';
-      return '<div class="' + cls + '">' +
-        '<span class="material-symbols-outlined">' + icon + '</span>' +
-        '<span class="ks-label" style="font-size:9px;line-height:1.3">' + t.label + '</span>' +
-        '</div>';
-    }).join('');
-  }
-
-  function init() {
-    renderHeader();
-    renderQuickStats();
-    renderActivity();
-    renderTrophies();
-  }
-
-  var _origP = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
-  if (_origP) {
-    window.dbSwitchTab = function(tab) {
-      _origP(tab);
-      if (tab === 'archetype') setTimeout(init, 100);
-    };
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-
-  window.ProfileSystem = { render: init };
-})();
-
-// ── DRILLS SYSTEM ──────────────────────────────────────────────────────────
-(function DrillsSystem() {
-  var ARCH_HERO = {
-    scorer: {
-      tag: 'ELITE SCORER PROGRAM',
-      title: 'ISO SHOT\u003cbr\u003eCREATION',
-      meta: ['\ud83d\udd25 ADVANCED', '\u23f1 45 MIN', '\ud83c\udfaf SHOOTING']
-    },
-    playmaker: {
-      tag: 'PLAYMAKER PROGRAM',
-      title: 'VISION \u0026\u003cbr\u003ePASSING MASTERY',
-      meta: ['\u26a1 INTERMEDIATE', '\u23f1 40 MIN', '\ud83c\udfc0 HANDLES']
-    },
-    defender: {
-      tag: 'LOCKDOWN PROGRAM',
-      title: 'DEFENSIVE\u003cbr\u003eDOMINANCE',
-      meta: ['\ud83d\udee1\ufe0f ADVANCED', '\u23f1 35 MIN', '\ud83d\udd12 DEFENSE']
-    },
-    'two-way': {
-      tag: 'TWO-WAY ELITE PROGRAM',
-      title: 'TWO-WAY\u003cbr\u003eELITE PROTOCOL',
-      meta: ['\u26a1 ADVANCED', '\u23f1 50 MIN', '\ud83c\udfaf ALL-AROUND']
-    },
-    'rim-runner': {
-      tag: 'INTERIOR BEAST PROGRAM',
-      title: 'PAINT\u003cbr\u003eDOMINATION',
-      meta: ['\ud83d\udcaa ADVANCED', '\u23f1 40 MIN', '\ud83e\udda5 VERTICAL']
-    },
-    default: {
-      tag: "TODAY'S ELITE PROGRAM",
-      title: 'HYPER-ELITE\u003cbr\u003eISO SHOT CREATION',
-      meta: ['\ud83d\udd25 ADVANCED', '\u23f1 45 MIN', '\ud83c\udfaf SHOOTING']
-    }
-  };
-
-  function renderHero() {
-    var arch;
-    try { arch = JSON.parse(localStorage.getItem('courtiq-archetype') || '{}').key || 'default'; } catch(e) { arch = 'default'; }
-    var h = ARCH_HERO[arch] || ARCH_HERO['default'];
-    var tagEl  = document.getElementById('drills-hero-tag');
-    var titleEl = document.getElementById('drills-hero-title');
-    var metaEl  = document.getElementById('drills-hero-meta');
-    if (tagEl)  tagEl.textContent = h.tag;
-    if (titleEl) titleEl.innerHTML = h.title;
-    if (metaEl)  metaEl.innerHTML = h.meta.map(function(m) {
-      return '<span class="glass-hero-meta-item">' + m + '</span>';
-    }).join('');
-  }
-
-  function renderFocusCounts() {
-    if (typeof _DRILLS_DB === 'undefined') return;
-    var counts = { Shooting: 0, 'Ball Handling': 0, Defense: 0, Conditioning: 0 };
-    _DRILLS_DB.forEach(function(d) {
-      if (counts[d.focus_area] !== undefined) counts[d.focus_area]++;
-    });
-    var s = document.getElementById('focus-count-shooting');
-    var h = document.getElementById('focus-count-handles');
-    var d = document.getElementById('focus-count-defense');
-    var v = document.getElementById('focus-count-vertical');
-    if (s) s.textContent = counts['Shooting'] + ' drills';
-    if (h) h.textContent = counts['Ball Handling'] + ' drills';
-    if (d) d.textContent = counts['Defense'] + ' drills';
-    if (v) v.textContent = counts['Conditioning'] + ' drills';
-  }
-
-  function autoFillGenerator() {
-    var ob;
-    try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) { ob = {}; }
-    if (!ob.position) return;
-    var posEl = document.getElementById('drill-position');
-    if (posEl) posEl.value = ob.position.toUpperCase();
-    if (ob.skill_level) {
-      var lvlEl = document.getElementById('drill-level');
-      if (lvlEl) lvlEl.value = ob.skill_level;
-    }
-  }
-
-  function init() {
-    renderHero();
-    renderFocusCounts();
-    autoFillGenerator();
-  }
-
-  var _origD = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
-  if (_origD) {
-    window.dbSwitchTab = function(tab) {
-      _origD(tab);
-      if (tab === 'drills') setTimeout(init, 100);
-    };
-  }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
-  else init();
-
-  window.DrillsSystem = { render: init };
-})();
