@@ -1626,27 +1626,27 @@
 
       <!-- Featured Bento: Hero + Weekly Goal -->
       <div class="ks-grid-12 ks-mb-12">
-        <!-- Kyrie Irving Hero Card -->
-        <div class="ks-c8 ks-hero-card ks-kinetic-hover ks-reveal-up">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Kyrie Irving" />
+        <!-- Hero Workout Card (archetype-driven) -->
+        <div class="ks-c8 ks-hero-card ks-kinetic-hover ks-reveal-up" id="wkt-hero-card">
+          <img id="wkt-hero-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Featured Workout" />
           <div class="ks-hero-card-overlay"></div>
           <div class="ks-hero-card-content">
             <div style="display:inline-flex;align-items:center;gap:8px;background:var(--ks-primary);padding:4px 12px;border-radius:9999px;margin-bottom:12px;width:fit-content">
               <span class="material-symbols-outlined" style="font-size:14px;color:var(--ks-primary-on);font-variation-settings:'FILL' 1">stars</span>
-              <span style="font-family:var(--ks-font-headline);font-size:10px;font-weight:700;color:var(--ks-primary-on);text-transform:uppercase;letter-spacing:0.15em">Elite Combo</span>
+              <span id="wkt-hero-badge" style="font-family:var(--ks-font-headline);font-size:10px;font-weight:700;color:var(--ks-primary-on);text-transform:uppercase;letter-spacing:0.15em">Elite Combo</span>
             </div>
-            <h2 style="font-family:var(--ks-font-headline);font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;color:#fff;letter-spacing:-0.04em;font-style:italic;margin-bottom:4px">KYRIE IRVING</h2>
-            <p style="font-size:14px;color:var(--ks-text-muted);margin-bottom:16px">Signature Handles Series</p>
-            <button class="ks-btn-white" style="padding:12px 24px" onclick="workoutsOpenDetail && workoutsOpenDetail('kyrie-handles')">Start Now</button>
+            <h2 id="wkt-hero-title" style="font-family:var(--ks-font-headline);font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;color:#fff;letter-spacing:-0.04em;font-style:italic;margin-bottom:4px">SIGNATURE HANDLES</h2>
+            <p id="wkt-hero-sub" style="font-size:14px;color:var(--ks-text-muted);margin-bottom:16px">Recommended for your archetype</p>
+            <button class="ks-btn-white" id="wkt-hero-btn" style="padding:12px 24px" onclick="workoutsHeroStart()">Start Now</button>
           </div>
         </div>
-        <!-- Weekly Goal Card -->
+        <!-- Weekly Goal Card (live data) -->
         <div class="ks-c4 ks-glass ks-goal-card ks-glow-pulse ks-reveal-up ks-stagger-2">
           <span class="ks-label" style="margin-bottom:16px">Weekly Goal</span>
-          <div class="ks-goal-number">2<span style="color:var(--ks-text-dim);font-weight:500">/3</span></div>
+          <div class="ks-goal-number"><span id="wkt-goal-done">0</span><span style="color:var(--ks-text-dim);font-weight:500">/<span id="wkt-goal-total">5</span></span></div>
           <div class="ks-goal-label">Workouts Completed</div>
           <div style="width:80%;height:8px;background:var(--ks-white-5);border-radius:9999px;overflow:hidden;margin-top:16px">
-            <div style="width:66%;height:100%;background:var(--ks-primary);border-radius:9999px;box-shadow:0 0 12px rgba(255,107,0,0.5)"></div>
+            <div id="wkt-goal-bar" style="width:0%;height:100%;background:var(--ks-primary);border-radius:9999px;box-shadow:0 0 12px rgba(255,107,0,0.5);transition:width 0.6s ease"></div>
           </div>
         </div>
       </div>
@@ -3319,6 +3319,7 @@ if(window.__PREVIEW_MODE__){
 <!-- AI Detection: ONNX Runtime Web (WASM) — used by shotDetection.js for YOLOX-tiny -->
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.min.js" crossorigin="anonymous" defer></script>
 <!-- Shot Tracking Module (unified system) -->
+<script src="features/shot-tracking/sortTracker.js" defer></script>
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="features/shot-tracking/shotDetection.js" defer></script>
 <script src="features/shot-tracking/shotService.js" defer></script>
