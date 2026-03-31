@@ -15,9 +15,9 @@ const fs    = require('fs');
 const path  = require('path');
 const url   = require('url');
 
-const ROOT         = __dirname;
+const ROOT         = path.join(__dirname, 'www');   // serve www/ so URLs match GitHub Pages
 const PORT         = parseInt(process.env.PORT, 10) || 8080;
-const TRAINING_DIR = path.join(ROOT, 'tools', 'training-videos');
+const TRAINING_DIR = path.join(__dirname, 'tools', 'training-videos');
 fs.mkdirSync(TRAINING_DIR, { recursive: true });
 
 /* ── MIME types ─────────────────────────────────────────────── */
