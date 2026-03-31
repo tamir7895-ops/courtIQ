@@ -3014,6 +3014,20 @@ body.is-dashboard #streak-toast {
   color: #a78bfa;
 }
 
+.sts-mode-badge--loading {
+  background: rgba(245,166,35,0.15);
+  color: #f5a623;
+  border: 1px solid rgba(245,166,35,0.3);
+  animation: sts-loading-spin 1.2s linear infinite;
+}
+
+@keyframes sts-loading-spin {
+  0%   { opacity: 1; }
+  40%  { opacity: 0.4; }
+  60%  { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+
 @keyframes sts-pulse {
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.6; }
