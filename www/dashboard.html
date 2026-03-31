@@ -1,21 +1,22 @@
 <!DOCTYPE html>
-<html lang="en" style="background:#0e1014;">
+<html lang="en" style="background:#0a0a0a;">
 <head>
   <meta charset="UTF-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com https://storage.googleapis.com https://tfhub.dev https://cdn.jsdelivr.net https://www.kaggle.com; img-src 'self' data: blob: https://api.dicebear.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co https://api.anthropic.com https://api.dicebear.com https://storage.googleapis.com https://tfhub.dev https://cdn.jsdelivr.net https://www.kaggle.com; img-src 'self' data: blob: https://api.dicebear.com https://lh3.googleusercontent.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob:; worker-src 'self' blob:; object-src 'none';" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0e1014" />
+  <meta name="theme-color" content="#0a0a0a" />
   <link rel="icon" type="image/svg+xml" href="assets/favicon.svg" />
   <link rel="apple-touch-icon" href="assets/favicon.svg" />
   <link rel="manifest" href="manifest.json" />
   <title>CourtIQ — AI Performance Dashboard</title>
   <meta name="description" content="CourtIQ AI Performance Dashboard — log sessions, track progress, and get AI-powered coaching feedback." />
 
-  <style>html,body{background:#0e1014!important;color:#f0ede6;}</style>
+  <style>html,body{background:#0a0a0a!important;color:#e5e2e1;}</style>
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Barlow+Condensed:ital,wght@0,300;0,600;0,700;0,800;0,900;1,800&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
 
   <link rel="stylesheet" href="styles/main.css?v=3" />
   <link rel="stylesheet" href="styles/drills.css?v=3" />
@@ -37,7 +38,8 @@
   <link rel="stylesheet" href="styles/avatar-3d.css?v=3" />
   <link rel="stylesheet" href="styles/social.css?v=3" />
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
-  <link rel="stylesheet" href="styles/kinetic-elite.css?v=1" />
+  <link rel="stylesheet" href="styles/kinetic-elite.css?v=2" />
+  <link rel="stylesheet" href="styles/kinetic-stitch.css?v=2" />
   <link rel="stylesheet" href="styles/glassmorphism.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
@@ -462,165 +464,156 @@
     </div>
 
 
-    <!-- ── TAB: HOME (Kinetic Elite) ── -->
+    <!-- ── TAB: HOME (Stitch v3 — Kinetic Motion) ── -->
     <div class="db-panel active" id="db-panel-home">
 
-      <!-- Kinetic Elite Top Header -->
-      <header class="ke-header">
-        <div class="ke-header-brand">COURT<span>IQ</span></div>
-        <div class="ke-header-actions">
-          <button class="ke-header-icon" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            <span class="ke-notif-dot"></span>
+      <!-- Stitch Header -->
+      <header class="ks-header">
+        <div class="ks-header-left">
+          <div class="ks-header-avatar">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsnvIMML2xXwAZxyex3AUwI_yyW74PBpSzWzs4Ov1hvrwoiA5ECxe9AKedaoJKErSchVDFQuuVj5G3inwABAFwqunfd05Zch63b9-y1fCbdqJv3IpLBNeKlEA_z9dq86IfNIlqibWRCPBhgCILiQx4U_ItNbqoSkfEYeBhsfZmYDxqqMbuOgSv1sfODuTAyil3T43RgamlLjtIJlvYIFHM0IYxuR0RUarTJYjc5-pRkftofPOxMOZblysD5klmFGT7ZLFfZkXLEsk" alt="Profile" />
+          </div>
+          <span class="ks-header-brand">CourtIQ</span>
+        </div>
+        <div class="ks-header-right">
+          <button class="ks-header-btn" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
+            <span class="material-symbols-outlined">notifications</span>
           </button>
         </div>
       </header>
 
-      <!-- PRO Status Card -->
-      <div class="ke-pro-card">
-        <div class="ke-pro-badge">PRO</div>
-        <div class="ke-pro-info">
-          <div class="ke-pro-level">ELITE LEVEL <span id="ke-level">42</span></div>
-          <div class="ke-pro-xp-row">
-            <span class="ke-pro-xp-current" id="ke-xp-current">12,450</span>
-            <span class="ke-pro-xp-sep">/</span>
-            <span class="ke-pro-xp-max">15,000 XP</span>
+      <!-- Player Profile Hero -->
+      <section class="ks-hero ks-kinetic-hover" style="margin-top:24px">
+        <div class="ks-hero-bg">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAXHJ_pFS-_V-H-UNLQ6FPxYcrnqizX6KDbe9hsWTuPqe6KtM8k4ttwfO6qhe01tJZbOjwt-1FMh9wsyDPfhgm8DT_x4sOEgOgRSv4JEALejfeXt5X4c9D_NDixaThY1Ddr8LGIBSe0KlcyrsA2gkEdRAmm__jdrzHUNDNKusEz-RwIdugut6jwwtFU-dJN6E4EMO6bkgGtvwR2AZlx9xncqJ7kqwz3JJa9DCeGY45aAHTKcxgaHvpbx3Aok_eZ971AT-n1OTBYGI" alt="Marcus Jordan" />
+        </div>
+        <div class="ks-hero-overlay"></div>
+        <div class="ks-hero-content">
+          <div class="ks-float">
+            <div class="ks-hero-badge">
+              <span class="material-symbols-outlined" style="font-variation-settings:'FILL' 1">stars</span>
+              <span>Elite Member</span>
+            </div>
+            <h2 class="ks-hero-title" id="ke-player-name">Marcus Jordan</h2>
+            <p class="ks-hero-sub">Point Guard &bull; Chicago, IL</p>
           </div>
-          <div class="ke-pro-xp-bar">
-            <div class="ke-pro-xp-fill" id="ke-xp-fill" style="width:83%"></div>
+          <div class="ks-hero-actions">
+            <button class="ks-btn-primary">Edit Profile</button>
+            <button class="ks-btn-outline">Share</button>
           </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Weekly Output -->
-      <div class="ke-section-label">WEEKLY OUTPUT</div>
-      <div class="ke-weekly-output">
-        <div class="ke-weekly-stat">
-          <div class="ke-weekly-number" id="ke-shots-made">1,240</div>
-          <div class="ke-weekly-label">Shots Made</div>
+      <!-- On the Rise — Bento Stats -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <div>
+            <span class="ks-label-orange" style="display:block;margin-bottom:8px">Performance Insight</span>
+            <h3 class="ks-section-title">On the Rise</h3>
+          </div>
+          <button class="ks-section-link" onclick="dbSwitchTab('shots')">View Analytics</button>
         </div>
-        <div class="ke-weekly-stat">
-          <div class="ke-weekly-number" id="ke-training-hrs">18.5</div>
-          <div class="ke-weekly-label">Training Hours</div>
+        <div class="ks-bento-grid">
+          <!-- Shooting Accuracy (wide) -->
+          <div class="ks-glass ks-stat-card ks-stat-card--tall ks-col-2 ks-kinetic-hover ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
+            <div class="ks-stat-glow"></div>
+            <div>
+              <span class="ks-stat-label">Shooting Accuracy</span>
+              <div style="display:flex;align-items:baseline;gap:8px;margin-top:8px">
+                <span class="ks-stat-number">64.2</span>
+                <span class="ks-stat-unit">%</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:16px">
+              <div class="ks-progress-bar">
+                <div class="ks-progress-fill" style="width:64%"></div>
+              </div>
+              <span class="ks-stat-trend ks-stat-trend--up" style="font-family:var(--ks-font-headline);white-space:nowrap">+4.2%</span>
+            </div>
+          </div>
+          <!-- Vertical Jump -->
+          <div class="ks-glass ks-stat-card ks-stat-card--tall ks-kinetic-hover ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
+            <span class="material-symbols-outlined" style="font-size:2.5rem;color:var(--ks-tertiary-container);font-variation-settings:'FILL' 1">bolt</span>
+            <div>
+              <span class="ks-stat-label" style="display:block">Vertical Jump</span>
+              <span class="ks-stat-number" style="display:block;margin-top:4px">38.5"</span>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:var(--ks-text-dim)">Top 5% in League</span>
+          </div>
+          <!-- Drill Volume -->
+          <div class="ks-glass ks-stat-card ks-stat-card--tall ks-kinetic-hover ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
+            <span class="material-symbols-outlined" style="font-size:2.5rem;color:#fb923c">timer</span>
+            <div>
+              <span class="ks-stat-label" style="display:block">Drill Volume</span>
+              <span class="ks-stat-number" style="display:block;margin-top:4px">12.5h</span>
+            </div>
+            <span style="font-size:12px;font-weight:700;color:var(--ks-text-dim)">This Week</span>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <!-- Next Session -->
-      <div class="ke-next-session" onclick="dbSwitchTab('drills')">
-        <div class="ke-next-label">NEXT SESSION</div>
-        <div class="ke-next-title">Elite Ball Handling</div>
-        <div class="ke-next-meta">
-          <span class="ke-next-duration">45 MIN</span>
-          <span class="ke-next-difficulty">ADVANCED</span>
+      <!-- Featured: Next Session -->
+      <section class="ks-featured ks-kinetic-hover ks-reveal-up">
+        <div class="ks-featured-inner">
+          <div class="ks-featured-text">
+            <div class="ks-featured-indicator">
+              <div class="ks-featured-dot"></div>
+              <span>Next Session &bull; Today, 4:00 PM</span>
+            </div>
+            <h2 class="ks-featured-title">Advanced Ball Handling</h2>
+            <p class="ks-featured-desc">Focusing on high-intensity dribble combos and pressure absorption. Lead Coach: David Jenkins.</p>
+            <div class="ks-featured-actions">
+              <button class="ks-btn-white" onclick="dbSwitchTab('workouts')">Start Drill</button>
+              <button class="ks-info-btn">
+                <span class="material-symbols-outlined">info</span>
+              </button>
+            </div>
+          </div>
+          <div class="ks-featured-img">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcA_M1pU3TR236KC9sSFhirOZz5F1CGda47mcEjsHhMoHCcZoo3fWK8uWQ3-WUpgrvRr4UlVni1YODa0T_GTbPoJtO4QZbHurLMiAz1TjiEVnI3WvcOi9RAzs7WrW1vULcO20BcQLPL_CkGvkQOr6SPKBulAy1zR2GIyssgA19GUUlKtMZ5r42ai2eqYIZHRRfTBL-KQio7YZtZJK0HXH6zZwR9-GgI-nVNo3Vdq65fAh1ES2trZhQGtSO8dsy9Y_orVP4k30cYLU" alt="Training Session" />
+            <div class="ks-featured-img-gradient"></div>
+          </div>
         </div>
-        <button class="ke-next-play" aria-label="Start session">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </button>
-      </div>
+      </section>
 
-      <!-- Skill Breakdown -->
-      <div class="ke-skills">
-        <div class="ke-section-label">SKILL BREAKDOWN</div>
-        <div class="ke-skill-item">
-          <div class="ke-skill-header">
-            <span class="ke-skill-name">Shooting</span>
-            <span class="ke-skill-pct">78%</span>
-          </div>
-          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:78%" data-color="orange"></div></div>
+      <!-- Recent Workouts (Horizontal Scroll) -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Recent Workouts</h3>
+          <button class="ks-section-link" onclick="dbSwitchTab('workouts')">See History</button>
         </div>
-        <div class="ke-skill-item">
-          <div class="ke-skill-header">
-            <span class="ke-skill-name">Ball Handling</span>
-            <span class="ke-skill-pct">74%</span>
+        <div class="ks-hscroll">
+          <!-- Pure Shooting -->
+          <div class="ks-workout-card">
+            <div class="ks-workout-card-img">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0" alt="Pure Shooting" />
+              <div class="ks-workout-card-img-overlay"></div>
+            </div>
+            <div class="ks-workout-card-title">Pure Shooting</div>
+            <div class="ks-workout-card-meta">350 Shots &bull; 45 Mins</div>
           </div>
-          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:74%" data-color="blue"></div></div>
-        </div>
-        <div class="ke-skill-item">
-          <div class="ke-skill-header">
-            <span class="ke-skill-name">Defense</span>
-            <span class="ke-skill-pct">85%</span>
+          <!-- Lateral Speed -->
+          <div class="ks-workout-card">
+            <div class="ks-workout-card-img">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw" alt="Lateral Speed" />
+              <div class="ks-workout-card-img-overlay"></div>
+            </div>
+            <div class="ks-workout-card-title">Lateral Speed</div>
+            <div class="ks-workout-card-meta">Agility &bull; 30 Mins</div>
           </div>
-          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:85%" data-color="green"></div></div>
-        </div>
-        <div class="ke-skill-item">
-          <div class="ke-skill-header">
-            <span class="ke-skill-name">Game IQ</span>
-            <span class="ke-skill-pct">92%</span>
+          <!-- Recovery Flow -->
+          <div class="ks-workout-card">
+            <div class="ks-workout-card-img">
+              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2y0aWDM5KPkNHsalnbeMGPemY53aK_nIkbOyP3U6FRd_rgL4_DI_DWkXv3yAwcyjkV2H2z6Pqro6AMMPyIV6KEV51gl-Dryb5YHyVSFTb2he0QrzXwh1ms1iOKJvD5hZsyy4osNdxNM3p9FgE7AXAuuire0PVEmktE_QAUDDJWZ0ScCnHNBIy6rqff8o-6fH68oQ-NvZWF6amQC29b2XIw4gN4d5b96wkd5c6MDQPeGVro8x7ke4QR_hX38nqS9AutOCEYxv1c4U" alt="Recovery Flow" />
+              <div class="ks-workout-card-img-overlay"></div>
+            </div>
+            <div class="ks-workout-card-title">Recovery Flow</div>
+            <div class="ks-workout-card-meta">Mobility &bull; 20 Mins</div>
           </div>
-          <div class="ke-skill-bar"><div class="ke-skill-fill" style="width:92%" data-color="purple"></div></div>
         </div>
-      </div>
+      </section>
 
-      <!-- Game Log -->
-      <div class="ke-game-log">
-        <div class="ke-section-label">GAME LOG</div>
-        <div class="ke-log-list" id="ke-game-log-list">
-          <div class="ke-log-entry">
-            <div class="ke-log-icon" style="background:rgba(255,136,0,0.15);color:#FF8800;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>
-            </div>
-            <div class="ke-log-info">
-              <div class="ke-log-name">Summer League GM 4</div>
-              <div class="ke-log-stats">28 PTS · 7 AST · 5 REB</div>
-            </div>
-            <div class="ke-log-grade ke-grade-a">A+</div>
-          </div>
-          <div class="ke-log-entry">
-            <div class="ke-log-icon" style="background:rgba(52,211,153,0.15);color:#34D399;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
-            </div>
-            <div class="ke-log-info">
-              <div class="ke-log-name">Vertical Jump Drill</div>
-              <div class="ke-log-stats">32.4 IN · Personal Best</div>
-            </div>
-            <div class="ke-log-grade ke-grade-a">A</div>
-          </div>
-          <div class="ke-log-entry">
-            <div class="ke-log-icon" style="background:rgba(4,152,241,0.15);color:#0498F1;">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-            </div>
-            <div class="ke-log-info">
-              <div class="ke-log-name">3PT Contest</div>
-              <div class="ke-log-stats">18/25 · 72% Accuracy</div>
-            </div>
-            <div class="ke-log-grade ke-grade-b">B+</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Recent Personal Bests -->
-      <div class="ke-personal-bests">
-        <div class="ke-section-label">RECENT PERSONAL BESTS</div>
-        <div class="ke-pb-list">
-          <div class="ke-pb-item">
-            <div class="ke-pb-icon">&#x1F3C0;</div>
-            <div class="ke-pb-info">
-              <div class="ke-pb-name">Fastest Drill Finish</div>
-              <div class="ke-pb-detail">"Crossover Chase" – 5:42.1s</div>
-              <div class="ke-pb-meta">NEW RECORD · 2H AGO</div>
-            </div>
-          </div>
-          <div class="ke-pb-item">
-            <div class="ke-pb-icon">&#x26A1;</div>
-            <div class="ke-pb-info">
-              <div class="ke-pb-name">Peak Vertical</div>
-              <div class="ke-pb-detail">Max Height – 34.5 inches</div>
-              <div class="ke-pb-meta">TOP 1% REGIONAL · YESTERDAY</div>
-            </div>
-          </div>
-          <div class="ke-pb-item">
-            <div class="ke-pb-icon">&#x1F3AF;</div>
-            <div class="ke-pb-info">
-              <div class="ke-pb-name">Volume King</div>
-              <div class="ke-pb-detail">500 Made 3-Pointers</div>
-              <div class="ke-pb-meta">MILESTONE REACHED · 3D AGO</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Spacer for bottom nav -->
-      <div style="height:80px"></div>
+      <div class="ks-spacer"></div>
 
     </div><!-- /db-panel-home -->
 
@@ -1471,183 +1464,306 @@
 
     </div><!-- /drills panel -->
 
-    <!-- ── TAB: WORKOUTS ── -->
+    <!-- ── TAB: WORKOUTS (Stitch v3 — Kinetic Motion) ── -->
     <div class="db-panel" id="db-panel-workouts">
 
-      <!-- Section Label -->
-      <div class="ke-section-title" style="margin:20px 0 12px">WORKOUTS</div>
-
-      <!-- Filter Chips -->
-      <div class="ke-hscroll" style="margin-bottom:16px;gap:8px">
-        <button class="ke-chip ke-chip--active" onclick="workoutsSetFilter('All',this)">All</button>
-        <button class="ke-chip" onclick="workoutsSetFilter('Shooting',this)">Shooting</button>
-        <button class="ke-chip" onclick="workoutsSetFilter('Ball Handling',this)">Handles</button>
-        <button class="ke-chip" onclick="workoutsSetFilter('Defense',this)">Defense</button>
-        <button class="ke-chip" onclick="workoutsSetFilter('Conditioning',this)">Conditioning</button>
-        <button class="ke-chip" onclick="workoutsSetFilter('Strength',this)">Strength</button>
-      </div>
-
-      <!-- Featured Workout Card -->
-      <div class="ke-workout-featured">
-        <div class="ke-workout-featured__gradient"></div>
-        <div class="ke-workout-featured__content">
-          <div class="ke-workout-featured__title">ELITE SHOOTING DRILL</div>
-          <div class="ke-workout-featured__subtitle">Master the pull-up jumper with 5 progressive stations</div>
-          <div class="ke-workout-featured__meta">45 MIN &middot; ADVANCED &middot; 12 DRILLS</div>
-          <button class="ke-workout-btn" onclick="workoutsOpenDetail && workoutsOpenDetail('elite-shooting')">START WORKOUT</button>
+      <!-- Top Label + Avatar -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:24px 0 8px">
+        <span class="ks-label-orange">Elite Performance</span>
+        <div class="ks-header-avatar" style="width:36px;height:36px">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsnvIMML2xXwAZxyex3AUwI_yyW74PBpSzWzs4Ov1hvrwoiA5ECxe9AKedaoJKErSchVDFQuuVj5G3inwABAFwqunfd05Zch63b9-y1fCbdqJv3IpLBNeKlEA_z9dq86IfNIlqibWRCPBhgCILiQx4U_ItNbqoSkfEYeBhsfZmYDxqqMbuOgSv1sfODuTAyil3T43RgamlLjtIJlvYIFHM0IYxuR0RUarTJYjc5-pRkftofPOxMOZblysD5klmFGT7ZLFfZkXLEsk" alt="Profile" />
         </div>
       </div>
 
-      <!-- Workout Cards Grid -->
-      <div class="ke-workout-grid" id="workouts-grid">
+      <!-- Giant Title -->
+      <h1 class="ks-page-title">Workouts</h1>
 
-        <!-- Quick Handles -->
-        <div class="ke-workout-card" data-category="Ball Handling">
-          <div class="ke-workout-icon" style="background:rgba(4,152,241,0.15);color:#0498F1">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">Quick Handles</div>
-            <div class="ke-workout-card__meta">15 MIN &middot; Beginner</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#0498F1;border-color:rgba(4,152,241,0.2);background:rgba(4,152,241,0.1)">Ball Handling</span>
-        </div>
-
-        <!-- Defensive Slides -->
-        <div class="ke-workout-card" data-category="Defense">
-          <div class="ke-workout-icon" style="background:rgba(52,211,153,0.15);color:#34D399">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">Defensive Slides</div>
-            <div class="ke-workout-card__meta">20 MIN &middot; Intermediate</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#34D399;border-color:rgba(52,211,153,0.2);background:rgba(52,211,153,0.1)">Defense</span>
-        </div>
-
-        <!-- 3PT Masterclass -->
-        <div class="ke-workout-card" data-category="Shooting">
-          <div class="ke-workout-icon" style="background:rgba(255,136,0,0.15);color:#FF8800">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">3PT Masterclass</div>
-            <div class="ke-workout-card__meta">30 MIN &middot; Advanced</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#FF8800;border-color:rgba(255,136,0,0.2);background:rgba(255,136,0,0.1)">Shooting</span>
-        </div>
-
-        <!-- Full Body Power -->
-        <div class="ke-workout-card" data-category="Strength">
-          <div class="ke-workout-icon" style="background:rgba(168,85,247,0.15);color:#A855F7">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 6.5h11"/><path d="M6.5 17.5h11"/><path d="M3 10h3v4H3z"/><path d="M18 10h3v4h-3z"/><path d="M8 8h8v8H8z"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">Full Body Power</div>
-            <div class="ke-workout-card__meta">40 MIN &middot; Intermediate</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#A855F7;border-color:rgba(168,85,247,0.2);background:rgba(168,85,247,0.1)">Strength</span>
-        </div>
-
-        <!-- Court Sprints -->
-        <div class="ke-workout-card" data-category="Conditioning">
-          <div class="ke-workout-icon" style="background:rgba(239,68,68,0.15);color:#EF4444">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">Court Sprints</div>
-            <div class="ke-workout-card__meta">25 MIN &middot; Advanced</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#EF4444;border-color:rgba(239,68,68,0.2);background:rgba(239,68,68,0.1)">Conditioning</span>
-        </div>
-
-        <!-- Finishing Package -->
-        <div class="ke-workout-card" data-category="Scoring">
-          <div class="ke-workout-icon" style="background:rgba(20,184,166,0.15);color:#14B8A6">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          </div>
-          <div class="ke-workout-card__info">
-            <div class="ke-workout-card__name">Finishing Package</div>
-            <div class="ke-workout-card__meta">35 MIN &middot; Intermediate</div>
-          </div>
-          <span class="ke-chip" style="font-size:10px;padding:3px 8px;pointer-events:none;color:#14B8A6;border-color:rgba(20,184,166,0.2);background:rgba(20,184,166,0.1)">Scoring</span>
-        </div>
-
+      <!-- Category Filter Pills -->
+      <div class="ks-chips-scroll">
+        <button class="ks-chip ks-chip--active" onclick="workoutsSetFilter('All',this)">All Drills</button>
+        <button class="ks-chip" onclick="workoutsSetFilter('Ball Handling',this)">Ball Handling</button>
+        <button class="ks-chip" onclick="workoutsSetFilter('Shooting',this)">Shooting</button>
+        <button class="ks-chip" onclick="workoutsSetFilter('Defense',this)">Defense</button>
+        <button class="ks-chip" onclick="workoutsSetFilter('Conditioning',this)">Conditioning</button>
       </div>
 
-      <!-- Bottom spacer for nav clearance -->
-      <div style="height:80px"></div>
+      <!-- Featured Bento: Hero + Weekly Goal -->
+      <div class="ks-grid-12 ks-mb-12">
+        <!-- Kyrie Irving Hero Card -->
+        <div class="ks-c8 ks-hero-card ks-kinetic-hover ks-reveal-up">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Kyrie Irving" />
+          <div class="ks-hero-card-overlay"></div>
+          <div class="ks-hero-card-content">
+            <div style="display:inline-flex;align-items:center;gap:8px;background:var(--ks-primary);padding:4px 12px;border-radius:9999px;margin-bottom:12px;width:fit-content">
+              <span class="material-symbols-outlined" style="font-size:14px;color:var(--ks-primary-on);font-variation-settings:'FILL' 1">stars</span>
+              <span style="font-family:var(--ks-font-headline);font-size:10px;font-weight:700;color:var(--ks-primary-on);text-transform:uppercase;letter-spacing:0.15em">Elite Combo</span>
+            </div>
+            <h2 style="font-family:var(--ks-font-headline);font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;color:#fff;letter-spacing:-0.04em;font-style:italic;margin-bottom:4px">KYRIE IRVING</h2>
+            <p style="font-size:14px;color:var(--ks-text-muted);margin-bottom:16px">Signature Handles Series</p>
+            <button class="ks-btn-white" style="padding:12px 24px" onclick="workoutsOpenDetail && workoutsOpenDetail('kyrie-handles')">Start Now</button>
+          </div>
+        </div>
+        <!-- Weekly Goal Card -->
+        <div class="ks-c4 ks-glass ks-goal-card ks-glow-pulse ks-reveal-up ks-stagger-2">
+          <span class="ks-label" style="margin-bottom:16px">Weekly Goal</span>
+          <div class="ks-goal-number">2<span style="color:var(--ks-text-dim);font-weight:500">/3</span></div>
+          <div class="ks-goal-label">Workouts Completed</div>
+          <div style="width:80%;height:8px;background:var(--ks-white-5);border-radius:9999px;overflow:hidden;margin-top:16px">
+            <div style="width:66%;height:100%;background:var(--ks-primary);border-radius:9999px;box-shadow:0 0 12px rgba(255,107,0,0.5)"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Precision Shooting Section -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Precision Shooting</h3>
+          <button class="ks-section-link">View All</button>
+        </div>
+        <div class="ks-grid-12" style="gap:16px">
+          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-1" data-category="Shooting">
+            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0" alt="Mid-Range Mastery" />
+            <div class="ks-workout-img-card-body">
+              <div class="ks-workout-img-card-title">Mid-Range Mastery</div>
+              <div class="ks-workout-img-card-meta">45 Min &bull; Advanced</div>
+            </div>
+          </div>
+          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-2" data-category="Shooting">
+            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw" alt="Elite Finishing" />
+            <div class="ks-workout-img-card-body">
+              <div class="ks-workout-img-card-title">Elite Finishing</div>
+              <div class="ks-workout-img-card-meta">30 Min &bull; Expert</div>
+            </div>
+          </div>
+          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-3" data-category="Shooting">
+            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2y0aWDM5KPkNHsalnbeMGPemY53aK_nIkbOyP3U6FRd_rgL4_DI_DWkXv3yAwcyjkV2H2z6Pqro6AMMPyIV6KEV51gl-Dryb5YHyVSFTb2he0QrzXwh1ms1iOKJvD5hZsyy4osNdxNM3p9FgE7AXAuuire0PVEmktE_QAUDDJWZ0ScCnHNBIy6rqff8o-6fH68oQ-NvZWF6amQC29b2XIw4gN4d5b96wkd5c6MDQPeGVro8x7ke4QR_hX38nqS9AutOCEYxv1c4U" alt="Clutch Free Throws" />
+            <div class="ks-workout-img-card-body">
+              <div class="ks-workout-img-card-title">Clutch Free Throws</div>
+              <div class="ks-workout-img-card-meta">20 Min &bull; All Levels</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Popular Drills List -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Popular Drills</h3>
+        </div>
+        <div class="ks-drill-list" id="workouts-grid">
+          <div class="ks-drill-item ks-reveal-up ks-stagger-1" data-category="Ball Handling">
+            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Mikan Drill" />
+            <div class="ks-drill-item-info">
+              <div class="ks-drill-item-name">Mikan Drill Evolution</div>
+              <div class="ks-drill-item-tag">Foundational</div>
+            </div>
+            <span class="ks-drill-item-duration">15 Min</span>
+            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
+          </div>
+          <div class="ks-drill-item ks-reveal-up ks-stagger-2" data-category="Defense">
+            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw" alt="Defensive Slide" />
+            <div class="ks-drill-item-info">
+              <div class="ks-drill-item-name">Defensive Slide Gauntlet</div>
+              <div class="ks-drill-item-tag">High Intensity</div>
+            </div>
+            <span class="ks-drill-item-duration">20 Min</span>
+            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
+          </div>
+          <div class="ks-drill-item ks-reveal-up ks-stagger-3" data-category="Shooting">
+            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0" alt="Catch & Shoot" />
+            <div class="ks-drill-item-info">
+              <div class="ks-drill-item-name">Catch &amp; Shoot Logic</div>
+              <div class="ks-drill-item-tag">Smart Shooting</div>
+            </div>
+            <span class="ks-drill-item-duration">25 Min</span>
+            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAB -->
+      <button class="ks-fab" aria-label="Add workout">
+        <span class="material-symbols-outlined">add</span>
+      </button>
+
+      <div class="ks-spacer"></div>
 
     </div><!-- /workouts panel -->
 
-    <!-- ── TAB: SHOT TRACKER ── -->
+    <!-- ── TAB: STATS / THE LAB (Stitch v3) ── -->
     <div class="db-panel" id="db-panel-shots">
 
-      <!-- KE: Stats & Analytics Section -->
-      <div class="ke-section-label" style="margin-top:16px;">STATS &amp; ANALYTICS</div>
+      <!-- THE LAB Title Section -->
+      <section style="padding-top:24px;margin-bottom:32px" class="ks-reveal-up">
+        <span class="ks-label-orange" style="display:block;margin-bottom:8px">Season Performance Analytics</span>
+        <h1 class="ks-headline-xl">THE LAB.</h1>
+      </section>
+
+      <!-- Summary Stats Hero Grid -->
+      <div class="ks-bento-grid" style="margin-bottom:32px">
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
+          <span class="ks-stat-label">Points / GM</span>
+          <div>
+            <span class="ks-stat-number">24.8</span>
+            <div class="ks-stat-trend ks-stat-trend--up" style="margin-top:4px">
+              <span class="material-symbols-outlined" style="font-size:14px">trending_up</span> 12% vs last week
+            </div>
+          </div>
+        </div>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
+          <span class="ks-stat-label">FG% Accuracy</span>
+          <div>
+            <span class="ks-stat-number">52.4</span>
+            <span style="font-size:11px;font-weight:700;color:var(--ks-text-dim);display:block;margin-top:4px">Stable Performance</span>
+          </div>
+        </div>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
+          <span class="ks-stat-label">Efficiency</span>
+          <div>
+            <span class="ks-stat-number">+18</span>
+            <span class="ks-stat-trend ks-stat-trend--up" style="display:block;margin-top:4px">Peak Intensity</span>
+          </div>
+        </div>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-4" style="border:1px solid rgba(255,255,255,0.05)">
+          <span class="ks-stat-label">Win Rate</span>
+          <div>
+            <span class="ks-stat-number">68%</span>
+            <span style="font-size:11px;font-weight:700;color:var(--ks-text-faint);display:block;margin-top:4px">Tier: Elite</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Court Presence + Consistency Bento -->
+      <div class="ks-grid-12 ks-mb-12">
+        <!-- Court Presence Heatmap (col-span-8) -->
+        <div class="ks-c8 ks-glass ks-reveal-up ks-stagger-1" style="padding:32px;min-height:400px;border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">
+            <div>
+              <h3 class="ks-headline-md" style="margin-bottom:4px">Court Presence</h3>
+              <p class="ks-body" style="margin:0">Shot frequency and kinetic accuracy mapping</p>
+            </div>
+            <div class="ks-chip" style="cursor:default;font-size:10px;padding:6px 16px">Live: Last 30 Days</div>
+          </div>
+          <div class="ks-heatmap">
+            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-48HpQkf6OMRny_v0-M1Cwa8_SNBmVXJp20R2kDaGxcubSm_GsdXsAhorA9v4ZRnRUPdDjIIRpyGAFyOX9yNxHhUYlW0KqbHFvynQpqdY5MaqVSvbr2muimYoVcWopgyvaYQ0RpYDAnfDUknLwB1Lp2CKKJIjz3U7TCdRghrgEGjaoH9CySdeko7BHHmdt7jJJK9OVCFomFa-t-HShaZkpP3b-xVr_1LzBtv2QRtxSZxxFcxXNpN4DDrehTKjPxMosIGHKw3E8-I" alt="Basketball court" />
+            <div class="ks-heatmap-glow ks-bounce-in ks-stagger-2" style="width:128px;height:128px;background:rgba(255,107,0,0.4);filter:blur(80px);top:25%;left:25%"></div>
+            <div class="ks-heatmap-glow ks-bounce-in ks-stagger-4" style="width:192px;height:192px;background:rgba(255,107,0,0.2);filter:blur(100px);top:50%;right:25%"></div>
+            <div class="ks-heatmap-glow ks-bounce-in ks-stagger-3" style="width:96px;height:96px;background:rgba(255,107,0,0.6);filter:blur(60px);bottom:25%;left:33%"></div>
+            <div class="ks-heatmap-glow ks-bounce-in ks-stagger-5" style="width:80px;height:80px;background:rgba(255,255,255,0.2);filter:blur(50px);top:33%;right:33%"></div>
+          </div>
+          <div class="ks-heatmap-legend">
+            <div class="ks-legend-item"><div class="ks-legend-dot ks-legend-dot--high"></div><span class="ks-label">High Vol</span></div>
+            <div class="ks-legend-item"><div class="ks-legend-dot ks-legend-dot--mid"></div><span class="ks-label">Mid Vol</span></div>
+            <div class="ks-legend-item"><div class="ks-legend-dot ks-legend-dot--low"></div><span class="ks-label">Low Vol</span></div>
+          </div>
+        </div>
+        <!-- Consistency Bar Chart (col-span-4) -->
+        <div class="ks-c4 ks-glass ks-glow-pulse ks-reveal-up ks-stagger-2" style="padding:32px;border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;justify-content:space-between">
+          <div>
+            <h3 class="ks-headline-md" style="margin-bottom:8px">Consistency</h3>
+            <p class="ks-body" style="margin:0;font-size:12px">Training intensity per week</p>
+          </div>
+          <div class="ks-bars">
+            <div class="ks-bar" style="height:40%"><span class="ks-bar-tooltip">12h</span></div>
+            <div class="ks-bar ks-stagger-1" style="height:65%"><span class="ks-bar-tooltip">18h</span></div>
+            <div class="ks-bar ks-stagger-2" style="height:55%"><span class="ks-bar-tooltip">15h</span></div>
+            <div class="ks-bar ks-bar--active ks-stagger-3" style="height:90%"><span class="ks-bar-tooltip">26h</span></div>
+            <div class="ks-bar ks-stagger-4" style="height:75%"><span class="ks-bar-tooltip">21h</span></div>
+          </div>
+          <div class="ks-bar-labels">
+            <span>WK 1</span><span>WK 2</span><span>WK 3</span><span>WK 4</span><span>WK 5</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pro Comparison Section -->
+      <section class="ks-pro-compare ks-reveal-up">
+        <div class="ks-pro-compare-bg-text">PRO</div>
+        <div class="ks-pro-compare-inner">
+          <div>
+            <div class="ks-pro-badge">
+              <span class="material-symbols-outlined" style="font-size:14px">bolt</span> Elite DNA Match
+            </div>
+            <h2 class="ks-pro-title">COMPARE:<br><span class="ks-orange">Kyrie Irving</span></h2>
+            <p class="ks-pro-desc">Your ball handling kinematics and rim finishing metrics currently align with All-Star patterns. Data suggests focusing on vertical release to match his elite mid-range spacing.</p>
+            <div style="display:flex;gap:16px;align-items:center;padding-top:16px">
+              <button class="ks-btn-white" style="padding:16px 32px">Data Report</button>
+              <button class="ks-btn-outline" style="padding:16px 32px">Switch Pro</button>
+            </div>
+          </div>
+          <div class="ks-pro-img-wrap">
+            <div class="ks-pro-img-glow"></div>
+            <div style="position:relative">
+              <div class="ks-pro-stats-grid" style="margin-bottom:16px">
+                <div class="ks-glass ks-pro-stat-card">
+                  <div class="ks-pro-stat-label">Handle IQ</div>
+                  <div class="ks-pro-stat-row">
+                    <span class="ks-pro-stat-value">94</span>
+                    <span class="ks-pro-stat-delta">+4.2</span>
+                  </div>
+                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow" style="width:94%;background:var(--ks-primary)"></div></div>
+                </div>
+                <div class="ks-glass ks-pro-stat-card">
+                  <div class="ks-pro-stat-label">Finishing</div>
+                  <div class="ks-pro-stat-row">
+                    <span class="ks-pro-stat-value">88</span>
+                    <span style="font-size:10px;font-weight:700;color:var(--ks-text-dim)">ELITE</span>
+                  </div>
+                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow ks-stagger-1" style="width:88%;background:rgba(255,255,255,0.4)"></div></div>
+                </div>
+              </div>
+              <div class="ks-pro-player-img">
+                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Basketball player" />
+                <div class="ks-pro-player-img-gradient"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Insights Bento -->
+      <div class="ks-insights-grid">
+        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
+          <div class="ks-insight-icon ks-insight-icon--blue">
+            <span class="material-symbols-outlined">bolt</span>
+          </div>
+          <div>
+            <h4 class="ks-insight-title">Strength Spike</h4>
+            <p class="ks-insight-body">Vertical jump increased by <strong>2.4 inches</strong>. Power Plyo program is yielding maximum ROI.</p>
+          </div>
+        </div>
+        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
+          <div class="ks-insight-icon ks-insight-icon--orange">
+            <span class="material-symbols-outlined">target</span>
+          </div>
+          <div>
+            <h4 class="ks-insight-title">Shot Arc Lab</h4>
+            <p class="ks-insight-body">Optimum arc achieved on <strong>82%</strong> of corner drills. Maintain elbow elevation for consistency.</p>
+          </div>
+        </div>
+        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
+          <div class="ks-insight-icon ks-insight-icon--amber">
+            <span class="material-symbols-outlined">timer</span>
+          </div>
+          <div>
+            <h4 class="ks-insight-title">Recovery Log</h4>
+            <p class="ks-insight-body">Neural fatigue detected. <strong>24hr active recovery</strong> mandated before next high-load session.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ═══ EXISTING FEATURES (preserved, restyled) ═══ -->
 
       <!-- Period Selector Chips -->
-      <div class="ke-chip-row">
-        <span class="ke-chip ke-chip--active" onclick="keStatsPeriod('week',this)">This Week</span>
-        <span class="ke-chip" onclick="keStatsPeriod('month',this)">This Month</span>
-        <span class="ke-chip" onclick="keStatsPeriod('all',this)">All Time</span>
-      </div>
-
-      <!-- Stats Overview Grid (2x2) -->
-      <div class="ke-stats-grid">
-        <div class="ke-stat-card">
-          <div class="ke-stat-number">67%</div>
-          <div class="ke-stat-label">Shooting %</div>
-          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +5.2%</div>
+      <div style="margin-top:32px">
+        <div class="ks-section-heading-with-icon">
+          <span class="material-symbols-outlined">sports_basketball</span>
+          Shooting Analytics
         </div>
-        <div class="ke-stat-card">
-          <div class="ke-stat-number">24</div>
-          <div class="ke-stat-label">Sessions</div>
-          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +3</div>
-        </div>
-        <div class="ke-stat-card">
-          <div class="ke-stat-number">42 <span style="font-size:16px;font-weight:500;color:rgba(255,255,255,0.5)">min</span></div>
-          <div class="ke-stat-label">Avg Duration</div>
-          <div class="ke-stat-trend ke-stat-trend--up">&#9650; +8 min</div>
-        </div>
-        <div class="ke-stat-card">
-          <div class="ke-stat-number">7 <span style="font-size:16px;font-weight:500;color:rgba(255,255,255,0.5)">days</span></div>
-          <div class="ke-stat-label">Streak</div>
-          <div class="ke-stat-trend ke-stat-trend--neutral">&#128293;</div>
-        </div>
-      </div>
-
-      <!-- Shooting Breakdown Card -->
-      <div class="ke-shooting-breakdown">
-        <div class="ke-shooting-breakdown__title">SHOOTING BREAKDOWN</div>
-        <div class="ke-shooting-breakdown__list">
-          <div class="ke-shooting-item">
-            <div class="ke-shooting-item__header">
-              <span class="ke-shooting-item__label">Paint</span>
-              <span class="ke-shooting-item__pct">72%</span>
-            </div>
-            <div class="ke-shooting-bar">
-              <div class="ke-shooting-fill ke-shooting-fill--paint" style="width:72%"></div>
-            </div>
-          </div>
-          <div class="ke-shooting-item">
-            <div class="ke-shooting-item__header">
-              <span class="ke-shooting-item__label">Mid-Range</span>
-              <span class="ke-shooting-item__pct">54%</span>
-            </div>
-            <div class="ke-shooting-bar">
-              <div class="ke-shooting-fill ke-shooting-fill--midrange" style="width:54%"></div>
-            </div>
-          </div>
-          <div class="ke-shooting-item">
-            <div class="ke-shooting-item__header">
-              <span class="ke-shooting-item__label">Three-Point</span>
-              <span class="ke-shooting-item__pct">41%</span>
-            </div>
-            <div class="ke-shooting-bar">
-              <div class="ke-shooting-fill ke-shooting-fill--three" style="width:41%"></div>
-            </div>
-          </div>
+        <div class="ks-chips-scroll" style="margin-bottom:16px">
+          <span class="ks-chip ks-chip--active" onclick="keStatsPeriod('week',this)">This Week</span>
+          <span class="ks-chip" onclick="keStatsPeriod('month',this)">This Month</span>
+          <span class="ks-chip" onclick="keStatsPeriod('all',this)">All Time</span>
         </div>
       </div>
 
@@ -1894,130 +2010,211 @@
       <div class="mv-grid" id="moves-grid"></div>
     </div><!-- /moves panel -->
 
-    <!-- ── TAB: ARCHETYPE ── -->
+    <!-- ── TAB: PROFILE (Stitch v3) ── -->
     <div class="db-panel" id="db-panel-archetype">
       <!-- Hidden legacy element for JS compatibility -->
       <div id="at-result" style="display:none"></div>
 
-      <!-- 1. Profile Header Card -->
-      <div class="ke-profile-header">
-        <div class="ke-profile-avatar">T</div>
-        <div class="ke-profile-name">Tamir</div>
-        <div class="ke-profile-handle">@tamir_hoops</div>
-        <div class="ke-profile-badges">
-          <span class="ke-chip ke-chip--pro">PRO</span>
-          <span class="ke-chip">Level 42</span>
+      <!-- Profile Header Section -->
+      <section class="ks-profile-grid" style="padding-top:24px;margin-bottom:32px">
+        <div class="ks-profile-avatar-wrap">
+          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD7ANXA-gSPMC_x-Ae6eVDfukraO_U4a9_reVSFMkHDIJ1hzC9ah3z8TuUyx9ML1of6LA7YHiKAp5BREPVSF-GYNuqj98rQHya-aFrwMoQ4IDCOUEuKAkCdFialPNVGL526AkOmlMEZG4-XhN3QKRUWu_6-eAxYpJKjYoOgFk90xd9pX4RliZIw7uq9N-ps2u0XB9BVDKc_o8GOf9rrIW3kwG90XtzMqW4sFECElJomV-4fZ7N9m5M1gfyWvx_brBiBRy5r_GvwL4" alt="Player portrait" />
+          <div class="ks-profile-level-badge">Elite Level 42</div>
         </div>
-        <div class="ke-profile-member">Member since Jan 2024</div>
+        <div class="ks-profile-info">
+          <div class="ks-profile-position-tag">
+            <span>Point Guard</span>
+          </div>
+          <h2 class="ks-profile-name">
+            Marcus <br>
+            <span class="ks-orange">'The Flash'</span> <br>
+            Jordan
+          </h2>
+          <p class="ks-profile-bio">Relentless on both ends of the floor. Specializing in perimeter defense and high-IQ playmaking.</p>
+        </div>
+      </section>
+
+      <!-- Quick Stats Summary -->
+      <section class="ks-quick-stats ks-mb-8">
+        <div class="ks-quick-stat">
+          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Points Per Game</span>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
+            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">24.8</span>
+            <span class="material-symbols-outlined" style="color:var(--ks-primary-light);font-size:14px;font-variation-settings:'FILL' 1">trending_up</span>
+          </div>
+        </div>
+        <div class="ks-quick-stat">
+          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Rebounds Per Game</span>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
+            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">6.2</span>
+            <span class="material-symbols-outlined" style="color:var(--ks-secondary);font-size:14px">remove</span>
+          </div>
+        </div>
+        <div class="ks-quick-stat">
+          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Assists Per Game</span>
+          <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
+            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">8.5</span>
+            <span class="material-symbols-outlined" style="color:var(--ks-primary-light);font-size:14px;font-variation-settings:'FILL' 1">trending_up</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Trophy Case + Recent Activity -->
+      <div class="ks-grid-12" style="gap:32px;margin-bottom:32px">
+        <!-- Trophy Case -->
+        <div class="ks-c6">
+          <div class="ks-section-heading-with-icon">
+            <span class="material-symbols-outlined">military_tech</span>
+            Trophy Case
+          </div>
+          <div class="ks-trophy-grid">
+            <div class="ks-trophy-item">
+              <span class="material-symbols-outlined">workspace_premium</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">1000 Career Points</span>
+            </div>
+            <div class="ks-trophy-item">
+              <span class="material-symbols-outlined">security</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">Defensive Wall</span>
+            </div>
+            <div class="ks-trophy-item">
+              <span class="material-symbols-outlined">target</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">Sniper Mode</span>
+            </div>
+            <div class="ks-trophy-item ks-trophy-item--locked">
+              <span class="material-symbols-outlined">lock</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">Double Double</span>
+            </div>
+          </div>
+        </div>
+        <!-- Recent Activity -->
+        <div class="ks-c6">
+          <div class="ks-section-heading-with-icon">
+            <span class="material-symbols-outlined">history</span>
+            Recent Activity
+          </div>
+          <div class="ks-activity-list">
+            <div class="ks-activity-item ks-activity-item--highlight">
+              <div>
+                <div class="ks-activity-name">Perimeter Lockdown Drills</div>
+                <div class="ks-activity-date">Oct 24, 2023</div>
+              </div>
+              <div style="text-align:right">
+                <div class="ks-activity-grade ks-activity-grade--a">A+</div>
+                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
+              </div>
+            </div>
+            <div class="ks-activity-item">
+              <div>
+                <div class="ks-activity-name">Corner 3-Point Volume</div>
+                <div class="ks-activity-date">Oct 22, 2023</div>
+              </div>
+              <div style="text-align:right">
+                <div class="ks-activity-grade ks-activity-grade--b">B</div>
+                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
+              </div>
+            </div>
+            <div class="ks-activity-item">
+              <div>
+                <div class="ks-activity-name">Crossover Response Time</div>
+                <div class="ks-activity-date">Oct 21, 2023</div>
+              </div>
+              <div style="text-align:right">
+                <div class="ks-activity-grade ks-activity-grade--a">A-</div>
+                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- 2. Stats Summary Row -->
-      <div class="ke-profile-stats">
-        <div class="ke-profile-stat">
-          <div class="ke-profile-stat__value">186</div>
-          <div class="ke-profile-stat__label">Sessions</div>
+      <!-- Settings Sections -->
+      <section style="margin-top:48px">
+        <!-- Account Infrastructure -->
+        <div class="ks-settings-heading">Account Infrastructure</div>
+        <div class="ks-settings-group">
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-left">
+              <span class="material-symbols-outlined">mail</span>
+              <div>
+                <div class="ks-settings-item-title">Email Address</div>
+                <div class="ks-settings-item-sub">m.reed.baller@prohoops.com</div>
+              </div>
+            </div>
+            <div class="ks-settings-item-right">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </div>
+          </div>
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-left">
+              <span class="material-symbols-outlined">lock</span>
+              <div>
+                <div class="ks-settings-item-title">Security &amp; Password</div>
+                <div class="ks-settings-item-sub">Last updated 14 days ago</div>
+              </div>
+            </div>
+            <div class="ks-settings-item-right">
+              <span class="material-symbols-outlined">chevron_right</span>
+            </div>
+          </div>
         </div>
-        <div class="ke-profile-stat">
-          <div class="ke-profile-stat__value">72%</div>
-          <div class="ke-profile-stat__label">Win Rate</div>
+
+        <!-- Kinetic Profile -->
+        <div class="ks-settings-heading">Kinetic Profile</div>
+        <div class="ks-profile-cards-grid">
+          <div class="ks-profile-metric-card">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <span class="material-symbols-outlined" style="color:var(--ks-primary)">monitoring</span>
+              <span class="ks-label" style="letter-spacing:0.15em">Metric</span>
+            </div>
+            <div>
+              <div class="ks-label" style="color:rgba(229,226,225,0.6)">Skill Level</div>
+              <div style="font-family:var(--ks-font-headline);font-size:1.25rem;font-weight:700;color:var(--ks-text)">ELITE</div>
+            </div>
+          </div>
+          <div class="ks-profile-metric-card ks-profile-metric-card--secondary">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+              <span class="material-symbols-outlined" style="color:var(--ks-primary)">sports_basketball</span>
+              <span class="ks-label" style="letter-spacing:0.15em">Assigned</span>
+            </div>
+            <div>
+              <div class="ks-label" style="color:rgba(229,226,225,0.6)">Primary Position</div>
+              <div style="font-family:var(--ks-font-headline);font-size:1.25rem;font-weight:700;color:var(--ks-text)">GUARD</div>
+            </div>
+          </div>
         </div>
-        <div class="ke-profile-stat">
-          <div class="ke-profile-stat__value">21</div>
-          <div class="ke-profile-stat__label">Best Streak</div>
+
+        <!-- Protocol & Support -->
+        <div class="ks-settings-heading" style="margin-top:32px">Protocol &amp; Support</div>
+        <div class="ks-settings-group">
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-title">Terms of Service</div>
+            <span class="material-symbols-outlined" style="color:rgba(229,226,225,0.4)">open_in_new</span>
+          </div>
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-title">Privacy Policy</div>
+            <span class="material-symbols-outlined" style="color:rgba(229,226,225,0.4)">shield</span>
+          </div>
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-title">Help Center</div>
+            <span class="material-symbols-outlined" style="color:rgba(229,226,225,0.4)">help_center</span>
+          </div>
+          <div class="ks-settings-item">
+            <div class="ks-settings-item-title">Report a Bug</div>
+            <span class="material-symbols-outlined" style="color:var(--ks-primary)">bug_report</span>
+          </div>
         </div>
+      </section>
+
+      <!-- Sign Out -->
+      <div style="padding-top:32px;padding-bottom:48px">
+        <button class="ks-signout-btn" onclick="signOut()">
+          <span class="material-symbols-outlined">logout</span>
+          TERMINATE SESSION
+        </button>
+        <div class="ks-app-version">CourtIQ Elite v4.2.0 &middot; Build 882</div>
       </div>
 
-      <!-- 3. Achievements Section -->
-      <div class="ke-section-label">ACHIEVEMENTS</div>
-      <div class="ke-hscroll" style="margin-bottom:16px">
-        <div class="ke-achievement-card">
-          <div class="ke-achievement-card__icon">&#127942;</div>
-          <div class="ke-achievement-card__title">500 Club</div>
-          <div class="ke-achievement-card__subtitle">500 shots made</div>
-        </div>
-        <div class="ke-achievement-card">
-          <div class="ke-achievement-card__icon">&#128293;</div>
-          <div class="ke-achievement-card__title">On Fire</div>
-          <div class="ke-achievement-card__subtitle">7-day streak</div>
-        </div>
-        <div class="ke-achievement-card">
-          <div class="ke-achievement-card__icon">&#127919;</div>
-          <div class="ke-achievement-card__title">Sharpshooter</div>
-          <div class="ke-achievement-card__subtitle">70%+ shooting</div>
-        </div>
-        <div class="ke-achievement-card">
-          <div class="ke-achievement-card__icon">&#9889;</div>
-          <div class="ke-achievement-card__title">Speed Demon</div>
-          <div class="ke-achievement-card__subtitle">Fastest drill time</div>
-        </div>
-        <div class="ke-achievement-card">
-          <div class="ke-achievement-card__icon">&#128170;</div>
-          <div class="ke-achievement-card__title">Iron Will</div>
-          <div class="ke-achievement-card__subtitle">30-day streak</div>
-        </div>
-      </div>
-
-      <!-- 4. Settings Menu -->
-      <div class="ke-section-label">SETTINGS</div>
-      <div class="ke-settings-list">
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#128100;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Edit Profile</div>
-            <div class="ke-list-item__subtitle">Update your info</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#127919;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Training Goals</div>
-            <div class="ke-list-item__subtitle">Customize targets</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#128276;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Notifications</div>
-            <div class="ke-list-item__subtitle">Manage alerts</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#127912;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Appearance</div>
-            <div class="ke-list-item__subtitle">Theme & display</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#128202;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Data & Privacy</div>
-            <div class="ke-list-item__subtitle">Export & delete</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-        <div class="ke-list-item">
-          <div class="ke-list-item__icon">&#10067;</div>
-          <div class="ke-list-item__content">
-            <div class="ke-list-item__title">Help & Support</div>
-            <div class="ke-list-item__subtitle">FAQ & contact</div>
-          </div>
-          <div class="ke-list-item__trailing">&#8250;</div>
-        </div>
-      </div>
-
-      <!-- 5. Sign Out Button -->
-      <button class="ke-signout-btn" onclick="signOut()">Sign Out</button>
-
-      <!-- 6. App Version Footer -->
-      <div class="ke-app-version">CourtIQ v2.0 &middot; Kinetic Elite</div>
-
-      <!-- 7. Bottom Spacer -->
-      <div style="height:80px"></div>
+      <div class="ks-spacer"></div>
 
     </div><!-- /archetype panel (Profile) -->
 
@@ -2250,23 +2447,23 @@
     </div><!-- /db-main-inner -->
   </main><!-- /db-main -->
 
-  <!-- Kinetic Elite Bottom Nav -->
-  <nav class="ke-bottom-nav" id="ke-bottom-nav">
-    <button class="ke-nav-item active" data-tab="home" onclick="dbSwitchTab('home',this)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span>Dashboard</span>
+  <!-- Kinetic Stitch Bottom Nav -->
+  <nav class="ks-bottom-nav" id="ke-bottom-nav">
+    <button class="ks-nav-item active" data-tab="home" onclick="dbSwitchTab('home',this)">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+      <span class="ks-nav-label">Home</span>
     </button>
-    <button class="ke-nav-item" data-tab="workouts" onclick="dbSwitchTab('workouts',this)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10"/><path d="M2 12h20"/></svg>
-      <span>Workouts</span>
+    <button class="ks-nav-item" data-tab="workouts" onclick="dbSwitchTab('workouts',this)">
+      <span class="material-symbols-outlined">fitness_center</span>
+      <span class="ks-nav-label">Training</span>
     </button>
-    <button class="ke-nav-item" data-tab="shots" onclick="dbSwitchTab('shots',this)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-      <span>Stats</span>
+    <button class="ks-nav-item" data-tab="shots" onclick="dbSwitchTab('shots',this)">
+      <span class="material-symbols-outlined">leaderboard</span>
+      <span class="ks-nav-label">Stats</span>
     </button>
-    <button class="ke-nav-item" data-tab="archetype" onclick="dbSwitchTab('archetype',this)">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span>Profile</span>
+    <button class="ks-nav-item" data-tab="archetype" onclick="dbSwitchTab('archetype',this)">
+      <span class="material-symbols-outlined">person</span>
+      <span class="ks-nav-label">Profile</span>
     </button>
   </nav>
 
@@ -2925,9 +3122,38 @@
 <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js" integrity="sha384-RRHfJ6w1mTlKUBMYT/hvnRiOzEB/vyRV3DrQOseb6oYfvaZSfdd0byS4bHps0k2R" crossorigin="anonymous"></script>
 <script src="js/orbit-controls-lite.js"></script>
 <script src="js/gsap-animations.js"></script>
+<!-- Preview mode: bypass auth guard when ?preview=1 -->
+<script>
+if(new URLSearchParams(location.search).has('preview')){
+  document.body.classList.add('preview-mode');
+  window.__PREVIEW_MODE__=true;
+  var _fakeSession={user:{id:'preview',email:'preview@courtiq.app',user_metadata:{first_name:'Marcus'}}};
+  var _fakeAuth={getSession:function(){return Promise.resolve({data:{session:_fakeSession}})},onAuthStateChange:function(){return{data:{subscription:{unsubscribe:function(){}}}}},getUser:function(){return Promise.resolve({data:{user:_fakeSession.user}})}};
+  var _fakeQuery={select:function(){return _fakeQuery},eq:function(){return _fakeQuery},order:function(){return _fakeQuery},limit:function(){return _fakeQuery},single:function(){return Promise.resolve({data:null,error:null})},then:function(cb){return cb({data:[],error:null})}};
+  var _fakeSb={auth:_fakeAuth,from:function(){return _fakeQuery},rpc:function(){return Promise.resolve({data:null,error:null})}};
+  // Stub supabase.createClient to return our fake
+  window.supabase={createClient:function(){return _fakeSb}};
+  window.sb=_fakeSb;
+  // Hide auth overlay + page loader immediately
+  document.addEventListener('DOMContentLoaded',function(){
+    var ao=document.getElementById('authOverlay');if(ao){ao.classList.remove('active');ao.style.display='none';}
+    var pl=document.getElementById('page-loader');if(pl){pl.style.display='none';pl.style.opacity='0';}
+  });
+}
+</script>
 <!-- Security utilities — load first so escapeHTML is available to all scripts -->
 <script src="js/utils.js"></script>
 <script src="js/supabase-client.js"></script>
+<script>
+// Preview mode: override Supabase auth AFTER client is created
+if(window.__PREVIEW_MODE__){
+  var _realSb=window.sb;
+  if(_realSb&&_realSb.auth){
+    _realSb.auth.getSession=()=>Promise.resolve({data:{session:{user:{id:'preview',email:'preview@courtiq.app',user_metadata:{first_name:'Marcus'}}}}});
+    _realSb.auth.onAuthStateChange=()=>({data:{subscription:{unsubscribe:()=>{}}}});
+  }
+}
+</script>
 <script src="js/data-service.js"></script>
 <script src="js/nav.js"></script>
 <script src="js/auth.js"></script>
