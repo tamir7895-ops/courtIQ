@@ -2155,40 +2155,40 @@
       <!-- Profile Header Section -->
       <section class="ks-profile-grid" style="padding-top:24px;margin-bottom:32px">
         <div class="ks-profile-avatar-wrap">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD7ANXA-gSPMC_x-Ae6eVDfukraO_U4a9_reVSFMkHDIJ1hzC9ah3z8TuUyx9ML1of6LA7YHiKAp5BREPVSF-GYNuqj98rQHya-aFrwMoQ4IDCOUEuKAkCdFialPNVGL526AkOmlMEZG4-XhN3QKRUWu_6-eAxYpJKjYoOgFk90xd9pX4RliZIw7uq9N-ps2u0XB9BVDKc_o8GOf9rrIW3kwG90XtzMqW4sFECElJomV-4fZ7N9m5M1gfyWvx_brBiBRy5r_GvwL4" alt="Player portrait" />
-          <div class="ks-profile-level-badge">Elite Level 42</div>
+          <img id="ks-profile-avatar-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCD7ANXA-gSPMC_x-Ae6eVDfukraO_U4a9_reVSFMkHDIJ1hzC9ah3z8TuUyx9ML1of6LA7YHiKAp5BREPVSF-GYNuqj98rQHya-aFrwMoQ4IDCOUEuKAkCdFialPNVGL526AkOmlMEZG4-XhN3QKRUWu_6-eAxYpJKjYoOgFk90xd9pX4RliZIw7uq9N-ps2u0XB9BVDKc_o8GOf9rrIW3kwG90XtzMqW4sFECElJomV-4fZ7N9m5M1gfyWvx_brBiBRy5r_GvwL4" alt="Player portrait" />
+          <div class="ks-profile-level-badge" id="ks-profile-level-badge">🏀 Rookie</div>
         </div>
         <div class="ks-profile-info">
           <div class="ks-profile-position-tag">
-            <span>Point Guard</span>
+            <span id="ks-profile-position-tag">—</span>
           </div>
           <h2 class="ks-profile-name" id="ks-profile-full-name">
             Player
           </h2>
-          <p class="ks-profile-bio">Relentless on both ends of the floor. Specializing in perimeter defense and high-IQ playmaking.</p>
+          <p class="ks-profile-bio" id="ks-profile-bio">Complete onboarding to personalise your profile.</p>
         </div>
       </section>
 
       <!-- Quick Stats Summary -->
       <section class="ks-quick-stats ks-mb-8">
         <div class="ks-quick-stat">
-          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Points Per Game</span>
+          <span class="ks-label" id="prof-stat1-lbl" style="color:rgba(255,182,147,0.6)">Sessions Logged</span>
           <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
-            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">24.8</span>
+            <span id="prof-stat1-val" style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">—</span>
             <span class="material-symbols-outlined" style="color:var(--ks-primary-light);font-size:14px;font-variation-settings:'FILL' 1">trending_up</span>
           </div>
         </div>
         <div class="ks-quick-stat">
-          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Rebounds Per Game</span>
+          <span class="ks-label" id="prof-stat2-lbl" style="color:rgba(255,182,147,0.6)">Avg Shots Made</span>
           <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
-            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">6.2</span>
+            <span id="prof-stat2-val" style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">—</span>
             <span class="material-symbols-outlined" style="color:var(--ks-secondary);font-size:14px">remove</span>
           </div>
         </div>
         <div class="ks-quick-stat">
-          <span class="ks-label" style="color:rgba(255,182,147,0.6)">Assists Per Game</span>
+          <span class="ks-label" id="prof-stat3-lbl" style="color:rgba(255,182,147,0.6)">Field Goal %</span>
           <div style="display:flex;align-items:baseline;gap:8px;margin-top:16px">
-            <span style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">8.5</span>
+            <span id="prof-stat3-val" style="font-family:var(--ks-font-headline);font-size:3rem;font-weight:900;color:var(--ks-text)">—</span>
             <span class="material-symbols-outlined" style="color:var(--ks-primary-light);font-size:14px;font-variation-settings:'FILL' 1">trending_up</span>
           </div>
         </div>
@@ -2202,22 +2202,22 @@
             <span class="material-symbols-outlined">military_tech</span>
             Trophy Case
           </div>
-          <div class="ks-trophy-grid">
-            <div class="ks-trophy-item">
-              <span class="material-symbols-outlined">workspace_premium</span>
-              <span class="ks-label" style="font-size:9px;line-height:1.3">1000 Career Points</span>
+          <div class="ks-trophy-grid" id="ks-trophy-grid">
+            <div class="ks-trophy-item ks-trophy-item--locked">
+              <span class="material-symbols-outlined">lock</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">First Session</span>
             </div>
-            <div class="ks-trophy-item">
-              <span class="material-symbols-outlined">security</span>
-              <span class="ks-label" style="font-size:9px;line-height:1.3">Defensive Wall</span>
+            <div class="ks-trophy-item ks-trophy-item--locked">
+              <span class="material-symbols-outlined">lock</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">Dedicated (10+)</span>
             </div>
-            <div class="ks-trophy-item">
-              <span class="material-symbols-outlined">target</span>
+            <div class="ks-trophy-item ks-trophy-item--locked">
+              <span class="material-symbols-outlined">lock</span>
               <span class="ks-label" style="font-size:9px;line-height:1.3">Sniper Mode</span>
             </div>
             <div class="ks-trophy-item ks-trophy-item--locked">
               <span class="material-symbols-outlined">lock</span>
-              <span class="ks-label" style="font-size:9px;line-height:1.3">Double Double</span>
+              <span class="ks-label" style="font-size:9px;line-height:1.3">All-Star Rank</span>
             </div>
           </div>
         </div>
@@ -2227,37 +2227,8 @@
             <span class="material-symbols-outlined">history</span>
             Recent Activity
           </div>
-          <div class="ks-activity-list">
-            <div class="ks-activity-item ks-activity-item--highlight">
-              <div>
-                <div class="ks-activity-name">Perimeter Lockdown Drills</div>
-                <div class="ks-activity-date ks-reltime" data-ts="-2">2 days ago</div>
-              </div>
-              <div style="text-align:right">
-                <div class="ks-activity-grade ks-activity-grade--a">A+</div>
-                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
-              </div>
-            </div>
-            <div class="ks-activity-item">
-              <div>
-                <div class="ks-activity-name">Corner 3-Point Volume</div>
-                <div class="ks-activity-date ks-reltime" data-ts="-4">4 days ago</div>
-              </div>
-              <div style="text-align:right">
-                <div class="ks-activity-grade ks-activity-grade--b">B</div>
-                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
-              </div>
-            </div>
-            <div class="ks-activity-item">
-              <div>
-                <div class="ks-activity-name">Crossover Response Time</div>
-                <div class="ks-activity-date ks-reltime" data-ts="-5">5 days ago</div>
-              </div>
-              <div style="text-align:right">
-                <div class="ks-activity-grade ks-activity-grade--a">A-</div>
-                <div class="ks-label" style="font-size:9px;letter-spacing:0">Performance Score</div>
-              </div>
-            </div>
+          <div class="ks-activity-list" id="ks-activity-list">
+            <div style="padding:24px;text-align:center;color:rgba(229,226,225,0.4);font-size:13px">No sessions yet — complete a drill to see activity here</div>
           </div>
         </div>
       </div>
