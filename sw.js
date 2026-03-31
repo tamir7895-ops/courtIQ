@@ -2,7 +2,7 @@
    SERVICE WORKER — CourtIQ PWA
    Cache-first for static assets, network-first for API calls.
    ============================================================ */
-const CACHE_NAME = 'courtiq-v5';  // synced with root sw.js — added all missing CSS/JS files
+const CACHE_NAME = 'courtiq-v6';  // bumped to force cache invalidation after cloud-persistence fixes
 const STATIC_ASSETS = [
   '/',
   '/index.html',
