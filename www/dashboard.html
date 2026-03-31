@@ -334,19 +334,19 @@
       <!-- Separator -->
       <div class="db-pbar-sep" aria-hidden="true"></div>
 
-      <!-- Center: Level + XP bar -->
-      <div class="db-pbar-xp" id="xp-widget">
-        <div class="xp-badge xp-badge--rookie" id="xp-badge">🏀</div>
+      <!-- Center: Level + XP bar (hidden — IDs moved to ks-xp-card in home panel) -->
+      <div class="db-pbar-xp" data-xp-old="1">
+        <div class="xp-badge xp-badge--rookie">🏀</div>
         <div class="db-pbar-xp-inner">
           <div class="db-pbar-level-row">
-            <span class="xp-rank" id="xp-rank">Rookie</span>
+            <span class="xp-rank">Rookie</span>
             <span class="xp-rank-label">Level</span>
           </div>
           <div class="xp-bar db-pbar-xp-bar">
-            <div class="xp-bar-fill xp-bar-fill--rookie" id="xp-bar-fill" style="width:0%"></div>
+            <div class="xp-bar-fill xp-bar-fill--rookie" style="width:0%"></div>
           </div>
         </div>
-        <div class="xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP</div>
+        <div class="xp-numbers"><strong>0 XP</strong> / 200 XP</div>
       </div>
 
       <!-- Right: Streak + action buttons -->
@@ -476,7 +476,7 @@
           <span class="ks-header-brand">CourtIQ</span>
         </div>
         <div class="ks-header-right">
-          <button class="ks-header-btn" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
+          <button class="ks-header-btn ks-notif-dot" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
             <span class="material-symbols-outlined">notifications</span>
           </button>
         </div>
@@ -503,6 +503,44 @@
           </div>
         </div>
       </section>
+
+      <!-- XP Level & Progress Card -->
+      <section class="ks-xp-card ks-reveal-up ks-stagger-1" id="xp-widget" style="margin-top:20px">
+        <div class="ks-xp-card-left">
+          <div class="ks-xp-badge" id="xp-badge">🏀</div>
+          <div class="ks-xp-card-info">
+            <div class="ks-xp-card-level">
+              <span class="ks-xp-card-rank" id="xp-rank">Rookie</span>
+              <span class="ks-xp-card-label">Current Level</span>
+            </div>
+            <div class="ks-xp-bar-track">
+              <div class="ks-xp-bar-fill" id="xp-bar-fill"></div>
+            </div>
+            <div class="ks-xp-numbers" id="xp-numbers"><strong>0 XP</strong> / 200 XP</div>
+          </div>
+        </div>
+        <div class="ks-xp-card-right">
+          <div class="ks-xp-mini-stat">
+            <span class="ks-xp-mini-val" id="ks-home-streak">0</span>
+            <span class="ks-xp-mini-lbl">Streak 🔥</span>
+          </div>
+          <div class="ks-xp-mini-stat">
+            <span class="ks-xp-mini-val" id="ks-home-sessions">0</span>
+            <span class="ks-xp-mini-lbl">Sessions</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Daily Challenge Banner -->
+      <div class="ks-home-challenge ks-reveal-up ks-stagger-2" onclick="dbSwitchTab('workouts')">
+        <div class="ks-home-challenge-icon">⚡</div>
+        <div class="ks-home-challenge-body">
+          <div class="ks-home-challenge-label">Daily Challenge</div>
+          <div class="ks-home-challenge-title">Complete 3 Shooting Drills</div>
+          <div class="ks-home-challenge-sub">+30 XP &bull; Unlocks streak bonus</div>
+        </div>
+        <button class="ks-home-challenge-cta" onclick="event.stopPropagation();dbSwitchTab('workouts')">Start</button>
+      </div>
 
       <!-- On the Rise — Bento Stats -->
       <section class="ks-mb-12">
@@ -552,6 +590,55 @@
         </div>
       </section>
 
+      <!-- Skill Breakdown -->
+      <section class="ks-mb-12 ks-reveal-up ks-stagger-2">
+        <div class="ks-section-header">
+          <div>
+            <span class="ks-label-orange" style="display:block;margin-bottom:8px">Player Attributes</span>
+            <h3 class="ks-section-title">Skill Breakdown</h3>
+          </div>
+          <button class="ks-section-link" onclick="dbSwitchTab('summary')">Full Report</button>
+        </div>
+        <div class="ks-skill-bars-card">
+          <div class="ks-skill-bar-item">
+            <div class="ks-skill-bar-header">
+              <span class="ks-skill-bar-name">Shooting</span>
+              <span class="ks-skill-bar-score" id="ks-sb-shooting">–</span>
+            </div>
+            <div class="ks-skill-bar-track">
+              <div class="ks-skill-bar-fill ks-skill-bar-fill--shooting" id="ks-sb-shooting-bar"></div>
+            </div>
+          </div>
+          <div class="ks-skill-bar-item">
+            <div class="ks-skill-bar-header">
+              <span class="ks-skill-bar-name">Ball Handling</span>
+              <span class="ks-skill-bar-score" id="ks-sb-dribbling">–</span>
+            </div>
+            <div class="ks-skill-bar-track">
+              <div class="ks-skill-bar-fill ks-skill-bar-fill--dribbling" id="ks-sb-dribbling-bar"></div>
+            </div>
+          </div>
+          <div class="ks-skill-bar-item">
+            <div class="ks-skill-bar-header">
+              <span class="ks-skill-bar-name">Defense</span>
+              <span class="ks-skill-bar-score" id="ks-sb-defense">–</span>
+            </div>
+            <div class="ks-skill-bar-track">
+              <div class="ks-skill-bar-fill ks-skill-bar-fill--defense" id="ks-sb-defense-bar"></div>
+            </div>
+          </div>
+          <div class="ks-skill-bar-item">
+            <div class="ks-skill-bar-header">
+              <span class="ks-skill-bar-name">Game IQ</span>
+              <span class="ks-skill-bar-score" id="ks-sb-gameiq">–</span>
+            </div>
+            <div class="ks-skill-bar-track">
+              <div class="ks-skill-bar-fill ks-skill-bar-fill--gameiq" id="ks-sb-gameiq-bar"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Featured: Next Session -->
       <section class="ks-featured ks-kinetic-hover ks-reveal-up">
         <div class="ks-featured-inner">
@@ -572,6 +659,56 @@
           <div class="ks-featured-img">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAcA_M1pU3TR236KC9sSFhirOZz5F1CGda47mcEjsHhMoHCcZoo3fWK8uWQ3-WUpgrvRr4UlVni1YODa0T_GTbPoJtO4QZbHurLMiAz1TjiEVnI3WvcOi9RAzs7WrW1vULcO20BcQLPL_CkGvkQOr6SPKBulAy1zR2GIyssgA19GUUlKtMZ5r42ai2eqYIZHRRfTBL-KQio7YZtZJK0HXH6zZwR9-GgI-nVNo3Vdq65fAh1ES2trZhQGtSO8dsy9Y_orVP4k30cYLU" alt="Training Session" />
             <div class="ks-featured-img-gradient"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Game Log -->
+      <section class="ks-mb-12 ks-reveal-up ks-stagger-1">
+        <div class="ks-section-header">
+          <div>
+            <span class="ks-label-orange" style="display:block;margin-bottom:8px">Session History</span>
+            <h3 class="ks-section-title">Game Log</h3>
+          </div>
+          <button class="ks-section-link" onclick="dbSwitchTab('history')">All Sessions</button>
+        </div>
+        <div class="ks-game-log-list" id="ks-game-log-list">
+          <div class="ks-game-log-empty">Log a session to see your game history</div>
+        </div>
+      </section>
+
+      <!-- Personal Bests -->
+      <section class="ks-mb-12 ks-reveal-up ks-stagger-2">
+        <div class="ks-section-header">
+          <div>
+            <span class="ks-label-orange" style="display:block;margin-bottom:8px">Peak Performance</span>
+            <h3 class="ks-section-title">Personal Bests</h3>
+          </div>
+        </div>
+        <div class="ks-pb-list" id="ks-pb-list">
+          <div class="ks-pb-item">
+            <div class="ks-pb-icon">🏀</div>
+            <div class="ks-pb-info">
+              <div class="ks-pb-label">Best Shots Made</div>
+              <div class="ks-pb-value" id="ks-pb-shots">–</div>
+            </div>
+            <span class="ks-pb-tag ks-pb-tag--record">New Record</span>
+          </div>
+          <div class="ks-pb-item">
+            <div class="ks-pb-icon">⬆️</div>
+            <div class="ks-pb-info">
+              <div class="ks-pb-label">Vertical Jump</div>
+              <div class="ks-pb-value" id="ks-pb-vertical">–</div>
+            </div>
+            <span class="ks-pb-tag ks-pb-tag--top">Top 1%</span>
+          </div>
+          <div class="ks-pb-item">
+            <div class="ks-pb-icon">⚡</div>
+            <div class="ks-pb-info">
+              <div class="ks-pb-label">Best Sprint Time</div>
+              <div class="ks-pb-value" id="ks-pb-sprint">–</div>
+            </div>
+            <span class="ks-pb-tag ks-pb-tag--milestone">Milestone</span>
           </div>
         </div>
       </section>
