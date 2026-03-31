@@ -1,0 +1,709 @@
+/* ═══════════════════════════════════════════════════════════════
+   COURTIQ — PREMIUM UI ANIMATIONS
+   Inspired by Unicorn Studio visual design language
+   ─────────────────────────────────────────────────────────────
+   Layers on top of main.css. No destructive overrides.
+═══════════════════════════════════════════════════════════════ */
+
+/* ─── PAGE LOADER ─────────────────────────────────────────────── */
+#page-loader {
+  position: fixed;
+  inset: 0;
+  background: #0c0d0f;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  transition: opacity 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+              transform 0.8s cubic-bezier(0.25, 1, 0.5, 1),
+              visibility 0.8s cubic-bezier(0.25, 1, 0.5, 1);
+}
+#page-loader.loaded {
+  opacity: 0;
+  transform: scale(1.05);
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* Bouncing basketball */
+.loader-basketball {
+  position: relative;
+  width: 64px;
+  height: 100px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+.loader-ball {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f5a623 0%, #e09020 50%, #d4841c 100%);
+  position: relative;
+  overflow: hidden;
+  animation: ball-bounce 0.6s ease-in-out infinite;
+  box-shadow: inset -4px -6px 12px rgba(0,0,0,0.25),
+              inset 2px 2px 8px rgba(255,210,100,0.2),
+              0 8px 30px rgba(245,166,35,0.3);
+}
+.loader-seam {
+  position: absolute;
+  background: rgba(0,0,0,0.2);
+}
+.loader-seam-h {
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+}
+.loader-seam-v {
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+}
+.loader-shadow {
+  width: 40px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(245,166,35,0.15);
+  margin-top: 8px;
+  animation: shadow-pulse 0.6s ease-in-out infinite;
+}
+@keyframes ball-bounce {
+  0%, 100% { transform: translateY(0) scaleY(1) scaleX(1); }
+  40% { transform: translateY(-30px) scaleY(1.05) scaleX(0.95); }
+  80% { transform: translateY(0) scaleY(0.92) scaleX(1.06); }
+}
+@keyframes shadow-pulse {
+  0%, 100% { transform: scaleX(1); opacity: 0.4; }
+  40% { transform: scaleX(0.6); opacity: 0.15; }
+  80% { transform: scaleX(1.15); opacity: 0.5; }
+}
+
+/* Wordmark */
+.loader-wordmark {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 48px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: #f0ede6;
+}
+.loader-wordmark span { color: #f5a623; }
+
+/* Progress bar */
+.loader-bar {
+  width: 120px;
+  height: 2px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.loader-bar-fill {
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, #f5a623, #ffd060, #f5a623);
+  background-size: 200% auto;
+  border-radius: 2px;
+  animation: loader-fill 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.1s forwards,
+             loader-shimmer 1.5s linear 0.1s infinite;
+}
+
+/* Loading text */
+.loader-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.25);
+  margin-top: -4px;
+}
+
+@keyframes loader-fill {
+  to { width: 100%; }
+}
+@keyframes loader-shimmer {
+  to { background-position: -200% center; }
+}
+
+/* ─── CUSTOM CURSOR ───────────────────────────────────────────── */
+/* Only on true pointer devices */
+@media (hover: hover) and (pointer: fine) {
+  * { cursor: none !important; }
+  input, textarea, select { cursor: text !important; }
+  a, button { cursor: none !important; }
+}
+#cursor {
+  position: fixed;
+  width: 8px; height: 8px;
+  background: #f5a623;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999990;
+  transform: translate(-50%, -50%);
+  transition: width 0.2s ease, height 0.2s ease;
+  will-change: left, top;
+}
+#cursor-ring {
+  position: fixed;
+  width: 38px; height: 38px;
+  border: 1.5px solid rgba(245,166,35,0.45);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 999989;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s ease, height 0.3s ease, border-color 0.3s ease;
+  will-change: left, top;
+}
+#cursor.cursor-hover   { width: 16px; height: 16px; }
+#cursor-ring.cursor-hover {
+  width: 54px; height: 54px;
+  border-color: rgba(245,166,35,0.65);
+}
+@media (max-width: 768px) {
+  #cursor, #cursor-ring { display: none !important; }
+  * { cursor: auto !important; }
+  input, textarea, select { cursor: text !important; }
+}
+
+/* ─── AMBIENT GRADIENT ORBS (hero background) ────────────────── */
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(90px);
+  opacity: 0;
+  will-change: transform;
+}
+.hero-orb-1 {
+  width: 680px; height: 680px;
+  background: radial-gradient(circle, rgba(245,166,35,0.14) 0%, transparent 65%);
+  top: -280px; right: -80px;
+  animation: orb-appear 2s ease 0.3s forwards,
+             orb-drift-1 24s ease-in-out infinite 2.3s;
+}
+.hero-orb-2 {
+  width: 560px; height: 560px;
+  background: radial-gradient(circle, rgba(58,134,255,0.09) 0%, transparent 65%);
+  bottom: -220px; left: -120px;
+  animation: orb-appear 2s ease 0.6s forwards,
+             orb-drift-2 30s ease-in-out infinite 2.6s;
+}
+.hero-orb-3 {
+  width: 420px; height: 420px;
+  background: radial-gradient(circle, rgba(199,125,255,0.07) 0%, transparent 65%);
+  top: 45%; left: 38%;
+  transform: translate(-50%, -50%);
+  animation: orb-appear 2s ease 0.9s forwards,
+             orb-drift-3 20s ease-in-out infinite 2.9s;
+}
+@keyframes orb-appear { to { opacity: 1; } }
+@keyframes orb-drift-1 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  33%      { transform: translate(-70px, 55px) scale(1.07); }
+  66%      { transform: translate(45px, -35px) scale(0.95); }
+}
+@keyframes orb-drift-2 {
+  0%,100% { transform: translate(0,0) scale(1); }
+  40%      { transform: translate(85px, -55px) scale(1.05); }
+  70%      { transform: translate(-35px, 40px) scale(0.93); }
+}
+@keyframes orb-drift-3 {
+  0%,100% { transform: translate(-50%,-50%) scale(1); }
+  50%      { transform: translate(calc(-50% + 55px), calc(-50% - 48px)) scale(1.1); }
+}
+
+/* ─── HERO PARTICLE CANVAS ────────────────────────────────────── */
+#hero-particles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0;
+  animation: canvas-fadein 2.5s ease 1s forwards;
+}
+@keyframes canvas-fadein { to { opacity: 0.65; } }
+
+/* ─── HERO STAGGERED REVEAL (pure CSS) ───────────────────────── */
+.hero-left > *,
+.hero-right {
+  animation-fill-mode: both;
+  animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
+  animation-duration: 0.9s;
+  animation-name: hero-item-up;
+}
+.hero-left > *:nth-child(1) { animation-delay: 0.5s; }
+.hero-left > *:nth-child(2) { animation-delay: 0.65s; }
+.hero-left > *:nth-child(3) { animation-delay: 0.8s; }
+.hero-left > *:nth-child(4) { animation-delay: 0.95s; }
+.hero-left > *:nth-child(5) { animation-delay: 1.1s; }
+.hero-right {
+  animation-name: hero-item-right;
+  animation-delay: 0.85s;
+  animation-duration: 1.1s;
+}
+@keyframes hero-item-up {
+  from { opacity: 0; transform: translateY(32px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes hero-item-right {
+  from { opacity: 0; transform: translateX(50px) scale(0.97); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* ─── HERO TITLE GRADIENT SHIMMER ─────────────────────────────── */
+.hero-title em {
+  background: linear-gradient(135deg, #f5a623 0%, #ffc93c 35%, #ffd060 50%, #f5a623 80%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: title-shimmer 5s linear infinite;
+  font-style: italic;
+}
+@keyframes title-shimmer {
+  to { background-position: -300% center; }
+}
+
+/* ─── SCROLL INDICATOR ────────────────────────────────────────── */
+.scroll-indicator {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  z-index: 5;
+  opacity: 0;
+  animation: scroll-ind-appear 1s ease 2.4s forwards;
+  pointer-events: none;
+}
+.scroll-indicator-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.28);
+}
+.scroll-indicator-mouse {
+  width: 22px; height: 34px;
+  border: 1.5px solid rgba(245,166,35,0.28);
+  border-radius: 11px;
+  display: flex;
+  justify-content: center;
+  padding-top: 5px;
+}
+.scroll-indicator-dot {
+  width: 4px; height: 7px;
+  background: #f5a623;
+  border-radius: 2px;
+  animation: scroll-dot-anim 2.2s ease-in-out infinite;
+}
+@keyframes scroll-dot-anim {
+  0%   { transform: translateY(0);    opacity: 1; }
+  65%  { transform: translateY(11px); opacity: 0; }
+  66%  { transform: translateY(0);    opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+@keyframes scroll-ind-appear { to { opacity: 1; } }
+@media (max-width: 768px) { .scroll-indicator { display: none; } }
+
+/* ─── ENHANCED SCROLL REVEALS ─────────────────────────────────── */
+/* Override main.css reveal with more cinematic feel */
+.reveal {
+  opacity: 0 !important;
+  transform: translateY(44px) scale(0.972) !important;
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.8s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.reveal.visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+}
+.reveal-delay-1 { transition-delay: 0.12s !important; }
+.reveal-delay-2 { transition-delay: 0.24s !important; }
+.reveal-delay-3 { transition-delay: 0.36s !important; }
+.reveal-delay-4 { transition-delay: 0.48s !important; }
+
+/* ─── STATS BAR GRADIENT NUMBERS ──────────────────────────────── */
+.stats-bar-number {
+  background: linear-gradient(135deg, #f5a623 0%, #ffd060 50%, #f5a623 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: stat-num-shimmer 5s linear infinite;
+  filter: drop-shadow(0 0 18px rgba(245,166,35,0.22));
+}
+@keyframes stat-num-shimmer {
+  to { background-position: -200% center; }
+}
+
+/* ─── HERO CARD GLOW PULSE ────────────────────────────────────── */
+.hero-card-main {
+  animation: float 6s ease-in-out infinite,
+             hero-card-glow 5s ease-in-out 2s infinite !important;
+}
+@keyframes hero-card-glow {
+  0%,100% {
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6),
+                0 0 0 1px rgba(245,166,35,0.07);
+  }
+  50% {
+    box-shadow: 0 30px 80px rgba(0,0,0,0.6),
+                0 0 0 1px rgba(245,166,35,0.22),
+                0 0 60px rgba(245,166,35,0.07);
+  }
+}
+
+/* ─── STEP CARDS — 3D tilt handled by JS, CSS provides base ───── */
+.step-card {
+  transform-style: preserve-3d;
+  transition: box-shadow 0.4s ease, border-color 0.4s ease, background 0.25s ease !important;
+}
+.step-card:hover {
+  box-shadow: 0 28px 70px rgba(0,0,0,0.55),
+              0 0 0 1px rgba(245,166,35,0.2),
+              0 0 50px rgba(245,166,35,0.05) !important;
+  border-color: rgba(245,166,35,0.22) !important;
+}
+.step-card:hover .step-number {
+  color: rgba(245,166,35,0.35) !important;
+  text-shadow: 0 0 50px rgba(245,166,35,0.35);
+}
+.step-icon {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.step-card:hover .step-icon {
+  transform: scale(1.14) rotate(-6deg);
+}
+
+/* ─── STEP CARD SHIMMER (::after to avoid conflict with ::before bar) */
+.step-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%;
+  width: 60%; height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 25%,
+    rgba(255,255,255,0.03) 50%,
+    transparent 75%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+.step-card:hover::after {
+  animation: shimmer-slide 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+@keyframes shimmer-slide {
+  to { left: 160%; }
+}
+
+/* ─── FEATURE ITEMS ENHANCED ──────────────────────────────────── */
+.feature-item {
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.28s ease,
+              background 0.28s ease !important;
+}
+.feature-item:hover {
+  transform: translateX(8px) !important;
+  box-shadow: inset 3px 0 0 rgba(245,166,35,0.55) !important;
+}
+.feature-icon-wrap {
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.feature-item:hover .feature-icon-wrap {
+  transform: scale(1.12) rotate(-5deg);
+}
+
+/* ─── BUTTON SHINE SWEEP ──────────────────────────────────────── */
+.btn-primary::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%;
+  width: 55%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.18), transparent);
+  pointer-events: none;
+  z-index: 2;
+  transition: none;
+}
+.btn-primary:hover::before {
+  animation: btn-shine 0.5s ease forwards;
+}
+@keyframes btn-shine {
+  to { left: 160%; }
+}
+
+/* ─── NAV LINK ANIMATED UNDERLINE ─────────────────────────────── */
+.nav-links a {
+  position: relative;
+}
+.nav-links a::after {
+  content: '';
+  position: absolute;
+  bottom: -4px; left: 0;
+  width: 0; height: 1.5px;
+  background: linear-gradient(90deg, #f5a623, #ffd060);
+  transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 1px;
+}
+.nav-links a:hover::after { width: 100%; }
+
+/* ─── SECTION TITLE GRADIENT SPANS ───────────────────────────── */
+.section-title span:not(.outline) {
+  background: linear-gradient(135deg, #f5a623 0%, #ffd060 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent; /* fallback */
+}
+
+/* ─── LABEL TAG AMBIENT GLOW ──────────────────────────────────── */
+@keyframes tag-breathe {
+  0%,100% { box-shadow: 0 0 0px rgba(245,166,35,0); }
+  50%      { box-shadow: 0 0 22px rgba(245,166,35,0.1); }
+}
+.label-tag {
+  animation: pulse-dot 2s ease-in-out infinite,
+             tag-breathe 3.5s ease-in-out infinite;
+}
+
+/* ─── POSITION CARDS HOVER ────────────────────────────────────── */
+.pos-card {
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.4s ease,
+              border-color 0.4s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+.pos-card:hover {
+  transform: translateY(-8px) scale(1.015) !important;
+  box-shadow: 0 28px 60px rgba(0,0,0,0.5),
+              0 0 0 1px rgba(245,166,35,0.2) !important;
+}
+/* Shimmer on pos cards */
+.pos-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%;
+  width: 55%; height: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.025) 50%, transparent 80%);
+  pointer-events: none;
+  z-index: 5;
+}
+.pos-card:hover::before {
+  animation: shimmer-slide 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+/* ─── TESTIMONIAL CARD HOVER ──────────────────────────────────── */
+.testimonial-card {
+  transition: transform 0.4s cubic-bezier(0.16,1,0.3,1),
+              box-shadow 0.4s ease !important;
+  position: relative; overflow: hidden;
+}
+.testimonial-card:hover {
+  transform: translateY(-7px) !important;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.5) !important;
+}
+
+/* ─── PRICING CARD SHIMMER ────────────────────────────────────── */
+.pricing-card {
+  position: relative; overflow: hidden;
+}
+.pricing-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -120%;
+  width: 55%; height: 100%;
+  background: linear-gradient(105deg, transparent 20%, rgba(255,255,255,0.025) 50%, transparent 80%);
+  pointer-events: none; z-index: 5;
+}
+.pricing-card:hover::after {
+  animation: shimmer-slide 0.6s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+/* ─── HERO STAT CARDS — enhanced float + glow ─────────────────── */
+.hero-stat-card {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.hero-stat-card:hover {
+  box-shadow: 0 20px 60px rgba(0,0,0,0.6),
+              0 0 0 1px rgba(245,166,35,0.3),
+              0 0 30px rgba(245,166,35,0.08) !important;
+  border-color: rgba(245,166,35,0.25) !important;
+}
+
+/* ─── HERO AVATAR GROUP HOVER ─────────────────────────────────── */
+.hero-avatar {
+  transition: transform 0.2s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+}
+.hero-avatar:hover {
+  transform: translateY(-6px) scale(1.12);
+  z-index: 10;
+}
+.hero-avatars:hover .hero-avatar {
+  margin-right: -6px;
+}
+
+/* ─── SCROLL PROGRESS BAR ENHANCED ───────────────────────────── */
+#scroll-progress {
+  background: linear-gradient(90deg, #f5a623, #ffd060, #f5a623) !important;
+  background-size: 200% auto !important;
+  animation: scroll-prog-shine 2s linear infinite;
+  box-shadow: 0 0 10px rgba(245,166,35,0.45) !important;
+}
+@keyframes scroll-prog-shine {
+  to { background-position: -200% center; }
+}
+
+/* ─── SECTION AURORA HALOS ────────────────────────────────────── */
+#how-it-works,
+#positions,
+#testimonials {
+  position: relative;
+}
+#how-it-works::after,
+#positions::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  width: 60%; height: 40%;
+  background: radial-gradient(ellipse, rgba(245,166,35,0.028) 0%, transparent 70%);
+  pointer-events: none;
+  border-radius: 50%;
+}
+
+/* ─── FOOTER LINKS HOVER ──────────────────────────────────────── */
+.sb-link {
+  transition: color 0.22s ease, padding-left 0.22s ease !important;
+}
+.sb-link:hover {
+  padding-left: 8px !important;
+}
+.sb-link-arrow {
+  display: inline-block;
+  transition: transform 0.22s cubic-bezier(0.16,1,0.3,1);
+}
+.sb-link:hover .sb-link-arrow {
+  transform: translateX(5px);
+}
+
+/* ─── SOCIAL LINK HOVER ───────────────────────────────────────── */
+.sb-social {
+  transition: transform 0.25s cubic-bezier(0.16,1,0.3,1),
+              background 0.25s ease !important;
+}
+.sb-social:hover {
+  transform: translateY(-2px) !important;
+}
+
+/* ─── DRILL ITEM HOVER GLOW ───────────────────────────────────── */
+.hero-drill-item {
+  transition: border-color 0.25s ease, transform 0.25s cubic-bezier(0.16,1,0.3,1) !important;
+}
+.hero-drill-item:hover {
+  border-color: rgba(245,166,35,0.28) !important;
+  transform: translateX(4px) !important;
+}
+
+/* ─── DASHBOARD CARDS (.db-card) ─────────────────────────────── */
+.db-card {
+  transition: box-shadow 0.35s ease,
+              border-color 0.35s ease,
+              transform 0.35s cubic-bezier(0.16,1,0.3,1) !important;
+  position: relative;
+  overflow: hidden;
+}
+.db-card:hover {
+  box-shadow: 0 16px 50px rgba(0,0,0,0.5),
+              0 0 0 1px rgba(245,166,35,0.14) !important;
+  border-color: rgba(245,166,35,0.16) !important;
+  transform: translateY(-3px) !important;
+}
+/* Shimmer sweep on db-card hover */
+.db-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -110%;
+  width: 55%; height: 100%;
+  background: linear-gradient(
+    105deg,
+    transparent 20%,
+    rgba(255,255,255,0.025) 50%,
+    transparent 80%
+  );
+  pointer-events: none;
+  z-index: 5;
+}
+.db-card:hover::after {
+  animation: shimmer-slide 0.65s cubic-bezier(0.4,0,0.2,1) forwards;
+}
+
+/* ─── DASHBOARD STAT NUMBERS ──────────────────────────────────── */
+.workouts-stat-num,
+.drills-plan-stats strong,
+.db-stat-big {
+  background: linear-gradient(135deg, #f5a623 0%, #ffd060 50%, #f5a623 100%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: stat-num-shimmer 5s linear infinite;
+  filter: drop-shadow(0 0 14px rgba(245,166,35,0.2));
+}
+
+/* ─── DRILL CARD ROW HOVER ────────────────────────────────────── */
+.drill-card {
+  transition: border-color 0.25s ease,
+              background 0.25s ease,
+              transform 0.25s cubic-bezier(0.16,1,0.3,1) !important;
+}
+.drill-card:hover {
+  border-color: rgba(245,166,35,0.28) !important;
+  transform: translateX(5px) !important;
+}
+
+/* ─── WORKOUT CARD HOVER ──────────────────────────────────────── */
+.workout-card,
+.workout-session-card {
+  transition: box-shadow 0.35s ease,
+              border-color 0.35s ease,
+              transform 0.35s cubic-bezier(0.16,1,0.3,1) !important;
+}
+.workout-card:hover,
+.workout-session-card:hover {
+  box-shadow: 0 14px 40px rgba(0,0,0,0.45),
+              0 0 0 1px rgba(245,166,35,0.18) !important;
+  border-color: rgba(245,166,35,0.2) !important;
+  transform: translateY(-4px) !important;
+}
+
+/* ─── REDUCED MOTION SAFETY ───────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  #cursor, #cursor-ring { display: none !important; }
+  * { cursor: auto !important; }
+  .hero-orb,
+  .hero-left > *,
+  .hero-right,
+  .hero-card-main,
+  .scroll-indicator,
+  .stats-bar-number,
+  #hero-particles,
+  .hero-title em { animation: none !important; }
+  .hero-left > * { opacity: 1 !important; transform: none !important; }
+  .hero-right    { opacity: 1 !important; transform: none !important; }
+}
+

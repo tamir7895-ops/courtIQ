@@ -1,0 +1,99 @@
+/* ============================================================
+   AVATAR 3D VIEWPORT — /styles/avatar-3d.css
+   Styles for Three.js avatar containers.
+   ============================================================ */
+
+.avatar-3d-viewport {
+  position: relative;
+  border-radius: 16px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 120%, rgba(255,179,71,0.08) 0%, transparent 60%),
+    linear-gradient(180deg, var(--c-surface2, #1e1e2a) 0%, var(--c-bg, #0f0f14) 100%);
+  cursor: grab;
+}
+
+.avatar-3d-viewport:active {
+  cursor: grabbing;
+}
+
+.avatar-3d-viewport canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: inherit;
+}
+
+/* ── Mini avatar (sidebar, cards) ──────────────────────────── */
+.avatar-3d-mini {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: var(--c-surface2, #1e1e2a);
+  flex-shrink: 0;
+}
+
+.avatar-3d-mini canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ── Loading shimmer state ─────────────────────────────────── */
+.avatar-3d-viewport.loading::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--c-surface2, #1e1e2a);
+  animation: avatar3d-shimmer 1.5s ease infinite;
+  z-index: 1;
+}
+
+@keyframes avatar3d-shimmer {
+  0%   { opacity: 0.6; }
+  50%  { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+/* ── Shop preview sizing ───────────────────────────────────── */
+.shop-preview .avatar-3d-viewport {
+  width: 100%;
+  aspect-ratio: 200 / 280;
+  max-width: 200px;
+  margin: 0 auto;
+}
+
+/* ── Customizer preview ────────────────────────────────────── */
+.ac-canvas-wrap .avatar-3d-viewport,
+.ac-preview .avatar-3d-viewport {
+  width: 200px;
+  height: 280px;
+}
+
+/* ── Onboarding preview ────────────────────────────────────── */
+.ob-avatar-canvas-wrap .avatar-3d-viewport {
+  width: 200px;
+  height: 280px;
+}
+
+/* ── Report avatar ─────────────────────────────────────────── */
+.ob-report-avatar .avatar-3d-viewport {
+  width: 120px;
+  height: 168px;
+  border-radius: 12px;
+}
+
+/* ── Mobile responsive ─────────────────────────────────────── */
+@media (max-width: 600px) {
+  .ac-canvas-wrap .avatar-3d-viewport,
+  .ac-preview .avatar-3d-viewport {
+    width: 160px;
+    height: 224px;
+  }
+
+  .ob-avatar-canvas-wrap .avatar-3d-viewport {
+    width: 160px;
+    height: 224px;
+  }
+}

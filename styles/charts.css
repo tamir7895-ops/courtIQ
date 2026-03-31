@@ -1,0 +1,102 @@
+/* ══════════════════════════════════════════════════════════
+   PROGRESS CHARTS — Shooting progress line chart
+   ══════════════════════════════════════════════════════════ */
+
+.pc-chart-wrap {
+  margin: 24px 0;
+  padding: 20px 0 0;
+  border-top: 1px solid var(--c-border);
+}
+
+.pc-chart-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+  margin-bottom: 12px;
+}
+
+/* Legend */
+.pc-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.pc-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-family: var(--font-display);
+}
+
+.pc-legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Canvas */
+#pc-canvas {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--r-sm);
+}
+
+/* Empty state */
+.pc-empty {
+  text-align: center;
+  padding: 28px 0;
+  font-size: 13px;
+  color: var(--c-dimmer);
+  font-weight: 500;
+}
+
+.pc-empty.hidden {
+  display: none;
+}
+
+/* ── Chart container (used by dashboard Chart.js charts) ── */
+.db-chart-wrap {
+  background: var(--shadow-inset, rgba(0,0,0,0.15));
+  border-radius: var(--r-md, 10px);
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.03);
+}
+.db-chart-wrap canvas {
+  border-radius: var(--r-sm, 6px);
+}
+
+/* ── Chart label ── */
+.db-chart-label {
+  font-family: var(--font-display, 'Space Grotesk', sans-serif);
+  font-size: var(--fs-xs, 11px);
+  font-weight: var(--fw-bold, 700);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--c-text-tertiary, rgba(240,237,230,0.4));
+  margin-bottom: 10px;
+}
+
+/* ── Responsive ───────────────────────────────────────────── */
+@media (max-width: 580px) {
+  .pc-legend {
+    gap: 10px;
+  }
+  .pc-legend-item {
+    font-size: 10px;
+  }
+  .db-chart-wrap {
+    padding: 12px;
+  }
+}

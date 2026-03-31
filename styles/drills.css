@@ -1,0 +1,2530 @@
+/* ============================================================
+   PERSONALIZED DRILLS ENGINE — styles/drills.css
+   CourtIQ — Premium dark theme, hero-card aesthetic
+   Redesigned: horizontal card layout, workout execution,
+   difficulty bars, strength tags, modern sports-app feel
+   ============================================================ */
+
+
+/* ══════════════════════════════════════════════════════════════
+   PANEL LAYOUT
+   ══════════════════════════════════════════════════════════════ */
+
+#db-panel-drills {
+  padding-top: 4px;
+}
+
+
+/* ── Main Header ─────────────────────────────────────────────── */
+
+.drills-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 28px;
+}
+
+.drills-header-text h2 {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  margin-bottom: 6px;
+  line-height: 1.1;
+}
+
+.drills-header-text p {
+  font-size: 13px;
+  color: var(--c-muted);
+  max-width: 520px;
+  line-height: 1.7;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   MODE TOGGLE BAR
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-mode-bar {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 24px;
+  padding: 4px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  position: relative;
+  overflow: hidden;
+}
+
+.drills-mode-btn {
+  flex: 1;
+  padding: 12px 18px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  color: var(--c-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.drills-mode-btn:hover {
+  color: var(--c-white);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.drills-mode-btn.active {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.25);
+  color: var(--c-amber);
+  box-shadow: 0 2px 12px rgba(245, 166, 35, 0.08);
+}
+
+.drills-mode-btn .mode-icon {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   COACH SUGGESTIONS BANNER
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-coach-banner {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  background: rgba(76, 163, 255, 0.05);
+  border: 1px solid rgba(76, 163, 255, 0.15);
+  border-radius: var(--r-md);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.3s;
+}
+
+.drills-coach-banner:hover {
+  border-color: rgba(76, 163, 255, 0.28);
+}
+
+.drills-coach-banner-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: rgba(76, 163, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.drills-coach-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.drills-coach-banner-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #4ca3ff;
+  margin-bottom: 3px;
+}
+
+.drills-coach-banner-sub {
+  font-size: 12px;
+  color: var(--c-muted);
+  line-height: 1.5;
+}
+
+.drills-coach-banner-btn {
+  padding: 10px 20px;
+  background: rgba(76, 163, 255, 0.12);
+  border: 1px solid rgba(76, 163, 255, 0.3);
+  border-radius: var(--r-sm);
+  color: #4ca3ff;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.drills-coach-banner-btn:hover {
+  background: rgba(76, 163, 255, 0.2);
+  border-color: rgba(76, 163, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(76, 163, 255, 0.15);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   TODAY'S TRAINING HEADER  (Generator view)
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-today-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.drills-today-header h2 {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-white);
+  line-height: 1.1;
+}
+
+.drills-today-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  background: rgba(86, 211, 100, 0.08);
+  border: 1px solid rgba(86, 211, 100, 0.2);
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #56d364;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.drills-today-badge::before {
+  content: "\2713";
+  font-size: 11px;
+  font-weight: 900;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   SELECTOR CARD  (Generator config panel)
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-selector {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  padding: 24px 26px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.drills-selector::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--c-amber), #e09020, transparent);
+  opacity: 0.6;
+}
+
+.drills-selector-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-white);
+  margin-bottom: 4px;
+}
+
+.drills-selector-sub {
+  font-size: 12px;
+  color: var(--c-muted);
+  margin-bottom: 20px;
+}
+
+.drills-selector-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.drills-selector-fields select,
+.drills-selector-fields input {
+  width: 100%;
+  padding: 11px 14px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  font-size: 13px;
+  transition: border-color 0.2s;
+  appearance: none;
+}
+
+.drills-selector-fields select:focus,
+.drills-selector-fields input:focus {
+  outline: none;
+  border-color: rgba(245, 166, 35, 0.4);
+}
+
+@media (max-width: 700px) {
+  .drills-selector-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ── Generate Button ─────────────────────────────────────────── */
+
+.drills-gen-btn {
+  width: 100%;
+  padding: 15px 22px;
+  background: linear-gradient(135deg, var(--c-amber) 0%, #e09020 100%);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: var(--shadow-btn);
+  position: relative;
+  overflow: hidden;
+}
+
+.drills-gen-btn::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 30%, rgba(255, 255, 255, 0.15) 50%, transparent 70%);
+  transform: translateX(-100%);
+  transition: transform 0.6s;
+}
+
+.drills-gen-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(245, 166, 35, 0.4);
+}
+
+.drills-gen-btn:hover::after {
+  transform: translateX(100%);
+}
+
+.drills-gen-btn:active {
+  transform: translateY(0);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   LOADING STATE
+   ══════════════════════════════════════════════════════════════ */
+
+#drills-loading {
+  text-align: center;
+  padding: 64px 0;
+}
+
+.drills-loading-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: fw-bounce 0.9s infinite;
+}
+
+@keyframes fw-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+.drills-loading-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--c-white);
+  margin-bottom: 8px;
+}
+
+.drills-loading-sub {
+  font-size: 13px;
+  color: var(--c-muted);
+}
+
+/* Loading skeleton pulse */
+.drill-skeleton {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 20px;
+  overflow: hidden;
+}
+
+.drill-skeleton-bar {
+  height: 14px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, var(--c-surface2) 25%, rgba(255, 255, 255, 0.06) 50%, var(--c-surface2) 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.5s infinite;
+  margin-bottom: 10px;
+}
+
+.drill-skeleton-bar.short { width: 60%; }
+.drill-skeleton-bar.medium { width: 80%; }
+
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   EMPTY STATE
+   ══════════════════════════════════════════════════════════════ */
+
+#drills-empty {
+  text-align: center;
+  padding: 60px 0 40px;
+}
+
+.drills-empty-icon {
+  font-size: 56px;
+  margin-bottom: 18px;
+  opacity: 0.8;
+}
+
+.drills-empty-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin-bottom: 10px;
+}
+
+.drills-empty-desc {
+  font-size: 14px;
+  color: var(--c-muted);
+  max-width: 380px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   RESULTS AREA  (Generator output)
+   ══════════════════════════════════════════════════════════════ */
+
+#drills-results {
+  display: none;
+}
+
+.drills-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.drills-results-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+}
+
+.drills-results-meta {
+  font-size: 12px;
+  color: var(--c-muted);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   DRILL GRID  (Generator results)
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+  margin-bottom: 36px;
+}
+
+@media (max-width: 700px) {
+  .drills-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   GENERATOR DRILL CARD  (.drill-card)
+   Modernized: canvas preview + overlay gradient + cleaner body
+   ══════════════════════════════════════════════════════════════ */
+
+.drill-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.3s, box-shadow 0.3s, transform 0.3s;
+  position: relative;
+}
+
+.drill-card:hover {
+  border-color: rgba(245, 166, 35, 0.3);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+
+/* ── Animation Preview Area ──────────────────────────────────── */
+
+.drill-anim-wrap {
+  position: relative;
+  width: 100%;
+  background: linear-gradient(180deg, #141820 0%, var(--c-surface) 100%);
+  overflow: hidden;
+  flex-shrink: 0;
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+}
+
+.drill-anim-wrap::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40px;
+  background: linear-gradient(to top, var(--c-surface), transparent);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.drill-anim-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.drill-anim-pause-hint {
+  position: absolute;
+  bottom: 10px;
+  right: 12px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(240, 237, 230, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  z-index: 2;
+}
+
+.drill-anim-wrap:hover .drill-anim-pause-hint {
+  opacity: 1;
+}
+
+.drill-anim-pause-badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  padding: 10px 18px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s;
+  backdrop-filter: blur(8px);
+  z-index: 2;
+}
+
+.drill-anim-wrap:hover .drill-anim-pause-badge {
+  opacity: 1;
+}
+
+
+/* ── Card Body ───────────────────────────────────────────────── */
+
+.drill-card-body {
+  padding: 20px 22px 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.drill-card-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.drill-card-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.drill-card-name {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  line-height: 1.2;
+  flex: 1;
+}
+
+.drill-card-desc {
+  font-size: 13px;
+  color: var(--c-muted);
+  line-height: 1.65;
+  margin-bottom: 14px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+
+/* ── Difficulty Badge ────────────────────────────────────────── */
+
+.drill-difficulty-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 100px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.drill-difficulty-badge.beginner {
+  background: rgba(86, 211, 100, 0.1);
+  color: #56d364;
+  border: 1px solid rgba(86, 211, 100, 0.22);
+}
+
+.drill-difficulty-badge.intermediate {
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--c-amber);
+  border: 1px solid rgba(245, 166, 35, 0.22);
+}
+
+.drill-difficulty-badge.advanced {
+  background: rgba(232, 64, 64, 0.1);
+  color: #e84040;
+  border: 1px solid rgba(232, 64, 64, 0.22);
+}
+
+
+/* ── Quick Stats Row ─────────────────────────────────────────── */
+
+.drill-quick-stats {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.drill-stat {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11.5px;
+  color: var(--c-muted);
+}
+
+.drill-stat-icon {
+  font-size: 13px;
+  opacity: 0.6;
+}
+
+.drill-stat-val {
+  color: var(--c-white);
+  font-weight: 600;
+}
+
+
+/* ── Card Actions ────────────────────────────────────────────── */
+
+.drill-card-actions {
+  display: flex;
+  gap: 8px;
+  padding: 16px 22px;
+  border-top: 1px solid var(--c-border);
+  margin-top: auto;
+}
+
+.drill-save-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  background: rgba(245, 166, 35, 0.07);
+  border: 1px solid rgba(245, 166, 35, 0.18);
+  border-radius: var(--r-sm);
+  color: var(--c-amber);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.drill-save-btn:hover {
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(245, 166, 35, 0.35);
+  box-shadow: 0 2px 12px rgba(245, 166, 35, 0.1);
+}
+
+.drill-save-btn.saved {
+  background: rgba(86, 211, 100, 0.08);
+  border-color: rgba(86, 211, 100, 0.25);
+  color: #56d364;
+  cursor: default;
+}
+
+.drill-save-btn.saved:hover {
+  background: rgba(86, 211, 100, 0.08);
+  border-color: rgba(86, 211, 100, 0.25);
+  box-shadow: none;
+}
+
+.drill-expand-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.drill-expand-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--c-white);
+  border-color: rgba(255, 255, 255, 0.14);
+}
+
+.drill-expand-arrow {
+  display: inline-block;
+  transition: transform 0.25s ease;
+  font-style: normal;
+}
+
+.drill-expand-btn.open .drill-expand-arrow {
+  transform: rotate(180deg);
+}
+
+
+/* ── Expandable Details Panel ────────────────────────────────── */
+
+.drill-detail-panel {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              padding 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.02);
+  border-top: 1px solid transparent;
+}
+
+.drill-detail-panel.open {
+  max-height: 420px;
+  border-top-color: var(--c-border);
+  padding: 16px 22px 18px;
+}
+
+.drill-detail-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 22px;
+  margin-bottom: 12px;
+}
+
+.drill-detail-item {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.drill-detail-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+}
+
+.drill-detail-value {
+  font-size: 13px;
+  color: var(--c-white);
+  font-weight: 500;
+}
+
+.drill-equipment-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.drill-equipment-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: rgba(76, 163, 255, 0.08);
+  border: 1px solid rgba(76, 163, 255, 0.18);
+  border-radius: 100px;
+  font-size: 11px;
+  color: #4ca3ff;
+  font-weight: 500;
+}
+
+
+/* ── Difficulty Bar (bottom of card) ─────────────────────────── */
+
+.drill-diff-bar {
+  height: 3px;
+  border-radius: 0 0 var(--r-lg) var(--r-lg);
+}
+
+.drill-diff-bar.beginner {
+  background: linear-gradient(90deg, #56d364 0%, #56d364 33%, transparent 33%);
+}
+
+.drill-diff-bar.intermediate {
+  background: linear-gradient(90deg, #f5a623 0%, #f5a623 66%, transparent 66%);
+}
+
+.drill-diff-bar.advanced {
+  background: linear-gradient(90deg, #e84040 0%, #e84040 100%);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   FOCUS AREA TAGS
+   ══════════════════════════════════════════════════════════════ */
+
+.drill-focus-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 100px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.drill-focus-tag.shooting {
+  background: rgba(76, 163, 255, 0.1);
+  color: #4ca3ff;
+  border: 1px solid rgba(76, 163, 255, 0.2);
+}
+
+.drill-focus-tag.ball-handling {
+  background: rgba(245, 166, 35, 0.1);
+  color: var(--c-amber);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+}
+
+.drill-focus-tag.defense {
+  background: rgba(232, 64, 64, 0.1);
+  color: #e84040;
+  border: 1px solid rgba(232, 64, 64, 0.2);
+}
+
+.drill-focus-tag.finishing {
+  background: rgba(168, 100, 255, 0.1);
+  color: #a864ff;
+  border: 1px solid rgba(168, 100, 255, 0.2);
+}
+
+.drill-focus-tag.conditioning {
+  background: rgba(86, 211, 100, 0.1);
+  color: #56d364;
+  border: 1px solid rgba(86, 211, 100, 0.2);
+}
+
+.drill-focus-tag.strength {
+  background: rgba(255, 107, 107, 0.1);
+  color: #ff6b6b;
+  border: 1px solid rgba(255, 107, 107, 0.2);
+}
+
+
+/* Focus icon box color variants (for card icon backgrounds) */
+
+.drill-icon-box.shooting     { background: rgba(76, 163, 255, 0.12); }
+.drill-icon-box.ball-handling { background: rgba(245, 166, 35, 0.12); }
+.drill-icon-box.defense       { background: rgba(232, 64, 64, 0.12); }
+.drill-icon-box.finishing     { background: rgba(168, 100, 255, 0.12); }
+.drill-icon-box.conditioning  { background: rgba(86, 211, 100, 0.12); }
+.drill-icon-box.strength      { background: rgba(255, 107, 107, 0.12); }
+
+
+/* ══════════════════════════════════════════════════════════════
+   DRILL LIBRARY — Filters
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-library-filters {
+  margin-bottom: 22px;
+}
+
+.drills-library-search-wrap {
+  margin-bottom: 16px;
+  position: relative;
+}
+
+.drills-library-search-wrap::before {
+  content: "\1F50D";
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.drills-library-search {
+  width: 100%;
+  padding: 12px 16px 12px 40px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.drills-library-search:focus {
+  outline: none;
+  border-color: rgba(245, 166, 35, 0.35);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.06);
+}
+
+.drills-library-search::placeholder {
+  color: var(--c-dimmer);
+}
+
+.drills-library-filter-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drills-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.drills-filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.drills-filter-pill {
+  padding: 6px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--c-border);
+  border-radius: 100px;
+  color: var(--c-muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+
+.drills-filter-pill:hover {
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--c-white);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.drills-filter-pill.active {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--c-amber);
+}
+
+/* Focus-specific active pill colors */
+.drills-filter-pill.active[data-focus="shooting"] {
+  background: rgba(76, 163, 255, 0.1);
+  border-color: rgba(76, 163, 255, 0.3);
+  color: #4ca3ff;
+}
+
+.drills-filter-pill.active[data-focus="ball-handling"] {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--c-amber);
+}
+
+.drills-filter-pill.active[data-focus="defense"] {
+  background: rgba(232, 64, 64, 0.1);
+  border-color: rgba(232, 64, 64, 0.3);
+  color: #e84040;
+}
+
+.drills-filter-pill.active[data-focus="finishing"] {
+  background: rgba(168, 100, 255, 0.1);
+  border-color: rgba(168, 100, 255, 0.3);
+  color: #a864ff;
+}
+
+.drills-filter-pill.active[data-focus="conditioning"] {
+  background: rgba(86, 211, 100, 0.1);
+  border-color: rgba(86, 211, 100, 0.3);
+  color: #56d364;
+}
+
+.drills-filter-pill.active[data-focus="strength"] {
+  background: rgba(255, 107, 107, 0.1);
+  border-color: rgba(255, 107, 107, 0.3);
+  color: #ff6b6b;
+}
+
+
+/* ── Library Stats Bar ───────────────────────────────────────── */
+
+.drills-library-stats {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--c-muted);
+  margin-bottom: 18px;
+  padding: 10px 0;
+}
+
+.drills-lib-separator {
+  color: var(--c-dimmer);
+}
+
+.drills-library-empty {
+  text-align: center;
+  padding: 56px 0;
+  font-size: 14px;
+  color: var(--c-dimmer);
+  grid-column: 1 / -1;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   LIBRARY GRID — Horizontal list layout (hero-card style)
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-library-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   LIBRARY CARD  (.drill-lib-card)
+   Horizontal hero-card aesthetic:
+   [Icon Box] → [Info: Name + Desc + Meta] → [Actions: Start + Save]
+   ══════════════════════════════════════════════════════════════ */
+
+.drill-lib-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--r-md);
+  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
+  position: relative;
+  overflow: hidden;
+}
+
+.drill-lib-card:hover {
+  border-color: rgba(245, 166, 35, 0.25);
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.4);
+  transform: translateY(-1px);
+}
+
+.drill-lib-card::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.drill-lib-card:hover::after {
+  opacity: 1;
+}
+
+/* Focus-colored bottom bar on hover */
+.drill-lib-card.focus-shooting::after        { background: #4ca3ff; }
+.drill-lib-card.focus-ball-handling::after    { background: #f5a623; }
+.drill-lib-card.focus-defense::after          { background: #e84040; }
+.drill-lib-card.focus-finishing::after        { background: #a864ff; }
+.drill-lib-card.focus-conditioning::after     { background: #56d364; }
+.drill-lib-card.focus-strength::after         { background: #ff6b6b; }
+
+
+/* ── Icon Box ────────────────────────────────────────────────── */
+
+.drill-lib-icon-box {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex-shrink: 0;
+  transition: transform 0.25s;
+}
+
+.drill-lib-card:hover .drill-lib-icon-box {
+  transform: scale(1.05);
+}
+
+/* Icon box color variants */
+.drill-lib-icon-box.shooting      { background: rgba(76, 163, 255, 0.12); }
+.drill-lib-icon-box.ball-handling  { background: rgba(245, 166, 35, 0.12); }
+.drill-lib-icon-box.defense        { background: rgba(232, 64, 64, 0.12); }
+.drill-lib-icon-box.finishing      { background: rgba(168, 100, 255, 0.12); }
+.drill-lib-icon-box.conditioning   { background: rgba(86, 211, 100, 0.12); }
+.drill-lib-icon-box.strength       { background: rgba(255, 107, 107, 0.12); }
+
+
+/* ── Card Info (middle section) ──────────────────────────────── */
+
+.drill-lib-card-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drill-lib-card-top {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drill-lib-card-name {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drill-lib-card-desc {
+  font-size: 12.5px;
+  color: var(--c-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.drill-lib-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--c-dimmer);
+  margin-top: 2px;
+}
+
+.drill-lib-card-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.drill-lib-card-meta .meta-icon {
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.drill-lib-card-meta .meta-divider {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--c-dimmer);
+  opacity: 0.5;
+}
+
+
+/* ── Card Right Actions ──────────────────────────────────────── */
+
+.drill-lib-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.drill-lib-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  background: linear-gradient(135deg, var(--c-amber) 0%, #e09020 100%);
+  border: none;
+  border-radius: var(--r-sm);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  cursor: pointer;
+  transition: all 0.25s;
+  white-space: nowrap;
+}
+
+.drill-lib-start-btn:hover {
+  box-shadow: 0 4px 16px rgba(245, 166, 35, 0.35);
+  transform: translateY(-1px);
+}
+
+.drill-lib-start-btn:active {
+  transform: translateY(0);
+}
+
+.drill-lib-save-btn {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-muted);
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.drill-lib-save-btn:hover {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.25);
+  color: var(--c-amber);
+}
+
+.drill-lib-save-btn.saved {
+  background: rgba(86, 211, 100, 0.08);
+  border-color: rgba(86, 211, 100, 0.25);
+  color: #56d364;
+}
+
+
+/* ── Library Card Equipment ──────────────────────────────────── */
+
+.drill-lib-card-equipment {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.drill-lib-card-equipment .drill-equipment-tag {
+  font-size: 10px;
+  padding: 2px 7px;
+}
+
+
+/* ── Progress bar (in library card) ──────────────────────────── */
+
+.drill-lib-progress {
+  width: 80px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 2px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.drill-lib-progress-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+
+.drill-lib-progress-fill.shooting      { background: #4ca3ff; }
+.drill-lib-progress-fill.ball-handling  { background: #f5a623; }
+.drill-lib-progress-fill.defense        { background: #e84040; }
+.drill-lib-progress-fill.finishing      { background: #a864ff; }
+.drill-lib-progress-fill.conditioning   { background: #56d364; }
+.drill-lib-progress-fill.strength       { background: #ff6b6b; }
+
+
+/* ══════════════════════════════════════════════════════════════
+   SAVED DRILLS SECTION
+   ══════════════════════════════════════════════════════════════ */
+
+.saved-drills-section {
+  margin-top: 12px;
+  padding-top: 28px;
+  border-top: 1px solid var(--c-border);
+}
+
+.saved-drills-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.saved-drills-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+}
+
+.saved-drills-count {
+  font-size: 12px;
+  color: var(--c-muted);
+  padding: 3px 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 100px;
+}
+
+.saved-drills-clear-btn {
+  padding: 7px 16px;
+  background: rgba(232, 64, 64, 0.06);
+  border: 1px solid rgba(232, 64, 64, 0.18);
+  border-radius: var(--r-sm);
+  color: rgba(232, 64, 64, 0.7);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.saved-drills-clear-btn:hover {
+  background: rgba(232, 64, 64, 0.12);
+  color: #e84040;
+  border-color: rgba(232, 64, 64, 0.35);
+}
+
+.saved-drills-empty {
+  text-align: center;
+  padding: 32px 0;
+  font-size: 13px;
+  color: var(--c-dimmer);
+  line-height: 1.6;
+}
+
+
+/* ── Saved Drills List ───────────────────────────────────────── */
+
+.saved-drills-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.saved-drill-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.saved-drill-row:hover {
+  border-color: rgba(245, 166, 35, 0.2);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.saved-drill-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.saved-drill-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.saved-drill-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--c-white);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.saved-drill-meta {
+  font-size: 11.5px;
+  color: var(--c-muted);
+  margin-top: 2px;
+}
+
+.saved-drill-remove-btn {
+  padding: 7px 14px;
+  background: rgba(232, 64, 64, 0.06);
+  border: 1px solid rgba(232, 64, 64, 0.16);
+  border-radius: 6px;
+  color: rgba(232, 64, 64, 0.6);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.saved-drill-remove-btn:hover {
+  background: rgba(232, 64, 64, 0.14);
+  color: #e84040;
+  border-color: rgba(232, 64, 64, 0.35);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   MY PLAN VIEW
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-plan-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.drills-plan-title {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  margin-bottom: 4px;
+}
+
+.drills-plan-sub {
+  font-size: 13px;
+  color: var(--c-muted);
+  line-height: 1.5;
+}
+
+.drills-plan-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.drills-plan-action-btn {
+  padding: 10px 18px;
+  border-radius: var(--r-sm);
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.drills-plan-action-btn.calendar-btn {
+  background: rgba(76, 163, 255, 0.08);
+  border: 1px solid rgba(76, 163, 255, 0.22);
+  color: #4ca3ff;
+}
+
+.drills-plan-action-btn.calendar-btn:hover {
+  background: rgba(76, 163, 255, 0.16);
+  border-color: rgba(76, 163, 255, 0.4);
+  box-shadow: 0 2px 12px rgba(76, 163, 255, 0.1);
+}
+
+.drills-plan-action-btn.export-btn {
+  background: rgba(245, 166, 35, 0.07);
+  border: 1px solid rgba(245, 166, 35, 0.18);
+  color: var(--c-amber);
+}
+
+.drills-plan-action-btn.export-btn:hover {
+  background: rgba(245, 166, 35, 0.14);
+  border-color: rgba(245, 166, 35, 0.35);
+  box-shadow: 0 2px 12px rgba(245, 166, 35, 0.1);
+}
+
+
+/* ── Plan Stats Grid ─────────────────────────────────────────── */
+
+.drills-plan-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.drills-plan-stat-card {
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.drills-plan-stat-card:hover {
+  border-color: rgba(245, 166, 35, 0.2);
+}
+
+.drills-plan-stat-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--c-amber);
+  margin-bottom: 4px;
+  line-height: 1;
+}
+
+.drills-plan-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+}
+
+@media (max-width: 700px) {
+  .drills-plan-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+
+/* ── Plan Row Variant ────────────────────────────────────────── */
+
+.saved-drill-row.plan-row {
+  padding: 16px 20px;
+}
+
+.saved-drill-row.plan-row .saved-drill-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.plan-row-start-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  background: rgba(245, 166, 35, 0.08);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+  border-radius: var(--r-sm);
+  color: var(--c-amber);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.plan-row-start-btn:hover {
+  background: rgba(245, 166, 35, 0.15);
+  border-color: rgba(245, 166, 35, 0.35);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   WORKOUT EXECUTION VIEW
+   Full-width overlay panel for active workout sessions
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Workout Overlay Container ───────────────────────────────── */
+
+.drill-workout-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(12px);
+  z-index: 900;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 40px 20px;
+  animation: workout-fade-in 0.35s ease;
+}
+
+@keyframes workout-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.drill-workout-panel {
+  width: 100%;
+  max-width: 680px;
+  background: var(--c-bg);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.6);
+  animation: workout-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes workout-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* ── Workout Header ──────────────────────────────────────────── */
+
+.drill-workout-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 24px 28px;
+  background: var(--c-surface);
+  border-bottom: 1px solid var(--c-border);
+}
+
+.drill-workout-back-btn {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-muted);
+  font-size: 18px;
+  cursor: pointer;
+  transition: var(--transition);
+  flex-shrink: 0;
+}
+
+.drill-workout-back-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--c-white);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.drill-workout-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  flex-shrink: 0;
+}
+
+.drill-workout-title-wrap {
+  flex: 1;
+  min-width: 0;
+}
+
+.drill-workout-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--c-white);
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.drill-workout-focus {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+}
+
+
+/* ── Workout Timer Display ───────────────────────────────────── */
+
+.drill-workout-timer {
+  text-align: center;
+  padding: 36px 28px;
+  border-bottom: 1px solid var(--c-border);
+  background: var(--c-surface);
+}
+
+.drill-workout-timer-display {
+  font-family: var(--font-display);
+  font-size: 72px;
+  font-weight: 900;
+  color: var(--c-white);
+  line-height: 1;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.drill-workout-timer-label {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+}
+
+.drill-workout-timer-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.drill-workout-timer-btn {
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 2px solid var(--c-border);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--c-white);
+  font-size: 20px;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.drill-workout-timer-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.drill-workout-timer-btn.primary {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--c-amber) 0%, #e09020 100%);
+  border-color: transparent;
+  color: #0c0d0f;
+  font-size: 24px;
+}
+
+.drill-workout-timer-btn.primary:hover {
+  box-shadow: 0 6px 24px rgba(245, 166, 35, 0.4);
+}
+
+
+/* ── Workout Progress Ring ───────────────────────────────────── */
+
+.drill-workout-progress {
+  padding: 28px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.drill-workout-progress-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.drill-workout-progress-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-muted);
+}
+
+.drill-workout-progress-pct {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--c-amber);
+}
+
+.drill-workout-progress-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.drill-workout-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--c-amber), #e09020);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Progress ring (SVG-based) */
+.drill-workout-ring-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+}
+
+.drill-workout-ring {
+  width: 120px;
+  height: 120px;
+  position: relative;
+}
+
+.drill-workout-ring svg {
+  transform: rotate(-90deg);
+  width: 100%;
+  height: 100%;
+}
+
+.drill-workout-ring-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.06);
+  stroke-width: 6;
+}
+
+.drill-workout-ring-fill {
+  fill: none;
+  stroke: var(--c-amber);
+  stroke-width: 6;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.drill-workout-ring-text {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.drill-workout-ring-pct {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--c-white);
+  line-height: 1;
+}
+
+.drill-workout-ring-sub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+  margin-top: 4px;
+}
+
+
+/* ── Sets / Reps Tracker ─────────────────────────────────────── */
+
+.drill-workout-sets {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.drill-workout-sets-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-white);
+  margin-bottom: 14px;
+}
+
+.drill-workout-set-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.drill-workout-set-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  transition: border-color 0.2s;
+}
+
+.drill-workout-set-row.active {
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.04);
+}
+
+.drill-workout-set-row.completed {
+  border-color: rgba(86, 211, 100, 0.25);
+  opacity: 0.7;
+}
+
+.drill-workout-set-checkbox {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  border: 2px solid var(--c-border);
+  background: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  color: transparent;
+  font-size: 14px;
+}
+
+.drill-workout-set-checkbox:hover {
+  border-color: var(--c-amber);
+  background: rgba(245, 166, 35, 0.06);
+}
+
+.drill-workout-set-checkbox.checked {
+  background: rgba(86, 211, 100, 0.15);
+  border-color: #56d364;
+  color: #56d364;
+}
+
+.drill-workout-set-label {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-muted);
+  flex-shrink: 0;
+  width: 56px;
+}
+
+.drill-workout-set-detail {
+  flex: 1;
+  font-size: 13px;
+  color: var(--c-white);
+  font-weight: 500;
+}
+
+.drill-workout-set-status {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--c-dimmer);
+}
+
+.drill-workout-set-row.completed .drill-workout-set-status {
+  color: #56d364;
+}
+
+
+/* ── Workout Instructions Panel ──────────────────────────────── */
+
+.drill-workout-instructions {
+  padding: 24px 28px;
+  border-bottom: 1px solid var(--c-border);
+}
+
+.drill-workout-instructions-title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--c-white);
+  margin-bottom: 16px;
+}
+
+.drill-workout-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  counter-reset: step-counter;
+}
+
+.drill-workout-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 16px;
+  background: var(--c-surface);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  counter-increment: step-counter;
+  transition: border-color 0.2s;
+}
+
+.drill-workout-step.active {
+  border-color: rgba(245, 166, 35, 0.3);
+  background: rgba(245, 166, 35, 0.03);
+}
+
+.drill-workout-step.done {
+  opacity: 0.5;
+}
+
+.drill-workout-step-num {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--c-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--c-muted);
+  flex-shrink: 0;
+}
+
+.drill-workout-step.active .drill-workout-step-num {
+  background: rgba(245, 166, 35, 0.12);
+  border-color: rgba(245, 166, 35, 0.3);
+  color: var(--c-amber);
+}
+
+.drill-workout-step.done .drill-workout-step-num {
+  background: rgba(86, 211, 100, 0.1);
+  border-color: rgba(86, 211, 100, 0.25);
+  color: #56d364;
+}
+
+.drill-workout-step-text {
+  font-size: 13px;
+  color: var(--c-white);
+  line-height: 1.6;
+  flex: 1;
+  padding-top: 4px;
+}
+
+.drill-workout-step.active .drill-workout-step-text {
+  color: var(--c-white);
+}
+
+
+/* ── Workout Action Buttons ──────────────────────────────────── */
+
+.drill-workout-actions {
+  display: flex;
+  gap: 10px;
+  padding: 24px 28px;
+}
+
+.drill-workout-complete-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px 24px;
+  background: linear-gradient(135deg, #56d364 0%, #3fb950 100%);
+  border: none;
+  border-radius: var(--r-sm);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: all 0.25s;
+}
+
+.drill-workout-complete-btn:hover {
+  box-shadow: 0 6px 24px rgba(86, 211, 100, 0.35);
+  transform: translateY(-1px);
+}
+
+.drill-workout-complete-btn:active {
+  transform: translateY(0);
+}
+
+.drill-workout-complete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.drill-workout-skip-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 24px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--c-border);
+  border-radius: var(--r-sm);
+  color: var(--c-muted);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+  white-space: nowrap;
+}
+
+.drill-workout-skip-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--c-white);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+
+/* ── Workout Complete Screen ─────────────────────────────────── */
+
+.drill-workout-done {
+  text-align: center;
+  padding: 48px 28px;
+}
+
+.drill-workout-done-icon {
+  font-size: 56px;
+  margin-bottom: 16px;
+}
+
+.drill-workout-done-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--c-white);
+  margin-bottom: 8px;
+}
+
+.drill-workout-done-sub {
+  font-size: 14px;
+  color: var(--c-muted);
+  margin-bottom: 28px;
+  line-height: 1.6;
+}
+
+.drill-workout-done-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.drill-workout-done-stat {
+  text-align: center;
+}
+
+.drill-workout-done-stat-val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--c-amber);
+  line-height: 1;
+  margin-bottom: 4px;
+}
+
+.drill-workout-done-stat-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-dimmer);
+}
+
+.drill-workout-done-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 32px;
+  background: rgba(245, 166, 35, 0.1);
+  border: 1px solid rgba(245, 166, 35, 0.25);
+  border-radius: var(--r-sm);
+  color: var(--c-amber);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.drill-workout-done-btn:hover {
+  background: rgba(245, 166, 35, 0.18);
+  border-color: rgba(245, 166, 35, 0.4);
+  box-shadow: 0 4px 20px rgba(245, 166, 35, 0.15);
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+   ══════════════════════════════════════════════════════════════ */
+
+@media (max-width: 900px) {
+  .drills-library-grid {
+    gap: 8px;
+  }
+
+  .drill-lib-card {
+    padding: 14px 16px;
+    gap: 12px;
+  }
+
+  .drill-lib-icon-box {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+  }
+
+  .drill-lib-card-name {
+    font-size: 14px;
+  }
+
+  .drill-lib-card-desc {
+    display: none;
+  }
+
+  .drill-lib-start-btn {
+    padding: 8px 14px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 700px) {
+  .drills-mode-bar {
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .drills-mode-btn {
+    padding: 10px 14px;
+    font-size: 12px;
+  }
+
+  .drills-coach-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .drills-coach-banner-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .drills-plan-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .drill-lib-card {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .drill-lib-card-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .drill-lib-icon-box {
+    width: 44px;
+    height: 44px;
+  }
+
+  .drill-lib-card-desc {
+    display: block;
+    -webkit-line-clamp: 2;
+  }
+
+  /* Workout panel mobile */
+  .drill-workout-overlay {
+    padding: 0;
+  }
+
+  .drill-workout-panel {
+    border-radius: 0;
+    min-height: 100vh;
+    max-width: 100%;
+  }
+
+  .drill-workout-header {
+    padding: 20px;
+  }
+
+  .drill-workout-timer-display {
+    font-size: 56px;
+  }
+
+  .drill-workout-actions {
+    flex-direction: column;
+  }
+
+  .drill-workout-done-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .drill-lib-card-meta {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .drill-lib-card-meta .meta-divider {
+    display: none;
+  }
+
+  .drill-lib-start-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .drills-plan-stat-card {
+    padding: 12px;
+  }
+
+  .drills-plan-stat-val {
+    font-size: 18px;
+  }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   TRANSITIONS & ANIMATIONS
+   ══════════════════════════════════════════════════════════════ */
+
+/* Smooth view transitions */
+.drills-view-enter {
+  animation: drills-view-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes drills-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Card stagger animation for library list */
+.drill-lib-card {
+  animation: card-stagger 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.drill-lib-card:nth-child(1)  { animation-delay: 0.03s; }
+.drill-lib-card:nth-child(2)  { animation-delay: 0.06s; }
+.drill-lib-card:nth-child(3)  { animation-delay: 0.09s; }
+.drill-lib-card:nth-child(4)  { animation-delay: 0.12s; }
+.drill-lib-card:nth-child(5)  { animation-delay: 0.15s; }
+.drill-lib-card:nth-child(6)  { animation-delay: 0.18s; }
+.drill-lib-card:nth-child(7)  { animation-delay: 0.21s; }
+.drill-lib-card:nth-child(8)  { animation-delay: 0.24s; }
+.drill-lib-card:nth-child(9)  { animation-delay: 0.27s; }
+.drill-lib-card:nth-child(10) { animation-delay: 0.30s; }
+
+@keyframes card-stagger {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse animation for active workout elements */
+.drill-workout-pulse {
+  animation: workout-pulse 2s ease-in-out infinite;
+}
+
+@keyframes workout-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+/* Timer tick animation */
+.drill-workout-timer-tick {
+  animation: timer-tick 1s ease-in-out;
+}
+
+@keyframes timer-tick {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+
+/* ══════════════════════════════════════════════════════════════
+   UTILITY CLASSES
+   ══════════════════════════════════════════════════════════════ */
+
+.drills-hidden {
+  display: none !important;
+}
+
+.drills-fade-in {
+  animation: drills-fade 0.25s ease;
+}
+
+@keyframes drills-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Scrollbar styling for workout overlay */
+.drill-workout-overlay::-webkit-scrollbar {
+  width: 6px;
+}
+
+.drill-workout-overlay::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.drill-workout-overlay::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.drill-workout-overlay::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
