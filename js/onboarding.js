@@ -571,8 +571,20 @@
       DataService.saveUserData({
         onboarding_data: data,
         archetype: data.archetype || null,
-        avatar: data.avatar || null
+        avatar: data.avatar || null,
+        player_profile: {
+          position:    data.position || '',
+          height:      String(data.height || ''),
+          age:         String(data.age || ''),
+          skillLevel:  skillLevel,
+          primaryGoal: data.goals ? data.goals[0] : ''
+        }
       }).catch(function (e) { console.warn('Supabase onboarding sync error:', e); });
+
+      DataService.updateProfile({
+        first_name: data.name || '',
+        position:   data.position || ''
+      }).catch(function (e) { console.warn('Profile column upsert error:', e); });
     }
 
     // Close overlay

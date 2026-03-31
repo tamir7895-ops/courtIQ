@@ -143,13 +143,18 @@
         try {
           const userData = await DataService.getUserData();
           if (userData) {
-            // Restore XP if not already in localStorage
-            if (userData.xp_data && !localStorage.getItem('courtiq-xp')) {
+            // Seed the saveUserData merge cache from the full cloud blob.
+            // Without this, the first saveUserData() on a restored device starts
+            // from {} and wipes all other user_data keys.
+            try { localStorage.setItem('_sb_user_data_cache', JSON.stringify(userData)); } catch(e) {}
+
+            // XP — always sync from cloud (cloud accumulates across all devices)
+            if (userData.xp_data) {
               localStorage.setItem('courtiq-xp', JSON.stringify(userData.xp_data));
               if (typeof XPSystem !== 'undefined' && XPSystem.render) XPSystem.render();
             }
-            // Restore onboarding if not already done on this device
-            if (userData.onboarding_data && !localStorage.getItem('courtiq-onboarding-complete')) {
+            // Onboarding — always sync from cloud (cloud is source of truth on login)
+            if (userData.onboarding_data) {
               const ob = userData.onboarding_data;
               localStorage.setItem('courtiq-onboarding-data', JSON.stringify(ob));
               localStorage.setItem('courtiq-onboarding-complete', String(ob.ts || Date.now()));
@@ -708,6 +713,14 @@
     var xpEarned = 25;
     if (typeof XPSystem !== 'undefined' && XPSystem.addXP) {
       try { XPSystem.addXP(xpEarned, 'Session logged'); } catch(e) {}
+    }
+
+    // Sync updated XP to cloud (non-blocking, fire-and-forget)
+    if (window.currentUser && typeof DataService !== 'undefined') {
+      try {
+        var xpData = JSON.parse(localStorage.getItem('courtiq-xp') || '{}');
+        DataService.saveUserData({ xp_data: xpData }).catch(function() {});
+      } catch(e) {}
     }
 
     showToast('Session logged for ' + day + '! +' + xpEarned + ' XP');
