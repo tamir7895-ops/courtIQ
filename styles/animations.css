@@ -134,11 +134,10 @@
 }
 
 /* ─── CUSTOM CURSOR ───────────────────────────────────────────── */
-/* Only on true pointer devices */
+/* Custom dot/ring overlay — native cursor stays visible */
 @media (hover: hover) and (pointer: fine) {
-  * { cursor: none !important; }
-  input, textarea, select { cursor: text !important; }
-  a, button { cursor: none !important; }
+  /* cursor: none removed — keep native cursor always visible */
+  a, button { cursor: pointer; }
 }
 #cursor {
   position: fixed;
