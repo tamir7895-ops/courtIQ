@@ -125,7 +125,12 @@
     });
 
     // Load data
-    await initDashboard();
+    try { await initDashboard(); } catch(e) { /* silently continue */ }
+
+    // Always populate home panel widgets (runs even if initDashboard threw or returned early)
+    setTimeout(function() {
+      if (typeof ksUpdateHomePanel === 'function') ksUpdateHomePanel();
+    }, 200);
   })();
 
   /* ══════════════════════════════════════════════════════════════
@@ -297,6 +302,157 @@
     // If we have a previous AI result, show the summary
     if (dbResult) {
       dbRenderSummary(dbResult);
+    }
+
+    // Populate new home panel widgets
+    ksUpdateHomePanel();
+  }
+
+  /* ── Home panel: populate new ks-* widgets ── */
+  function ksUpdateHomePanel() {
+
+    // ── Streak & sessions count ──────────────────────────────────────────
+    const streakEl   = document.getElementById('ks-home-streak');
+    const sessionsEl = document.getElementById('ks-home-sessions');
+    if (streakEl) {
+      const streakOld = document.getElementById('db-stat-streak');
+      streakEl.textContent = (streakOld && streakOld.textContent) ? streakOld.textContent : '0';
+    }
+    if (sessionsEl) {
+      let total = dbSessions.length;
+      for (const w of dbWeeks) { total += (w.days || []).length; }
+      sessionsEl.textContent = String(total);
+    }
+
+    // ── Skill bars from onboarding data ──────────────────────────────────
+    try {
+      const ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+      const skills = ob.skills || {};
+      const toBarPct = function(v) { return Math.round(((Number(v) || 5) / 10) * 100); };
+      const skillMap = [
+        { key: 'shooting',  scoreId: 'ks-sb-shooting',  barId: 'ks-sb-shooting-bar'  },
+        { key: 'dribbling', scoreId: 'ks-sb-dribbling', barId: 'ks-sb-dribbling-bar' },
+        { key: 'defense',   scoreId: 'ks-sb-defense',   barId: 'ks-sb-defense-bar'   },
+        { key: 'gameiq',    scoreId: 'ks-sb-gameiq',    barId: 'ks-sb-gameiq-bar'    },
+      ];
+      skillMap.forEach(function(item) {
+        var raw = skills[item.key] || skills['game_iq'] || 5;
+        var val = Math.min(10, Math.max(0, Number(raw)));
+        var pct = toBarPct(val);
+        var scoreEl = document.getElementById(item.scoreId);
+        var barEl   = document.getElementById(item.barId);
+        if (scoreEl) scoreEl.textContent = val + '/10';
+        if (barEl) requestAnimationFrame(function() { barEl.style.width = pct + '%'; });
+      });
+    } catch (e) { /* no onboarding data yet */ }
+
+    // ── Game Log (DOM-safe, no innerHTML) ────────────────────────────────
+    var logList = document.getElementById('ks-game-log-list');
+    if (logList) {
+      var allSess = [];
+      dbSessions.forEach(function(s) { allSess.push({ s: s, weekLabel: 'This Week' }); });
+      if (dbWeeks.length > 0) {
+        (dbWeeks[dbWeeks.length - 1].days || []).forEach(function(s) {
+          allSess.push({ s: s, weekLabel: 'Last Week' });
+        });
+      }
+
+      while (logList.firstChild) logList.removeChild(logList.firstChild);
+
+      if (allSess.length === 0) {
+        var emptyEl = document.createElement('div');
+        emptyEl.className = 'ks-game-log-empty';
+        emptyEl.textContent = 'Log a session to see your game history';
+        logList.appendChild(emptyEl);
+      } else {
+        var recent = allSess.slice(-5).reverse();
+        recent.forEach(function(entry) {
+          var s    = entry.s;
+          var made = Number(s.shots_made) || 0;
+          var att  = Number(s.shots_attempted) || 0;
+          var pct  = att > 0 ? Math.round((made / att) * 100) : 0;
+          var grade = 'C', gradeClass = 'ks-game-log-grade--c', itemClass = 'ks-game-log-item--avg';
+          if (pct >= 60 || made >= 30)     { grade = 'A'; gradeClass = 'ks-game-log-grade--a'; itemClass = 'ks-game-log-item--great'; }
+          else if (pct >= 40 || made >= 15){ grade = 'B'; gradeClass = 'ks-game-log-grade--b'; itemClass = 'ks-game-log-item--good'; }
+
+          var row = document.createElement('div');
+          row.className = 'ks-game-log-item ' + itemClass;
+          row.style.cursor = 'pointer';
+          row.addEventListener('click', function() { dbSwitchTab('history'); });
+
+          var daySpan = document.createElement('span');
+          daySpan.className = 'ks-game-log-day';
+          daySpan.textContent = String(s.day || 'Day').slice(0, 3);
+
+          var infoDiv = document.createElement('div');
+          infoDiv.className = 'ks-game-log-info';
+
+          var titleDiv = document.createElement('div');
+          titleDiv.className = 'ks-game-log-title';
+          titleDiv.textContent = 'Training Session \u2014 ' + entry.weekLabel;
+
+          var subDiv = document.createElement('div');
+          subDiv.className = 'ks-game-log-sub';
+          if (att > 0) {
+            subDiv.textContent = made + '/' + att + ' shots \u2022 ' + pct + '%';
+          } else if (s.dribbling_min) {
+            subDiv.textContent = s.dribbling_min + ' min dribbling';
+          } else {
+            subDiv.textContent = 'Training session';
+          }
+
+          infoDiv.appendChild(titleDiv);
+          infoDiv.appendChild(subDiv);
+
+          var gradeSpan = document.createElement('span');
+          gradeSpan.className = 'ks-game-log-grade ' + gradeClass;
+          gradeSpan.textContent = grade;
+
+          row.appendChild(daySpan);
+          row.appendChild(infoDiv);
+          row.appendChild(gradeSpan);
+          logList.appendChild(row);
+        });
+      }
+    }
+
+    // ── Personal Bests ────────────────────────────────────────────────────
+    var allData = [].concat(dbSessions);
+    dbWeeks.forEach(function(w) { allData = allData.concat(w.days || []); });
+
+    if (allData.length > 0) {
+      var pbShots    = Math.max.apply(null, allData.map(function(s) { return Number(s.shots_made) || 0; }));
+      var pbVertical = Math.max.apply(null, allData.map(function(s) { return Number(s.vertical_in) || 0; }));
+      var sprintVals = allData.filter(function(s) { return Number(s.sprint_sec) > 0; }).map(function(s) { return Number(s.sprint_sec); });
+      var pbSprint   = sprintVals.length > 0 ? Math.min.apply(null, sprintVals) : 0;
+
+      var shotsEl  = document.getElementById('ks-pb-shots');
+      var vertEl   = document.getElementById('ks-pb-vertical');
+      var sprintEl = document.getElementById('ks-pb-sprint');
+
+      if (shotsEl  && pbShots > 0)    shotsEl.textContent  = pbShots + ' shots';
+      if (vertEl   && pbVertical > 0) vertEl.textContent   = pbVertical + '"';
+      if (sprintEl && pbSprint > 0)   sprintEl.textContent = pbSprint + 's';
+    }
+
+    // ── Bento stats: live data override ──────────────────────────────────
+    if (dbSessions.length > 0) {
+      var curr = dbWeekStats({ days: dbSessions });
+      var bentoCards = document.querySelectorAll('.ks-bento-grid .ks-stat-card--tall');
+      if (bentoCards[0] && curr.shooting_pct > 0) {
+        var numEl0 = bentoCards[0].querySelector('.ks-stat-number');
+        var barEl0 = bentoCards[0].querySelector('.ks-progress-fill');
+        if (numEl0) numEl0.textContent = curr.shooting_pct.toFixed(1);
+        if (barEl0) barEl0.style.width = curr.shooting_pct + '%';
+      }
+      if (bentoCards[1] && curr.vertical_in > 0) {
+        var numEl1 = bentoCards[1].querySelector('.ks-stat-number');
+        if (numEl1) numEl1.textContent = curr.vertical_in + '"';
+      }
+      if (bentoCards[2] && curr.dribbling_min > 0) {
+        var numEl2 = bentoCards[2].querySelector('.ks-stat-number');
+        if (numEl2) numEl2.textContent = (curr.dribbling_min / 60).toFixed(1) + 'h';
+      }
     }
   }
 

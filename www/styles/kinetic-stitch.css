@@ -2120,3 +2120,492 @@ body.is-dashboard .st-submit-btn {
   .ks-header { margin: 0 -16px; padding-left: 16px; padding-right: 16px; }
   body.is-dashboard .db-main-inner { padding: 0 16px; }
 }
+
+
+/* ─── 37. XP LEVEL CARD ─────────────────────────────────────────────────── */
+
+.ks-xp-card {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px 24px;
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-glass-bg);
+  backdrop-filter: blur(var(--ks-glass-blur));
+  border: 1px solid rgba(255,107,0,0.18);
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 16px;
+  cursor: default;
+}
+
+.ks-xp-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 0% 50%, rgba(255,107,0,0.08) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.ks-xp-card-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-xp-badge {
+  font-size: 2.4rem;
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 14px rgba(255,107,0,0.45));
+  line-height: 1;
+}
+
+.ks-xp-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-xp-card-level {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.ks-xp-card-rank {
+  font-family: var(--ks-font-headline);
+  font-size: 1.15rem;
+  font-weight: 800;
+  color: var(--ks-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.ks-xp-card-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ks-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.ks-xp-bar-track {
+  height: 7px;
+  background: var(--ks-white-10);
+  border-radius: 100px;
+  overflow: visible;
+  margin-bottom: 7px;
+  position: relative;
+}
+
+.ks-xp-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ks-primary) 0%, #ffb347 100%);
+  border-radius: 100px;
+  transition: width 1s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 0%;
+  position: relative;
+}
+
+.ks-xp-bar-fill::after {
+  content: '';
+  position: absolute;
+  right: -1px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 11px;
+  height: 11px;
+  background: #fff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px rgba(255,107,0,0.9), 0 0 4px rgba(255,107,0,0.6);
+}
+
+.ks-xp-numbers {
+  font-size: 11px;
+  color: var(--ks-text-dim);
+  font-family: var(--ks-font-body);
+}
+
+.ks-xp-numbers strong {
+  color: var(--ks-text);
+  font-weight: 700;
+}
+
+.ks-xp-card-right {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: center;
+  padding-left: 20px;
+  border-left: 1px solid var(--ks-white-10);
+  flex-shrink: 0;
+}
+
+.ks-xp-mini-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.ks-xp-mini-val {
+  font-family: var(--ks-font-headline);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ks-text);
+  line-height: 1;
+}
+
+.ks-xp-mini-lbl {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ks-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  text-align: center;
+  white-space: nowrap;
+}
+
+
+/* ─── 38. SKILL BREAKDOWN CARD ──────────────────────────────────────────── */
+
+.ks-skill-bars-card {
+  background: var(--ks-glass-bg);
+  backdrop-filter: blur(var(--ks-glass-blur));
+  border: 1px solid var(--ks-glass-border);
+  border-radius: var(--ks-radius-lg);
+  padding: 24px;
+}
+
+.ks-skill-bar-item {
+  margin-bottom: 18px;
+}
+
+.ks-skill-bar-item:last-child {
+  margin-bottom: 0;
+}
+
+.ks-skill-bar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.ks-skill-bar-name {
+  font-family: var(--ks-font-body);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ks-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ks-skill-bar-score {
+  font-family: var(--ks-font-headline);
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--ks-text);
+}
+
+.ks-skill-bar-track {
+  height: 8px;
+  background: var(--ks-white-10);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.ks-skill-bar-fill {
+  height: 100%;
+  border-radius: 100px;
+  transition: width 1.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 0%;
+}
+
+.ks-skill-bar-fill--shooting  { background: linear-gradient(90deg, #ff6b00, #ff9d4a); }
+.ks-skill-bar-fill--dribbling { background: linear-gradient(90deg, #059eff, #9ccaff); }
+.ks-skill-bar-fill--defense   { background: linear-gradient(90deg, #34d399, #6ee7b7); }
+.ks-skill-bar-fill--gameiq    { background: linear-gradient(90deg, #a855f7, #d8b4fe); }
+
+
+/* ─── 39. GAME LOG CARD ─────────────────────────────────────────────────── */
+
+.ks-game-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ks-game-log-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: var(--ks-radius);
+  background: var(--ks-white-5);
+  border-left: 3px solid var(--ks-primary);
+  transition: background 0.2s, transform 0.2s;
+  cursor: pointer;
+}
+
+.ks-game-log-item:hover {
+  background: var(--ks-white-10);
+  transform: translateX(4px);
+}
+
+.ks-game-log-item--good  { border-left-color: #34d399; }
+.ks-game-log-item--great { border-left-color: var(--ks-primary); }
+.ks-game-log-item--avg   { border-left-color: #9ccaff; }
+
+.ks-game-log-day {
+  font-family: var(--ks-font-headline);
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ks-text-muted);
+  min-width: 30px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ks-game-log-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-game-log-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ks-text);
+  margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ks-game-log-sub {
+  font-size: 11px;
+  color: var(--ks-text-dim);
+}
+
+.ks-game-log-grade {
+  font-family: var(--ks-font-headline);
+  font-size: 11px;
+  font-weight: 800;
+  color: #0a0a0a;
+  padding: 4px 10px;
+  border-radius: 100px;
+  background: var(--ks-primary);
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.ks-game-log-grade--a  { background: #34d399; }
+.ks-game-log-grade--b  { background: #9ccaff; }
+.ks-game-log-grade--c  { background: var(--ks-surface-highest); color: var(--ks-text-muted); }
+
+.ks-game-log-empty {
+  text-align: center;
+  padding: 28px;
+  color: var(--ks-text-dim);
+  font-size: 13px;
+  font-style: italic;
+}
+
+
+/* ─── 40. PERSONAL BESTS CARD ──────────────────────────────────────────── */
+
+.ks-pb-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ks-pb-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px;
+  border-radius: var(--ks-radius);
+  background: var(--ks-white-5);
+  border: 1px solid transparent;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.ks-pb-item:hover {
+  background: var(--ks-white-10);
+  border-color: rgba(255,107,0,0.12);
+  transform: translateY(-2px);
+}
+
+.ks-pb-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ks-pb-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-pb-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--ks-text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 3px;
+}
+
+.ks-pb-value {
+  font-family: var(--ks-font-headline);
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--ks-text);
+}
+
+.ks-pb-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 100px;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.ks-pb-tag--record    { background: rgba(255,107,0,0.15); color: var(--ks-primary); border: 1px solid rgba(255,107,0,0.3); }
+.ks-pb-tag--top       { background: rgba(52,211,153,0.15); color: #34d399; border: 1px solid rgba(52,211,153,0.3); }
+.ks-pb-tag--milestone { background: rgba(156,202,255,0.15); color: var(--ks-tertiary); border: 1px solid rgba(156,202,255,0.3); }
+
+
+/* ─── 41. NOTIFICATION DOT ──────────────────────────────────────────────── */
+
+.ks-notif-dot {
+  position: relative;
+}
+
+.ks-notif-dot::after {
+  content: '';
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ks-primary);
+  border: 2px solid var(--ks-bg);
+  animation: ks-notifPulse 2.5s cubic-bezier(0.4,0,0.6,1) infinite;
+  pointer-events: none;
+}
+
+@keyframes ks-notifPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%       { transform: scale(1.25); opacity: 0.7; }
+}
+
+
+/* ─── 42. DAILY CHALLENGE BANNER ────────────────────────────────────────── */
+
+.ks-home-challenge {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: var(--ks-radius-lg);
+  background: var(--ks-glass-bg);
+  backdrop-filter: blur(var(--ks-glass-blur));
+  border: 1px solid rgba(255,107,0,0.22);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.ks-home-challenge::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 90% 0%, rgba(255,107,0,0.07) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.ks-home-challenge:hover {
+  border-color: rgba(255,107,0,0.5);
+  transform: translateY(-2px);
+}
+
+.ks-home-challenge-icon {
+  font-size: 1.8rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.ks-home-challenge-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.ks-home-challenge-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ks-primary);
+  margin-bottom: 3px;
+}
+
+.ks-home-challenge-title {
+  font-family: var(--ks-font-headline);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ks-text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ks-home-challenge-sub {
+  font-size: 11px;
+  color: var(--ks-text-dim);
+}
+
+.ks-home-challenge-cta {
+  flex-shrink: 0;
+  background: var(--ks-primary);
+  color: #000;
+  font-family: var(--ks-font-headline);
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px 16px;
+  border-radius: var(--ks-radius);
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.ks-home-challenge-cta:hover {
+  background: #ff8f33;
+  transform: scale(1.04);
+}
+
+
+/* ─── 43. XP / STREAK TOASTS — force visible ────────────────────────────── */
+
+body.is-dashboard .xp-gain-toast,
+body.is-dashboard #xp-gain-toast {
+  display: block !important;
+  pointer-events: none;
+}
+
+body.is-dashboard #streak-toast {
+  display: flex !important;
+}
