@@ -4018,3 +4018,77 @@ function workoutNextDrill() {
   drillWorkoutOpen(next.id);
   _toast(`Next: ${next.name} (${queue.length} remaining)`);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   WORKOUTS PANEL — missing interactive handlers
+   ══════════════════════════════════════════════════════════════ */
+
+/* A) workoutsOpenDetail — referenced by workout cards but was missing */
+function workoutsOpenDetail(id) {
+  var workoutMap = {
+    'kyrie-handles': { mode: 'library', focus: 'Ball Handling' }
+  };
+  var target = workoutMap[id] || { mode: 'library', focus: 'All' };
+  if (typeof drillsShowMode === 'function') drillsShowMode(target.mode);
+  if (target.focus !== 'All' && typeof drillsSetFocusFilter === 'function') {
+    drillsSetFocusFilter(target.focus, null);
+  }
+  if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+}
+window.workoutsOpenDetail = workoutsOpenDetail;
+
+/* B–E) Wire up workout image cards, drill list items, FAB, and "View All" */
+(function () {
+  'use strict';
+
+  function _switchToDrillsTab(mode, category) {
+    if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+    if (typeof drillsShowMode === 'function') drillsShowMode(mode || 'library');
+    if (category && typeof drillsSetFocusFilter === 'function') {
+      drillsSetFocusFilter(category, null);
+    }
+  }
+
+  function initWorkoutsPanelHandlers() {
+    /* B) Workout image cards */
+    document.querySelectorAll('.ks-workout-img-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var titleEl = card.querySelector('.ks-workout-img-card-title');
+        var category = card.dataset.category || 'All';
+        _switchToDrillsTab('library', category !== 'All' ? category : null);
+      });
+    });
+
+    /* C) Popular drills list items */
+    document.querySelectorAll('.ks-drill-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var category = item.dataset.category || 'All';
+        _switchToDrillsTab('library', category !== 'All' ? category : null);
+      });
+    });
+
+    /* D) FAB "add" button */
+    document.querySelectorAll('.ks-fab').forEach(function (fab) {
+      fab.addEventListener('click', function () {
+        if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+        if (typeof drillsShowMode === 'function') drillsShowMode('generator');
+      });
+    });
+  }
+
+  /* E) "View All" section link — event delegation (works even on dynamic HTML) */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ks-section-link');
+    if (btn && btn.textContent.trim() === 'View All') {
+      if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+      if (typeof drillsShowMode === 'function') drillsShowMode('library');
+      if (typeof drillsSetFocusFilter === 'function') drillsSetFocusFilter('Shooting', null);
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWorkoutsPanelHandlers);
+  } else {
+    initWorkoutsPanelHandlers();
+  }
+})();

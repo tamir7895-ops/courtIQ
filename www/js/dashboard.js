@@ -1444,4 +1444,50 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
     switchMainTab('home');
   })();
 
+  /* ── Home panel interactive buttons ────────────────────────── */
+  (function () {
+    function initHomePanelHandlers() {
+      /* A) Edit Profile button */
+      var editProfileBtn = document.querySelector('#db-panel-home .ks-btn-primary');
+      if (editProfileBtn) {
+        editProfileBtn.addEventListener('click', function () {
+          var modal = document.getElementById('profile-modal-overlay');
+          if (modal) modal.classList.add('active');
+        });
+      }
+
+      /* B) Share button */
+      var shareBtn = document.querySelector('#db-panel-home .ks-btn-outline');
+      if (shareBtn) {
+        shareBtn.addEventListener('click', function () {
+          if (navigator.share) {
+            navigator.share({
+              title: 'CourtIQ',
+              text: 'Check out my basketball training profile!',
+              url: window.location.href
+            });
+          } else {
+            navigator.clipboard.writeText(window.location.href).then(function () {
+              if (typeof showToast === 'function') showToast('Profile link copied!');
+            });
+          }
+        });
+      }
+
+      /* C) Info button next to "Start Drill" */
+      var infoBtn = document.querySelector('.ks-info-btn');
+      if (infoBtn) {
+        infoBtn.addEventListener('click', function () {
+          if (typeof showToast === 'function') showToast('Daily workout is auto-generated based on your skill profile');
+        });
+      }
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initHomePanelHandlers);
+    } else {
+      initHomePanelHandlers();
+    }
+  })();
+
   /* \u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550 */
