@@ -18,8 +18,10 @@ const DataService = {
   async updateProfile(updates) {
     const { error } = await sb
       .from('profiles')
-      .update({ ...updates, updated_at: new Date().toISOString() })
-      .eq('id', window.currentUser.id);
+      .upsert(
+        { id: window.currentUser.id, ...updates, updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
     if (error) throw error;
   },
 
@@ -99,18 +101,23 @@ const DataService = {
   },
 
   async saveUserData(patch) {
-    const { data: current, error: fetchErr } = await sb
-      .from('profiles')
-      .select('user_data')
-      .eq('id', window.currentUser.id)
-      .single();
-    if (fetchErr) throw fetchErr;
-    const merged = Object.assign({}, current?.user_data || {}, patch);
-    const { error } = await sb
-      .from('profiles')
-      .update({ user_data: merged, updated_at: new Date().toISOString() })
-      .eq('id', window.currentUser.id);
+    // Read current user_data from localStorage for merge — no extra round-trip
+    var existing = {};
+    try {
+      var raw = localStorage.getItem('_sb_user_data_cache');
+      if (raw) existing = JSON.parse(raw);
+    } catch(e) {}
+    var merged = Object.assign({}, existing, patch);
+
+    const { error } = await sb.from('profiles')
+      .upsert(
+        { id: window.currentUser.id, user_data: merged, updated_at: new Date().toISOString() },
+        { onConflict: 'id' }
+      );
     if (error) throw error;
+
+    // Update local cache for next merge
+    try { localStorage.setItem('_sb_user_data_cache', JSON.stringify(merged)); } catch(e) {}
   },
 
   /* ── Shot Sessions ─────────────────────────────────────── */
