@@ -1912,8 +1912,8 @@
         </div>
         <div class="ke-ai-tracker__sub">Analyze your shots with AI-powered detection</div>
         <div class="ke-ai-tracker__btns">
-          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--primary" onclick="document.getElementById('ast-launch-btn').click()">&#128247; Live Camera</button>
-          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--secondary" onclick="document.getElementById('ast-upload-btn').click()">&#127916; Upload Video</button>
+          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--primary" onclick="window.ShotTrackingScreen ? ShotTrackingScreen.openCamera() : document.getElementById('ast-launch-btn').click()">&#128247; Live Camera</button>
+          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--secondary" onclick="document.getElementById('ast-file-input').click()">&#127916; Upload Video</button>
         </div>
       </div>
 
@@ -1929,7 +1929,7 @@
           <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
         </div>
       </div>
-      <input type="file" accept="video/*" id="ast-file-input" capture="environment" style="display:none">
+      <input type="file" accept="video/*" id="ast-file-input" style="display:none">
 
       <!-- Shot Map Card -->
       <div class="glass-shot-map-card">
