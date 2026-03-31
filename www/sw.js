@@ -1,70 +1,79 @@
 /* ============================================================
    SERVICE WORKER — CourtIQ PWA
    Cache-first for static assets, network-first for API calls.
+
+   IMPORTANT: All paths are relative (no leading /) so this works
+   on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_NAME = 'courtiq-v6';  // bumped to force cache invalidation after cloud-persistence fixes
+const CACHE_NAME = 'courtiq-v7';  // v7: fixed absolute→relative paths so install no longer fails on GH Pages
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/dashboard.html',
+  './',
+  './index.html',
+  './dashboard.html',
   // Styles
-  '/styles/main.css',
-  '/styles/animations.css',
-  '/styles/components.css',
-  '/styles/drills.css',
-  '/styles/workouts.css',
-  '/styles/shot-tracker.css',
-  '/styles/charts.css',
-  '/styles/move-library.css',
-  '/styles/profile.css',
-  '/styles/daily-workout.css',
-  '/styles/gamification.css',
-  '/styles/dashboard-redesign.css',
-  '/styles/onboarding.css',
-  '/styles/archetype.css',
-  '/styles/social.css',
-  '/styles/shop.css',
-  '/styles/challenge.css',
+  './styles/main.css',
+  './styles/animations.css',
+  './styles/components.css',
+  './styles/drills.css',
+  './styles/workouts.css',
+  './styles/shot-tracker.css',
+  './styles/charts.css',
+  './styles/move-library.css',
+  './styles/profile.css',
+  './styles/daily-workout.css',
+  './styles/gamification.css',
+  './styles/dashboard-redesign.css',
+  './styles/onboarding.css',
+  './styles/archetype.css',
+  './styles/social.css',
+  './styles/shop.css',
+  './styles/challenge.css',
   // Core JS
-  '/js/utils.js',
-  '/js/auth.js',
-  '/js/nav.js',
-  '/js/supabase-client.js',
-  '/js/data-service.js',
-  '/js/animations.js',
-  '/js/sidebar.js',
-  '/js/sound-effects.js',
+  './js/utils.js',
+  './js/auth.js',
+  './js/nav.js',
+  './js/supabase-client.js',
+  './js/data-service.js',
+  './js/animations.js',
+  './js/sidebar.js',
+  './js/sound-effects.js',
   // Dashboard JS
-  '/js/dashboard.js',
-  '/js/feature-modals.js',
-  '/js/feature-tabs.js',
-  '/js/pricing.js',
-  '/js/onboarding.js',
-  '/js/streak.js',
-  '/js/daily-challenge.js',
+  './js/dashboard.js',
+  './js/feature-modals.js',
+  './js/feature-tabs.js',
+  './js/pricing.js',
+  './js/onboarding.js',
+  './js/streak.js',
+  './js/daily-challenge.js',
   // Feature JS
-  '/js/drill-engine.js',
-  '/js/drill-animations.js',
-  '/js/shot-tracker.js',
-  '/js/progress-charts.js',
-  '/js/move-library.js',
-  '/js/move-animations.js',
-  '/js/player-profile.js',
-  '/js/daily-workout.js',
-  '/js/gamification.js',
-  '/js/archetype-engine.js',
-  '/js/social-hub.js',
-  '/js/ai-coach.js',
-  '/manifest.json'
+  './js/drill-engine.js',
+  './js/drill-animations.js',
+  './js/shot-tracker.js',
+  './js/progress-charts.js',
+  './js/move-library.js',
+  './js/move-animations.js',
+  './js/player-profile.js',
+  './js/daily-workout.js',
+  './js/gamification.js',
+  './js/archetype-engine.js',
+  './js/social-hub.js',
+  './js/ai-coach.js',
+  './manifest.json'
 ];
 
 /* ── Install: cache static shell ─────────────────────────── */
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(STATIC_ASSETS);
+      // Use individual fetches so a single 404 never kills the whole install.
+      var fetches = STATIC_ASSETS.map(function (url) {
+        return fetch(url).then(function (res) {
+          if (res && res.status === 200) return cache.put(url, res);
+        }).catch(function () {}); // silently skip missing files
+      });
+      return Promise.all(fetches);
     }).then(function () {
-      return self.skipWaiting();
+      return self.skipWaiting(); // activate immediately — don't wait for old tabs to close
     })
   );
 });
@@ -78,7 +87,7 @@ self.addEventListener('activate', function (event) {
             .map(function (k) { return caches.delete(k); })
       );
     }).then(function () {
-      return self.clients.claim();
+      return self.clients.claim(); // take control of all open pages immediately
     })
   );
 });
@@ -112,18 +121,25 @@ self.addEventListener('fetch', function (event) {
   // Cache-first for everything else (GET only)
   if (event.request.method !== 'GET') return;
 
+  // Strip cache-busting query params (?v=N) for cache key matching
+  var cleanUrl = url.replace(/[?&]v=\d+/, '');
+  var cacheKey = cleanUrl !== url ? new Request(cleanUrl) : event.request;
+
   event.respondWith(
-    caches.match(event.request).then(function (cached) {
+    caches.match(cacheKey).then(function (cached) {
       if (cached) return cached;
       return fetch(event.request).then(function (response) {
         // Cache new static assets on the fly
         if (response && response.status === 200 && response.type === 'basic') {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(event.request, clone);
+            cache.put(cacheKey, clone);
           });
         }
         return response;
+      }).catch(function () {
+        // Offline fallback: try cache without query params
+        return caches.match('./dashboard.html');
       });
     })
   );
