@@ -76,7 +76,7 @@ jobs:
           echo "Merging ${BRANCH}..."
           git merge "origin/${BRANCH}" \
             --no-ff \
-            -m "🤖 Auto-merge: ${BRANCH} → master [skip ci]"
+            -m "🤖 Auto-merge: ${BRANCH} → master"
 
           echo "Pushing to origin/master..."
           git push origin master
