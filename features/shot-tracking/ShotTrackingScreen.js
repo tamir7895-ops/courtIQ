@@ -191,9 +191,10 @@
     _videoEl.addEventListener('loadedmetadata', function () {
       _syncCanvasSize();
     });
-    _videoEl.addEventListener('loadeddata', function () {
-      _startDetection();
-    });
+    /* loadeddata fires when first frame available; canplay is iOS fallback.
+       engine.start() is idempotent (checks isRunning) so safe to call twice. */
+    _videoEl.addEventListener('loadeddata', _startDetection);
+    _videoEl.addEventListener('canplay',    _startDetection);
     _videoEl.addEventListener('play', function () {
       var pb = document.getElementById('sts-play-btn');
       if (pb) pb.textContent = '\u23F8 Pause';
@@ -410,6 +411,7 @@
   /* ── Open in camera mode ────────────────────────────────── */
   function _openCamera() {
     _buildOverlay();
+    _cleanup();  /* stop any prior session */
 
     /* Reset error */
     var errEl = document.getElementById('sts-error');
@@ -447,6 +449,7 @@
   /* ── Open in video file mode ────────────────────────────── */
   function _openVideo(file) {
     _buildOverlay();
+    _cleanup();  /* stop any prior session */
 
     /* Reset error */
     var errEl = document.getElementById('sts-error');
@@ -475,31 +478,28 @@
     _drawLoop();
   }
 
-  /* ── Stop & close ───────────────────────────────────────── */
-  function _stop() {
-    _isOpen = false;
-
+  /* ── Internal cleanup (stop engine/stream without closing overlay) */
+  function _cleanup() {
     if (_animFrame) { cancelAnimationFrame(_animFrame); _animFrame = null; }
-
     var engine = window.ShotDetectionEngine;
     if (engine && engine.isRunning) engine.stop();
-
-    /* Release camera stream */
     if (_stream) {
       _stream.getTracks().forEach(function (t) { t.stop(); });
       _stream = null;
     }
-
-    /* Release video */
     if (_videoEl) {
       _videoEl.pause();
       _videoEl.srcObject = null;
       _videoEl.src       = '';
       _videoEl.load();
     }
-
-    /* Release blob URL */
     if (_objectUrl) { URL.revokeObjectURL(_objectUrl); _objectUrl = null; }
+  }
+
+  /* ── Stop & close ───────────────────────────────────────── */
+  function _stop() {
+    _isOpen = false;
+    _cleanup();
 
     if (_overlay) _overlay.classList.remove('active');
     document.body.style.overflow = '';
