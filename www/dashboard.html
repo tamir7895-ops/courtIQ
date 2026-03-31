@@ -2422,8 +2422,8 @@
           <div class="glass-rank-number">#42</div>
           <div class="glass-rank-label">YOUR GLOBAL RANK</div>
           <div class="glass-rank-toggle">
-            <button class="glass-toggle-btn active" onclick="this.classList.add('active');this.nextElementSibling.classList.remove('active')">GLOBAL</button>
-            <button class="glass-toggle-btn" onclick="this.classList.add('active');this.previousElementSibling.classList.remove('active')">LOCAL</button>
+            <button class="glass-toggle-btn active" onclick="this.classList.add('active');this.nextElementSibling.classList.remove('active');shToggleGlobal()">GLOBAL</button>
+            <button class="glass-toggle-btn" onclick="this.classList.add('active');this.previousElementSibling.classList.remove('active');shToggleLocal()">LOCAL</button>
           </div>
         </div>
 
@@ -2457,43 +2457,7 @@
         </div>
       </div><!-- /sh-leaderboard -->
 
-      <!-- Social Feed Section -->
-      <div class="sh-section" id="sh-social-feed" style="display:none">
-        <div class="glass-social-feed">
-          <div class="glass-section-header">
-            <span class="glass-section-title">SOCIAL FEED</span>
-          </div>
-          <div class="glass-feed-list">
-            <div class="glass-feed-item">
-              <div class="glass-feed-avatar">🏀</div>
-              <div class="glass-feed-content">
-                <div class="glass-feed-user">Marcus R.</div>
-                <div class="glass-feed-action">completed a 45-min shooting session</div>
-                <div class="glass-feed-time">2 hours ago</div>
-              </div>
-              <div class="glass-feed-badge">🔥</div>
-            </div>
-            <div class="glass-feed-item">
-              <div class="glass-feed-avatar">⚡</div>
-              <div class="glass-feed-content">
-                <div class="glass-feed-user">Jordan K.</div>
-                <div class="glass-feed-action">hit a 7-day training streak!</div>
-                <div class="glass-feed-time">5 hours ago</div>
-              </div>
-              <div class="glass-feed-badge">🏆</div>
-            </div>
-            <div class="glass-feed-item">
-              <div class="glass-feed-avatar">🎯</div>
-              <div class="glass-feed-content">
-                <div class="glass-feed-user">Alex T.</div>
-                <div class="glass-feed-action">scored 92% in free throw practice</div>
-                <div class="glass-feed-time">1 day ago</div>
-              </div>
-              <div class="glass-feed-badge">⭐</div>
-            </div>
-          </div>
-        </div>
-      </div>
+      <!-- Social Feed removed (fake data) -->
 
       <!-- ── SHARE CARD ─────────────────────────────────────── -->
       <div class="sh-section" id="sh-share">
