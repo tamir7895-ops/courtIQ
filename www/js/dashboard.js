@@ -1853,3 +1853,100 @@ Return ONLY a valid JSON array \u2014 no markdown, no extra text. Each element m
 
   window.ProfileSystem = { render: init };
 })();
+
+// ── DRILLS SYSTEM ──────────────────────────────────────────────────────────
+(function DrillsSystem() {
+  var ARCH_HERO = {
+    scorer: {
+      tag: 'ELITE SCORER PROGRAM',
+      title: 'ISO SHOT\u003cbr\u003eCREATION',
+      meta: ['\ud83d\udd25 ADVANCED', '\u23f1 45 MIN', '\ud83c\udfaf SHOOTING']
+    },
+    playmaker: {
+      tag: 'PLAYMAKER PROGRAM',
+      title: 'VISION \u0026\u003cbr\u003ePASSING MASTERY',
+      meta: ['\u26a1 INTERMEDIATE', '\u23f1 40 MIN', '\ud83c\udfc0 HANDLES']
+    },
+    defender: {
+      tag: 'LOCKDOWN PROGRAM',
+      title: 'DEFENSIVE\u003cbr\u003eDOMINANCE',
+      meta: ['\ud83d\udee1\ufe0f ADVANCED', '\u23f1 35 MIN', '\ud83d\udd12 DEFENSE']
+    },
+    'two-way': {
+      tag: 'TWO-WAY ELITE PROGRAM',
+      title: 'TWO-WAY\u003cbr\u003eELITE PROTOCOL',
+      meta: ['\u26a1 ADVANCED', '\u23f1 50 MIN', '\ud83c\udfaf ALL-AROUND']
+    },
+    'rim-runner': {
+      tag: 'INTERIOR BEAST PROGRAM',
+      title: 'PAINT\u003cbr\u003eDOMINATION',
+      meta: ['\ud83d\udcaa ADVANCED', '\u23f1 40 MIN', '\ud83e\udda5 VERTICAL']
+    },
+    default: {
+      tag: "TODAY'S ELITE PROGRAM",
+      title: 'HYPER-ELITE\u003cbr\u003eISO SHOT CREATION',
+      meta: ['\ud83d\udd25 ADVANCED', '\u23f1 45 MIN', '\ud83c\udfaf SHOOTING']
+    }
+  };
+
+  function renderHero() {
+    var arch;
+    try { arch = JSON.parse(localStorage.getItem('courtiq-archetype') || '{}').key || 'default'; } catch(e) { arch = 'default'; }
+    var h = ARCH_HERO[arch] || ARCH_HERO['default'];
+    var tagEl  = document.getElementById('drills-hero-tag');
+    var titleEl = document.getElementById('drills-hero-title');
+    var metaEl  = document.getElementById('drills-hero-meta');
+    if (tagEl)  tagEl.textContent = h.tag;
+    if (titleEl) titleEl.innerHTML = h.title;
+    if (metaEl)  metaEl.innerHTML = h.meta.map(function(m) {
+      return '<span class="glass-hero-meta-item">' + m + '</span>';
+    }).join('');
+  }
+
+  function renderFocusCounts() {
+    if (typeof _DRILLS_DB === 'undefined') return;
+    var counts = { Shooting: 0, 'Ball Handling': 0, Defense: 0, Conditioning: 0 };
+    _DRILLS_DB.forEach(function(d) {
+      if (counts[d.focus_area] !== undefined) counts[d.focus_area]++;
+    });
+    var s = document.getElementById('focus-count-shooting');
+    var h = document.getElementById('focus-count-handles');
+    var d = document.getElementById('focus-count-defense');
+    var v = document.getElementById('focus-count-vertical');
+    if (s) s.textContent = counts['Shooting'] + ' drills';
+    if (h) h.textContent = counts['Ball Handling'] + ' drills';
+    if (d) d.textContent = counts['Defense'] + ' drills';
+    if (v) v.textContent = counts['Conditioning'] + ' drills';
+  }
+
+  function autoFillGenerator() {
+    var ob;
+    try { ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}'); } catch(e) { ob = {}; }
+    if (!ob.position) return;
+    var posEl = document.getElementById('drill-position');
+    if (posEl) posEl.value = ob.position.toUpperCase();
+    if (ob.skill_level) {
+      var lvlEl = document.getElementById('drill-level');
+      if (lvlEl) lvlEl.value = ob.skill_level;
+    }
+  }
+
+  function init() {
+    renderHero();
+    renderFocusCounts();
+    autoFillGenerator();
+  }
+
+  var _origD = typeof dbSwitchTab === 'function' ? dbSwitchTab : null;
+  if (_origD) {
+    window.dbSwitchTab = function(tab) {
+      _origD(tab);
+      if (tab === 'drills') setTimeout(init, 100);
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.DrillsSystem = { render: init };
+})();

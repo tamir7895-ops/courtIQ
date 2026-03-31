@@ -1249,9 +1249,9 @@
       <div class="glass-training-hero">
         <div class="glass-training-hero-bg"></div>
         <div class="glass-training-hero-content">
-          <div class="glass-training-hero-tag">TODAY'S ELITE PROGRAM</div>
-          <div class="glass-training-hero-title">HYPER-ELITE<br>ISO SHOT CREATION</div>
-          <div class="glass-training-hero-meta">
+          <div class="glass-training-hero-tag" id="drills-hero-tag">TODAY'S ELITE PROGRAM</div>
+          <div class="glass-training-hero-title" id="drills-hero-title">HYPER-ELITE<br>ISO SHOT CREATION</div>
+          <div class="glass-training-hero-meta" id="drills-hero-meta">
             <span class="glass-hero-meta-item">🔥 ADVANCED</span>
             <span class="glass-hero-meta-item">⏱ 45 MIN</span>
             <span class="glass-hero-meta-item">🎯 SHOOTING</span>
@@ -1266,7 +1266,7 @@
         <span class="glass-ai-tag">🤖 AI POWERED</span>
       </div>
       <div class="glass-recommendations">
-        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Shooting',null)}">
           <div class="glass-rec-icon">🎯</div>
           <div class="glass-rec-content">
             <div class="glass-rec-title">Catch &amp; Shoot Drill</div>
@@ -1274,7 +1274,7 @@
           </div>
           <div class="glass-rec-tag">SHOOTING</div>
         </div>
-        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Ball Handling',null)}">
           <div class="glass-rec-icon">⚡</div>
           <div class="glass-rec-content">
             <div class="glass-rec-title">Killer Crossover</div>
@@ -1282,7 +1282,7 @@
           </div>
           <div class="glass-rec-tag">HANDLES</div>
         </div>
-        <div class="glass-rec-card" onclick="dbSwitchTab('drills')">
+        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Defense',null)}">
           <div class="glass-rec-icon">🛡️</div>
           <div class="glass-rec-content">
             <div class="glass-rec-title">Defensive Slides</div>
@@ -1300,22 +1300,22 @@
         <div class="glass-focus-card glass-focus-shooting" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Shooting',null)}">
           <div class="glass-focus-emoji">🎯</div>
           <div class="glass-focus-name">SHOOTING</div>
-          <div class="glass-focus-count">24 drills</div>
+          <div class="glass-focus-count" id="focus-count-shooting">— drills</div>
         </div>
         <div class="glass-focus-card glass-focus-handles" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Ball Handling',null)}">
           <div class="glass-focus-emoji">⚡</div>
           <div class="glass-focus-name">HANDLES</div>
-          <div class="glass-focus-count">18 drills</div>
+          <div class="glass-focus-count" id="focus-count-handles">— drills</div>
         </div>
         <div class="glass-focus-card glass-focus-defense" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Defense',null)}">
           <div class="glass-focus-emoji">🛡️</div>
           <div class="glass-focus-name">DEFENSE</div>
-          <div class="glass-focus-count">15 drills</div>
+          <div class="glass-focus-count" id="focus-count-defense">— drills</div>
         </div>
         <div class="glass-focus-card glass-focus-vertical" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Conditioning',null)}">
           <div class="glass-focus-emoji">🦅</div>
           <div class="glass-focus-name">VERTICAL</div>
-          <div class="glass-focus-count">12 drills</div>
+          <div class="glass-focus-count" id="focus-count-vertical">— drills</div>
         </div>
       </div>
 
