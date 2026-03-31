@@ -441,11 +441,19 @@ const server = http.createServer((req, res) => {
   });
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, '0.0.0.0', () => {
+  const nets = require('os').networkInterfaces();
+  const ips = [];
+  for (const name of Object.keys(nets)) {
+    for (const net of nets[name]) {
+      if (net.family === 'IPv4' && !net.internal) ips.push(net.address);
+    }
+  }
   console.log('');
   console.log('  ⚡ CourtIQ Live Server');
   console.log('  ─────────────────────────────────────');
-  console.log('  http://127.0.0.1:' + PORT);
+  console.log('  Local:   http://127.0.0.1:' + PORT);
+  if (ips.length) console.log('  Network: http://' + ips[0] + ':' + PORT);
   console.log('  Watching: ' + ROOT);
   console.log('  Live reload: ON');
   console.log('  Trainer API: /api/trainer/start|status|videos');
