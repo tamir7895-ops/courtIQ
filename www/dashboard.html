@@ -470,8 +470,8 @@
       <!-- Stitch Header -->
       <header class="ks-header">
         <div class="ks-header-left">
-          <div class="ks-header-avatar">
-            <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsnvIMML2xXwAZxyex3AUwI_yyW74PBpSzWzs4Ov1hvrwoiA5ECxe9AKedaoJKErSchVDFQuuVj5G3inwABAFwqunfd05Zch63b9-y1fCbdqJv3IpLBNeKlEA_z9dq86IfNIlqibWRCPBhgCILiQx4U_ItNbqoSkfEYeBhsfZmYDxqqMbuOgSv1sfODuTAyil3T43RgamlLjtIJlvYIFHM0IYxuR0RUarTJYjc5-pRkftofPOxMOZblysD5klmFGT7ZLFfZkXLEsk" alt="Profile" />
+          <div class="ks-header-avatar" id="ks-header-avatar">
+            <img id="ks-header-avatar-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsnvIMML2xXwAZxyex3AUwI_yyW74PBpSzWzs4Ov1hvrwoiA5ECxe9AKedaoJKErSchVDFQuuVj5G3inwABAFwqunfd05Zch63b9-y1fCbdqJv3IpLBNeKlEA_z9dq86IfNIlqibWRCPBhgCILiQx4U_ItNbqoSkfEYeBhsfZmYDxqqMbuOgSv1sfODuTAyil3T43RgamlLjtIJlvYIFHM0IYxuR0RUarTJYjc5-pRkftofPOxMOZblysD5klmFGT7ZLFfZkXLEsk" alt="Profile" />
           </div>
           <span class="ks-header-brand">CourtIQ</span>
         </div>
@@ -561,7 +561,7 @@
               <span>Next Session &bull; Today, 4:00 PM</span>
             </div>
             <h2 class="ks-featured-title">Advanced Ball Handling</h2>
-            <p class="ks-featured-desc">Focusing on high-intensity dribble combos and pressure absorption. Lead Coach: David Jenkins.</p>
+            <p class="ks-featured-desc">Focusing on high-intensity dribble combos and pressure absorption.</p>
             <div class="ks-featured-actions">
               <button class="ks-btn-white" onclick="dbSwitchTab('workouts')">Start Drill</button>
               <button class="ks-info-btn">
@@ -1747,7 +1747,7 @@
           </div>
           <div>
             <h4 class="ks-insight-title">Recovery Log</h4>
-            <p class="ks-insight-body">Neural fatigue detected. <strong>24hr active recovery</strong> mandated before next high-load session.</p>
+            <p class="ks-insight-body">Fatigue signal detected. <strong>24hr active recovery</strong> recommended before your next high-load session.</p>
           </div>
         </div>
       </div>
@@ -2025,10 +2025,8 @@
           <div class="ks-profile-position-tag">
             <span>Point Guard</span>
           </div>
-          <h2 class="ks-profile-name">
-            Marcus <br>
-            <span class="ks-orange">'The Flash'</span> <br>
-            Jordan
+          <h2 class="ks-profile-name" id="ks-profile-full-name">
+            Player
           </h2>
           <p class="ks-profile-bio">Relentless on both ends of the floor. Specializing in perimeter defense and high-IQ playmaking.</p>
         </div>
@@ -2096,7 +2094,7 @@
             <div class="ks-activity-item ks-activity-item--highlight">
               <div>
                 <div class="ks-activity-name">Perimeter Lockdown Drills</div>
-                <div class="ks-activity-date">Oct 24, 2023</div>
+                <div class="ks-activity-date ks-reltime" data-ts="-2">2 days ago</div>
               </div>
               <div style="text-align:right">
                 <div class="ks-activity-grade ks-activity-grade--a">A+</div>
@@ -2106,7 +2104,7 @@
             <div class="ks-activity-item">
               <div>
                 <div class="ks-activity-name">Corner 3-Point Volume</div>
-                <div class="ks-activity-date">Oct 22, 2023</div>
+                <div class="ks-activity-date ks-reltime" data-ts="-4">4 days ago</div>
               </div>
               <div style="text-align:right">
                 <div class="ks-activity-grade ks-activity-grade--b">B</div>
@@ -2116,7 +2114,7 @@
             <div class="ks-activity-item">
               <div>
                 <div class="ks-activity-name">Crossover Response Time</div>
-                <div class="ks-activity-date">Oct 21, 2023</div>
+                <div class="ks-activity-date ks-reltime" data-ts="-5">5 days ago</div>
               </div>
               <div style="text-align:right">
                 <div class="ks-activity-grade ks-activity-grade--a">A-</div>
@@ -2129,15 +2127,15 @@
 
       <!-- Settings Sections -->
       <section style="margin-top:48px">
-        <!-- Account Infrastructure -->
-        <div class="ks-settings-heading">Account Infrastructure</div>
+        <!-- Account -->
+        <div class="ks-settings-heading">Account</div>
         <div class="ks-settings-group">
           <div class="ks-settings-item">
             <div class="ks-settings-item-left">
               <span class="material-symbols-outlined">mail</span>
               <div>
                 <div class="ks-settings-item-title">Email Address</div>
-                <div class="ks-settings-item-sub">m.reed.baller@prohoops.com</div>
+                <div class="ks-settings-item-sub" id="ks-profile-email">—</div>
               </div>
             </div>
             <div class="ks-settings-item-right">
@@ -2183,8 +2181,8 @@
           </div>
         </div>
 
-        <!-- Protocol & Support -->
-        <div class="ks-settings-heading" style="margin-top:32px">Protocol &amp; Support</div>
+        <!-- Help & Support -->
+        <div class="ks-settings-heading" style="margin-top:32px">Help &amp; Support</div>
         <div class="ks-settings-group">
           <div class="ks-settings-item">
             <div class="ks-settings-item-title">Terms of Service</div>
@@ -2209,9 +2207,8 @@
       <div style="padding-top:32px;padding-bottom:48px">
         <button class="ks-signout-btn" onclick="signOut()">
           <span class="material-symbols-outlined">logout</span>
-          TERMINATE SESSION
+          Sign Out
         </button>
-        <div class="ks-app-version">CourtIQ Elite v4.2.0 &middot; Build 882</div>
       </div>
 
       <div class="ks-spacer"></div>
