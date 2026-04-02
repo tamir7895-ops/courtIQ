@@ -5,19 +5,18 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 21;
+const CACHE_VERSION = 22;
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
   './index.html',
-  // Styles
+  // Styles (only files that actually exist in www/styles/)
   './styles/main.css',
   './styles/animations.css',
   './styles/components.css',
   './styles/drills.css',
   './styles/workouts.css',
   './styles/shot-tracker.css',
-  './styles/feature-heroes.css',
   './styles/charts.css',
   './styles/move-library.css',
   './styles/profile.css',
@@ -59,13 +58,6 @@ const STATIC_ASSETS = [
   './js/archetype-engine.js',
   './js/social-hub.js',
   './js/ai-coach.js',
-  './js/court-heatmap.js',
-  './js/notifications.js',
-  './js/workout-timer.js',
-  './js/badges.js',
-  './styles/badges.css',
-  './js/video-review.js',
-  './features/shot-tracking/utils/heatmapGenerator.js',
   './manifest.json'
 ];
 
@@ -73,9 +65,16 @@ const STATIC_ASSETS = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(STATIC_ASSETS);
+      // Fetch each asset individually — a single 404 must NOT abort the whole install.
+      // Using cache.addAll would fail the entire install if any URL is missing.
+      var fetches = STATIC_ASSETS.map(function (url) {
+        return fetch(url).then(function (res) {
+          if (res && res.status === 200) return cache.put(url, res);
+        }).catch(function () {}); // silently skip missing or failed files
+      });
+      return Promise.all(fetches);
     }).then(function () {
-      return self.skipWaiting();
+      return self.skipWaiting(); // activate immediately — don't wait for old tabs to close
     })
   );
 });
@@ -89,7 +88,7 @@ self.addEventListener('activate', function (event) {
             .map(function (k) { return caches.delete(k); })
       );
     }).then(function () {
-      return self.clients.claim();
+      return self.clients.claim(); // take control of all open pages immediately
     })
   );
 });
@@ -105,22 +104,6 @@ self.addEventListener('notificationclick', function (event) {
         }
       }
       if (clients.openWindow) return clients.openWindow('./index.html');
-    })
-  );
-});
-
-/* ── Push event (for future server-side push) ────────────── */
-self.addEventListener('push', function (event) {
-  var data = { title: 'CourtIQ', body: 'Time to train!' };
-  if (event.data) {
-    try { data = event.data.json(); } catch (e) { data.body = event.data.text(); }
-  }
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: 'assets/logo-icon.svg',
-      badge: 'icons/icon-192.png',
-      vibrate: [200, 100, 200]
     })
   );
 });
@@ -154,22 +137,25 @@ self.addEventListener('fetch', function (event) {
   // Cache-first for everything else (GET only)
   if (event.request.method !== 'GET') return;
 
-  // Strip cache-busting query params (?v=3) for cache matching
-  var cleanUrl = event.request.url.replace(/\?v=\d+$/, '');
-  var cacheRequest = cleanUrl !== event.request.url ? new Request(cleanUrl) : event.request;
+  // Strip cache-busting query params (?v=N) for cache key matching
+  var cleanUrl = url.replace(/[?&]v=\d+/, '');
+  var cacheKey = cleanUrl !== url ? new Request(cleanUrl) : event.request;
 
   event.respondWith(
-    caches.match(cacheRequest).then(function (cached) {
+    caches.match(cacheKey).then(function (cached) {
       if (cached) return cached;
       return fetch(event.request).then(function (response) {
         // Cache new static assets on the fly
         if (response && response.status === 200 && response.type === 'basic') {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(event.request, clone);
+            cache.put(cacheKey, clone);
           });
         }
         return response;
+      }).catch(function () {
+        // Offline fallback
+        return caches.match('./index.html');
       });
     })
   );
