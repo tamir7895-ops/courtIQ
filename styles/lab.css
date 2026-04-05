@@ -1,0 +1,197 @@
+/* ══════════════════════════════════════════════════════════════
+   THE LAB — Page-specific CSS
+   Extends kinetic-stitch.css — only adds what ks-* doesn't cover
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Blue ping dot for AI Coach indicator ───────────────────── */
+.lab-dot-blue {
+  background: #3b82f6 !important;
+  box-shadow: 0 0 0 0 rgba(59,130,246,0.7) !important;
+}
+
+/* ── Shot Tracker right panel ───────────────────────────────── */
+.lab-tracker-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+  height: 100%;
+}
+
+.lab-tracker-big-num {
+  font-family: var(--ks-font-headline, 'Lexend', sans-serif);
+  font-size: clamp(3rem, 8vw, 5rem);
+  font-weight: 900;
+  font-style: italic;
+  color: var(--ks-primary, #ff6b00);
+  line-height: 1;
+}
+
+.lab-tracker-label {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ks-text-muted, #a1a1aa);
+}
+
+.lab-tracker-row {
+  display: flex;
+  gap: 24px;
+  margin-top: 8px;
+}
+
+.lab-tracker-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.lab-tracker-mini-num {
+  font-family: var(--ks-font-headline, 'Lexend', sans-serif);
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--ks-text, #e5e2e1);
+}
+
+.lab-tracker-mini-lbl {
+  font-size: 10px;
+  color: var(--ks-text-muted, #a1a1aa);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+/* ── Coach preview right panel ──────────────────────────────── */
+.lab-coach-preview {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+  padding: 32px;
+  height: 100%;
+}
+
+.lab-coach-day-tag {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+
+.lab-coach-day-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ks-primary, #ff6b00);
+  min-width: 32px;
+}
+
+.lab-coach-day-focus {
+  font-size: 13px;
+  color: var(--ks-text, #e5e2e1);
+  font-weight: 600;
+  flex: 1;
+}
+
+.lab-coach-day-intensity {
+  font-size: 11px;
+  color: var(--ks-text-muted, #a1a1aa);
+}
+
+/* ── Empty / placeholder states ─────────────────────────────── */
+.lab-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 32px;
+  text-align: center;
+  height: 100%;
+}
+
+.lab-empty-icon {
+  font-size: 2.5rem;
+  opacity: 0.3;
+}
+
+.lab-empty-text {
+  font-size: 13px;
+  color: var(--ks-text-muted, #a1a1aa);
+  max-width: 180px;
+  line-height: 1.5;
+}
+
+/* ── Progress chart canvas ──────────────────────────────────── */
+#lab-progress-chart {
+  width: 100% !important;
+  height: 160px !important;
+  display: block;
+}
+
+/* ── Featured card colour override for AI Coach (blue accent) ── */
+.lab-coach-featured .ks-featured-indicator span {
+  color: #3b82f6;
+}
+
+/* ── Consistency bars real data ─────────────────────────────── */
+.lab-bars-wrap {
+  height: 160px;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 0 4px;
+  margin-top: 16px;
+}
+
+.lab-bar {
+  flex: 1;
+  border-radius: 8px 8px 0 0;
+  background: rgba(255,255,255,0.08);
+  transition: background 0.3s;
+  position: relative;
+  min-height: 4px;
+  cursor: pointer;
+}
+
+.lab-bar--active {
+  background: rgba(255,107,0,0.6);
+}
+
+.lab-bar:hover {
+  background: rgba(255,107,0,0.35);
+}
+
+.lab-bar-label {
+  position: absolute;
+  bottom: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px;
+  color: var(--ks-text-muted, #a1a1aa);
+  white-space: nowrap;
+}
+
+.lab-bars-day-labels {
+  display: flex;
+  gap: 8px;
+  padding: 0 4px;
+  margin-top: 4px;
+}
+
+.lab-bars-day-label {
+  flex: 1;
+  text-align: center;
+  font-size: 9px;
+  color: var(--ks-text-muted, #a1a1aa);
+  text-transform: uppercase;
+}
