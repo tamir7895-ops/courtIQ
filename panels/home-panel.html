@@ -1,0 +1,700 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     CourtIQ — Dashboard Home Panel (Stitch Design)
+     Inner content for: <div class="db-panel active" id="db-panel-home">
+     ═══════════════════════════════════════════════════════════════════════ -->
+
+<!-- Kinetic Elite Top Header -->
+<header class="ke-header">
+  <div class="ke-header-brand">COURT<span>IQ</span></div>
+  <div class="ke-header-actions">
+    <button class="ke-header-icon" onclick="dbSwitchTab('notifications')" aria-label="Notifications">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span class="ke-notif-dot"></span>
+    </button>
+  </div>
+</header>
+
+
+<!-- ────────────────────────────────────────────────────────────────────
+     1. PLAYER PROFILE HERO CARD
+     ──────────────────────────────────────────────────────────────────── -->
+<div class="ke-profile-hero ke-stagger-1" style="
+  margin: 20px 0 16px;
+  padding: 28px 24px;
+  background: var(--ke-glass-bg);
+  backdrop-filter: blur(var(--ke-glass-blur));
+  -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+  border: 1px solid var(--ke-glass-border);
+  border-radius: var(--ke-radius);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: keCardFadeIn 0.5s ease-out both;
+  position: relative;
+  overflow: hidden;
+">
+  <!-- Subtle radial glow behind avatar -->
+  <div style="
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255,136,0,0.12) 0%, transparent 70%);
+    pointer-events: none;
+  "></div>
+
+  <!-- Avatar with orange ring -->
+  <div style="
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #FF8800, #FF6600);
+    padding: 3px;
+    margin-bottom: 16px;
+    position: relative;
+    z-index: 1;
+  ">
+    <div style="
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--ke-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    ">
+      <!-- Default avatar SVG -->
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,136,0,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+        <circle cx="12" cy="7" r="4"/>
+      </svg>
+    </div>
+  </div>
+
+  <!-- Player Name -->
+  <div id="ke-player-name" style="
+    font-family: var(--ke-font);
+    font-weight: 700;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--ke-text-primary);
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+  ">Marcus Jordan</div>
+
+  <!-- Position / Team -->
+  <div id="ke-player-position" style="
+    font-family: var(--ke-font);
+    font-weight: 500;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    color: var(--ke-text-tertiary);
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  ">POINT GUARD &middot; CHICAGO</div>
+
+  <!-- Action Buttons Row -->
+  <div style="
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    position: relative;
+    z-index: 1;
+  ">
+    <button onclick="dbSwitchTab('archetype')" style="
+      flex: 1;
+      padding: 12px 0;
+      background: var(--ke-orange);
+      color: #000;
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      border: none;
+      border-radius: var(--ke-radius-md);
+      cursor: pointer;
+      transition: all var(--ke-transition);
+    ">Edit Profile</button>
+    <button onclick="if(navigator.share){navigator.share({title:'CourtIQ Stats',text:'Check out my stats on CourtIQ!'})}" style="
+      flex: 1;
+      padding: 12px 0;
+      background: var(--ke-orange);
+      color: #000;
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.04em;
+      border: none;
+      border-radius: var(--ke-radius-md);
+      cursor: pointer;
+      transition: all var(--ke-transition);
+    ">Share Stats</button>
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────────
+     2. ON THE RISE SECTION
+     ──────────────────────────────────────────────────────────────────── -->
+<div class="ke-rise-section ke-stagger-2" style="
+  margin: 0 0 16px;
+  padding: 24px;
+  background: var(--ke-glass-bg);
+  backdrop-filter: blur(var(--ke-glass-blur));
+  -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+  border: 1px solid var(--ke-glass-border);
+  border-radius: var(--ke-radius);
+  animation: keCardFadeIn 0.5s ease-out both;
+">
+  <!-- Section Label with orange accent line -->
+  <div style="
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  ">
+    <div style="
+      width: 3px;
+      height: 16px;
+      background: var(--ke-orange);
+      border-radius: 2px;
+    "></div>
+    <span style="
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.14em;
+      color: var(--ke-text-tertiary);
+      text-transform: uppercase;
+    ">ON THE RISE</span>
+  </div>
+
+  <!-- Large Featured Stat -->
+  <div id="ke-main-stat" style="
+    font-family: var(--ke-font);
+    font-weight: 800;
+    font-size: 56px;
+    line-height: 1;
+    background: linear-gradient(135deg, #FF8800 0%, #FFAA44 50%, #FF6600 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 4px;
+  ">64.2</div>
+
+  <!-- Label -->
+  <div style="
+    font-family: var(--ke-font);
+    font-weight: 500;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    color: var(--ke-text-tertiary);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  ">AVG POINTS</div>
+
+  <!-- Progress Bar -->
+  <div style="
+    width: 100%;
+    height: 6px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 3px;
+    overflow: hidden;
+  ">
+    <div style="
+      width: 64.2%;
+      height: 100%;
+      background: linear-gradient(90deg, #FF8800, #FFAA44);
+      border-radius: 3px;
+      animation: keBarGrow 1.2s ease-out both;
+    "></div>
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────────
+     3. METRIC CARDS ROW (2-column grid)
+     ──────────────────────────────────────────────────────────────────── -->
+<div class="ke-metrics-row ke-stagger-3" style="
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+  animation: keCardFadeIn 0.5s ease-out both;
+">
+  <!-- Shot Arc Card -->
+  <div style="
+    padding: 20px 16px;
+    background: var(--ke-glass-bg);
+    backdrop-filter: blur(var(--ke-glass-blur));
+    -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+    border: 1px solid var(--ke-glass-border);
+    border-radius: var(--ke-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  ">
+    <!-- Icon -->
+    <div style="
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--ke-orange-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF8800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M4 20 C4 20 8 4 12 4 C16 4 20 20 20 20"/>
+        <circle cx="12" cy="4" r="2" fill="#FF8800" stroke="none"/>
+      </svg>
+    </div>
+    <!-- Value -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--ke-text-primary);
+      line-height: 1.1;
+    ">38.9&deg;</div>
+    <!-- Label -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--ke-text-tertiary);
+      text-transform: uppercase;
+    ">SHOT ARC</div>
+  </div>
+
+  <!-- Avg Distance Card -->
+  <div style="
+    padding: 20px 16px;
+    background: var(--ke-glass-bg);
+    backdrop-filter: blur(var(--ke-glass-blur));
+    -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+    border: 1px solid var(--ke-glass-border);
+    border-radius: var(--ke-radius);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  ">
+    <!-- Icon -->
+    <div style="
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: var(--ke-orange-dim);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    ">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF8800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="2" y1="18" x2="22" y2="18"/>
+        <line x1="2" y1="18" x2="2" y2="14"/>
+        <line x1="22" y1="18" x2="22" y2="14"/>
+        <line x1="7" y1="18" x2="7" y2="15.5"/>
+        <line x1="12" y1="18" x2="12" y2="15.5"/>
+        <line x1="17" y1="18" x2="17" y2="15.5"/>
+        <path d="M6 10 L12 4 L18 10" stroke-width="1.5"/>
+      </svg>
+    </div>
+    <!-- Value -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 24px;
+      color: var(--ke-text-primary);
+      line-height: 1.1;
+    ">12.6ft</div>
+    <!-- Label -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: var(--ke-text-tertiary);
+      text-transform: uppercase;
+    ">AVG DISTANCE</div>
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────────
+     4. FEATURED TRAINING CARD
+     ──────────────────────────────────────────────────────────────────── -->
+<div class="ke-featured-training ke-stagger-4" onclick="dbSwitchTab('drills')" style="
+  margin: 0 0 16px;
+  padding: 24px;
+  background: var(--ke-glass-bg);
+  backdrop-filter: blur(var(--ke-glass-blur));
+  -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+  border: 1px solid var(--ke-glass-border);
+  border-radius: var(--ke-radius);
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  animation: keCardFadeIn 0.5s ease-out both;
+  transition: all var(--ke-transition);
+">
+  <!-- Orange gradient radial blob in top-right corner -->
+  <div style="
+    position: absolute;
+    top: -40px;
+    right: -40px;
+    width: 160px;
+    height: 160px;
+    background: radial-gradient(circle, rgba(255,136,0,0.18) 0%, rgba(255,136,0,0.06) 40%, transparent 70%);
+    pointer-events: none;
+    border-radius: 50%;
+  "></div>
+
+  <!-- Dark gradient overlay from bottom -->
+  <div style="
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 50%;
+    background: linear-gradient(to top, rgba(18,18,18,0.4) 0%, transparent 100%);
+    pointer-events: none;
+  "></div>
+
+  <!-- Content -->
+  <div style="position: relative; z-index: 1;">
+    <!-- Title -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 700;
+      font-size: 20px;
+      color: var(--ke-text-primary);
+      margin-bottom: 8px;
+      line-height: 1.3;
+    ">Advanced Ball Handling</div>
+
+    <!-- Subtitle / Description -->
+    <div style="
+      font-family: var(--ke-font);
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--ke-text-secondary);
+      margin-bottom: 14px;
+      max-width: 90%;
+    ">Master elite crossovers, behind-the-back moves, and hesitation dribbles with this 6-drill series.</div>
+
+    <!-- Meta Tags -->
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 20px;
+    ">
+      <span style="
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--ke-orange);
+        background: var(--ke-orange-dim);
+        padding: 4px 10px;
+        border-radius: 6px;
+      ">6 DRILLS</span>
+      <span style="
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--ke-text-tertiary);
+        background: rgba(255,255,255,0.05);
+        padding: 4px 10px;
+        border-radius: 6px;
+      ">35 MIN</span>
+      <span style="
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.1em;
+        color: var(--ke-text-tertiary);
+        background: rgba(255,255,255,0.05);
+        padding: 4px 10px;
+        border-radius: 6px;
+      ">ADVANCED</span>
+    </div>
+
+    <!-- Start Button -->
+    <button onclick="event.stopPropagation(); dbSwitchTab('drills')" style="
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      padding: 14px 0;
+      background: linear-gradient(135deg, #FF8800, #FF6600);
+      color: #000;
+      font-family: var(--ke-font);
+      font-weight: 800;
+      font-size: 15px;
+      letter-spacing: 0.08em;
+      border: none;
+      border-radius: var(--ke-radius-md);
+      cursor: pointer;
+      transition: all var(--ke-transition);
+      box-shadow: 0 4px 20px rgba(255,136,0,0.25);
+    ">
+      <!-- Play icon -->
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="#000" stroke="none">
+        <polygon points="5 3 19 12 5 21 5 3"/>
+      </svg>
+      START
+      <!-- Arrow icon -->
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+
+<!-- ────────────────────────────────────────────────────────────────────
+     5. RECENT WORKOUTS SECTION
+     ──────────────────────────────────────────────────────────────────── -->
+<div class="ke-recent-workouts ke-stagger-5" style="
+  margin: 0 0 16px;
+  animation: keCardFadeIn 0.5s ease-out both;
+">
+  <!-- Section Label -->
+  <div class="ke-section-label" style="margin-bottom: 12px;">RECENT WORKOUTS</div>
+
+  <!-- Workout List -->
+  <div style="
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  ">
+
+    <!-- Workout Item 1: Shooting Warmup -->
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--ke-glass-bg);
+      backdrop-filter: blur(var(--ke-glass-blur));
+      -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+      border: 1px solid var(--ke-glass-border);
+      border-radius: var(--ke-radius-md);
+      transition: all var(--ke-transition);
+      cursor: pointer;
+    ">
+      <!-- Left Icon Circle (orange) -->
+      <div style="
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(255,136,0,0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF8800" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="22" y1="12" x2="18" y2="12"/>
+          <line x1="6" y1="12" x2="2" y2="12"/>
+          <line x1="12" y1="6" x2="12" y2="2"/>
+          <line x1="12" y1="22" x2="12" y2="18"/>
+        </svg>
+      </div>
+      <!-- Info -->
+      <div style="flex: 1; min-width: 0;">
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--ke-text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">Shooting Warmup</div>
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 400;
+          font-size: 11px;
+          color: var(--ke-text-tertiary);
+          margin-top: 2px;
+        ">2h ago</div>
+      </div>
+      <!-- Duration Badge -->
+      <div style="
+        flex-shrink: 0;
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--ke-text-secondary);
+        background: rgba(255,255,255,0.06);
+        padding: 5px 10px;
+        border-radius: 8px;
+      ">25 MIN</div>
+    </div>
+
+    <!-- Workout Item 2: Defensive Slides -->
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--ke-glass-bg);
+      backdrop-filter: blur(var(--ke-glass-blur));
+      -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+      border: 1px solid var(--ke-glass-border);
+      border-radius: var(--ke-radius-md);
+      transition: all var(--ke-transition);
+      cursor: pointer;
+    ">
+      <!-- Left Icon Circle (green) -->
+      <div style="
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(52,211,153,0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#34D399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+        </svg>
+      </div>
+      <!-- Info -->
+      <div style="flex: 1; min-width: 0;">
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--ke-text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">Defensive Slides</div>
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 400;
+          font-size: 11px;
+          color: var(--ke-text-tertiary);
+          margin-top: 2px;
+        ">5h ago</div>
+      </div>
+      <!-- Duration Badge -->
+      <div style="
+        flex-shrink: 0;
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--ke-text-secondary);
+        background: rgba(255,255,255,0.06);
+        padding: 5px 10px;
+        border-radius: 8px;
+      ">18 MIN</div>
+    </div>
+
+    <!-- Workout Item 3: Ball Handling Reps -->
+    <div style="
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      background: var(--ke-glass-bg);
+      backdrop-filter: blur(var(--ke-glass-blur));
+      -webkit-backdrop-filter: blur(var(--ke-glass-blur));
+      border: 1px solid var(--ke-glass-border);
+      border-radius: var(--ke-radius-md);
+      transition: all var(--ke-transition);
+      cursor: pointer;
+    ">
+      <!-- Left Icon Circle (blue) -->
+      <div style="
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        background: rgba(4,152,241,0.12);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      ">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0498F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+        </svg>
+      </div>
+      <!-- Info -->
+      <div style="flex: 1; min-width: 0;">
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 600;
+          font-size: 14px;
+          color: var(--ke-text-primary);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        ">Ball Handling Reps</div>
+        <div style="
+          font-family: var(--ke-font);
+          font-weight: 400;
+          font-size: 11px;
+          color: var(--ke-text-tertiary);
+          margin-top: 2px;
+        ">Yesterday</div>
+      </div>
+      <!-- Duration Badge -->
+      <div style="
+        flex-shrink: 0;
+        font-family: var(--ke-font);
+        font-weight: 600;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        color: var(--ke-text-secondary);
+        background: rgba(255,255,255,0.06);
+        padding: 5px 10px;
+        border-radius: 8px;
+      ">32 MIN</div>
+    </div>
+
+  </div>
+
+  <!-- View All Link -->
+  <div style="
+    text-align: center;
+    margin-top: 14px;
+  ">
+    <button onclick="dbSwitchTab('workouts')" style="
+      background: none;
+      border: none;
+      font-family: var(--ke-font);
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--ke-orange);
+      cursor: pointer;
+      padding: 8px 20px;
+      border-radius: var(--ke-radius-sm);
+      transition: all var(--ke-transition);
+      letter-spacing: 0.02em;
+    ">View All &rarr;</button>
+  </div>
+</div>
+
+
+<!-- Bottom Spacer for nav clearance -->
+<div style="height:80px"></div>
