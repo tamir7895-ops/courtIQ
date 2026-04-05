@@ -40,6 +40,7 @@
   <link rel="stylesheet" href="styles/dashboard-redesign.css?v=3" />
   <link rel="stylesheet" href="styles/kinetic-elite.css?v=2" />
   <link rel="stylesheet" href="styles/kinetic-stitch.css?v=2" />
+  <link rel="stylesheet" href="styles/training.css?v=1" />
   <link rel="stylesheet" href="styles/glassmorphism.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
@@ -140,13 +141,9 @@
           <span class="db-sidebar-icon" data-icon="log"></span>
           <span class="db-sidebar-text">Log Session</span>
         </button>
-        <button class="db-sidebar-item" data-tab="drills">
+        <button class="db-sidebar-item" data-tab="training">
           <span class="db-sidebar-icon" data-icon="drills"></span>
-          <span class="db-sidebar-text">Drills</span>
-        </button>
-        <button class="db-sidebar-item" data-tab="workouts">
-          <span class="db-sidebar-icon" data-icon="workouts"></span>
-          <span class="db-sidebar-text">Workouts</span>
+          <span class="db-sidebar-text">Training</span>
         </button>
       </div>
 
@@ -1220,118 +1217,59 @@
 
     </div><!-- /calendar panel -->
 
-    <!-- ── TAB: PERSONALIZED DRILLS ── -->
-    <div class="db-panel" id="db-panel-drills">
+    <!-- ── TAB: TRAINING ── -->
+    <div class="db-panel" id="db-panel-training">
 
-      <!-- Stitch-inspired Training Hero -->
-      <div class="glass-training-hero">
-        <div class="glass-training-hero-bg"></div>
-        <div class="glass-training-hero-content">
-          <div class="glass-training-hero-tag" id="drills-hero-tag">TODAY'S ELITE PROGRAM</div>
-          <div class="glass-training-hero-title" id="drills-hero-title">HYPER-ELITE<br>ISO SHOT CREATION</div>
-          <div class="glass-training-hero-meta" id="drills-hero-meta">
-            <span class="glass-hero-meta-item">🔥 ADVANCED</span>
-            <span class="glass-hero-meta-item">⏱ 45 MIN</span>
-            <span class="glass-hero-meta-item">🎯 SHOOTING</span>
-          </div>
-          <button class="glass-training-hero-btn" onclick="if(typeof drillsGenerate==='function')drillsGenerate()">START TRAINING →</button>
-        </div>
-      </div>
 
-      <!-- Elite Recommendations -->
-      <div class="glass-section-header" style="margin-top:20px;">
-        <span class="glass-section-title">ELITE RECOMMENDATIONS</span>
-        <span class="glass-ai-tag">🤖 AI POWERED</span>
-      </div>
-      <div class="glass-recommendations">
-        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Shooting',null)}">
-          <div class="glass-rec-icon">🎯</div>
-          <div class="glass-rec-content">
-            <div class="glass-rec-title">Catch &amp; Shoot Drill</div>
-            <div class="glass-rec-desc">Improve spot-up shooting consistency</div>
+      <!-- ════ SECTION 1: WEEKLY OVERVIEW ════ -->
+      <section class="tr-section">
+        <div class="tr-section-header">
+          <h2 class="tr-section-title">WEEKLY OVERVIEW</h2>
+          <span class="tr-section-sub">Your training snapshot for this week</span>
+        </div>
+        <div class="tr-weekly-grid">
+          <!-- Weekly Goals card -->
+          <div class="tr-glass-card tr-goals-card">
+            <div class="tr-card-eyebrow">THIS WEEK'S GOALS</div>
+            <div class="tr-goal-row">
+              <span class="tr-goal-label">XP Earned</span>
+              <span class="tr-goal-val" id="tr-xp-val">0</span>
+            </div>
+            <div class="tr-goal-bar"><div class="tr-goal-bar-fill tr-bar-xp" id="tr-xp-bar" style="width:0%"></div></div>
+            <div class="tr-goal-row" style="margin-top:12px">
+              <span class="tr-goal-label">Sessions</span>
+              <span class="tr-goal-val" id="tr-sessions-val">0</span>
+            </div>
+            <div class="tr-goal-bar"><div class="tr-goal-bar-fill tr-bar-sessions" id="tr-sessions-bar" style="width:0%"></div></div>
+            <div class="tr-goal-row" style="margin-top:12px">
+              <span class="tr-goal-label">Focus Area</span>
+              <span class="tr-goal-val" id="tr-focus-val">General</span>
+            </div>
+            <div class="tr-goal-row" style="margin-top:8px">
+              <span class="tr-goal-label">Streak</span>
+              <span class="tr-goal-val" id="tr-streak-val">0 days</span>
+            </div>
           </div>
-          <div class="glass-rec-tag">SHOOTING</div>
-        </div>
-        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Ball Handling',null)}">
-          <div class="glass-rec-icon">⚡</div>
-          <div class="glass-rec-content">
-            <div class="glass-rec-title">Killer Crossover</div>
-            <div class="glass-rec-desc">Break down defenders with elite handles</div>
-          </div>
-          <div class="glass-rec-tag">HANDLES</div>
-        </div>
-        <div class="glass-rec-card" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Defense',null)}">
-          <div class="glass-rec-icon">🛡️</div>
-          <div class="glass-rec-content">
-            <div class="glass-rec-title">Defensive Slides</div>
-            <div class="glass-rec-desc">Lateral quickness &amp; closeout drills</div>
-          </div>
-          <div class="glass-rec-tag">DEFENSE</div>
-        </div>
-      </div>
-
-      <!-- Browse by Focus Grid -->
-      <div class="glass-section-header" style="margin-top:20px;">
-        <span class="glass-section-title">BROWSE BY FOCUS</span>
-      </div>
-      <div class="glass-focus-grid">
-        <div class="glass-focus-card glass-focus-shooting" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Shooting',null)}">
-          <div class="glass-focus-emoji">🎯</div>
-          <div class="glass-focus-name">SHOOTING</div>
-          <div class="glass-focus-count" id="focus-count-shooting">— drills</div>
-        </div>
-        <div class="glass-focus-card glass-focus-handles" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Ball Handling',null)}">
-          <div class="glass-focus-emoji">⚡</div>
-          <div class="glass-focus-name">HANDLES</div>
-          <div class="glass-focus-count" id="focus-count-handles">— drills</div>
-        </div>
-        <div class="glass-focus-card glass-focus-defense" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Defense',null)}">
-          <div class="glass-focus-emoji">🛡️</div>
-          <div class="glass-focus-name">DEFENSE</div>
-          <div class="glass-focus-count" id="focus-count-defense">— drills</div>
-        </div>
-        <div class="glass-focus-card glass-focus-vertical" onclick="if(typeof drillsShowMode==='function'){drillsShowMode('library');drillsSetFocusFilter('Conditioning',null)}">
-          <div class="glass-focus-emoji">🦅</div>
-          <div class="glass-focus-name">VERTICAL</div>
-          <div class="glass-focus-count" id="focus-count-vertical">— drills</div>
-        </div>
-      </div>
-
-      <!-- Today's Workout -->
-      <div class="daily-workout">
-        <div class="daily-workout-header">
-          <div>
-            <div class="daily-workout-title">🏀 Today's Workout</div>
-            <div class="daily-workout-date" id="daily-workout-date"></div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;">
-            <button class="night-training-trigger" onclick="NightTraining.open()">🌙 Night Training</button>
-            <button class="daily-workout-refresh" id="daily-workout-refresh">↻ New Workout</button>
+          <!-- Weekly Challenge card -->
+          <div class="tr-glass-card tr-challenge-card">
+            <div class="tr-card-eyebrow">WEEKLY CHALLENGE <span class="tr-challenge-week-badge" id="tr-challenge-week-badge">Week 1</span></div>
+            <div class="tr-challenge-title" id="tr-challenge-title">Loading…</div>
+            <div class="tr-challenge-desc" id="tr-challenge-desc"></div>
+            <ol class="tr-challenge-steps" id="tr-challenge-steps"></ol>
+            <div class="tr-challenge-time" id="tr-challenge-time"></div>
+            <button class="tr-challenge-btn" onclick="trChallengeStart()">Start Challenge →</button>
           </div>
         </div>
-        <div class="daily-workout-grid" id="daily-workout-grid"></div>
-        <div class="daily-workout-totals" id="daily-workout-totals"></div>
-      </div>
+      </section>
 
-      <!-- Panel Header -->
-      <div class="drills-header">
-        <div class="drills-header-text">
-          <h2>Personalized Drills</h2>
-          <p>Generate custom drills, browse the full library, or use AI Coach suggestions — all tailored to your position, skill level, and goals.</p>
+      <!-- ════ SECTION 2: DRILL GENERATOR ════ -->
+      <section class="tr-section">
+        <div class="tr-section-header">
+          <h2 class="tr-section-title">DRILL GENERATOR</h2>
+          <span class="tr-section-sub">AI-matched drills for your position and goals</span>
         </div>
-      </div>
 
-      <!-- Mode Toggle Bar -->
-      <div class="drills-mode-bar">
-        <button class="drills-mode-btn active" id="drills-mode-generator" onclick="drillsShowMode('generator')">🎯 Generator</button>
-        <button class="drills-mode-btn" id="drills-mode-library" onclick="drillsShowMode('library')">📚 Drill Library</button>
-        <button class="drills-mode-btn" id="drills-mode-plan" onclick="drillsShowMode('plan')">📌 My Plan</button>
-      </div>
-
-      <!-- ====== GENERATOR MODE ====== -->
-      <div id="drills-view-generator">
-
-        <!-- Coach Suggestions Banner (shown when AI Coach has results) -->
+        <!-- Coach Suggestions Banner -->
         <div id="drills-coach-banner" class="drills-coach-banner" style="display:none;">
           <div class="drills-coach-banner-icon">🏋️</div>
           <div class="drills-coach-banner-body">
@@ -1341,70 +1279,59 @@
           <button class="drills-coach-banner-btn" onclick="drillsLoadCoachSuggestions()">Load Suggestions</button>
         </div>
 
-        <!-- Selector Card -->
-        <div class="drills-selector">
-          <div class="drills-selector-title">Your Training Profile</div>
-          <div class="drills-selector-sub">All three fields are used to match drills to your position and current level.</div>
-          <div class="drills-selector-fields">
-            <div class="db-field">
-              <label class="db-label">🏀 Player Position</label>
-              <select class="db-input" id="drill-position">
-                <option value="PG">Point Guard (PG)</option>
-                <option value="SG">Shooting Guard (SG)</option>
-                <option value="SF">Small Forward (SF)</option>
-                <option value="PF">Power Forward (PF)</option>
-                <option value="C">Center (C)</option>
-              </select>
-            </div>
-            <div class="db-field">
-              <label class="db-label">📈 Skill Level</label>
-              <select class="db-input" id="drill-skill">
-                <option value="Beginner">Beginner</option>
-                <option value="Intermediate" selected>Intermediate</option>
-                <option value="Advanced">Advanced</option>
-              </select>
-            </div>
-            <div class="db-field">
-              <label class="db-label">🎯 Primary Goal</label>
-              <select class="db-input" id="drill-goal">
-                <option value="Shooting">Shooting</option>
-                <option value="Ball Handling">Ball Handling</option>
-                <option value="Defense">Defense</option>
-                <option value="Finishing">Finishing</option>
-                <option value="Conditioning">Conditioning</option>
-                <option value="Strength">Strength</option>
-              </select>
-            </div>
+        <!-- Selector row -->
+        <div class="tr-gen-selector">
+          <div class="tr-gen-field">
+            <label class="tr-gen-label">Position</label>
+            <select class="tr-gen-select" id="drill-position">
+              <option value="PG">Point Guard (PG)</option>
+              <option value="SG">Shooting Guard (SG)</option>
+              <option value="SF">Small Forward (SF)</option>
+              <option value="PF">Power Forward (PF)</option>
+              <option value="C">Center (C)</option>
+            </select>
           </div>
-          <button class="drills-gen-btn" onclick="drillsGenerate()">🎯 Generate My Drills →</button>
+          <div class="tr-gen-field">
+            <label class="tr-gen-label">Skill Level</label>
+            <select class="tr-gen-select" id="drill-skill">
+              <option value="Beginner">Beginner</option>
+              <option value="Intermediate" selected>Intermediate</option>
+              <option value="Advanced">Advanced</option>
+            </select>
+          </div>
+          <div class="tr-gen-field">
+            <label class="tr-gen-label">Primary Goal</label>
+            <select class="tr-gen-select" id="drill-goal">
+              <option value="Shooting">Shooting</option>
+              <option value="Ball Handling">Ball Handling</option>
+              <option value="Defense">Defense</option>
+              <option value="Finishing">Finishing</option>
+              <option value="Conditioning">Conditioning</option>
+              <option value="Strength">Strength</option>
+            </select>
+          </div>
+          <button class="tr-gen-btn" onclick="drillsGenerate()">Generate →</button>
         </div>
 
         <!-- Loading State -->
-        <div id="drills-loading" style="display:none;">
-          <div class="drills-loading-icon">🎯</div>
-          <div class="drills-loading-title">Building Your Drill Set…</div>
-          <div class="drills-loading-sub">Matching drills to your position, skill level, and focus area.</div>
+        <div id="drills-loading" class="tr-loading-state" style="display:none;">
+          <div class="tr-loading-icon">🎯</div>
+          <div>Building Your Drill Set…</div>
         </div>
 
         <!-- Empty State -->
-        <div id="drills-empty">
-          <div class="drills-empty-icon">🏀</div>
-          <div class="drills-empty-title">No Drills Generated Yet</div>
-          <p class="drills-empty-desc">Select your preferences above and hit <strong style="color:var(--c-amber)">Generate Drills</strong> to get a personalized drill set with animated court previews.</p>
-          <button class="db-generate-btn" onclick="if(typeof drillsGenerate==='function')drillsGenerate()" style="width:auto;padding:12px 28px;margin:12px auto 0;display:inline-block;font-size:13px;">🎯 Generate Drills</button>
+        <div id="drills-empty" class="tr-empty-state">
+          <div class="tr-empty-icon">🏀</div>
+          <p>Select your preferences and hit <strong>Generate</strong> to get a personalized drill set.</p>
         </div>
 
         <!-- Results -->
-        <div id="drills-results">
+        <div id="drills-results" style="display:none;">
           <div class="drills-results-header">
             <div class="drills-results-title" id="drills-results-title">Your Drill Set</div>
             <div class="drills-results-meta" id="drills-results-meta"></div>
           </div>
-
-          <!-- Drill Cards Grid (populated by JS) -->
           <div class="drills-grid" id="drills-grid"></div>
-
-          <!-- Saved Drills Section -->
           <div class="saved-drills-section" id="drills-saved-section">
             <div class="saved-drills-header">
               <div>
@@ -1419,7 +1346,7 @@
           </div>
         </div>
 
-        <!-- Saved Drills (visible even before generation) -->
+        <!-- Preloaded saved drills -->
         <div id="drills-preload-saved" style="display:none;">
           <div class="saved-drills-section">
             <div class="saved-drills-header">
@@ -1432,76 +1359,92 @@
             <div class="saved-drills-list" id="drills-preload-list"></div>
           </div>
         </div>
+      </section>
 
-      </div><!-- /generator view -->
+      <!-- ════ SECTION 3: EXERCISE LIBRARY ════ -->
+      <section class="tr-section">
+        <div class="tr-section-header">
+          <h2 class="tr-section-title">EXERCISE LIBRARY</h2>
+          <span class="tr-section-sub">Browse all 81+ drills · Build a custom workout</span>
+        </div>
 
-      <!-- ====== LIBRARY MODE ====== -->
-      <div id="drills-view-library" style="display:none;">
-
-        <!-- Library Filter Bar -->
-        <div class="drills-library-filters">
-          <div class="drills-library-search-wrap">
-            <input class="db-input drills-library-search" id="drills-lib-search" type="text" placeholder="Search drills by name or description..." oninput="drillsFilterLibrary()" />
+        <div class="tr-lib-controls">
+          <div class="tr-lib-search-wrap">
+            <input class="tr-lib-search" id="drills-lib-search" type="text" placeholder="Search exercises…" oninput="drillsFilterLibrary()" />
           </div>
-          <div class="drills-library-filter-row">
-            <div class="drills-filter-group">
-              <span class="drills-filter-label">Focus:</span>
-              <button class="drills-filter-pill active" onclick="drillsSetFocusFilter('All',this)">All</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Shooting',this)">🎯 Shooting</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Ball Handling',this)">⚡ Handles</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Defense',this)">🛡️ Defense</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Finishing',this)">🏀 Finishing</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Conditioning',this)">💪 Conditioning</button>
-              <button class="drills-filter-pill" onclick="drillsSetFocusFilter('Strength',this)">🏋️ Strength</button>
-            </div>
-            <div class="drills-filter-group">
-              <span class="drills-filter-label">Level:</span>
-              <button class="drills-filter-pill active" onclick="drillsSetDiffFilter('All',this)">All</button>
-              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Beginner',this)">Beginner</button>
-              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Intermediate',this)">Intermediate</button>
-              <button class="drills-filter-pill" onclick="drillsSetDiffFilter('Advanced',this)">Advanced</button>
-            </div>
+          <div class="tr-filter-pills">
+            <span class="tr-filter-label">Focus:</span>
+            <button class="tr-pill active" onclick="drillsSetFocusFilter('All',this)">All</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Shooting',this)">🎯 Shooting</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Ball Handling',this)">⚡ Handles</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Defense',this)">🛡️ Defense</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Finishing',this)">🏀 Finishing</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Conditioning',this)">💪 Conditioning</button>
+            <button class="tr-pill" onclick="drillsSetFocusFilter('Strength',this)">🏋️ Strength</button>
+          </div>
+          <div class="tr-filter-pills">
+            <span class="tr-filter-label">Level:</span>
+            <button class="tr-pill active" onclick="drillsSetDiffFilter('All',this)">All</button>
+            <button class="tr-pill" onclick="drillsSetDiffFilter('Beginner',this)">Beginner</button>
+            <button class="tr-pill" onclick="drillsSetDiffFilter('Intermediate',this)">Intermediate</button>
+            <button class="tr-pill" onclick="drillsSetDiffFilter('Advanced',this)">Advanced</button>
+          </div>
+          <div class="tr-lib-meta-row">
+            <span id="drills-lib-count">— drills</span>
+            <span class="tr-lib-sep">·</span>
+            <span id="drills-lib-filter-info">Showing all</span>
+            <button class="tr-build-workout-btn" onclick="trLibToggleBuildMode()">Build Workout</button>
           </div>
         </div>
 
-        <!-- Library Stats -->
-        <div class="drills-library-stats">
-          <span id="drills-lib-count">81 drills</span>
-          <span class="drills-lib-separator">·</span>
-          <span id="drills-lib-filter-info">Showing all</span>
+        <!-- Build Workout Tray -->
+        <div class="tr-build-tray" id="tr-build-tray" style="display:none;">
+          <span class="tr-build-count" id="tr-build-count">0 drills selected</span>
+          <button class="tr-build-save-btn" onclick="trLibSaveWorkout()">Save Workout</button>
+          <button class="tr-build-cancel-btn" onclick="trLibToggleBuildMode()">Cancel</button>
         </div>
 
-        <!-- Library Grid (populated by JS) -->
+        <!-- Library Grid -->
         <div class="drills-grid drills-library-grid" id="drills-library-grid"></div>
+      </section>
 
-      </div><!-- /library view -->
-
-      <!-- ====== MY PLAN MODE ====== -->
-      <div id="drills-view-plan" style="display:none;">
-
-        <div class="drills-plan-header">
-          <div>
-            <div class="drills-plan-title">📌 My Drill Plan</div>
-            <div class="drills-plan-sub" id="drills-plan-count">0 drills saved</div>
+      <!-- ════ SECTION 4: TRAINING PLAN ════ -->
+      <section class="tr-section">
+        <div class="tr-section-header">
+          <h2 class="tr-section-title">TRAINING PLAN</h2>
+          <span class="tr-section-sub">Your week at a glance · AI Coach builds your schedule</span>
+        </div>
+        <div class="tr-plan-layout">
+          <!-- Left: Schedule -->
+          <div class="tr-schedule-col">
+            <div class="tr-schedule-header">
+              <span class="tr-schedule-label">This Week</span>
+              <button class="tr-clear-week-btn" onclick="trPlanClearWeek()">Reset Week</button>
+            </div>
+            <div class="tr-schedule-grid" id="tr-schedule-grid"></div>
+            <div class="tr-saved-workouts-header">Saved Workouts</div>
+            <div id="tr-saved-drills-list"></div>
           </div>
-          <div class="drills-plan-actions">
-            <button class="drills-plan-action-btn calendar-btn" onclick="drillsSendToCalendar()">📆 Send to Calendar</button>
-            <button class="drills-plan-action-btn export-btn" onclick="drillsExportPlan()">📋 Copy as JSON</button>
-            <button class="saved-drills-clear-btn" onclick="drillsClearAll()">Clear All</button>
+          <!-- Right: AI Coach Chat -->
+          <div class="tr-coach-col">
+            <div class="tr-coach-header">
+              <span class="tr-coach-icon">🤖</span>
+              <div>
+                <div class="tr-coach-title">AI Coach</div>
+                <div class="tr-coach-sub">Describe your goal — I'll build your plan</div>
+              </div>
+            </div>
+            <div class="tr-chat-feed" id="tr-chat-feed"></div>
+            <div class="tr-chat-chips" id="tr-chat-chips"></div>
+            <div class="tr-chat-input-row">
+              <input class="tr-chat-input" id="tr-chat-input" type="text" placeholder="Ask your coach…" />
+              <button class="tr-chat-send-btn" id="tr-chat-send-btn">Send</button>
+            </div>
           </div>
         </div>
+      </section>
 
-        <!-- Plan Total Stats -->
-        <div class="drills-plan-stats" id="drills-plan-stats"></div>
-
-        <!-- Saved Drills List -->
-        <div class="saved-drills-list" id="drills-plan-list">
-          <div class="saved-drills-empty">No drills saved yet. Generate drills or browse the library to add drills to your plan.</div>
-        </div>
-
-      </div><!-- /plan view -->
-
-      <!-- ====== WORKOUT EXECUTION OVERLAY ====== -->
+      <!-- ════ WORKOUT EXECUTION OVERLAY ════ -->
       <div id="drill-workout-overlay" class="drill-workout-overlay" style="display:none;">
         <div class="drill-workout-panel">
 
@@ -1577,7 +1520,7 @@
         </div>
       </div>
 
-    </div><!-- /drills panel -->
+    </div><!-- /training panel -->
 
     <!-- ── TAB: WORKOUTS (Stitch v3 — Kinetic Motion) ── -->
     <div class="db-panel" id="db-panel-workouts">
@@ -3209,6 +3152,7 @@ if(window.__PREVIEW_MODE__){
 <script src="js/ai-coach.js"></script>
 <script src="js/drill-animations.js"></script>
 <script src="js/drill-engine.js"></script>
+<script src="js/training-panel.js"></script>
 <script src="js/animations.js"></script>
 <script src="js/player-profile.js"></script>
 <script src="js/daily-workout.js"></script>
