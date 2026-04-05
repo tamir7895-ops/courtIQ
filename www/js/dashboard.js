@@ -57,7 +57,7 @@
               var bgColor = m ? m[1] : '#1a3020';
               var heroBg = document.querySelector('.ks-hero-bg');
               if (heroBg) {
-                heroBg.style.background = 'linear-gradient(to right, #0d0d0d 0%, ' + bgColor + ' 70%)';
+                heroBg.style.background = bgColor;
               }
             })
             .catch(function() {});
