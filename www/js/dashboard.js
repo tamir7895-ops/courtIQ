@@ -41,16 +41,29 @@
       if (heroBgImg) {
         try {
           const ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-          const savedUrl = ob.dicebear_avatar_url;
-          if (savedUrl) {
-            heroBgImg.src = savedUrl;
-          } else {
-            const seed = encodeURIComponent(displayName);
-            heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed';
-          }
+          // Always derive an SVG URL for color extraction (convert saved PNG → SVG)
+          const savedUrl = ob.dicebear_avatar_url || '';
+          const seed = encodeURIComponent(displayName);
+          const svgUrl = savedUrl
+            ? savedUrl.replace('/png', '/svg').replace(/&size=\d+/, '').replace(/\?size=\d+&?/, '?')
+            : 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed;
+          heroBgImg.src = svgUrl;
+
+          // Fetch SVG, extract background color, blend hero card left→right
+          fetch(svgUrl)
+            .then(function(r) { return r.text(); })
+            .then(function(svg) {
+              var m = svg.match(/rect[^>]*fill="(#[0-9a-fA-F]{3,8})"/);
+              var bgColor = m ? m[1] : '#1a3020';
+              var heroBg = document.querySelector('.ks-hero-bg');
+              if (heroBg) {
+                heroBg.style.background = 'linear-gradient(to right, #0d0d0d 0%, ' + bgColor + ' 70%)';
+              }
+            })
+            .catch(function() {});
         } catch (e) {
           const seed = encodeURIComponent(displayName);
-          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed';
+          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed;
         }
       }
 
