@@ -18,31 +18,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Enable GitHub Pages (gh-pages branch)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Try to enable Pages pointing to gh-pages branch
-          curl -s -X POST \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pages" \
-            -d '{"source":{"branch":"gh-pages","path":"/"}}' || true
-          # If already exists, update it
-          curl -s -X PUT \
-            -H "Authorization: token $GH_TOKEN" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/repos/${{ github.repository }}/pages" \
-            -d '{"source":{"branch":"gh-pages","path":"/"}}' || true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Build www/ from source
-        run: node build.js
-
       - name: Use dashboard as root index
         run: cp www/dashboard.html www/index.html
 
