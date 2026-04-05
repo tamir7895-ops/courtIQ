@@ -543,15 +543,21 @@ body.is-dashboard .ke-bottom-nav {
 }
 
 .ks-hero-bg img {
-  width: 100%;
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: auto;
   height: 100%;
-  object-fit: cover;
-  opacity: 0.6;
+  max-width: 55%;
+  object-fit: contain;
+  object-position: bottom right;
+  opacity: 0.9;
   transition: transform 1s ease;
+  filter: drop-shadow(0 0 32px rgba(255,152,0,0.25));
 }
 
 .ks-hero:hover .ks-hero-bg img {
-  transform: scale(1.10);
+  transform: scale(1.06);
 }
 
 .ks-hero-overlay {
