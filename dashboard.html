@@ -1536,131 +1536,6 @@
 
     </div><!-- /training panel -->
 
-    <!-- ── TAB: WORKOUTS (Stitch v3 — Kinetic Motion) ── -->
-    <div class="db-panel" id="db-panel-workouts">
-
-      <!-- Top Label + Avatar -->
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:24px 0 8px">
-        <span class="ks-label-orange">Elite Performance</span>
-        <div class="ks-header-avatar" style="width:36px;height:36px">
-          <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsnvIMML2xXwAZxyex3AUwI_yyW74PBpSzWzs4Ov1hvrwoiA5ECxe9AKedaoJKErSchVDFQuuVj5G3inwABAFwqunfd05Zch63b9-y1fCbdqJv3IpLBNeKlEA_z9dq86IfNIlqibWRCPBhgCILiQx4U_ItNbqoSkfEYeBhsfZmYDxqqMbuOgSv1sfODuTAyil3T43RgamlLjtIJlvYIFHM0IYxuR0RUarTJYjc5-pRkftofPOxMOZblysD5klmFGT7ZLFfZkXLEsk" alt="Profile" />
-        </div>
-      </div>
-
-      <!-- Giant Title -->
-      <h1 class="ks-page-title">Workouts</h1>
-
-      <!-- Category Filter Pills -->
-      <div class="ks-chips-scroll">
-        <button class="ks-chip ks-chip--active" onclick="workoutsSetFilter('All',this)">All Drills</button>
-        <button class="ks-chip" onclick="workoutsSetFilter('Ball Handling',this)">Ball Handling</button>
-        <button class="ks-chip" onclick="workoutsSetFilter('Shooting',this)">Shooting</button>
-        <button class="ks-chip" onclick="workoutsSetFilter('Defense',this)">Defense</button>
-        <button class="ks-chip" onclick="workoutsSetFilter('Conditioning',this)">Conditioning</button>
-      </div>
-
-      <!-- Featured Bento: Hero + Weekly Goal -->
-      <div class="ks-grid-12 ks-mb-12">
-        <!-- Hero Workout Card (archetype-driven) -->
-        <div class="ks-c8 ks-hero-card ks-kinetic-hover ks-reveal-up" id="wkt-hero-card">
-          <img id="wkt-hero-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Featured Workout" />
-          <div class="ks-hero-card-overlay"></div>
-          <div class="ks-hero-card-content">
-            <div style="display:inline-flex;align-items:center;gap:8px;background:var(--ks-primary);padding:4px 12px;border-radius:9999px;margin-bottom:12px;width:fit-content">
-              <span class="material-symbols-outlined" style="font-size:14px;color:var(--ks-primary-on);font-variation-settings:'FILL' 1">stars</span>
-              <span id="wkt-hero-badge" style="font-family:var(--ks-font-headline);font-size:10px;font-weight:700;color:var(--ks-primary-on);text-transform:uppercase;letter-spacing:0.15em">Elite Combo</span>
-            </div>
-            <h2 id="wkt-hero-title" style="font-family:var(--ks-font-headline);font-size:clamp(1.5rem,4vw,2.5rem);font-weight:900;color:#fff;letter-spacing:-0.04em;font-style:italic;margin-bottom:4px">SIGNATURE HANDLES</h2>
-            <p id="wkt-hero-sub" style="font-size:14px;color:var(--ks-text-muted);margin-bottom:16px">Recommended for your archetype</p>
-            <button class="ks-btn-white" id="wkt-hero-btn" style="padding:12px 24px" onclick="workoutsHeroStart()">Start Now</button>
-          </div>
-        </div>
-        <!-- Weekly Goal Card (live data) -->
-        <div class="ks-c4 ks-glass ks-goal-card ks-glow-pulse ks-reveal-up ks-stagger-2">
-          <span class="ks-label" style="margin-bottom:16px">Weekly Goal</span>
-          <div class="ks-goal-number"><span id="wkt-goal-done">0</span><span style="color:var(--ks-text-dim);font-weight:500">/<span id="wkt-goal-total">5</span></span></div>
-          <div class="ks-goal-label">Workouts Completed</div>
-          <div style="width:80%;height:8px;background:var(--ks-white-5);border-radius:9999px;overflow:hidden;margin-top:16px">
-            <div id="wkt-goal-bar" style="width:0%;height:100%;background:var(--ks-primary);border-radius:9999px;box-shadow:0 0 12px rgba(255,107,0,0.5);transition:width 0.6s ease"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Precision Shooting Section -->
-      <section class="ks-mb-12">
-        <div class="ks-section-header">
-          <h3 class="ks-section-title">Precision Shooting</h3>
-          <button class="ks-section-link">View All</button>
-        </div>
-        <div class="ks-grid-12" style="gap:16px">
-          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-1" data-category="Shooting">
-            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0" alt="Mid-Range Mastery" />
-            <div class="ks-workout-img-card-body">
-              <div class="ks-workout-img-card-title">Mid-Range Mastery</div>
-              <div class="ks-workout-img-card-meta">45 Min &bull; Advanced</div>
-            </div>
-          </div>
-          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-2" data-category="Shooting">
-            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw" alt="Elite Finishing" />
-            <div class="ks-workout-img-card-body">
-              <div class="ks-workout-img-card-title">Elite Finishing</div>
-              <div class="ks-workout-img-card-meta">30 Min &bull; Expert</div>
-            </div>
-          </div>
-          <div class="ks-c4 ks-workout-img-card ks-reveal-up ks-stagger-3" data-category="Shooting">
-            <img class="ks-workout-img-card-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC2y0aWDM5KPkNHsalnbeMGPemY53aK_nIkbOyP3U6FRd_rgL4_DI_DWkXv3yAwcyjkV2H2z6Pqro6AMMPyIV6KEV51gl-Dryb5YHyVSFTb2he0QrzXwh1ms1iOKJvD5hZsyy4osNdxNM3p9FgE7AXAuuire0PVEmktE_QAUDDJWZ0ScCnHNBIy6rqff8o-6fH68oQ-NvZWF6amQC29b2XIw4gN4d5b96wkd5c6MDQPeGVro8x7ke4QR_hX38nqS9AutOCEYxv1c4U" alt="Clutch Free Throws" />
-            <div class="ks-workout-img-card-body">
-              <div class="ks-workout-img-card-title">Clutch Free Throws</div>
-              <div class="ks-workout-img-card-meta">20 Min &bull; All Levels</div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Popular Drills List -->
-      <section class="ks-mb-12">
-        <div class="ks-section-header">
-          <h3 class="ks-section-title">Popular Drills</h3>
-        </div>
-        <div class="ks-drill-list" id="workouts-grid">
-          <div class="ks-drill-item ks-reveal-up ks-stagger-1" data-category="Ball Handling">
-            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Mikan Drill" />
-            <div class="ks-drill-item-info">
-              <div class="ks-drill-item-name">Mikan Drill Evolution</div>
-              <div class="ks-drill-item-tag">Foundational</div>
-            </div>
-            <span class="ks-drill-item-duration">15 Min</span>
-            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
-          </div>
-          <div class="ks-drill-item ks-reveal-up ks-stagger-2" data-category="Defense">
-            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw" alt="Defensive Slide" />
-            <div class="ks-drill-item-info">
-              <div class="ks-drill-item-name">Defensive Slide Gauntlet</div>
-              <div class="ks-drill-item-tag">High Intensity</div>
-            </div>
-            <span class="ks-drill-item-duration">20 Min</span>
-            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
-          </div>
-          <div class="ks-drill-item ks-reveal-up ks-stagger-3" data-category="Shooting">
-            <img class="ks-drill-item-img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0" alt="Catch & Shoot" />
-            <div class="ks-drill-item-info">
-              <div class="ks-drill-item-name">Catch &amp; Shoot Logic</div>
-              <div class="ks-drill-item-tag">Smart Shooting</div>
-            </div>
-            <span class="ks-drill-item-duration">25 Min</span>
-            <span class="material-symbols-outlined ks-drill-item-arrow">chevron_right</span>
-          </div>
-        </div>
-      </section>
-
-      <!-- FAB -->
-      <button class="ks-fab" aria-label="Add workout">
-        <span class="material-symbols-outlined">add</span>
-      </button>
-
-      <div class="ks-spacer"></div>
-
-    </div><!-- /workouts panel -->
 
     <!-- ── TAB: STATS / THE LAB (Stitch v3) ── -->
     <div class="db-panel" id="db-panel-shots">
@@ -2457,7 +2332,7 @@
       <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
       <span class="ks-nav-label">Home</span>
     </button>
-    <button class="ks-nav-item" data-tab="workouts" onclick="dbSwitchTab('workouts',this)">
+    <button class="ks-nav-item" data-tab="training" onclick="dbSwitchTab('training',this)">
       <span class="material-symbols-outlined">fitness_center</span>
       <span class="ks-nav-label">Training</span>
     </button>
