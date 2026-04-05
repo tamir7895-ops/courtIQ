@@ -30,6 +30,7 @@ const STATIC_ASSETS = [
   './styles/shop.css',
   './styles/challenge.css',
   './styles/training.css',
+  './styles/lab.css',
   // Core JS
   './js/utils.js',
   './js/auth.js',
@@ -50,6 +51,7 @@ const STATIC_ASSETS = [
   // Feature JS
   './js/drill-engine.js',
   './js/training-panel.js',
+  './js/lab-panel.js',
   './js/drill-animations.js',
   './js/shot-tracker.js',
   './js/progress-charts.js',

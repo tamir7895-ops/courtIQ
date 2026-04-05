@@ -585,6 +585,7 @@
       if (typeof drillsInit === 'function') drillsInit();
       if (typeof trPanelInit === 'function') trPanelInit();
     }
+    if (id === 'shots' && typeof labPanelInit === 'function') labPanelInit();
     if (id === 'archetype' && typeof archetypeInit === 'function') archetypeInit();
     if (id === 'shop') {
       if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
