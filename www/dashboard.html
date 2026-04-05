@@ -41,6 +41,7 @@
   <link rel="stylesheet" href="styles/kinetic-elite.css?v=2" />
   <link rel="stylesheet" href="styles/kinetic-stitch.css?v=2" />
   <link rel="stylesheet" href="styles/training.css?v=1" />
+  <link rel="stylesheet" href="styles/lab.css?v=1" />
   <link rel="stylesheet" href="styles/glassmorphism.css?v=5" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js" integrity="sha384-nBSomYN4UWX4we7Pw5GsQDkjtwLh2Wde+3szWl5Lzf0zuN9XncHIZLNoucos4C7f" crossorigin="anonymous"></script>
@@ -1537,66 +1538,112 @@
     </div><!-- /training panel -->
 
 
-    <!-- ── TAB: STATS / THE LAB (Stitch v3) ── -->
+    <!-- ── TAB: THE LAB ── -->
     <div class="db-panel" id="db-panel-shots">
 
-      <!-- THE LAB Title Section -->
-      <section style="padding-top:24px;margin-bottom:32px" class="ks-reveal-up">
-        <span class="ks-label-orange" style="display:block;margin-bottom:8px">Season Performance Analytics</span>
-        <h1 class="ks-headline-xl">THE LAB.</h1>
+      <!-- ── Header ── -->
+      <section class="ks-reveal-up" style="padding-top:24px;margin-bottom:32px">
+        <span class="ks-label-orange" style="display:block;margin-bottom:8px">YOUR ANALYTICS</span>
+        <h1 class="ks-page-title">The Lab.</h1>
       </section>
 
-      <!-- Summary Stats Hero Grid -->
-      <div class="ks-bento-grid" style="margin-bottom:32px">
-        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">Points / GM</span>
+      <!-- ── Section 1: Performance Stats ── -->
+      <div class="ks-bento-grid ks-mb-12">
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-1">
+          <span class="ks-stat-label">Sessions</span>
           <div>
             <span class="ks-stat-number" id="lab-stat-pts">—</span>
-            <div id="lab-stat-pts-trend" class="ks-stat-trend ks-stat-trend--up" style="margin-top:4px;display:none">
-              <span class="material-symbols-outlined" style="font-size:14px">trending_up</span> <span id="lab-stat-pts-trend-val"></span>
-            </div>
+            <span id="lab-stat-pts-sub" class="ks-stat-trend" style="display:block;margin-top:4px;font-size:11px">Total logged</span>
           </div>
         </div>
-        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">FG% Accuracy</span>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-2">
+          <span class="ks-stat-label">Shooting %</span>
           <div>
             <span class="ks-stat-number" id="lab-stat-fg">—</span>
             <span id="lab-stat-fg-sub" style="font-size:11px;font-weight:700;color:var(--ks-text-dim);display:block;margin-top:4px">Log sessions to unlock</span>
           </div>
         </div>
-        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">Drill Volume</span>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-3">
+          <span class="ks-stat-label">Total XP</span>
           <div>
             <span class="ks-stat-number" id="lab-stat-vol">—</span>
-            <span id="lab-stat-vol-sub" class="ks-stat-trend ks-stat-trend--up" style="display:block;margin-top:4px">This Week</span>
+            <span id="lab-stat-vol-sub" class="ks-stat-trend ks-stat-trend--up" style="display:block;margin-top:4px">Points earned</span>
           </div>
         </div>
-        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-4" style="border:1px solid rgba(255,255,255,0.05)">
-          <span class="ks-stat-label">Best Vertical</span>
+        <div class="ks-glass ks-stat-card ks-reveal-up ks-stagger-4">
+          <span class="ks-stat-label">Streak</span>
           <div>
             <span class="ks-stat-number" id="lab-stat-vert">—</span>
-            <span id="lab-stat-vert-sub" style="font-size:11px;font-weight:700;color:var(--ks-text-faint);display:block;margin-top:4px">Personal Best</span>
+            <span id="lab-stat-vert-sub" style="font-size:11px;font-weight:700;color:var(--ks-text-faint);display:block;margin-top:4px">Day streak</span>
           </div>
         </div>
       </div>
 
-      <!-- Court Presence + Consistency Bento -->
+      <!-- ── Section 2: Shot Tracker Feature Window ── -->
+      <div class="ks-featured ks-mb-12 ks-reveal-up">
+        <div class="ks-featured-inner">
+          <div class="ks-featured-text">
+            <div class="ks-featured-indicator">
+              <div class="ks-featured-dot"></div>
+              <span>AI POWERED</span>
+            </div>
+            <h2 class="ks-featured-title">Shot<br>Tracker</h2>
+            <p class="ks-featured-desc">Analyze every shot in real-time with YOLOX AI detection — works live with your camera or from uploaded video.</p>
+            <div class="ks-featured-actions">
+              <button class="ks-btn-primary" onclick="ShotTrackingScreen.openCamera()">📷 Launch Camera</button>
+              <button class="ks-btn-outline" onclick="document.getElementById('ast-upload-input').click()">↑ Upload Video</button>
+            </div>
+          </div>
+          <div class="ks-featured-img" id="lab-tracker-summary" style="display:flex;align-items:center;justify-content:center">
+            <div class="lab-empty-state">
+              <div class="lab-empty-icon">🎯</div>
+              <div class="lab-empty-text">No sessions yet.<br>Launch the camera to start.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 3: AI Coach Feature Window ── -->
+      <div class="ks-featured ks-mb-12 ks-reveal-up ks-stagger-2 lab-coach-featured">
+        <div class="ks-featured-inner">
+          <div class="ks-featured-text">
+            <div class="ks-featured-indicator">
+              <div class="ks-featured-dot lab-dot-blue"></div>
+              <span style="color:#3b82f6">ADAPTIVE AI</span>
+            </div>
+            <h2 class="ks-featured-title">AI<br>Coach</h2>
+            <p class="ks-featured-desc">Your personalized weekly program, automatically adjusted by AI based on your real performance data.</p>
+            <div class="ks-featured-actions">
+              <button class="ks-btn-primary" onclick="dbSwitchTab('coach',this)">Open Coach →</button>
+            </div>
+          </div>
+          <div class="ks-featured-img" id="lab-coach-preview" style="display:flex;align-items:center;justify-content:center">
+            <div class="lab-empty-state">
+              <div class="lab-empty-icon">🤖</div>
+              <div class="lab-empty-text">No plan yet.<br>Open the AI Coach to generate your program.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Section 4: Court Analytics ── -->
+      <h2 class="ks-section-title ks-reveal-up" style="margin-bottom:20px">Court Analytics</h2>
       <div class="ks-grid-12 ks-mb-12">
-        <!-- Court Presence Heatmap (col-span-8) -->
-        <div class="ks-c8 ks-glass ks-reveal-up ks-stagger-1" style="padding:32px;min-height:400px;border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:32px">
+
+        <!-- Court Heatmap -->
+        <div class="ks-c8 ks-glass ks-reveal-up ks-stagger-1" style="padding:32px;border:1px solid rgba(255,255,255,0.05);position:relative;overflow:hidden">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px">
             <div>
               <h3 class="ks-headline-md" style="margin-bottom:4px">Court Presence</h3>
-              <p class="ks-body" style="margin:0">Shot frequency and kinetic accuracy mapping</p>
+              <p class="ks-body" style="margin:0;font-size:12px">Shot frequency by zone</p>
             </div>
-            <div class="ks-chip" style="cursor:default;font-size:10px;padding:6px 16px">Live: Last 30 Days</div>
+            <div class="ks-chip" style="cursor:default;font-size:10px;padding:6px 16px">Last 30 Days</div>
           </div>
           <div class="ks-heatmap">
             <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuA-48HpQkf6OMRny_v0-M1Cwa8_SNBmVXJp20R2kDaGxcubSm_GsdXsAhorA9v4ZRnRUPdDjIIRpyGAFyOX9yNxHhUYlW0KqbHFvynQpqdY5MaqVSvbr2muimYoVcWopgyvaYQ0RpYDAnfDUknLwB1Lp2CKKJIjz3U7TCdRghrgEGjaoH9CySdeko7BHHmdt7jJJK9OVCFomFa-t-HShaZkpP3b-xVr_1LzBtv2QRtxSZxxFcxXNpN4DDrehTKjPxMosIGHKw3E8-I" alt="Basketball court" />
             <div class="ks-heatmap-glow ks-bounce-in ks-stagger-2" style="width:128px;height:128px;background:rgba(255,107,0,0.4);filter:blur(80px);top:25%;left:25%"></div>
             <div class="ks-heatmap-glow ks-bounce-in ks-stagger-4" style="width:192px;height:192px;background:rgba(255,107,0,0.2);filter:blur(100px);top:50%;right:25%"></div>
             <div class="ks-heatmap-glow ks-bounce-in ks-stagger-3" style="width:96px;height:96px;background:rgba(255,107,0,0.6);filter:blur(60px);bottom:25%;left:33%"></div>
-            <div class="ks-heatmap-glow ks-bounce-in ks-stagger-5" style="width:80px;height:80px;background:rgba(255,255,255,0.2);filter:blur(50px);top:33%;right:33%"></div>
           </div>
           <div class="ks-heatmap-legend">
             <div class="ks-legend-item"><div class="ks-legend-dot ks-legend-dot--high"></div><span class="ks-label">High Vol</span></div>
@@ -1604,349 +1651,28 @@
             <div class="ks-legend-item"><div class="ks-legend-dot ks-legend-dot--low"></div><span class="ks-label">Low Vol</span></div>
           </div>
         </div>
-        <!-- Consistency Bar Chart (col-span-4) -->
-        <div class="ks-c4 ks-glass ks-glow-pulse ks-reveal-up ks-stagger-2" style="padding:32px;border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column;justify-content:space-between">
-          <div>
-            <h3 class="ks-headline-md" style="margin-bottom:8px">Consistency</h3>
-            <p class="ks-body" style="margin:0;font-size:12px">Training intensity per week</p>
-          </div>
-          <div class="ks-bars">
-            <div class="ks-bar" style="height:40%"><span class="ks-bar-tooltip">12h</span></div>
-            <div class="ks-bar ks-stagger-1" style="height:65%"><span class="ks-bar-tooltip">18h</span></div>
-            <div class="ks-bar ks-stagger-2" style="height:55%"><span class="ks-bar-tooltip">15h</span></div>
-            <div class="ks-bar ks-bar--active ks-stagger-3" style="height:90%"><span class="ks-bar-tooltip">26h</span></div>
-            <div class="ks-bar ks-stagger-4" style="height:75%"><span class="ks-bar-tooltip">21h</span></div>
-          </div>
-          <div class="ks-bar-labels">
-            <span>WK 1</span><span>WK 2</span><span>WK 3</span><span>WK 4</span><span>WK 5</span>
-          </div>
+
+        <!-- Consistency bars (real session data) -->
+        <div class="ks-c4 ks-glass ks-glow-pulse ks-reveal-up ks-stagger-2" style="padding:32px;border:1px solid rgba(255,255,255,0.05);display:flex;flex-direction:column">
+          <h3 class="ks-headline-md" style="margin-bottom:4px">Consistency</h3>
+          <p class="ks-body" style="margin:0;font-size:12px;margin-bottom:8px">Sessions per day (last 7)</p>
+          <div id="lab-consistency-bars" style="flex:1"></div>
         </div>
       </div>
 
-      <!-- Pro Comparison Section -->
-      <section class="ks-pro-compare ks-reveal-up">
-        <div class="ks-pro-compare-bg-text">PRO</div>
-        <div class="ks-pro-compare-inner">
-          <div>
-            <div class="ks-pro-badge">
-              <span class="material-symbols-outlined" style="font-size:14px">bolt</span> Elite DNA Match
-            </div>
-            <h2 class="ks-pro-title">COMPARE:<br><span class="ks-orange" id="lab-pro-name">Your Archetype</span></h2>
-            <p class="ks-pro-desc" id="lab-pro-desc">Complete your onboarding to unlock your personalized archetype comparison and AI-matched performance insights.</p>
-            <div style="display:flex;gap:16px;align-items:center;padding-top:16px">
-              <button class="ks-btn-white" style="padding:16px 32px">Data Report</button>
-              <button class="ks-btn-outline" style="padding:16px 32px">Switch Pro</button>
-            </div>
-          </div>
-          <div class="ks-pro-img-wrap">
-            <div class="ks-pro-img-glow"></div>
-            <div style="position:relative">
-              <div class="ks-pro-stats-grid" style="margin-bottom:16px">
-                <div class="ks-glass ks-pro-stat-card">
-                  <div class="ks-pro-stat-label" id="lab-pro-stat1-label">Primary Skill</div>
-                  <div class="ks-pro-stat-row">
-                    <span class="ks-pro-stat-value" id="lab-pro-stat1-val">—</span>
-                    <span class="ks-pro-stat-delta" id="lab-pro-stat1-delta"></span>
-                  </div>
-                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow" id="lab-pro-stat1-bar" style="width:0%;background:var(--ks-primary)"></div></div>
-                </div>
-                <div class="ks-glass ks-pro-stat-card">
-                  <div class="ks-pro-stat-label" id="lab-pro-stat2-label">Secondary Skill</div>
-                  <div class="ks-pro-stat-row">
-                    <span class="ks-pro-stat-value" id="lab-pro-stat2-val">—</span>
-                    <span style="font-size:10px;font-weight:700;color:var(--ks-text-dim)" id="lab-pro-stat2-tier"></span>
-                  </div>
-                  <div class="ks-pro-stat-bar"><div class="ks-pro-stat-bar-fill ks-bar-grow ks-stagger-1" id="lab-pro-stat2-bar" style="width:0%;background:rgba(255,255,255,0.4)"></div></div>
-                </div>
-              </div>
-              <div class="ks-pro-player-img">
-                <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw" alt="Basketball player" />
-                <div class="ks-pro-player-img-gradient"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Insights Bento -->
-      <div class="ks-insights-grid">
-        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-1" style="border:1px solid rgba(255,255,255,0.05)">
-          <div class="ks-insight-icon ks-insight-icon--blue">
-            <span class="material-symbols-outlined" id="lab-insight1-icon">bolt</span>
-          </div>
-          <div>
-            <h4 class="ks-insight-title" id="lab-insight1-title">Performance Insight</h4>
-            <p class="ks-insight-body" id="lab-insight1-body">Log your first session to unlock AI-powered insights about your training.</p>
-          </div>
-        </div>
-        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-2" style="border:1px solid rgba(255,255,255,0.05)">
-          <div class="ks-insight-icon ks-insight-icon--orange">
-            <span class="material-symbols-outlined" id="lab-insight2-icon">target</span>
-          </div>
-          <div>
-            <h4 class="ks-insight-title" id="lab-insight2-title">Shooting Trend</h4>
-            <p class="ks-insight-body" id="lab-insight2-body">Your shooting accuracy will be analyzed after 2+ sessions are logged.</p>
-          </div>
-        </div>
-        <div class="ks-glass ks-insight-card ks-reveal-up ks-stagger-3" style="border:1px solid rgba(255,255,255,0.05)">
-          <div class="ks-insight-icon ks-insight-icon--amber">
-            <span class="material-symbols-outlined" id="lab-insight3-icon">timer</span>
-          </div>
-          <div>
-            <h4 class="ks-insight-title" id="lab-insight3-title">Training Volume</h4>
-            <p class="ks-insight-body" id="lab-insight3-body">Track your weekly drill hours to see volume trends and recovery signals.</p>
-          </div>
-        </div>
+      <!-- Progress Chart -->
+      <div class="ks-glass ks-mb-12 ks-reveal-up" style="padding:32px;border:1px solid rgba(255,255,255,0.05)">
+        <h3 class="ks-headline-md" style="margin-bottom:4px">Shooting Progress</h3>
+        <p class="ks-body" style="margin:0 0 16px;font-size:12px">FG% over your last sessions</p>
+        <canvas id="lab-progress-chart"></canvas>
       </div>
 
-      <!-- ═══ EXISTING FEATURES (preserved, restyled) ═══ -->
+      <!-- Hidden upload input (wired by ShotTrackingScreen) -->
+      <input type="file" id="ast-upload-input" accept="video/*" style="display:none" />
 
-      <!-- Period Selector Chips -->
-      <div style="margin-top:32px">
-        <div class="ks-section-heading-with-icon">
-          <span class="material-symbols-outlined">sports_basketball</span>
-          Shooting Analytics
-        </div>
-        <div class="ks-chips-scroll" style="margin-bottom:16px">
-          <span class="ks-chip ks-chip--active" onclick="keStatsPeriod('week',this)">This Week</span>
-          <span class="ks-chip" onclick="keStatsPeriod('month',this)">This Month</span>
-          <span class="ks-chip" onclick="keStatsPeriod('all',this)">All Time</span>
-        </div>
-      </div>
+      <div class="ks-spacer"></div>
 
-      <!-- KE: AI Shot Tracker Card -->
-      <div class="ke-ai-tracker">
-        <div class="ke-ai-tracker__header">
-          <div class="ke-ai-tracker__icon">&#128247;</div>
-          <div class="ke-ai-tracker__label">AI SHOT TRACKER</div>
-        </div>
-        <div class="ke-ai-tracker__sub">Analyze your shots with AI-powered detection</div>
-        <div class="ke-ai-tracker__btns">
-          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--primary" onclick="window.ShotTrackingScreen ? ShotTrackingScreen.openCamera() : document.getElementById('ast-launch-btn').click()">&#128247; Live Camera</button>
-          <button class="ke-ai-tracker__btn ke-ai-tracker__btn--secondary" onclick="document.getElementById('ast-file-input').click()">&#127916; Upload Video</button>
-        </div>
-      </div>
-
-      <!-- AI Tracking Banner (hidden by KE, preserved for JS compatibility) -->
-      <div class="ast-launch-card">
-        <div class="ast-launch-icon">📷</div>
-        <div class="ast-launch-text">
-          <div class="ast-launch-title">AI Shot Tracker</div>
-          <div class="ast-launch-sub">Auto-detect made &amp; missed shots — use your live camera or upload a video from your gallery.</div>
-        </div>
-        <div class="ast-launch-btns">
-          <button class="ast-launch-btn" id="ast-launch-btn">📷 Live Camera</button>
-          <button class="ast-launch-btn ast-launch-btn-upload" id="ast-upload-btn">🎬 Upload Video</button>
-        </div>
-      </div>
-      <input type="file" accept="video/*" id="ast-file-input" style="display:none">
-
-      <!-- Shot Map Card -->
-      <div class="glass-shot-map-card">
-        <div class="glass-section-header">
-          <span class="glass-section-title">SHOT MAP</span>
-          <span class="glass-section-link">Full Court →</span>
-        </div>
-        <div class="glass-court-map">
-          <svg viewBox="0 0 500 470" class="glass-court-svg">
-            <rect x="10" y="10" width="480" height="450" rx="4" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1.5"/>
-            <rect x="175" y="10" width="150" height="190" rx="2" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-            <circle cx="250" cy="200" r="60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-            <path d="M 60 10 L 60 140 Q 250 420 440 140 L 440 10" fill="none" stroke="rgba(245,166,35,0.15)" stroke-width="1.5"/>
-            <circle cx="250" cy="52" r="8" fill="none" stroke="rgba(245,166,35,0.4)" stroke-width="2"/>
-            <line x1="220" y1="40" x2="280" y2="40" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
-            <circle cx="180" cy="150" r="6" fill="rgba(86,211,100,0.7)"/>
-            <circle cx="300" cy="180" r="6" fill="rgba(86,211,100,0.7)"/>
-            <circle cx="120" cy="200" r="6" fill="rgba(248,81,73,0.7)"/>
-            <circle cx="350" cy="250" r="6" fill="rgba(86,211,100,0.7)"/>
-            <circle cx="250" cy="100" r="6" fill="rgba(86,211,100,0.7)"/>
-            <circle cx="400" cy="180" r="6" fill="rgba(248,81,73,0.7)"/>
-            <circle cx="100" cy="300" r="6" fill="rgba(86,211,100,0.7)"/>
-            <circle cx="380" cy="300" r="6" fill="rgba(248,81,73,0.7)"/>
-          </svg>
-        </div>
-        <div class="glass-shot-map-stats">
-          <div class="glass-map-stat">
-            <div class="glass-map-stat-val" style="color:#56d364">67%</div>
-            <div class="glass-map-stat-label">PAINT</div>
-          </div>
-          <div class="glass-map-stat">
-            <div class="glass-map-stat-val" style="color:#f5a623">42%</div>
-            <div class="glass-map-stat-label">MID-RANGE</div>
-          </div>
-          <div class="glass-map-stat">
-            <div class="glass-map-stat-val" style="color:#4ca3ff">38%</div>
-            <div class="glass-map-stat-label">3-POINT</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="glass-shot-actions">
-        <button class="glass-ai-analysis-btn" onclick="document.getElementById('ast-launch-btn').click()">🤖 AI ANALYSIS</button>
-        <button class="glass-stop-tracking-btn">⏹ STOP TRACKING</button>
-      </div>
-
-      <!-- Court Size Preset -->
-      <div class="ast-settings-card">
-        <div class="ast-settings-row">
-          <div class="ast-settings-label">Court Size</div>
-          <div class="ast-court-btns">
-            <button class="ast-court-btn ast-court-active" data-preset="nba">NBA</button>
-            <button class="ast-court-btn" data-preset="fiba">FIBA</button>
-            <button class="ast-court-btn" data-preset="hs">HS</button>
-          </div>
-        </div>
-        <div class="ast-court-info" id="ast-court-info">NBA: 3PT line at 23.75 ft, Court 50×94 ft</div>
-        <div class="ast-settings-row" style="margin-top:12px;">
-          <div class="ast-settings-label">Training Reminders</div>
-          <label class="ast-toggle-label">
-            <input type="checkbox" id="ast-notif-toggle" class="ast-toggle-input">
-            <span class="ast-toggle-switch"></span>
-          </label>
-        </div>
-        <div class="ast-notif-options" id="ast-notif-options">
-          <span class="ast-notif-text">Remind after</span>
-          <select id="ast-notif-interval" class="ast-notif-select">
-            <option value="1">1 day</option>
-            <option value="2" selected>2 days</option>
-            <option value="3">3 days</option>
-            <option value="5">5 days</option>
-            <option value="7">1 week</option>
-          </select>
-          <span class="ast-notif-text">of inactivity</span>
-        </div>
-      </div>
-
-      <!-- Progress Sparkline (dashboard level) -->
-      <div class="ast-dash-sparkline" id="ast-dash-sparkline"></div>
-
-      <!-- AI Session History -->
-      <div class="ast-history-section">
-        <div class="ast-history-title">AI Session History</div>
-        <div class="ast-history-list" id="ast-history-list">
-          <div class="ast-hist-empty">No AI tracking sessions yet. Start one above!</div>
-        </div>
-      </div>
-
-      <div class="st-layout">
-
-        <!-- Input form -->
-        <div class="st-card">
-          <div class="st-card-title">Log Shooting Session</div>
-          <div class="st-card-sub">Track your field goals, three-pointers, and free throws.</div>
-
-          <div class="st-error" id="st-error"></div>
-
-          <div class="st-fields">
-            <!-- Field Goals -->
-            <div class="st-section-title">Field Goals</div>
-            <div class="st-row-2">
-              <div class="st-field">
-                <label class="st-label">Made</label>
-                <input class="st-input" id="st-fg-made" type="number" min="0" placeholder="0" />
-              </div>
-              <div class="st-field">
-                <label class="st-label">Missed</label>
-                <input class="st-input" id="st-fg-missed" type="number" min="0" placeholder="0" />
-              </div>
-            </div>
-
-            <!-- 3-Pointers -->
-            <div class="st-section-title">3-Pointers</div>
-            <div class="st-row-2">
-              <div class="st-field">
-                <label class="st-label">Made</label>
-                <input class="st-input" id="st-3pt-made" type="number" min="0" placeholder="0" />
-              </div>
-              <div class="st-field">
-                <label class="st-label">Missed</label>
-                <input class="st-input" id="st-3pt-missed" type="number" min="0" placeholder="0" />
-              </div>
-            </div>
-
-            <!-- Free Throws -->
-            <div class="st-section-title">Free Throws</div>
-            <div class="st-row-2">
-              <div class="st-field">
-                <label class="st-label">Made</label>
-                <input class="st-input" id="st-ft-made" type="number" min="0" placeholder="0" />
-              </div>
-              <div class="st-field">
-                <label class="st-label">Missed</label>
-                <input class="st-input" id="st-ft-missed" type="number" min="0" placeholder="0" />
-              </div>
-            </div>
-
-            <button class="st-submit-btn" id="st-submit-btn">Log Session</button>
-          </div>
-        </div>
-
-        <!-- Results + History -->
-        <div class="st-card">
-          <!-- Results (hidden until first submission) -->
-          <div class="st-results" id="st-results">
-            <div class="st-results-title">Session Results</div>
-
-            <div class="st-pct-hero">
-              <div class="st-pct-ring" id="st-pct-ring" style="background: conic-gradient(var(--c-surface2) 0deg, var(--c-surface2) 360deg);">
-                <div class="st-pct-ring-inner">
-                  <span class="st-pct-value" id="st-pct-value">0%</span>
-                </div>
-              </div>
-              <span class="st-pct-label">Overall Shooting %</span>
-            </div>
-
-            <div class="st-stat-grid">
-              <div class="st-stat-item">
-                <div class="st-stat-pct" id="st-fg-pct">0%</div>
-                <div class="st-stat-detail" id="st-fg-detail">0/0</div>
-                <div class="st-stat-label">Field Goals</div>
-              </div>
-              <div class="st-stat-item">
-                <div class="st-stat-pct" id="st-3pt-pct">0%</div>
-                <div class="st-stat-detail" id="st-3pt-detail">0/0</div>
-                <div class="st-stat-label">3-Pointers</div>
-              </div>
-              <div class="st-stat-item">
-                <div class="st-stat-pct" id="st-ft-pct">0%</div>
-                <div class="st-stat-detail" id="st-ft-detail">0/0</div>
-                <div class="st-stat-label">Free Throws</div>
-              </div>
-            </div>
-
-            <div class="st-summary-row" id="st-summary">
-              <span>Total: <strong>0 shots</strong></span>
-              <span>Made: <strong>0</strong></span>
-              <span>Missed: <strong>0</strong></span>
-            </div>
-          </div>
-
-          <!-- Progress chart -->
-          <div class="pc-chart-wrap" id="pc-chart-wrap">
-            <div class="pc-chart-title">Shooting Progress</div>
-            <div class="pc-legend" id="pc-legend"></div>
-            <canvas id="pc-canvas" width="600" height="260"></canvas>
-            <div class="pc-empty" id="pc-empty">Log 2+ sessions to see your progress chart.</div>
-          </div>
-
-          <!-- Session history -->
-          <div class="st-history-title">Session History</div>
-          <div class="st-empty" id="st-history-empty">
-            <div class="st-empty-icon">🎯</div>
-            <div>No sessions yet. Log your first shooting session!</div>
-          </div>
-          <div class="st-history-list" id="st-history-list"></div>
-        </div>
-
-      </div>
-
-      <!-- ── AI Shot Analysis Feedback Panel ── -->
-      <div class="sa-feedback-wrap" id="st-ai-feedback" style="display:none;"></div>
-
-      <!-- Bottom spacer -->
-      <div class="ke-shots-spacer"></div>
-
-    </div><!-- /shots panel -->
+</div><!-- /shots panel -->
 
     <!-- ── TAB: PRO MOVES ── -->
     <div class="db-panel" id="db-panel-moves">
@@ -3042,6 +2768,7 @@ if(window.__PREVIEW_MODE__){
 <script src="js/drill-animations.js"></script>
 <script src="js/drill-engine.js"></script>
 <script src="js/training-panel.js"></script>
+<script src="js/lab-panel.js"></script>
 <script src="js/animations.js"></script>
 <script src="js/player-profile.js"></script>
 <script src="js/daily-workout.js"></script>
