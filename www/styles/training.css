@@ -456,3 +456,129 @@
   padding: 20px;
   text-align: center;
 }
+
+/* ── Exercise Library Accordion ────────────────────────────── */
+#drills-library-grid {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+}
+
+.drill-lib-accordion {
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.drill-lib-accordion:last-child {
+  border-bottom: none;
+}
+
+.drill-lib-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  cursor: pointer;
+  transition: background 0.15s;
+  user-select: none;
+}
+
+.drill-lib-row:hover {
+  background: rgba(255,255,255,0.04);
+}
+
+.drill-lib-row-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+  background: rgba(255,255,255,0.06);
+}
+
+.drill-lib-row-icon.focus-shooting  { background: rgba(255,107,0,0.15); }
+.drill-lib-row-icon.focus-handling  { background: rgba(99,102,241,0.15); }
+.drill-lib-row-icon.focus-defense   { background: rgba(239,68,68,0.15); }
+.drill-lib-row-icon.focus-footwork  { background: rgba(34,197,94,0.15); }
+.drill-lib-row-icon.focus-finishing { background: rgba(234,179,8,0.15); }
+.drill-lib-row-icon.focus-passing   { background: rgba(14,165,233,0.15); }
+.drill-lib-row-icon.focus-strength  { background: rgba(168,85,247,0.15); }
+.drill-lib-row-icon.focus-vertical  { background: rgba(249,115,22,0.15); }
+
+.drill-lib-row-name {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ks-text, #e5e2e1);
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.drill-lib-row-focus {
+  font-size: 11px;
+  color: var(--ks-text-muted, #a1a1aa);
+  flex-shrink: 0;
+  display: none;
+}
+
+@media (min-width: 480px) {
+  .drill-lib-row-focus { display: inline; }
+}
+
+.drill-lib-row-dur {
+  font-size: 11px;
+  color: var(--ks-text-muted, #a1a1aa);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.drill-lib-row-chevron {
+  font-size: 16px;
+  color: var(--ks-text-muted, #a1a1aa);
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+  line-height: 1;
+}
+
+.drill-lib-accordion.open .drill-lib-row-chevron {
+  transform: rotate(90deg);
+}
+
+.drill-lib-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  padding: 0 14px 0 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-sizing: border-box;
+}
+
+.drill-lib-accordion.open .drill-lib-body {
+  max-height: 320px;
+  padding-bottom: 14px;
+}
+
+.drill-lib-body-desc {
+  font-size: 12px;
+  color: var(--ks-text-muted, #a1a1aa);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.drill-lib-body-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drill-lib-body-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

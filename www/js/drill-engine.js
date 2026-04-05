@@ -3003,26 +3003,39 @@ function _buildLibraryCard(drill) {
   const saveClass  = saved ? 'drill-lib-save-btn saved' : 'drill-lib-save-btn';
 
   return `
-<div class="drill-lib-card focus-${focusClass}" data-drill-id="${drill.id}">
-  <div class="drill-lib-icon-box ${focusClass}">
-    <span>${icon}</span>
+<div class="drill-lib-accordion" data-drill-id="${drill.id}">
+  <div class="drill-lib-row" onclick="drillLibToggleExpand('${drill.id}')">
+    <div class="drill-lib-row-icon focus-${focusClass}">${icon}</div>
+    <div class="drill-lib-row-name">${drill.name}</div>
+    <span class="drill-lib-row-focus">${drill.focus_area}</span>
+    <span class="drill-difficulty-badge ${diffClass}">${drill.difficulty}</span>
+    <span class="drill-lib-row-dur">⏱ ${drill.duration_minutes}m</span>
+    <span class="drill-lib-row-chevron">›</span>
   </div>
-  <div class="drill-lib-card-info">
-    <div class="drill-lib-card-name">${drill.name}</div>
-    <p class="drill-lib-card-desc">${drill.description}</p>
-    <div class="drill-lib-card-meta">
-      <span>⏱ ${drill.duration_minutes} min</span>
-      <span class="meta-divider"></span>
+  <div class="drill-lib-body">
+    <p class="drill-lib-body-desc">${drill.description}</p>
+    <div class="drill-lib-body-meta">
       <span>🔁 ${drill.reps_or_sets}</span>
-      <span class="meta-divider"></span>
+      <span>⏱ ${drill.duration_minutes} min</span>
       <span class="drill-difficulty-badge ${diffClass}">${drill.difficulty}</span>
     </div>
-  </div>
-  <div class="drill-lib-card-actions">
-    <button class="drill-lib-start-btn" onclick="drillWorkoutOpen('${drill.id}')">Start →</button>
-    <button class="${saveClass}" data-save-id="${drill.id}" onclick="event.stopPropagation();drillToggleSave('${drill.id}')" aria-label="${saved ? 'Saved' : 'Save to plan'}">${saveLbl}</button>
+    <div class="drill-lib-body-actions">
+      <button class="drill-lib-start-btn" onclick="event.stopPropagation();drillWorkoutOpen('${drill.id}')">▶ Start Drill</button>
+      <button class="${saveClass}" data-save-id="${drill.id}" onclick="event.stopPropagation();drillToggleSave('${drill.id}')" aria-label="${saved ? 'Saved' : 'Save to plan'}">${saveLbl} ${saved ? 'Saved' : 'Save'}</button>
+    </div>
   </div>
 </div>`;
+}
+
+function drillLibToggleExpand(drillId) {
+  const el = document.querySelector('.drill-lib-accordion[data-drill-id="' + drillId + '"]');
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  // Close all others
+  document.querySelectorAll('.drill-lib-accordion.open').forEach(function(a) {
+    a.classList.remove('open');
+  });
+  if (!isOpen) el.classList.add('open');
 }
 
 /* ══════════════════════════════════════════════════════════════
