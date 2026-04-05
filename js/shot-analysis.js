@@ -119,10 +119,12 @@
     };
     window._coachWeakAreas = COACH_AREA_MAP[weak.area] || ['shooting'];
 
-    // drill-engine.js is a synchronous script loaded before this file — call directly
-    if (typeof _checkCoachSuggestions === 'function') {
-      _checkCoachSuggestions();
-    }
+    // Let drill-engine initialise first, then trigger banner
+    setTimeout(function () {
+      if (typeof _checkCoachSuggestions === 'function') {
+        _checkCoachSuggestions();
+      }
+    }, 700);
   }
 
   /* ── Feature 3: Shot Tracker feedback panel ──────────────── */
@@ -250,18 +252,11 @@
     initCoachBanner();
     patchDrillCards();
 
-    // Render feedback when shot-tracker signals it has rendered history.
-    // Use flag for the common case where shot-tracker's DOMContentLoaded
-    // fires before ours (scripts are registered in order).
+    // Render feedback if panel already exists in DOM (page load with sessions)
     var sessions = loadSessions();
     if (sessions.length > 0) {
-      if (window.ShotTracker && window.ShotTracker.ready) {
-        renderFeedback();
-      } else {
-        document.addEventListener('courtiq:shotTrackerReady', function () {
-          renderFeedback();
-        }, { once: true });
-      }
+      // Small delay to let shot-tracker render first
+      setTimeout(renderFeedback, 300);
     }
   }
 

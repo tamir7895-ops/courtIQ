@@ -18,8 +18,7 @@
 
 .dc-card:hover {
   border-color: rgba(245,166,35,0.25);
-  box-shadow: 0 8px 36px rgba(0,0,0,0.35), 0 0 20px rgba(245,166,35,0.05);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 32px rgba(0,0,0,0.4);
 }
 
 /* Accent stripe on left */

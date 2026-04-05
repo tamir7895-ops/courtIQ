@@ -32,7 +32,6 @@
 
 /* ── Card ─────────────────────────────────────────────────── */
 .mv-card {
-  position: relative;
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
   -webkit-backdrop-filter: blur(var(--glass-blur));
@@ -44,33 +43,16 @@
   overflow: hidden;
 }
 
-.mv-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-  z-index: 1;
-}
-
 .mv-card:hover {
   border-color: rgba(245,166,35,0.3);
-  box-shadow: 0 12px 48px rgba(0,0,0,0.4), 0 0 20px rgba(245,166,35,0.04);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.5);
   transform: translateY(-2px);
-}
-
-.mv-card:hover::before {
-  opacity: 1;
 }
 
 /* Animation preview */
 .mv-card-anim {
   position: relative;
-  background: linear-gradient(180deg, #121620 0%, #161921 100%);
+  background: linear-gradient(180deg, #141820 0%, var(--c-surface) 100%);
   overflow: hidden;
   border-radius: var(--r-lg) var(--r-lg) 0 0;
 }
@@ -256,7 +238,7 @@
 
 .mv-practice-btn:hover {
   background: rgba(245,166,35,0.14);
-  box-shadow: 0 4px 16px rgba(245,166,35,0.2);
+  box-shadow: 0 2px 12px rgba(245,166,35,0.1);
 }
 
 /* ── Modal ────────────────────────────────────────────────── */

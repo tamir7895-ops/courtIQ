@@ -149,13 +149,7 @@
         return { archetype: archetypeKey, report: localReport };
       }
 
-      // Use fresh token from SDK (auto-refreshed) instead of cached session
-      var freshSession = null;
-      try {
-        var _sesRes = await sb.auth.getSession();
-        freshSession = _sesRes.data && _sesRes.data.session;
-      } catch (_e) { /* fall through to local report */ }
-      var token = freshSession ? freshSession.access_token : (window.currentSession && window.currentSession.access_token);
+      var token = window.currentSession.access_token;
       var supabaseUrl = sb.supabaseUrl || '';
 
       if (!supabaseUrl) {

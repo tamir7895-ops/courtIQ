@@ -5,8 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 27;
-const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
+const CACHE_NAME = 'courtiq-v7';  // v7: fixed absolute→relative paths so install no longer fails on GH Pages
 const STATIC_ASSETS = [
   './',
   './index.html',
@@ -62,10 +61,11 @@ const STATIC_ASSETS = [
   './manifest.json'
 ];
 
-/* ── Install: resilient per-file cache (never aborts on missing files) ── */
+/* ── Install: cache static shell ─────────────────────────── */
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
+      // Use individual fetches so a single 404 never kills the whole install.
       var fetches = STATIC_ASSETS.map(function (url) {
         return fetch(url).then(function (res) {
           if (res && res.status === 200) return cache.put(url, res);
@@ -73,12 +73,12 @@ self.addEventListener('install', function (event) {
       });
       return Promise.all(fetches);
     }).then(function () {
-      return self.skipWaiting(); // activate immediately
+      return self.skipWaiting(); // activate immediately — don't wait for old tabs to close
     })
   );
 });
 
-/* ── Activate: wipe ALL old caches, then claim & reload pages ─────── */
+/* ── Activate: remove old caches ────────────────────────── */
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -87,48 +87,7 @@ self.addEventListener('activate', function (event) {
             .map(function (k) { return caches.delete(k); })
       );
     }).then(function () {
-      return self.clients.claim();
-    }).then(function () {
-      // After claiming, actively navigate ALL open windows to the SPA root.
-      // This replaces stale cached pages (e.g. old dashboard.html) without
-      // requiring any code in the old page — the SW does it directly.
-      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-        .then(function (clients) {
-          clients.forEach(function (client) {
-            client.navigate('./').catch(function () {});
-          });
-        });
-    })
-  );
-});
-
-/* ── Push notification click — open the app ──────────────── */
-self.addEventListener('notificationclick', function (event) {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
-        if (clientList[i].url.includes('index.html') && 'focus' in clientList[i]) {
-          return clientList[i].focus();
-        }
-      }
-      if (clients.openWindow) return clients.openWindow('./index.html');
-    })
-  );
-});
-
-/* ── Push event (for future server-side push) ────────────── */
-self.addEventListener('push', function (event) {
-  var data = { title: 'CourtIQ', body: 'Time to train!' };
-  if (event.data) {
-    try { data = event.data.json(); } catch (e) { data.body = event.data.text(); }
-  }
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: 'assets/logo-icon.svg',
-      badge: 'icons/icon-192.png',
-      vibrate: [200, 100, 200]
+      return self.clients.claim(); // take control of all open pages immediately
     })
   );
 });
@@ -162,32 +121,25 @@ self.addEventListener('fetch', function (event) {
   // Cache-first for everything else (GET only)
   if (event.request.method !== 'GET') return;
 
-  // Strip cache-busting query params (?v=3) for cache matching
-  var cleanUrl = event.request.url.replace(/\?v=\d+$/, '');
-  var cacheRequest = cleanUrl !== event.request.url ? new Request(cleanUrl) : event.request;
+  // Strip cache-busting query params (?v=N) for cache key matching
+  var cleanUrl = url.replace(/[?&]v=\d+/, '');
+  var cacheKey = cleanUrl !== url ? new Request(cleanUrl) : event.request;
 
   event.respondWith(
-    caches.match(cacheRequest).then(function (cached) {
+    caches.match(cacheKey).then(function (cached) {
       if (cached) return cached;
       return fetch(event.request).then(function (response) {
-        // Navigation 404 fallback: if a page (e.g. dashboard.html) no longer exists,
-        // serve the app shell (index.html) so the SPA handles routing.
-        if (event.request.mode === 'navigate' && response.status === 404) {
-          return caches.match('./') || fetch('./');
-        }
         // Cache new static assets on the fly
         if (response && response.status === 200 && response.type === 'basic') {
           var clone = response.clone();
           caches.open(CACHE_NAME).then(function (cache) {
-            cache.put(event.request, clone);
+            cache.put(cacheKey, clone);
           });
         }
         return response;
       }).catch(function () {
-        // Network offline fallback for navigation requests
-        if (event.request.mode === 'navigate') {
-          return caches.match('./') || caches.match('./index.html');
-        }
+        // Offline fallback: try cache without query params
+        return caches.match('./dashboard.html');
       });
     })
   );

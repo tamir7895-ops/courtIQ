@@ -68,14 +68,10 @@
 
 /* ── Chart container (used by dashboard Chart.js charts) ── */
 .db-chart-wrap {
-  background: linear-gradient(180deg, rgba(0,0,0,0.12), rgba(0,0,0,0.18));
+  background: var(--shadow-inset, rgba(0,0,0,0.15));
   border-radius: var(--r-md, 10px);
   padding: 16px;
-  border: 1px solid rgba(255,255,255,0.04);
-  transition: border-color 0.3s ease;
-}
-.db-chart-wrap:hover {
-  border-color: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.03);
 }
 .db-chart-wrap canvas {
   border-radius: var(--r-sm, 6px);
