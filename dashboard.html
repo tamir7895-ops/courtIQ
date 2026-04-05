@@ -1221,52 +1221,77 @@
     <div class="db-panel" id="db-panel-training">
 
 
-      <!-- ════ SECTION 1: WEEKLY OVERVIEW ════ -->
-      <section class="tr-section">
-        <div class="tr-section-header">
-          <h2 class="tr-section-title">WEEKLY OVERVIEW</h2>
-          <span class="tr-section-sub">Your training snapshot for this week</span>
-        </div>
-        <div class="tr-weekly-grid">
-          <!-- Weekly Goals card -->
-          <div class="tr-glass-card tr-goals-card">
-            <div class="tr-card-eyebrow">THIS WEEK'S GOALS</div>
-            <div class="tr-goal-row">
-              <span class="tr-goal-label">XP Earned</span>
-              <span class="tr-goal-val" id="tr-xp-val">0</span>
+
+      <!-- ── Top Label ── -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:24px 0 8px">
+        <span class="ks-label-orange">Your Program</span>
+      </div>
+
+      <!-- ── Page Title ── -->
+      <h1 class="ks-page-title">Training</h1>
+
+      <!-- ── WEEKLY CHALLENGE (Featured Split Card) ── -->
+      <div class="ks-featured ks-mb-12 ks-reveal-up">
+        <div class="ks-featured-inner">
+          <div class="ks-featured-text">
+            <div class="ks-featured-indicator">
+              <div class="ks-featured-dot"></div>
+              <span id="tr-challenge-week-badge">WEEK CHALLENGE</span>
             </div>
-            <div class="tr-goal-bar"><div class="tr-goal-bar-fill tr-bar-xp" id="tr-xp-bar" style="width:0%"></div></div>
-            <div class="tr-goal-row" style="margin-top:12px">
-              <span class="tr-goal-label">Sessions</span>
-              <span class="tr-goal-val" id="tr-sessions-val">0</span>
-            </div>
-            <div class="tr-goal-bar"><div class="tr-goal-bar-fill tr-bar-sessions" id="tr-sessions-bar" style="width:0%"></div></div>
-            <div class="tr-goal-row" style="margin-top:12px">
-              <span class="tr-goal-label">Focus Area</span>
-              <span class="tr-goal-val" id="tr-focus-val">General</span>
-            </div>
-            <div class="tr-goal-row" style="margin-top:8px">
-              <span class="tr-goal-label">Streak</span>
-              <span class="tr-goal-val" id="tr-streak-val">0 days</span>
+            <h2 class="ks-featured-title" id="tr-challenge-title">Loading…</h2>
+            <p class="ks-featured-desc" id="tr-challenge-desc"></p>
+            <div class="ks-featured-actions">
+              <button class="ks-btn-primary" onclick="trChallengeStart()">Start Challenge</button>
+              <span class="ks-label" id="tr-challenge-time" style="margin-left:4px"></span>
             </div>
           </div>
-          <!-- Weekly Challenge card -->
-          <div class="tr-glass-card tr-challenge-card">
-            <div class="tr-card-eyebrow">WEEKLY CHALLENGE <span class="tr-challenge-week-badge" id="tr-challenge-week-badge">Week 1</span></div>
-            <div class="tr-challenge-title" id="tr-challenge-title">Loading…</div>
-            <div class="tr-challenge-desc" id="tr-challenge-desc"></div>
+          <div class="ks-featured-img" style="display:flex;flex-direction:column;justify-content:center;padding:32px;gap:0">
+            <div class="ks-label" style="margin-bottom:16px">THIS WEEK'S DRILLS</div>
             <ol class="tr-challenge-steps" id="tr-challenge-steps"></ol>
-            <div class="tr-challenge-time" id="tr-challenge-time"></div>
-            <button class="tr-challenge-btn" onclick="trChallengeStart()">Start Challenge →</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── WEEKLY GOALS (Bento Stats) ── -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Weekly Goals</h3>
+        </div>
+        <div class="ks-grid-12">
+          <div class="ks-c3 ks-glass ks-stat-card ks-reveal-up ks-stagger-1">
+            <div class="ks-stat-glow"></div>
+            <span class="ks-stat-label">XP This Week</span>
+            <div>
+              <div class="ks-stat-number" id="tr-xp-val">0</div>
+              <div style="height:6px;background:var(--ks-white-5);border-radius:9999px;margin-top:8px;overflow:hidden">
+                <div id="tr-xp-bar" style="width:0%;height:100%;background:var(--ks-primary);border-radius:9999px;box-shadow:0 0 10px rgba(255,107,0,0.5);transition:width 0.8s ease"></div>
+              </div>
+            </div>
+          </div>
+          <div class="ks-c3 ks-glass ks-stat-card ks-reveal-up ks-stagger-2">
+            <span class="ks-stat-label">Sessions</span>
+            <div>
+              <div class="ks-stat-number" id="tr-sessions-val">0</div>
+              <div style="height:6px;background:var(--ks-white-5);border-radius:9999px;margin-top:8px;overflow:hidden">
+                <div id="tr-sessions-bar" style="width:0%;height:100%;background:#22c55e;border-radius:9999px;transition:width 0.8s ease"></div>
+              </div>
+            </div>
+          </div>
+          <div class="ks-c3 ks-glass ks-stat-card ks-reveal-up ks-stagger-3">
+            <span class="ks-stat-label">Focus Area</span>
+            <div class="ks-stat-number" id="tr-focus-val" style="font-size:clamp(1.2rem,3vw,1.8rem)">General</div>
+          </div>
+          <div class="ks-c3 ks-glass ks-stat-card ks-reveal-up ks-stagger-4">
+            <span class="ks-stat-label">Streak</span>
+            <div class="ks-stat-number" id="tr-streak-val" style="font-size:clamp(1.5rem,3vw,2.5rem)">0 days</div>
           </div>
         </div>
       </section>
 
-      <!-- ════ SECTION 2: DRILL GENERATOR ════ -->
-      <section class="tr-section">
-        <div class="tr-section-header">
-          <h2 class="tr-section-title">DRILL GENERATOR</h2>
-          <span class="tr-section-sub">AI-matched drills for your position and goals</span>
+      <!-- ── DRILL GENERATOR ── -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Drill Generator</h3>
         </div>
 
         <!-- Coach Suggestions Banner -->
@@ -1274,25 +1299,25 @@
           <div class="drills-coach-banner-icon">🏋️</div>
           <div class="drills-coach-banner-body">
             <div class="drills-coach-banner-title">AI Coach Suggestions Available</div>
-            <div class="drills-coach-banner-sub" id="drills-coach-banner-text">Your AI Coach identified areas to work on. Load suggested drills?</div>
+            <div class="drills-coach-banner-sub" id="drills-coach-banner-text">Your AI Coach has drill suggestions. Load them?</div>
           </div>
           <button class="drills-coach-banner-btn" onclick="drillsLoadCoachSuggestions()">Load Suggestions</button>
         </div>
 
         <!-- Selector row -->
-        <div class="tr-gen-selector">
+        <div class="tr-gen-selector ks-glass" style="padding:20px 24px;margin-bottom:20px">
           <div class="tr-gen-field">
-            <label class="tr-gen-label">Position</label>
+            <label class="ks-label" style="margin-bottom:6px;display:block">Position</label>
             <select class="tr-gen-select" id="drill-position">
-              <option value="PG">Point Guard (PG)</option>
-              <option value="SG">Shooting Guard (SG)</option>
-              <option value="SF">Small Forward (SF)</option>
-              <option value="PF">Power Forward (PF)</option>
-              <option value="C">Center (C)</option>
+              <option value="PG">Point Guard</option>
+              <option value="SG">Shooting Guard</option>
+              <option value="SF">Small Forward</option>
+              <option value="PF">Power Forward</option>
+              <option value="C">Center</option>
             </select>
           </div>
           <div class="tr-gen-field">
-            <label class="tr-gen-label">Skill Level</label>
+            <label class="ks-label" style="margin-bottom:6px;display:block">Skill Level</label>
             <select class="tr-gen-select" id="drill-skill">
               <option value="Beginner">Beginner</option>
               <option value="Intermediate" selected>Intermediate</option>
@@ -1300,7 +1325,7 @@
             </select>
           </div>
           <div class="tr-gen-field">
-            <label class="tr-gen-label">Primary Goal</label>
+            <label class="ks-label" style="margin-bottom:6px;display:block">Primary Goal</label>
             <select class="tr-gen-select" id="drill-goal">
               <option value="Shooting">Shooting</option>
               <option value="Ball Handling">Ball Handling</option>
@@ -1310,22 +1335,18 @@
               <option value="Strength">Strength</option>
             </select>
           </div>
-          <button class="tr-gen-btn" onclick="drillsGenerate()">Generate →</button>
+          <button class="ks-btn-primary" style="padding:14px 28px;align-self:flex-end" onclick="drillsGenerate()">Generate →</button>
         </div>
 
-        <!-- Loading State -->
+        <!-- Loading / Empty / Results -->
         <div id="drills-loading" class="tr-loading-state" style="display:none;">
           <div class="tr-loading-icon">🎯</div>
-          <div>Building Your Drill Set…</div>
+          <div class="ks-body">Building Your Drill Set…</div>
         </div>
-
-        <!-- Empty State -->
         <div id="drills-empty" class="tr-empty-state">
           <div class="tr-empty-icon">🏀</div>
-          <p>Select your preferences and hit <strong>Generate</strong> to get a personalized drill set.</p>
+          <p class="ks-body">Select your preferences and hit <strong style="color:var(--ks-primary)">Generate</strong> to get a personalized drill set.</p>
         </div>
-
-        <!-- Results -->
         <div id="drills-results" style="display:none;">
           <div class="drills-results-header">
             <div class="drills-results-title" id="drills-results-title">Your Drill Set</div>
@@ -1345,8 +1366,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Preloaded saved drills -->
         <div id="drills-preload-saved" style="display:none;">
           <div class="saved-drills-section">
             <div class="saved-drills-header">
@@ -1361,84 +1380,79 @@
         </div>
       </section>
 
-      <!-- ════ SECTION 3: EXERCISE LIBRARY ════ -->
-      <section class="tr-section">
-        <div class="tr-section-header">
-          <h2 class="tr-section-title">EXERCISE LIBRARY</h2>
-          <span class="tr-section-sub">Browse all 81+ drills · Build a custom workout</span>
+      <!-- ── EXERCISE LIBRARY ── -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Exercise Library</h3>
+          <button class="tr-build-workout-btn ks-btn-outline" style="padding:10px 20px;font-size:11px" onclick="trLibToggleBuildMode()">Build Workout</button>
         </div>
 
-        <div class="tr-lib-controls">
-          <div class="tr-lib-search-wrap">
-            <input class="tr-lib-search" id="drills-lib-search" type="text" placeholder="Search exercises…" oninput="drillsFilterLibrary()" />
-          </div>
-          <div class="tr-filter-pills">
-            <span class="tr-filter-label">Focus:</span>
-            <button class="tr-pill active" onclick="drillsSetFocusFilter('All',this)">All</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Shooting',this)">🎯 Shooting</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Ball Handling',this)">⚡ Handles</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Defense',this)">🛡️ Defense</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Finishing',this)">🏀 Finishing</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Conditioning',this)">💪 Conditioning</button>
-            <button class="tr-pill" onclick="drillsSetFocusFilter('Strength',this)">🏋️ Strength</button>
-          </div>
-          <div class="tr-filter-pills">
-            <span class="tr-filter-label">Level:</span>
-            <button class="tr-pill active" onclick="drillsSetDiffFilter('All',this)">All</button>
-            <button class="tr-pill" onclick="drillsSetDiffFilter('Beginner',this)">Beginner</button>
-            <button class="tr-pill" onclick="drillsSetDiffFilter('Intermediate',this)">Intermediate</button>
-            <button class="tr-pill" onclick="drillsSetDiffFilter('Advanced',this)">Advanced</button>
-          </div>
-          <div class="tr-lib-meta-row">
-            <span id="drills-lib-count">— drills</span>
-            <span class="tr-lib-sep">·</span>
-            <span id="drills-lib-filter-info">Showing all</span>
-            <button class="tr-build-workout-btn" onclick="trLibToggleBuildMode()">Build Workout</button>
-          </div>
+        <!-- Focus filter chips -->
+        <div class="ks-chips-scroll" style="margin-bottom:12px">
+          <button class="ks-chip ks-chip--active" onclick="drillsSetFocusFilter('All',this)">All</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Shooting',this)">🎯 Shooting</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Ball Handling',this)">⚡ Handles</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Defense',this)">🛡️ Defense</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Finishing',this)">🏀 Finishing</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Conditioning',this)">💪 Conditioning</button>
+          <button class="ks-chip" onclick="drillsSetFocusFilter('Strength',this)">🏋️ Strength</button>
+        </div>
+
+        <!-- Level filter chips -->
+        <div class="ks-chips-scroll" style="margin-bottom:16px">
+          <button class="ks-chip ks-chip--active" onclick="drillsSetDiffFilter('All',this)">All Levels</button>
+          <button class="ks-chip" onclick="drillsSetDiffFilter('Beginner',this)">Beginner</button>
+          <button class="ks-chip" onclick="drillsSetDiffFilter('Intermediate',this)">Intermediate</button>
+          <button class="ks-chip" onclick="drillsSetDiffFilter('Advanced',this)">Advanced</button>
+        </div>
+
+        <!-- Search + count -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px">
+          <input class="tr-lib-search" id="drills-lib-search" type="text" placeholder="Search exercises…" oninput="drillsFilterLibrary()" style="flex:1" />
+          <span class="ks-label" id="drills-lib-count">— drills</span>
+          <span class="ks-label" id="drills-lib-filter-info" style="display:none"></span>
         </div>
 
         <!-- Build Workout Tray -->
         <div class="tr-build-tray" id="tr-build-tray" style="display:none;">
-          <span class="tr-build-count" id="tr-build-count">0 drills selected</span>
-          <button class="tr-build-save-btn" onclick="trLibSaveWorkout()">Save Workout</button>
-          <button class="tr-build-cancel-btn" onclick="trLibToggleBuildMode()">Cancel</button>
+          <span class="ks-label" id="tr-build-count">0 drills selected</span>
+          <button class="ks-btn-primary" style="padding:10px 20px;font-size:11px" onclick="trLibSaveWorkout()">Save Workout</button>
+          <button class="ks-btn-outline" style="padding:10px 20px;font-size:11px" onclick="trLibToggleBuildMode()">Cancel</button>
         </div>
 
         <!-- Library Grid -->
         <div class="drills-grid drills-library-grid" id="drills-library-grid"></div>
       </section>
 
-      <!-- ════ SECTION 4: TRAINING PLAN ════ -->
-      <section class="tr-section">
-        <div class="tr-section-header">
-          <h2 class="tr-section-title">TRAINING PLAN</h2>
-          <span class="tr-section-sub">Your week at a glance · AI Coach builds your schedule</span>
+      <!-- ── TRAINING PLAN ── -->
+      <section class="ks-mb-12">
+        <div class="ks-section-header">
+          <h3 class="ks-section-title">Training Plan</h3>
+          <button class="ks-section-link" onclick="trPlanClearWeek()">Reset Week</button>
         </div>
-        <div class="tr-plan-layout">
-          <!-- Left: Schedule -->
-          <div class="tr-schedule-col">
-            <div class="tr-schedule-header">
-              <span class="tr-schedule-label">This Week</span>
-              <button class="tr-clear-week-btn" onclick="trPlanClearWeek()">Reset Week</button>
-            </div>
+        <div class="ks-grid-12" style="align-items:start">
+          <!-- Left: Week Schedule -->
+          <div class="ks-c8">
             <div class="tr-schedule-grid" id="tr-schedule-grid"></div>
-            <div class="tr-saved-workouts-header">Saved Workouts</div>
+            <div class="ks-section-header" style="margin-top:32px;margin-bottom:16px">
+              <h3 class="ks-section-title" style="font-size:1.2rem">Saved Workouts</h3>
+            </div>
             <div id="tr-saved-drills-list"></div>
           </div>
           <!-- Right: AI Coach Chat -->
-          <div class="tr-coach-col">
+          <div class="ks-c4 ks-glass tr-coach-panel" style="padding:0;overflow:hidden">
             <div class="tr-coach-header">
               <span class="tr-coach-icon">🤖</span>
               <div>
-                <div class="tr-coach-title">AI Coach</div>
-                <div class="tr-coach-sub">Describe your goal — I'll build your plan</div>
+                <div class="ks-label-orange">AI Coach</div>
+                <div class="ks-body" style="font-size:12px">Describe your goal — I'll build your plan</div>
               </div>
             </div>
             <div class="tr-chat-feed" id="tr-chat-feed"></div>
             <div class="tr-chat-chips" id="tr-chat-chips"></div>
             <div class="tr-chat-input-row">
               <input class="tr-chat-input" id="tr-chat-input" type="text" placeholder="Ask your coach…" />
-              <button class="tr-chat-send-btn" id="tr-chat-send-btn">Send</button>
+              <button class="ks-btn-primary tr-chat-send-btn" id="tr-chat-send-btn" style="padding:10px 16px;font-size:11px">Send</button>
             </div>
           </div>
         </div>
