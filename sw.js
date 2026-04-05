@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 21;
+const CACHE_VERSION = 23;
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
@@ -73,9 +73,16 @@ const STATIC_ASSETS = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(STATIC_ASSETS);
+      // Fetch each asset individually — a single 404 must NOT abort the whole install.
+      // cache.addAll fails the entire install if any URL returns 404.
+      var fetches = STATIC_ASSETS.map(function (url) {
+        return fetch(url).then(function (res) {
+          if (res && res.status === 200) return cache.put(url, res);
+        }).catch(function () {}); // silently skip missing files
+      });
+      return Promise.all(fetches);
     }).then(function () {
-      return self.skipWaiting();
+      return self.skipWaiting(); // activate immediately — don't wait for old tabs to close
     })
   );
 });
