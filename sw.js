@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 24;
+const CACHE_VERSION = 25;
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
@@ -90,6 +90,16 @@ self.addEventListener('activate', function (event) {
       );
     }).then(function () {
       return self.clients.claim();
+    }).then(function () {
+      // After claiming, actively navigate ALL open windows to the SPA root.
+      // This replaces stale cached pages (e.g. old dashboard.html) without
+      // requiring any code in the old page — the SW does it directly.
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(function (clients) {
+          clients.forEach(function (client) {
+            client.navigate('./').catch(function () {});
+          });
+        });
     })
   );
 });
