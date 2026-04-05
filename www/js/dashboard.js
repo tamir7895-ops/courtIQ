@@ -551,7 +551,7 @@
 
     var breadcrumbNames = {
       home: 'Home', log: 'Log Session', history: 'History', calendar: 'Calendar',
-      drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
+      training: 'Training', drills: 'Drills', workouts: 'Workouts', moves: 'Move Library',
       progress: 'Progress', profile: 'Profile', archetype: 'Archetype',
       shop: 'Avatar Shop', 'daily-challenge': 'Daily Challenge',
       summary: 'Weekly Summary', coach: 'AI Coach', notifications: 'Notifications',
@@ -581,7 +581,10 @@
     if (id === 'workouts' && typeof workoutsInit === 'function' && !window._workoutsInitialized) {
       window._workoutsInitialized = true; workoutsInit();
     }
-    if (id === 'drills' && typeof drillsInit === 'function') drillsInit();
+    if (id === 'training') {
+      if (typeof drillsInit === 'function') drillsInit();
+      if (typeof trPanelInit === 'function') trPanelInit();
+    }
     if (id === 'archetype' && typeof archetypeInit === 'function') archetypeInit();
     if (id === 'shop') {
       if (typeof AvatarShop !== 'undefined' && AvatarShop.render) AvatarShop.render();
