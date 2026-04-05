@@ -36,34 +36,27 @@
       const heroName = document.getElementById('ke-player-name');
       if (heroName) heroName.textContent = displayName;
 
-      // Hero background: DiceBear avatar (saved URL first, else generate from name)
+      // Hero background: DiceBear avatar + matching card background color
       const heroBgImg = document.getElementById('ks-hero-bg-img');
       if (heroBgImg) {
         try {
           const ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
-          // Always derive an SVG URL for color extraction (convert saved PNG → SVG)
           const savedUrl = ob.dicebear_avatar_url || '';
           const seed = encodeURIComponent(displayName);
-          const svgUrl = savedUrl
-            ? savedUrl.replace('/png', '/svg').replace(/&size=\d+/, '').replace(/\?size=\d+&?/, '?')
-            : 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed;
-          heroBgImg.src = svgUrl;
+          // Use saved URL directly (PNG keeps its background color visible)
+          const avatarUrl = savedUrl || ('https://api.dicebear.com/9.x/avataaars/png?seed=' + seed);
+          heroBgImg.src = avatarUrl;
 
-          // Fetch SVG, extract background color, blend hero card left→right
-          fetch(svgUrl)
-            .then(function(r) { return r.text(); })
-            .then(function(svg) {
-              var m = svg.match(/rect[^>]*fill="(#[0-9a-fA-F]{3,8})"/);
-              var bgColor = m ? m[1] : '#1a3020';
-              var heroBg = document.querySelector('.ks-hero-bg');
-              if (heroBg) {
-                heroBg.style.background = bgColor;
-              }
-            })
-            .catch(function() {});
+          // Extract backgroundColor param (DiceBear stores as hex without #)
+          // and apply it as the uniform hero card background
+          const heroBg = document.querySelector('.ks-hero-bg');
+          if (heroBg) {
+            const bgParam = (avatarUrl.match(/[?&]backgroundColor(?:\[\])?=([0-9a-fA-F]{3,8})/) || [])[1];
+            if (bgParam) heroBg.style.background = '#' + bgParam;
+          }
         } catch (e) {
           const seed = encodeURIComponent(displayName);
-          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed;
+          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed;
         }
       }
 
