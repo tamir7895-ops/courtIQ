@@ -43,6 +43,9 @@ jobs:
       - name: Build www/ from source
         run: node build.js
 
+      - name: Use dashboard as root index
+        run: cp www/dashboard.html www/index.html
+
       - name: Deploy www/ to gh-pages branch
         uses: JamesIves/github-pages-deploy-action@v4
         with:
