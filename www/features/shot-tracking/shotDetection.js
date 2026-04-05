@@ -718,8 +718,11 @@
         // Size filter
         var area = bw * bh;
         if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) {
-          // Still check for hoop (hoops can be larger)
-          if (hoopScore > 0.15 && hoopScore > bestHoopScore && area < frameArea * 0.4) {
+          // Still check for hoop (hoops are larger than ball but max 8% of frame)
+          var hoopAspect = bw / (bh || 1);
+          if (hoopScore > 0.15 && hoopScore > bestHoopScore
+              && area > frameArea * 0.001 && area < frameArea * 0.08
+              && hoopAspect > 1.0 && hoopAspect < 5.0) {
             bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
             bestHoopScore = hoopScore;
           }
@@ -735,8 +738,11 @@
           bestScore = ballScore;
         }
 
-        // Also track hoop detections
-        if (hoopScore > 0.15 && hoopScore > bestHoopScore) {
+        // Also track hoop detections (must be 0.1%-8% of frame, wider than tall)
+        var hoopAR = bw / (bh || 1);
+        if (hoopScore > 0.15 && hoopScore > bestHoopScore
+            && area > frameArea * 0.001 && area < frameArea * 0.08
+            && hoopAR > 1.0 && hoopAR < 5.0) {
           bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
           bestHoopScore = hoopScore;
         }
