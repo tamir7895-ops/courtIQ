@@ -5,12 +5,12 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 22;
-const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
+const CACHE_NAME = 'courtiq-v7';  // v7: fixed absolute→relative paths so install no longer fails on GH Pages
 const STATIC_ASSETS = [
   './',
   './index.html',
-  // Styles (only files that actually exist in www/styles/)
+  './dashboard.html',
+  // Styles
   './styles/main.css',
   './styles/animations.css',
   './styles/components.css',
@@ -65,12 +65,11 @@ const STATIC_ASSETS = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      // Fetch each asset individually — a single 404 must NOT abort the whole install.
-      // Using cache.addAll would fail the entire install if any URL is missing.
+      // Use individual fetches so a single 404 never kills the whole install.
       var fetches = STATIC_ASSETS.map(function (url) {
         return fetch(url).then(function (res) {
           if (res && res.status === 200) return cache.put(url, res);
-        }).catch(function () {}); // silently skip missing or failed files
+        }).catch(function () {}); // silently skip missing files
       });
       return Promise.all(fetches);
     }).then(function () {
@@ -89,21 +88,6 @@ self.addEventListener('activate', function (event) {
       );
     }).then(function () {
       return self.clients.claim(); // take control of all open pages immediately
-    })
-  );
-});
-
-/* ── Push notification click — open the app ──────────────── */
-self.addEventListener('notificationclick', function (event) {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
-      for (var i = 0; i < clientList.length; i++) {
-        if (clientList[i].url.includes('index.html') && 'focus' in clientList[i]) {
-          return clientList[i].focus();
-        }
-      }
-      if (clients.openWindow) return clients.openWindow('./index.html');
     })
   );
 });
@@ -154,8 +138,8 @@ self.addEventListener('fetch', function (event) {
         }
         return response;
       }).catch(function () {
-        // Offline fallback
-        return caches.match('./index.html');
+        // Offline fallback: try cache without query params
+        return caches.match('./dashboard.html');
       });
     })
   );

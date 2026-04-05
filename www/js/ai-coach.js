@@ -1,4 +1,4 @@
-  /* ══════════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════════════════
      AI COACH — adaptive weekly program adjustment
      Prompt: Analyze performance data (sets, success %, time),
      increase/decrease intensity, focus on weak areas, suggest
@@ -165,12 +165,14 @@ Rules:
       ib.textContent=lvl+' Intensity';
       ib.style.cssText=`font-size:11px;font-weight:800;letter-spacing:0.1em;text-transform:uppercase;padding:4px 12px;border-radius:100px;background:rgba(${rgb},0.12);color:${hex};border:1px solid rgba(${rgb},0.3);`;
 
-      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${s}</div>`;
+      const _esc=typeof escapeHTML==='function'?escapeHTML:s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      const row=s=>`<div style="font-size:12px;color:var(--c-muted);padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">· ${_esc(s)}</div>`;
       document.getElementById('coach-weak').innerHTML=(a.weak_areas||[]).map(row).join('');
       document.getElementById('coach-strong').innerHTML=(a.strong_areas||[]).map(row).join('');
       document.getElementById('coach-adjustments').innerHTML=(a.key_adjustments||[]).map(row).join('');
 
       coachRenderSchedule(result.days||[]);
+      coachRenderPicks(result);
     } catch(e) {
       document.getElementById('coach-loading').style.display='none';
       document.getElementById('coach-empty').style.display='block';
@@ -193,34 +195,91 @@ Rules:
     const icolor={Low:'#56d364',Medium:'#f5a623',High:'#f85149',Max:'#bc8cff'};
     const cicon={increased:'▲',decreased:'▼',unchanged:'→'};
     const ccolor={increased:'#f85149',decreased:'#56d364',unchanged:'var(--c-muted)'};
+    // Use global escapeHTML if available, else inline fallback
+    const _esc=typeof escapeHTML==='function'?escapeHTML:s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    // Allowlist for intensity keys (prevents CSS injection via day.intensity)
+    const safeIntensity=v=>(['Low','Medium','High','Max'].includes(v)?v:'Medium');
+    // Allowlist for intensity_change keys
+    const safeChange=v=>(['increased','decreased','unchanged'].includes(v)?v:'unchanged');
 
     c.innerHTML=days.map(day=>{
-      const rgb=imap[day.intensity]||'245,166,35';
-      const hex=icolor[day.intensity]||'#f5a623';
-      const drills=(day.drills||[]).map((d,i)=>`
+      const intKey=safeIntensity(day.intensity);
+      const rgb=imap[intKey];
+      const hex=icolor[intKey];
+      const drills=(day.drills||[]).map((d,i)=>{
+        const chKey=safeChange(d.intensity_change);
+        return `
         <div class="coach-drill-row">
           <div class="coach-drill-num">${String(i+1).padStart(2,'0')}</div>
           <div class="coach-drill-info">
-            <div class="coach-drill-name">${d.name||''}</div>
-            <div class="coach-drill-meta">${d.sets||''} sets · ${d.reps_or_duration||''} · <span style="color:${ccolor[d.intensity_change]||'var(--c-muted)'};">${cicon[d.intensity_change]||'→'} ${d.intensity_change||''}</span></div>
-            ${d.reason?`<div style="font-size:11px;color:var(--c-dimmer);margin-top:2px;font-style:italic;">${d.reason}</div>`:''}
-            ${d.alternative_if_no_equipment?`<div class="coach-drill-alt">🔄 Alt: ${d.alternative_if_no_equipment}</div>`:''}
+            <div class="coach-drill-name">${_esc(d.name)}</div>
+            <div class="coach-drill-meta">${_esc(d.sets)} sets · ${_esc(d.reps_or_duration)} · <span style="color:${ccolor[chKey]};">${cicon[chKey]} ${_esc(d.intensity_change)}</span></div>
+            ${d.reason?`<div style="font-size:11px;color:var(--c-dimmer);margin-top:2px;font-style:italic;">${_esc(d.reason)}</div>`:''}
+            ${d.alternative_if_no_equipment?`<div class="coach-drill-alt">🔄 Alt: ${_esc(d.alternative_if_no_equipment)}</div>`:''}
           </div>
-          <span class="coach-focus-tag">${d.focus_area||''}</span>
-        </div>`).join('<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>');
+          <span class="coach-focus-tag">${_esc(d.focus_area)}</span>
+        </div>`;
+      }).join('<div style="height:1px;background:rgba(255,255,255,0.04);margin:6px 0;"></div>');
       return `
         <div class="coach-day-card">
           <div class="coach-day-header">
-            <div class="coach-day-name">${day.day}</div>
-            <div style="font-size:12px;color:var(--c-muted);flex:1;padding-left:10px;">${day.focus||''} · ${day.total_minutes||'—'} min</div>
-            <span class="coach-intensity-chip" style="background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${day.intensity}</span>
+            <div class="coach-day-name">${_esc(day.day)}</div>
+            <div style="font-size:12px;color:var(--c-muted);flex:1;padding-left:10px;">${_esc(day.focus)} · ${_esc(day.total_minutes||'—')} min</div>
+            <span class="coach-intensity-chip" style="background:rgba(${rgb},0.1);color:${hex};border:1px solid rgba(${rgb},0.25);">${_esc(intKey)}</span>
           </div>
           <div class="coach-day-body">
             ${drills}
-            ${day.coach_note?`<div class="coach-day-note">"${day.coach_note}"</div>`:''}
+            ${day.coach_note?`<div class="coach-day-note">"${_esc(day.coach_note)}"</div>`:''}
           </div>
         </div>`;
     }).join('');
+  }
+
+  /* Build real AI Intelligence Picks from the generated schedule */
+  function coachRenderPicks(result) {
+    var picksEl = document.getElementById('coach-ai-picks');
+    var gridEl  = document.getElementById('coach-ai-picks-grid');
+    if (!picksEl || !gridEl) return;
+
+    var focusIcons = {
+      'Shooting':'🎯','Ball Handling':'⚡','Athleticism':'💪',
+      'Defense':'🛡','Conditioning':'🏃','Core':'💪'
+    };
+
+    /* Top drill from each non-rest day — up to 3 picks */
+    var picks = [];
+    var days = (result.days || []).filter(function(d){ return !d.is_rest && (d.drills||[]).length; });
+    for (var i = 0; i < days.length && picks.length < 3; i++) {
+      var drill = days[i].drills[0];
+      if (!drill) continue;
+      picks.push({
+        icon:   focusIcons[drill.focus_area] || '\ud83c\udfc0',
+        title:  String(drill.name || ''),
+        reason: String(drill.reason || ('Priority for ' + (drill.focus_area || 'this week')))
+      });
+    }
+
+    /* Fallback from weak_areas when schedule has < 3 training days */
+    var weak = ((result.coach_analysis || {}).weak_areas) || [];
+    var fbIcons = ['\ud83c\udfaf','\u26a1','\ud83d\udcaa'];
+    for (var j = 0; picks.length < 3 && j < weak.length; j++) {
+      picks.push({ icon: fbIcons[j] || '\ud83c\udfc0', title: String(weak[j]), reason: 'Focus area this week' });
+    }
+
+    /* Render via DOM (no innerHTML — SEC-XSS safe) */
+    while (gridEl.firstChild) gridEl.removeChild(gridEl.firstChild);
+    picks.forEach(function(p) {
+      var card    = document.createElement('div'); card.className = 'glass-pick-card';
+      var iconEl  = document.createElement('div'); iconEl.className  = 'glass-pick-icon';  iconEl.textContent  = p.icon;
+      var cnt     = document.createElement('div'); cnt.className     = 'glass-pick-content';
+      var titleEl = document.createElement('div'); titleEl.className = 'glass-pick-title';  titleEl.textContent = p.title;
+      var rsEl    = document.createElement('div'); rsEl.className    = 'glass-pick-reason'; rsEl.textContent    = p.reason;
+      cnt.appendChild(titleEl); cnt.appendChild(rsEl);
+      card.appendChild(iconEl); card.appendChild(cnt);
+      gridEl.appendChild(card);
+    });
+
+    picksEl.style.display = picks.length ? '' : 'none';
   }
 
   function coachCopyJSON() {

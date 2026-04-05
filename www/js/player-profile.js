@@ -26,10 +26,15 @@
     save: function (data) {
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-        return true;
       } catch (e) {
         return false;
       }
+      // Cloud sync — save player profile to Supabase
+      if (typeof window.currentUser !== 'undefined' && window.currentUser &&
+          typeof DataService !== 'undefined') {
+        DataService.saveUserData({ player_profile: data }).catch(function () {});
+      }
+      return true;
     },
 
     renderSummary: function () {
@@ -47,32 +52,36 @@
         return;
       }
 
+      // Escape user-controlled values before inserting into innerHTML
+      var _esc = typeof escapeHTML === 'function' ? escapeHTML : function(s) {
+        return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+      };
+
       var pills = '';
       if (data.position) {
-        pills += '<span class="profile-pill profile-pill--accent">' + data.position + '</span>';
+        pills += '<span class="profile-pill profile-pill--accent">' + _esc(data.position) + '</span>';
       }
       if (data.height) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Height</span> ' + data.height + '"</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Height</span> ' + _esc(data.height) + '"</span>';
       }
       if (data.age) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Age</span> ' + data.age + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Age</span> ' + _esc(data.age) + '</span>';
       }
       if (data.skillLevel) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Skill</span> ' + data.skillLevel + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Skill</span> ' + _esc(data.skillLevel) + '</span>';
       }
       if (data.primaryGoal) {
-        pills += '<span class="profile-pill"><span class="profile-pill-label">Goal</span> ' + data.primaryGoal + '</span>';
+        pills += '<span class="profile-pill"><span class="profile-pill-label">Goal</span> ' + _esc(data.primaryGoal) + '</span>';
       }
 
       // Check for onboarding avatar
       var onboarding = null;
       try { onboarding = JSON.parse(localStorage.getItem('courtiq-onboarding-data')); } catch (e) {}
       var avatarHtml = '';
-      if (typeof AvatarBridge !== 'undefined') {
-        var avatarUrl = AvatarBridge.getAvatarUrl(onboarding && onboarding.avatar, 48);
-        avatarHtml = '<img src="' + avatarUrl + '" width="48" height="48" alt="Avatar" style="border-radius:50%;flex-shrink:0;cursor:pointer;object-fit:cover;" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar">';
+      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+        avatarHtml = '<canvas id="profile-mini-avatar" width="48" height="48" style="border-radius:50%;flex-shrink:0;cursor:pointer" onclick="if(typeof AvatarCustomizer!==\'undefined\')AvatarCustomizer.open()" title="Customize Avatar"></canvas>';
       } else {
-        avatarHtml = '<div class="profile-summary-avatar">' + data.position + '</div>';
+        avatarHtml = '<div class="profile-summary-avatar">' + _esc(data.position) + '</div>';
       }
 
       // Add archetype badge if available
@@ -80,7 +89,7 @@
       if (onboarding && onboarding.archetype && typeof ArchetypeEngine !== 'undefined' && ArchetypeEngine.ARCHETYPES) {
         var arch = ArchetypeEngine.ARCHETYPES[onboarding.archetype];
         if (arch) {
-          archetypePill = '<span class="profile-pill profile-pill--accent">' + arch.icon + ' ' + arch.name + '</span>';
+          archetypePill = '<span class="profile-pill profile-pill--accent">' + _esc(arch.icon) + ' ' + _esc(arch.name) + '</span>';
         }
       }
 
@@ -90,7 +99,30 @@
           '<div class="profile-summary-pills">' + archetypePill + pills + '</div>' +
         '</div>';
 
-      // Avatar is rendered as <img> via DiceBear — no canvas drawing needed
+      // Draw mini avatar after DOM insert
+      if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+        setTimeout(function () {
+          var c = document.getElementById('profile-mini-avatar');
+          if (c) AvatarBuilder.drawMini(c, onboarding.avatar);
+        }, 0);
+      }
+
+      // Update compact topbar profile
+      var topbarName = document.getElementById('db-topbar-profile-name');
+      if (topbarName && data.name) topbarName.textContent = data.name;
+      var topbarAvatar = document.getElementById('db-topbar-avatar');
+      if (topbarAvatar) {
+        if (onboarding && onboarding.avatar && typeof AvatarBuilder !== 'undefined') {
+          topbarAvatar.innerHTML = '<canvas id="topbar-mini-avatar" width="32" height="32" style="border-radius:50%;width:100%;height:100%"></canvas>';
+          setTimeout(function () {
+            var tc = document.getElementById('topbar-mini-avatar');
+            if (tc) AvatarBuilder.drawMini(tc, onboarding.avatar);
+          }, 0);
+        } else {
+          var initials = (data.name || 'P').split(' ').map(function(w){return w[0]}).join('').slice(0,2).toUpperCase();
+          topbarAvatar.textContent = initials;
+        }
+      }
     },
 
     openEditor: function () {

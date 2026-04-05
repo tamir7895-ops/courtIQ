@@ -102,14 +102,23 @@
     if (!item) return { ok: false, msg: 'Item not found' };
 
     if (isOwned(itemId)) return { ok: false, msg: 'Already owned' };
-    if (!meetsLevelReq(item.level)) return { ok: false, msg: 'Level too low — reach ' + item.level + ' rank first' };
-
-    var coins = getCoins();
-    if (coins < item.cost) return { ok: false, msg: 'Not enough coins (' + coins + '/' + item.cost + ')' };
 
     var shop = loadShop();
     if (!shop.owned) shop.owned = [];
     if (!shop.purchases) shop.purchases = [];
+
+    /* v3: all items are free — skip coin & level checks */
+    if (isFreeItem(item.type, itemId)) {
+      shop.owned.push(itemId);
+      shop.purchases.push({ id: itemId, cost: 0, ts: Date.now() });
+      saveShop(shop);
+      return { ok: true, msg: item.name + ' unlocked!' };
+    }
+
+    /* Legacy path: paid items require level + coins */
+    if (!meetsLevelReq(item.level)) return { ok: false, msg: 'Level too low — reach ' + item.level + ' rank first' };
+    var coins = getCoins();
+    if (coins < item.cost) return { ok: false, msg: 'Not enough coins (' + coins + '/' + item.cost + ')' };
 
     shop.owned.push(itemId);
     shop.purchases.push({ id: itemId, cost: item.cost, ts: Date.now() });
@@ -177,7 +186,7 @@
         var owned = isOwned(item.id);
         var affordable = coins >= item.cost;
         var levelOk = meetsLevelReq(item.level);
-        var statusCls = owned ? 'shop-item--owned' : (!levelOk ? 'shop-item--locked' : (!affordable ? 'shop-item--expensive' : ''));
+        var statusCls = owned ? 'shop-item--owned' : (isFreeItem(item.type, item.id) ? '' : (!levelOk ? 'shop-item--locked' : (!affordable ? 'shop-item--expensive' : '')));
 
         html += '<div class="shop-item ' + statusCls + '" data-item-id="' + item.id + '" data-item-type="' + item.type + '">';
         html += '<div class="shop-item-icon">' + item.icon + '</div>';
@@ -187,12 +196,15 @@
         html += '</div>';
         html += '<div class="shop-item-action">';
 
+        var isFree = isFreeItem(item.type, item.id);
         if (owned) {
           if (item.type === 'accessory') {
             html += '<button class="shop-equip-btn" data-equip="' + item.id + '">Equip</button>';
           } else {
             html += '<span class="shop-owned-badge">✓ Owned</span>';
           }
+        } else if (isFree) {
+          html += '<button class="shop-buy-btn shop-buy-btn--free" data-buy="' + item.id + '">Claim Free</button>';
         } else if (!levelOk) {
           html += '<span class="shop-lock-badge">🔒 ' + item.level + '</span>';
         } else {

@@ -1,0 +1,2035 @@
+/* ═══════════════════════════════════════════════════════════
+   GLASSMORPHISM OVERLAY — Apple Music / iOS / Stitch Inspired
+   ═══════════════════════════════════════════════════════════
+   Adds frosted glass effects + Stitch-inspired content styling.
+   Does NOT delete or move any content — only visual upgrades.
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── 1. GRADIENT MESH BACKGROUND ─────────────────────────── */
+body.is-dashboard {
+  background: #0a0c10 !important;
+  position: relative;
+}
+
+body.is-dashboard::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 600px 600px at 15% 20%, rgba(245,166,35,0.08) 0%, transparent 70%),
+    radial-gradient(ellipse 500px 500px at 85% 15%, rgba(188,140,255,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 400px 400px at 50% 80%, rgba(45,212,191,0.05) 0%, transparent 70%),
+    radial-gradient(ellipse 300px 300px at 70% 60%, rgba(245,166,35,0.04) 0%, transparent 70%);
+  animation: meshFloat 20s ease-in-out infinite alternate;
+}
+
+@keyframes meshFloat {
+  0%   { transform: translate(0, 0) scale(1); }
+  50%  { transform: translate(-15px, 10px) scale(1.02); }
+  100% { transform: translate(10px, -8px) scale(0.98); }
+}
+
+/* Make all content sit above the mesh */
+body.is-dashboard > *:not(script):not(style):not(link) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── FIX: body-level overlays must stay fixed so they don't add to page scroll height ── */
+body.is-dashboard > .auth-overlay,
+body.is-dashboard > .profile-modal-overlay,
+body.is-dashboard > .mv-modal-overlay,
+body.is-dashboard > .nt-overlay,
+body.is-dashboard > .sts-overlay,
+body.is-dashboard > .ob-overlay,
+body.is-dashboard > .ac-overlay,
+body.is-dashboard > [class*="-overlay"],
+body.is-dashboard > [class*="-modal-overlay"] {
+  position: fixed !important;
+  inset: 0;
+}
+
+/* ── 2. UNIVERSAL GLASS CARD MIXIN ──────────────────────── */
+
+/* Glass effect for ALL card-like elements */
+.db-home-stat,
+.db-home-nav-card,
+.db-quick-card,
+.dc-card,
+.db-donuts-row,
+.db-home-hero,
+.db-home-stats-row,
+.db-home-nav-grid .db-home-nav-card,
+.db-quick-grid .db-quick-card,
+.drill-card,
+.drill-detail-card,
+.workout-card,
+.session-card,
+.coach-msg,
+.move-card,
+.archetype-card,
+.shop-item,
+.challenge-card,
+.social-card,
+.leaderboard-row,
+.summary-card,
+.history-card,
+.notification-card,
+.db-card,
+.db-feedback,
+.db-kpi,
+.coach-perf-block,
+.workouts-header,
+.workouts-stat,
+.drills-selector,
+.at-card,
+.st-card,
+.sh-create-card,
+.sh-accept-card,
+.ast-launch-card,
+.ast-settings-card,
+.ast-history-section,
+.pc-chart-wrap,
+.cal-progress-strip {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+/* Hover glow for interactive glass cards */
+.db-home-nav-card:hover,
+.db-quick-card:hover,
+.drill-card:hover,
+.workout-card:hover,
+.move-card:hover,
+.shop-item:hover,
+.challenge-card:hover,
+.at-card:hover,
+.st-card:hover,
+.sh-create-card:hover,
+.sh-accept-card:hover,
+.ast-launch-card:hover,
+.db-card:hover,
+.db-kpi:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(245,166,35,0.2) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.05) inset,
+    0 0 20px rgba(245,166,35,0.08),
+    0 8px 32px rgba(0,0,0,0.4) !important;
+  transform: translateY(-2px);
+}
+
+/* ── 3. HOME PANEL ───────────────────────────────────────── */
+
+/* Hero greeting area */
+.db-home-hero {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 20px !important;
+  padding: 24px 20px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Stats row as glass strip */
+.db-home-stats-row {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 16px !important;
+  padding: 16px !important;
+  margin-bottom: 16px !important;
+}
+
+.db-home-stat {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Donuts container as glass card */
+.db-donuts-row {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 20px !important;
+  padding: 20px 16px !important;
+  margin-bottom: 16px !important;
+}
+
+/* Donut ring glow (neon through glass) — amber for shooting */
+.db-donut-ring {
+  filter: drop-shadow(0 0 8px rgba(245,166,35,0.4)) drop-shadow(0 0 20px rgba(245,166,35,0.15)) !important;
+}
+
+/* purple for defense */
+.db-donut[data-skill="defense"] .db-donut-ring {
+  filter: drop-shadow(0 0 8px rgba(188,140,255,0.4)) drop-shadow(0 0 20px rgba(188,140,255,0.15)) !important;
+}
+
+/* teal for gameiq */
+.db-donut[data-skill="gameiq"] .db-donut-ring {
+  filter: drop-shadow(0 0 8px rgba(45,212,191,0.4)) drop-shadow(0 0 20px rgba(45,212,191,0.15)) !important;
+}
+
+/* Nav grid cards */
+.db-home-nav-grid {
+  gap: 10px !important;
+}
+
+.db-home-nav-card {
+  border-radius: 16px !important;
+  padding: 16px !important;
+}
+
+/* ── 4. SESSION COUNTER ──────────────────────────────────── */
+.glass-session-counter {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin-top: 12px !important;
+}
+
+.glass-session-num {
+  font-weight: 800 !important;
+  color: #f5a623 !important;
+  letter-spacing: 0.1em !important;
+  font-size: 14px !important;
+}
+
+.glass-session-sep {
+  color: rgba(255,255,255,0.2) !important;
+  font-size: 12px !important;
+}
+
+.glass-session-focus {
+  color: rgba(240,237,230,0.5) !important;
+  letter-spacing: 0.1em !important;
+  font-size: 12px !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}
+
+/* ── 5. TRAINING STREAK CARD ─────────────────────────────── */
+.glass-streak-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 16px !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-streak-icon {
+  font-size: 40px !important;
+  animation: glassPulse 2s ease-in-out infinite !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-streak-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.glass-streak-title {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.12em !important;
+  color: rgba(240,237,230,0.45) !important;
+  margin-bottom: 4px !important;
+}
+
+.glass-streak-number {
+  font-size: 28px !important;
+  font-weight: 900 !important;
+  color: #f5a623 !important;
+  line-height: 1.1 !important;
+  margin-bottom: 8px !important;
+}
+
+.glass-streak-bar {
+  height: 4px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 100px !important;
+  overflow: hidden !important;
+  margin-bottom: 6px !important;
+}
+
+.glass-streak-fill {
+  height: 100% !important;
+  background: linear-gradient(90deg, #f5a623, #56d364) !important;
+  border-radius: 100px !important;
+  transition: width 0.6s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+.glass-streak-msg {
+  font-size: 12px !important;
+  color: rgba(240,237,230,0.4) !important;
+  line-height: 1.4 !important;
+}
+
+.glass-streak-badge {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: #f5a623 !important;
+  background: rgba(245,166,35,0.08) !important;
+  border: 1px solid rgba(245,166,35,0.2) !important;
+  border-radius: 100px !important;
+  padding: 4px 10px !important;
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* ── 6. SEASON PROGRESS ──────────────────────────────────── */
+.glass-season-progress {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-season-bar-wrap {
+  margin-top: 12px !important;
+}
+
+.glass-season-bar {
+  height: 6px !important;
+  background: rgba(255,255,255,0.06) !important;
+  border-radius: 100px !important;
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.glass-season-fill {
+  height: 100% !important;
+  background: linear-gradient(90deg, #f5a623, #56d364) !important;
+  border-radius: 100px !important;
+  transition: width 0.8s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+.glass-season-milestone {
+  position: absolute !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.15) !important;
+  border: 2px solid rgba(255,255,255,0.2) !important;
+  top: -2px !important;
+  transform: translateX(-50%) !important;
+  transition: all 0.3s ease !important;
+}
+
+.glass-season-milestone.reached {
+  background: #f5a623 !important;
+  border-color: rgba(245,166,35,0.5) !important;
+  box-shadow: 0 0 8px rgba(245,166,35,0.3) !important;
+}
+
+.glass-season-labels {
+  display: flex !important;
+  justify-content: space-between !important;
+  margin-top: 8px !important;
+  font-size: 9px !important;
+  color: rgba(240,237,230,0.35) !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+}
+
+/* ── 7. DAILY DRILLS CHECKLIST ───────────────────────────── */
+.glass-daily-drills {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-drill-checklist {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.glass-drill-check {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 12px 16px !important;
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-drill-check:hover {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+.glass-drill-check input[type="checkbox"] {
+  display: none !important;
+}
+
+.glass-check-mark {
+  width: 22px !important;
+  height: 22px !important;
+  border-radius: 6px !important;
+  border: 2px solid rgba(255,255,255,0.15) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: all 0.2s ease !important;
+  position: relative !important;
+}
+
+.glass-drill-check input:checked ~ .glass-check-mark {
+  background: rgba(86,211,100,0.2) !important;
+  border-color: rgba(86,211,100,0.5) !important;
+}
+
+.glass-check-mark::after {
+  content: '\2713' !important;
+  display: none !important;
+  color: #56d364 !important;
+  font-size: 14px !important;
+  font-weight: bold !important;
+}
+
+.glass-drill-check input:checked ~ .glass-check-mark::after {
+  display: block !important;
+}
+
+.glass-check-text {
+  font-size: 13px !important;
+  color: rgba(240,237,230,0.7) !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-drill-check input:checked ~ .glass-check-text {
+  text-decoration: line-through !important;
+  color: rgba(240,237,230,0.3) !important;
+}
+
+/* ── 8. RECENT SESSIONS ──────────────────────────────────── */
+.glass-recent-sessions {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-recent-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.glass-recent-item {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 16px !important;
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-recent-item:hover {
+  background: rgba(255,255,255,0.04) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+
+.glass-recent-date {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  color: rgba(240,237,230,0.4) !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  min-width: 50px !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-recent-info {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.glass-recent-name {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: rgba(240,237,230,0.9) !important;
+}
+
+.glass-recent-detail {
+  font-size: 11px !important;
+  color: rgba(240,237,230,0.35) !important;
+  margin-top: 2px !important;
+}
+
+.glass-recent-grade {
+  font-size: 13px !important;
+  font-weight: 900 !important;
+  padding: 4px 10px !important;
+  border-radius: 8px !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-grade-a {
+  background: rgba(86,211,100,0.15) !important;
+  color: #56d364 !important;
+  border: 1px solid rgba(86,211,100,0.25) !important;
+}
+
+.glass-grade-b {
+  background: rgba(76,163,255,0.15) !important;
+  color: #4ca3ff !important;
+  border: 1px solid rgba(76,163,255,0.25) !important;
+}
+
+.glass-grade-c {
+  background: rgba(245,166,35,0.15) !important;
+  color: #f5a623 !important;
+  border: 1px solid rgba(245,166,35,0.25) !important;
+}
+
+/* ── 9. GLASS SECTION HEADERS ────────────────────────────── */
+.glass-section-header {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 12px !important;
+  padding: 0 4px !important;
+}
+
+.glass-section-title {
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.5) !important;
+}
+
+.glass-section-link {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #f5a623 !important;
+  letter-spacing: 0.06em !important;
+  cursor: pointer !important;
+  transition: color 0.2s ease !important;
+  text-decoration: none !important;
+}
+
+.glass-section-link:hover {
+  color: #ffbf47 !important;
+}
+
+.glass-ai-tag {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: #bc8cff !important;
+  background: rgba(188,140,255,0.1) !important;
+  border: 1px solid rgba(188,140,255,0.2) !important;
+  border-radius: 100px !important;
+  padding: 3px 8px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+}
+
+/* ── 10. TRAINING HERO CARD (Drills panel) ───────────────── */
+.glass-training-hero {
+  position: relative !important;
+  border-radius: 24px !important;
+  overflow: hidden !important;
+  margin-bottom: 20px !important;
+  min-height: 220px !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+}
+
+.glass-training-hero-bg {
+  position: absolute !important;
+  inset: 0 !important;
+  background:
+    linear-gradient(135deg, rgba(245,166,35,0.12) 0%, rgba(188,140,255,0.08) 50%, rgba(45,212,191,0.06) 100%) !important;
+  z-index: 0 !important;
+}
+
+.glass-training-hero-bg::after {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  background: radial-gradient(ellipse 300px 200px at 30% 40%, rgba(245,166,35,0.08) 0%, transparent 70%) !important;
+  pointer-events: none !important;
+}
+
+.glass-training-hero-content {
+  position: relative !important;
+  z-index: 1 !important;
+  padding: 28px !important;
+  width: 100% !important;
+}
+
+.glass-training-hero-tag {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: #f5a623 !important;
+  margin-bottom: 8px !important;
+}
+
+.glass-training-hero-title {
+  font-family: var(--font-display, sans-serif) !important;
+  font-size: 32px !important;
+  font-weight: 900 !important;
+  line-height: 1.1 !important;
+  text-transform: uppercase !important;
+  color: #fff !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-training-hero-meta {
+  display: flex !important;
+  gap: 12px !important;
+  margin-bottom: 20px !important;
+  flex-wrap: wrap !important;
+}
+
+.glass-hero-meta-item {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: rgba(240,237,230,0.6) !important;
+  background: rgba(255,255,255,0.06) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 100px !important;
+  padding: 5px 12px !important;
+  white-space: nowrap !important;
+}
+
+.glass-training-hero-btn {
+  background: rgba(245,166,35,0.2) !important;
+  border: 1px solid rgba(245,166,35,0.4) !important;
+  color: #f5a623 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  padding: 12px 28px !important;
+  border-radius: 100px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.glass-training-hero-btn:hover {
+  background: rgba(245,166,35,0.3) !important;
+  box-shadow: 0 0 20px rgba(245,166,35,0.2) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── 11. ELITE RECOMMENDATIONS ───────────────────────────── */
+.glass-recommendations {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  margin-bottom: 20px !important;
+}
+
+.glass-rec-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 16px !important;
+  border-radius: 16px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-rec-card:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(245,166,35,0.15) !important;
+  transform: translateX(4px) !important;
+}
+
+.glass-rec-icon {
+  font-size: 28px !important;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255,255,255,0.04) !important;
+  border-radius: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-rec-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.glass-rec-title {
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: rgba(240,237,230,0.9) !important;
+}
+
+.glass-rec-desc {
+  font-size: 12px !important;
+  color: rgba(240,237,230,0.4) !important;
+  margin-top: 2px !important;
+}
+
+.glass-rec-tag {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.4) !important;
+  background: rgba(255,255,255,0.04) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 100px !important;
+  padding: 4px 10px !important;
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* ── 12. BROWSE BY FOCUS GRID ────────────────────────────── */
+.glass-focus-grid {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 10px !important;
+  margin-bottom: 24px !important;
+}
+
+.glass-focus-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 24px 16px !important;
+  border-radius: 20px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.glass-focus-card::before {
+  content: '' !important;
+  position: absolute !important;
+  inset: 0 !important;
+  opacity: 0 !important;
+  transition: opacity 0.3s ease !important;
+  pointer-events: none !important;
+}
+
+.glass-focus-card:hover::before {
+  opacity: 1 !important;
+}
+
+.glass-focus-card:hover {
+  transform: translateY(-2px) !important;
+  border-color: rgba(255,255,255,0.12) !important;
+}
+
+.glass-focus-shooting::before {
+  background: radial-gradient(circle at center, rgba(245,166,35,0.1) 0%, transparent 70%) !important;
+}
+
+.glass-focus-handles::before {
+  background: radial-gradient(circle at center, rgba(76,163,255,0.1) 0%, transparent 70%) !important;
+}
+
+.glass-focus-defense::before {
+  background: radial-gradient(circle at center, rgba(188,140,255,0.1) 0%, transparent 70%) !important;
+}
+
+.glass-focus-vertical::before {
+  background: radial-gradient(circle at center, rgba(45,212,191,0.1) 0%, transparent 70%) !important;
+}
+
+.glass-focus-emoji {
+  font-size: 36px !important;
+  margin-bottom: 10px !important;
+  position: relative !important;
+  display: block !important;
+}
+
+.glass-focus-name {
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.8) !important;
+  position: relative !important;
+}
+
+.glass-focus-count {
+  font-size: 11px !important;
+  color: rgba(240,237,230,0.35) !important;
+  margin-top: 4px !important;
+  position: relative !important;
+}
+
+/* ── 13. SHOT MAP CARD ───────────────────────────────────── */
+.glass-shot-map-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 20px !important;
+  border-radius: 20px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-court-map {
+  width: 100% !important;
+  aspect-ratio: 500 / 470 !important;
+  margin: 12px 0 !important;
+}
+
+.glass-court-svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.glass-shot-map-stats {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+}
+
+.glass-map-stat {
+  text-align: center !important;
+  padding: 12px !important;
+  background: rgba(255,255,255,0.02) !important;
+  border: 1px solid rgba(255,255,255,0.05) !important;
+  border-radius: 12px !important;
+}
+
+.glass-map-stat-val {
+  font-size: 22px !important;
+  font-weight: 900 !important;
+  color: rgba(240,237,230,0.9) !important;
+}
+
+.glass-map-stat-label {
+  font-size: 9px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.35) !important;
+  margin-top: 4px !important;
+}
+
+.glass-shot-actions {
+  display: flex !important;
+  gap: 10px !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-ai-analysis-btn {
+  flex: 1 !important;
+  padding: 14px !important;
+  border-radius: 14px !important;
+  background: rgba(86,211,100,0.12) !important;
+  border: 1px solid rgba(86,211,100,0.25) !important;
+  color: #56d364 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+}
+
+.glass-ai-analysis-btn:hover {
+  background: rgba(86,211,100,0.2) !important;
+  box-shadow: 0 0 20px rgba(86,211,100,0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+.glass-stop-tracking-btn {
+  flex: 1 !important;
+  padding: 14px !important;
+  border-radius: 14px !important;
+  background: rgba(248,81,73,0.12) !important;
+  border: 1px solid rgba(248,81,73,0.25) !important;
+  color: #f85149 !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0.06em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+  text-align: center !important;
+}
+
+.glass-stop-tracking-btn:hover {
+  background: rgba(248,81,73,0.2) !important;
+  box-shadow: 0 0 20px rgba(248,81,73,0.15) !important;
+  transform: translateY(-1px) !important;
+}
+
+/* ── 14. RANK DISPLAY (Leaderboard) ──────────────────────── */
+.glass-rank-display {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 28px !important;
+  border-radius: 24px !important;
+  text-align: center !important;
+  margin-bottom: 16px !important;
+}
+
+.glass-rank-number {
+  font-size: 64px !important;
+  font-weight: 900 !important;
+  color: #f5a623 !important;
+  line-height: 1 !important;
+  text-shadow: 0 0 30px rgba(245,166,35,0.3) !important;
+}
+
+.glass-rank-label {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.14em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.4) !important;
+  margin-top: 8px !important;
+}
+
+.glass-rank-toggle {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 4px !important;
+  margin-top: 16px !important;
+}
+
+.glass-toggle-btn {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: rgba(240,237,230,0.4) !important;
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 100px !important;
+  padding: 6px 20px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-toggle-btn:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+.glass-toggle-btn.active {
+  color: #f5a623 !important;
+  background: rgba(245,166,35,0.1) !important;
+  border-color: rgba(245,166,35,0.25) !important;
+}
+
+/* ── 15. AI INTELLIGENCE PICKS ───────────────────────────── */
+.glass-ai-picks {
+  margin-bottom: 24px !important;
+}
+
+.glass-picks-grid {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 10px !important;
+}
+
+.glass-pick-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  padding: 16px !important;
+  border-radius: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-pick-card:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(188,140,255,0.2) !important;
+  transform: translateY(-2px) !important;
+}
+
+.glass-pick-icon {
+  font-size: 28px !important;
+  width: 48px !important;
+  height: 48px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(188,140,255,0.08) !important;
+  border-radius: 14px !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-pick-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.glass-pick-title {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: rgba(240,237,230,0.85) !important;
+}
+
+.glass-pick-reason {
+  font-size: 11px !important;
+  color: rgba(240,237,230,0.35) !important;
+  margin-top: 2px !important;
+}
+
+/* ── 16. SOCIAL FEED ─────────────────────────────────────── */
+.glass-social-feed {
+  margin-top: 16px !important;
+}
+
+.glass-feed-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+}
+
+.glass-feed-item {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+  transition: all 0.2s ease !important;
+}
+
+.glass-feed-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+.glass-feed-avatar {
+  font-size: 24px !important;
+  width: 40px !important;
+  height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255,255,255,0.04) !important;
+  border-radius: 12px !important;
+  flex-shrink: 0 !important;
+}
+
+.glass-feed-content {
+  flex: 1 !important;
+  min-width: 0 !important;
+}
+
+.glass-feed-user {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: rgba(240,237,230,0.85) !important;
+}
+
+.glass-feed-action {
+  font-size: 12px !important;
+  color: rgba(240,237,230,0.4) !important;
+  margin-top: 2px !important;
+}
+
+.glass-feed-time {
+  font-size: 10px !important;
+  color: rgba(240,237,230,0.25) !important;
+  margin-top: 4px !important;
+}
+
+.glass-feed-badge {
+  font-size: 18px !important;
+  flex-shrink: 0 !important;
+}
+
+/* ── 17. DAILY CHALLENGE CARD ────────────────────────────── */
+.dc-card {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+}
+
+/* ── 18. QUICK ACTIONS GRID ──────────────────────────────── */
+.db-quick-grid {
+  gap: 10px !important;
+}
+
+.db-quick-card {
+  border-radius: 16px !important;
+  padding: 16px !important;
+}
+
+/* ── 19. DRILLS / TRAINING PANEL ─────────────────────────── */
+.drill-card,
+.drill-detail-card {
+  border-radius: 16px !important;
+}
+
+/* Featured drill hero */
+.drill-hero,
+.drill-featured {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 20px !important;
+  overflow: hidden;
+}
+
+/* Filter chips as glass pills */
+.drill-filter-chip,
+.filter-chip,
+.tag-chip {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 100px !important;
+  transition: all 0.2s ease !important;
+}
+
+.drill-filter-chip:hover,
+.filter-chip:hover,
+.tag-chip:hover,
+.drill-filter-chip.active,
+.filter-chip.active {
+  background: rgba(245,166,35,0.12) !important;
+  border-color: rgba(245,166,35,0.3) !important;
+  color: #f5a623 !important;
+}
+
+/* ── 20. SHOT TRACKER / CAMERA OVERLAY ───────────────────── */
+#db-panel-shots .db-layout,
+#db-panel-shots > div {
+  background: transparent !important;
+}
+
+/* Stat cards on tracker */
+.shot-stat-card,
+.tracker-stat-card,
+.stat-card {
+  background: rgba(13,17,23,0.75) !important;
+  backdrop-filter: blur(40px) saturate(1.3) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.3) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.4) !important;
+}
+
+/* ── 21. WORKOUT / LOG PANELS ────────────────────────────── */
+.workout-card,
+.session-card {
+  border-radius: 16px !important;
+}
+
+/* ── 22. AI COACH CHAT ───────────────────────────────────── */
+.coach-msg {
+  border-radius: 16px !important;
+}
+
+.coach-msg.coach-msg--ai,
+.coach-msg.ai {
+  background: rgba(188,140,255,0.06) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(188,140,255,0.12) !important;
+  border-left: 3px solid rgba(188,140,255,0.4) !important;
+}
+
+.coach-msg.coach-msg--user,
+.coach-msg.user {
+  background: rgba(245,166,35,0.06) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(245,166,35,0.12) !important;
+}
+
+/* ── 23. PROFILE / SOCIAL ────────────────────────────────── */
+.social-card,
+.leaderboard-row {
+  border-radius: 14px !important;
+}
+
+.leaderboard-row:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(245,166,35,0.15) !important;
+}
+
+/* ── 24. BOTTOM NAV AS FROSTED GLASS BAR ─────────────────── */
+/* Target any existing bottom navigation */
+nav[class*="bottom"],
+.bottom-nav,
+.db-tab-bar,
+.tab-bar,
+[class*="bottom-nav"],
+[class*="tabbar"] {
+  background: rgba(10,12,16,0.7) !important;
+  backdrop-filter: blur(40px) saturate(1.5) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.5) !important;
+  border-top: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3) !important;
+}
+
+/* Active tab glow pill */
+nav[class*="bottom"] button.active,
+.bottom-nav-tab.active,
+[class*="bottom-nav"] button.active,
+[class*="bottom-nav"] .active {
+  background: rgba(245,166,35,0.1) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 0 12px rgba(245,166,35,0.15) !important;
+}
+
+/* ── 25. BUTTONS — PILL SHAPED GLASS ─────────────────────── */
+.db-generate-btn,
+.dc-start-btn,
+button[class*="btn-primary"],
+button[class*="cta"],
+.btn-amber {
+  background: rgba(245,166,35,0.15) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(245,166,35,0.3) !important;
+  border-radius: 100px !important;
+  color: #f5a623 !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transition: all 0.2s ease !important;
+}
+
+.db-generate-btn:hover,
+.dc-start-btn:hover,
+button[class*="btn-primary"]:hover,
+.btn-amber:hover {
+  background: rgba(245,166,35,0.25) !important;
+  border-color: rgba(245,166,35,0.5) !important;
+  box-shadow: 0 0 20px rgba(245,166,35,0.2) !important;
+  transform: translateY(-1px);
+}
+
+/* Secondary glass outline buttons */
+button[class*="btn-secondary"],
+.btn-outline {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.1) !important;
+  border-radius: 100px !important;
+  transition: all 0.2s ease !important;
+}
+
+/* ── 26. MODALS / OVERLAYS ───────────────────────────────── */
+.profile-modal,
+.ac-modal,
+.ob-container {
+  background: rgba(14,16,20,0.85) !important;
+  backdrop-filter: blur(40px) !important;
+  -webkit-backdrop-filter: blur(40px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 24px !important;
+}
+
+/* ── 27. INPUT FIELDS — GLASS STYLE ──────────────────────── */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+select,
+textarea {
+  background: rgba(255,255,255,0.03) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 12px !important;
+  transition: all 0.2s ease !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(245,166,35,0.3) !important;
+  box-shadow: 0 0 0 3px rgba(245,166,35,0.1) !important;
+  outline: none !important;
+}
+
+/* ── 28. SCROLLBAR GLASS STYLE ───────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 100px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.2);
+}
+
+/* ── 29. TYPOGRAPHY REFINEMENTS ──────────────────────────── */
+.db-home-greeting,
+.db-home-greeting strong {
+  letter-spacing: 0.02em !important;
+}
+
+.db-home-subtitle,
+.db-home-stat-label,
+.db-donut-name {
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  font-weight: 500 !important;
+  font-size: 10px !important;
+  color: rgba(240,237,230,0.45) !important;
+}
+
+/* ── 30. NOTIFICATION / TOAST GLASS ──────────────────────── */
+.xp-gain-toast,
+#streak-toast,
+.toast,
+[class*="toast"] {
+  background: rgba(14,16,20,0.8) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  border-radius: 16px !important;
+}
+
+/* ── 31. SECTION HEADERS ─────────────────────────────────── */
+.db-section-title,
+.section-title,
+h2[class*="title"],
+h3[class*="title"] {
+  letter-spacing: 0.06em !important;
+}
+
+/* ── 32. SKELETON LOADERS — GLASS ────────────────────────── */
+.skel {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.06) 50%,
+    rgba(255,255,255,0.03) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: skel-shimmer 1.5s ease-in-out infinite !important;
+  border-radius: 8px !important;
+}
+
+@keyframes skel-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── 33. MISC POLISH ─────────────────────────────────────── */
+
+/* Page loader glass */
+#page-loader {
+  background: rgba(10,12,16,0.95) !important;
+  backdrop-filter: blur(40px) !important;
+}
+
+/* Guest banner glass */
+#guest-banner {
+  background: rgba(245,166,35,0.08) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(245,166,35,0.15) !important;
+  border-radius: 12px !important;
+}
+
+/* Welcome screen glass */
+.welcome-overlay {
+  backdrop-filter: blur(20px) !important;
+}
+
+/* History / notification items */
+.notification-item,
+.history-item {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(30px) !important;
+  -webkit-backdrop-filter: blur(30px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 14px !important;
+  margin-bottom: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.notification-item:hover,
+.history-item:hover {
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
+
+/* ── 34. ADDITIONAL GLASS TARGETS ────────────────────────── */
+
+/* Ensure all remaining card-like elements get the glass treatment */
+.db-card,
+.db-feedback,
+.db-kpi,
+.coach-perf-block,
+.workouts-header,
+.drills-selector,
+.drills-coach-banner,
+.at-card,
+.st-card,
+.sh-create-card,
+.sh-accept-card,
+.ast-launch-card,
+.ast-settings-card,
+.ast-history-section,
+.cal-progress-strip,
+.drills-plan-stats,
+.drill-workout-panel {
+  background: rgba(255,255,255,0.04) !important;
+  backdrop-filter: blur(40px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(1.2) !important;
+  border: 1px solid rgba(255,255,255,0.08) !important;
+  box-shadow:
+    0 0 0 1px rgba(255,255,255,0.03) inset,
+    0 4px 24px rgba(0,0,0,0.3) !important;
+  border-radius: 16px !important;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1) !important;
+}
+
+/* Interactive controls — glass pill style */
+.coach-eq-btn,
+.drills-mode-bar,
+.workouts-filter-bar {
+  background: rgba(255,255,255,0.03) !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  border: 1px solid rgba(255,255,255,0.06) !important;
+  border-radius: 100px !important;
+  transition: all 0.2s ease !important;
+}
+
+.coach-eq-btn:hover {
+  background: rgba(255,255,255,0.06) !important;
+  border-color: rgba(245,166,35,0.2) !important;
+}
+
+.drills-mode-bar,
+.workouts-filter-bar {
+  border-radius: 14px !important;
+  padding: 4px !important;
+}
+
+/* Workouts stat card */
+.workouts-stat {
+  border-radius: 14px !important;
+}
+
+/* Coach banner */
+.drills-coach-banner {
+  border-radius: 20px !important;
+  overflow: hidden !important;
+}
+
+/* Plan stats strip */
+.drills-plan-stats {
+  border-radius: 14px !important;
+  padding: 14px 16px !important;
+}
+
+/* Drill workout panel */
+.drill-workout-panel {
+  border-radius: 20px !important;
+  padding: 20px !important;
+}
+
+/* Progress chart wrap */
+.pc-chart-wrap {
+  border-radius: 20px !important;
+  padding: 20px !important;
+}
+
+/* Calendar progress strip */
+.cal-progress-strip {
+  border-radius: 14px !important;
+  padding: 14px !important;
+}
+
+/* ── 35. RESPONSIVE ADJUSTMENTS ──────────────────────────── */
+@media (max-width: 768px) {
+  .glass-picks-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .glass-focus-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .glass-training-hero {
+    min-height: 180px !important;
+  }
+
+  .glass-training-hero-title {
+    font-size: 24px !important;
+  }
+
+  .glass-training-hero-content {
+    padding: 20px !important;
+  }
+
+  .glass-rank-number {
+    font-size: 48px !important;
+  }
+
+  .glass-shot-map-stats {
+    grid-template-columns: repeat(3, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .glass-map-stat-val {
+    font-size: 18px !important;
+  }
+
+  .glass-shot-actions {
+    flex-direction: column !important;
+  }
+
+  .glass-rec-card {
+    padding: 14px !important;
+  }
+
+  .glass-rec-icon {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 22px !important;
+    border-radius: 12px !important;
+  }
+
+  .glass-pick-card {
+    padding: 14px !important;
+  }
+
+  .glass-pick-icon {
+    width: 40px !important;
+    height: 40px !important;
+    font-size: 22px !important;
+  }
+
+  .glass-focus-card {
+    padding: 18px 12px !important;
+  }
+
+  .glass-focus-emoji {
+    font-size: 28px !important;
+  }
+
+  .glass-focus-name {
+    font-size: 11px !important;
+    letter-spacing: 0.1em !important;
+  }
+
+  .glass-streak-card {
+    padding: 16px !important;
+    gap: 12px !important;
+  }
+
+  .glass-streak-icon {
+    font-size: 32px !important;
+  }
+
+  .glass-streak-number {
+    font-size: 24px !important;
+  }
+
+  .glass-season-progress {
+    padding: 16px !important;
+  }
+
+  .glass-daily-drills {
+    padding: 16px !important;
+  }
+
+  .glass-recent-sessions {
+    padding: 16px !important;
+  }
+
+  .glass-feed-item {
+    padding: 12px 14px !important;
+    gap: 12px !important;
+  }
+
+  .glass-feed-avatar {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 20px !important;
+  }
+
+  .glass-rank-display {
+    padding: 20px !important;
+  }
+
+  .db-home-hero {
+    padding: 20px 16px !important;
+    border-radius: 16px !important;
+  }
+
+  .db-home-stats-row {
+    padding: 12px !important;
+    border-radius: 14px !important;
+  }
+
+  .db-donuts-row {
+    padding: 16px 12px !important;
+    border-radius: 16px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .glass-focus-grid {
+    gap: 6px !important;
+  }
+
+  .glass-focus-card {
+    padding: 14px 10px !important;
+    border-radius: 16px !important;
+  }
+
+  .glass-training-hero {
+    min-height: 160px !important;
+    border-radius: 20px !important;
+  }
+
+  .glass-training-hero-title {
+    font-size: 20px !important;
+  }
+
+  .glass-hero-meta-item {
+    font-size: 10px !important;
+    padding: 4px 10px !important;
+  }
+
+  .glass-picks-grid {
+    gap: 8px !important;
+  }
+
+  .glass-toggle-btn {
+    padding: 5px 14px !important;
+    font-size: 10px !important;
+  }
+}
+
+/* ── 37. FLOATING BOTTOM NAV BAR (5 Tabs) ───────────────── */
+
+/* Hide the sidebar entirely */
+.db-sidebar,
+.db-sidebar-mobile-toggle,
+.db-sidebar-overlay {
+  display: none !important;
+}
+
+/* Remove sidebar margin from main */
+.db-layout-root {
+  display: block !important;
+}
+
+.db-main {
+  margin-left: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.db-main-inner {
+  max-width: 900px !important;
+  margin: 0 auto !important;
+  padding-bottom: 100px !important; /* space for floating nav */
+}
+
+/* ── The Floating Glass Nav Bar ── */
+.glass-bottom-nav {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 12px;
+  border-radius: 28px;
+  background: rgba(15, 17, 22, 0.75);
+  backdrop-filter: blur(40px) saturate(1.6);
+  -webkit-backdrop-filter: blur(40px) saturate(1.6);
+  border: 1px solid rgba(255,255,255,0.08);
+  box-shadow:
+    0 8px 40px rgba(0,0,0,0.5),
+    0 0 0 1px rgba(255,255,255,0.04) inset,
+    0 0 60px rgba(245,166,35,0.03);
+}
+
+/* Each tab button */
+.glass-nav-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 10px 20px;
+  border-radius: 20px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.4);
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-nav-tab:hover {
+  color: rgba(255,255,255,0.7);
+  background: rgba(255,255,255,0.04);
+}
+
+/* Active tab */
+.glass-nav-tab.active {
+  color: #f5a623;
+  background: rgba(245,166,35,0.1);
+  box-shadow: 0 0 20px rgba(245,166,35,0.1);
+}
+
+.glass-nav-tab.active .glass-nav-icon {
+  filter: drop-shadow(0 0 6px rgba(245,166,35,0.4));
+}
+
+/* Active indicator dot */
+.glass-nav-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #f5a623;
+  box-shadow: 0 0 8px rgba(245,166,35,0.6);
+}
+
+/* Icon sizing */
+.glass-nav-icon {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
+  transition: all 0.3s ease;
+}
+
+/* Label */
+.glass-nav-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+/* ── Sub-Navigation Pill Row (inside panels) ── */
+.glass-sub-nav {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px;
+  margin-bottom: 20px;
+  border-radius: 16px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.06);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: fit-content;
+}
+
+.glass-sub-nav-btn {
+  padding: 8px 18px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+}
+
+.glass-sub-nav-btn:hover {
+  color: rgba(255,255,255,0.8);
+  background: rgba(255,255,255,0.04);
+}
+
+.glass-sub-nav-btn.active {
+  color: #f5a623;
+  background: rgba(245,166,35,0.12);
+  box-shadow: 0 0 12px rgba(245,166,35,0.08);
+}
+
+/* ── Desktop: wider nav, centered ── */
+@media (min-width: 769px) {
+  .glass-bottom-nav {
+    bottom: 28px;
+    padding: 10px 16px;
+    gap: 6px;
+    border-radius: 32px;
+  }
+
+  .glass-nav-tab {
+    padding: 12px 24px;
+    border-radius: 22px;
+    gap: 5px;
+  }
+
+  .glass-nav-label {
+    font-size: 11px;
+  }
+}
+
+/* ── Mobile: full width at bottom ── */
+@media (max-width: 768px) {
+  .glass-bottom-nav {
+    bottom: 0;
+    left: 0;
+    right: 0;
+    transform: none;
+    border-radius: 20px 20px 0 0;
+    padding: 8px 10px;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    gap: 2px;
+    justify-content: space-around;
+  }
+
+  .glass-nav-tab {
+    padding: 8px 8px;
+    flex: 1;
+    border-radius: 14px;
+  }
+
+  .glass-nav-label {
+    font-size: 9px;
+  }
+
+  .db-main-inner {
+    padding-bottom: 90px !important;
+  }
+}
+
+/* ── Very small screens ── */
+@media (max-width: 380px) {
+  .glass-nav-tab {
+    padding: 6px 4px;
+  }
+  .glass-nav-label {
+    font-size: 8px;
+  }
+  .glass-nav-icon {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ── Hide the old topbar breadcrumb (replaced by sub-nav) ── */
+.db-topbar {
+  display: none !important;
+}
+
+/* ── 36. ANIMATIONS ──────────────────────────────────────── */
+
+/* Shimmer animation for glass cards */
+@keyframes glassShimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Pulse animation for streak icon and active indicators */
+@keyframes glassPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 0.85;
+  }
+}
+
+/* Subtle glow pulse for active elements */
+@keyframes glassGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.03) inset,
+      0 4px 24px rgba(0,0,0,0.3),
+      0 0 15px rgba(245,166,35,0.05);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1px rgba(255,255,255,0.05) inset,
+      0 4px 24px rgba(0,0,0,0.3),
+      0 0 25px rgba(245,166,35,0.1);
+  }
+}
+
+/* Fade-in slide up for cards entering viewport */
+@keyframes glassFadeIn {
+  0% {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Floating animation for decorative elements */
+@keyframes glassFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+/* Apply glow animation to active streak */
+.glass-streak-card:has(.glass-streak-fill[style*="100"]) {
+  animation: glassGlow 3s ease-in-out infinite !important;
+}
+
+/* Smooth card entrance (can be toggled via JS) */
+.glass-animate-in {
+  animation: glassFadeIn 0.4s cubic-bezier(0.4,0,0.2,1) forwards !important;
+}
+
+/* Shimmer class for loading states */
+.glass-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.03) 25%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.03) 75%
+  ) !important;
+  background-size: 200% 100% !important;
+  animation: glassShimmer 2s ease-in-out infinite !important;
+}
+
+/* Float animation utility */
+.glass-float {
+  animation: glassFloat 4s ease-in-out infinite !important;
+}
+
+/* Pulse animation utility */
+.glass-pulse {
+  animation: glassPulse 2s ease-in-out infinite !important;
+}

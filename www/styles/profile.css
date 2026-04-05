@@ -11,12 +11,6 @@
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.profile-summary:hover {
-  border-color: rgba(245,166,35,0.15);
-  box-shadow: 0 0 20px rgba(245,166,35,0.04);
 }
 
 .profile-summary-info {
@@ -41,12 +35,6 @@
   font-weight: 800;
   color: var(--c-amber);
   flex-shrink: 0;
-  box-shadow: 0 0 16px rgba(245,166,35,0.15);
-  transition: transform 0.3s ease;
-}
-
-.profile-summary:hover .profile-summary-avatar {
-  transform: scale(1.08);
 }
 
 .profile-summary-pills {
@@ -82,7 +70,6 @@
   background: var(--c-amber-dim);
   color: var(--c-amber);
   font-weight: 600;
-  box-shadow: 0 0 8px rgba(245,166,35,0.1);
 }
 
 /* Empty state */
