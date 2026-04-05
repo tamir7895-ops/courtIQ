@@ -632,6 +632,27 @@
           }
         }
 
+        /* ── Auto-rim-lock from hoop detection ─────────────────── */
+        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.25) {
+          var hd = self._lastHoopDetection;
+          // Convert from processing canvas coords to normalized 0-1
+          var normCX = (hd.cx * scaleX) / vw;
+          var normCY = (hd.cy * scaleY) / vh;
+          var normW  = (hd.bw * scaleX) / vw;
+          var normH  = (hd.bh * scaleY) / vh;
+          // Clamp to sane range
+          normW = Math.min(normW, 0.25);
+          normH = Math.min(normH, 0.15);
+          // Smooth update: blend 80% old + 20% new to avoid jitter
+          if (self.rimZone) {
+            normCX = self.rimZone.centerX * 0.8 + normCX * 0.2;
+            normCY = self.rimZone.centerY * 0.8 + normCY * 0.2;
+            normW  = self.rimZone.width   * 0.8 + normW  * 0.2;
+            normH  = self.rimZone.height  * 0.8 + normH  * 0.2;
+          }
+          self.setRimZone(normCX, normCY, normW, normH);
+        }
+
         if (mlBall) {
           self._mlMissCount = 0;
           self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
