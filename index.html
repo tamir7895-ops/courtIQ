@@ -2873,7 +2873,15 @@
 <script>
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function () {
-    navigator.serviceWorker.register('./sw.js?v=21').catch(function () {});
+    navigator.serviceWorker.register('./sw.js').catch(function () {});
+    // When a new SW takes over (skipWaiting + clients.claim), navigate to root
+    // so old cached pages (e.g. dashboard.html) are replaced with the new SPA.
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!window._swReloading) {
+        window._swReloading = true;
+        window.location.replace('./');
+      }
+    });
   });
 }
 </script>

@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 23;
+const CACHE_VERSION = 24;
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
@@ -73,16 +73,9 @@ const STATIC_ASSETS = [
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      // Fetch each asset individually — a single 404 must NOT abort the whole install.
-      // cache.addAll fails the entire install if any URL returns 404.
-      var fetches = STATIC_ASSETS.map(function (url) {
-        return fetch(url).then(function (res) {
-          if (res && res.status === 200) return cache.put(url, res);
-        }).catch(function () {}); // silently skip missing files
-      });
-      return Promise.all(fetches);
+      return cache.addAll(STATIC_ASSETS);
     }).then(function () {
-      return self.skipWaiting(); // activate immediately — don't wait for old tabs to close
+      return self.skipWaiting();
     })
   );
 });
@@ -169,6 +162,11 @@ self.addEventListener('fetch', function (event) {
     caches.match(cacheRequest).then(function (cached) {
       if (cached) return cached;
       return fetch(event.request).then(function (response) {
+        // Navigation 404 fallback: if a page (e.g. dashboard.html) no longer exists,
+        // serve the app shell (index.html) so the SPA handles routing.
+        if (event.request.mode === 'navigate' && response.status === 404) {
+          return caches.match('./') || fetch('./');
+        }
         // Cache new static assets on the fly
         if (response && response.status === 200 && response.type === 'basic') {
           var clone = response.clone();
@@ -177,6 +175,11 @@ self.addEventListener('fetch', function (event) {
           });
         }
         return response;
+      }).catch(function () {
+        // Network offline fallback for navigation requests
+        if (event.request.mode === 'navigate') {
+          return caches.match('./') || caches.match('./index.html');
+        }
       });
     })
   );
