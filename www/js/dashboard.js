@@ -36,6 +36,24 @@
       const heroName = document.getElementById('ke-player-name');
       if (heroName) heroName.textContent = displayName;
 
+      // Hero background: DiceBear avatar (saved URL first, else generate from name)
+      const heroBgImg = document.getElementById('ks-hero-bg-img');
+      if (heroBgImg) {
+        try {
+          const ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+          const savedUrl = ob.dicebear_avatar_url;
+          if (savedUrl) {
+            heroBgImg.src = savedUrl;
+          } else {
+            const seed = encodeURIComponent(displayName);
+            heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed + '&size=300&backgroundColor=transparent';
+          }
+        } catch (e) {
+          const seed = encodeURIComponent(displayName);
+          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed + '&size=300&backgroundColor=transparent';
+        }
+      }
+
       // Profile panel full name
       const profileName = document.getElementById('ks-profile-full-name');
       if (profileName) profileName.textContent = fullName;
