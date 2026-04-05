@@ -18,8 +18,18 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Use dashboard as root index
-        run: cp www/dashboard.html www/index.html
+      - name: Prepare www/ for deploy
+        run: |
+          # sw.js lives at root (source of truth) — copy it into www/ for deploy
+          cp sw.js www/sw.js
+
+          # Auto-set SW cache version to commit hash so every deploy busts the cache
+          # No more manual version bumping needed
+          COMMIT=$(git rev-parse --short HEAD)
+          sed -i "s/const CACHE_VERSION = [^;]*/const CACHE_VERSION = '$COMMIT'/" www/sw.js
+
+          # Root URL serves the dashboard (not a redirect stub)
+          cp www/dashboard.html www/index.html
 
       - name: Deploy www/ to gh-pages branch
         uses: JamesIves/github-pages-deploy-action@v4
