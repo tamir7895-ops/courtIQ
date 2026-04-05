@@ -46,11 +46,11 @@
             heroBgImg.src = savedUrl;
           } else {
             const seed = encodeURIComponent(displayName);
-            heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed + '&size=300&backgroundColor=transparent';
+            heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed';
           }
         } catch (e) {
           const seed = encodeURIComponent(displayName);
-          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed + '&size=300&backgroundColor=transparent';
+          heroBgImg.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + seed';
         }
       }
 
