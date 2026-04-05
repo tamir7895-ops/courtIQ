@@ -2975,10 +2975,50 @@ function _renderLibrary() {
     infoEl.textContent = parts.length > 0 ? `Filtered: ${parts.join(' · ')}` : 'Showing all';
   }
 
-  // Render cards
-  grid.innerHTML = pool.length === 0
-    ? '<div class="drills-library-empty">No drills match your filters. Try broadening your search.</div>'
-    : pool.map(drill => _buildLibraryCard(drill)).join('');
+  if (pool.length === 0) {
+    grid.innerHTML = '<div class="drills-library-empty">No drills match your filters.</div>';
+    return;
+  }
+
+  // Group by focus area
+  const groups = {};
+  pool.forEach(function(d) {
+    if (!groups[d.focus_area]) groups[d.focus_area] = [];
+    groups[d.focus_area].push(d);
+  });
+
+  // Category order
+  const ORDER = ['Shooting', 'Ball Handling', 'Defense', 'Finishing', 'Footwork', 'Conditioning', 'Passing', 'Strength', 'Vertical'];
+  const cats = Object.keys(groups).sort(function(a, b) {
+    return (ORDER.indexOf(a) === -1 ? 99 : ORDER.indexOf(a)) - (ORDER.indexOf(b) === -1 ? 99 : ORDER.indexOf(b));
+  });
+
+  // If a search/filter is active, auto-open all groups
+  const autoOpen = (search !== '' || _libFocusFilter !== 'All' || _libDiffFilter !== 'All');
+
+  grid.innerHTML = cats.map(function(cat) {
+    const drills = groups[cat];
+    const icon   = _FOCUS_ICONS[cat] || '🏀';
+    const colors = _FOCUS_COLORS[cat] || { bg: 'rgba(245,166,35,0.12)', color: '#f5a623' };
+    const openCls = autoOpen ? ' open' : '';
+    return `<div class="drill-cat-group${openCls}" data-cat="${cat}">
+  <div class="drill-cat-header" onclick="drillCatToggle(this)">
+    <div class="drill-cat-icon" style="background:${colors.bg};color:${colors.color}">${icon}</div>
+    <div class="drill-cat-name">${cat}</div>
+    <span class="drill-cat-count">${drills.length} drill${drills.length !== 1 ? 's' : ''}</span>
+    <span class="drill-cat-chevron">›</span>
+  </div>
+  <div class="drill-cat-body">
+    ${drills.map(d => _buildLibraryCard(d)).join('')}
+  </div>
+</div>`;
+  }).join('');
+}
+
+function drillCatToggle(headerEl) {
+  const group = headerEl.closest('.drill-cat-group');
+  if (!group) return;
+  group.classList.toggle('open');
 }
 
 /* ── Focus-area color map for icon backgrounds ──────────────── */
