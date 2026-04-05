@@ -34,11 +34,8 @@ function copyRecursive(src, dest) {
   }
 }
 
-// Clean www/
-if (fs.existsSync(DEST)) {
-  fs.rmSync(DEST, { recursive: true, force: true });
-}
-fs.mkdirSync(DEST);
+// Ensure www/ exists (do NOT wipe it — dashboard.html and other www-only files must survive)
+fs.mkdirSync(DEST, { recursive: true });
 
 // Copy each target
 for (const target of COPY_TARGETS) {

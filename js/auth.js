@@ -141,7 +141,7 @@
     }
 
     showAuthSuccess('signin', email);
-    setTimeout(() => { window.location.reload(); }, 1500);
+    setTimeout(() => { window.location.replace('./dashboard.html'); }, 1500);
   }
 
   async function submitSignUp() {
@@ -298,13 +298,10 @@
       return;
     }
     if (session) {
-      // Update nav buttons if on landing page
-      const navBtns = document.querySelector('.nav-cta') || document.querySelector('.nav-buttons');
-      if (navBtns && !document.getElementById('db-panel-log')) {
-        navBtns.innerHTML = `
-          <a href="index.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
-          <button onclick="signOut()" class="btn-hamburger" style="font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;">Sign Out</button>
-        `;
+      // If on landing page (not dashboard), auto-redirect to dashboard
+      if (!document.getElementById('db-panel-log')) {
+        window.location.replace('./dashboard.html');
+        return;
       }
     }
   })();
