@@ -5,11 +5,12 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = 20;
+const CACHE_VERSION = 26;
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
   './index.html',
+  './dashboard.html',
   // Styles
   './styles/main.css',
   './styles/animations.css',
@@ -17,7 +18,6 @@ const STATIC_ASSETS = [
   './styles/drills.css',
   './styles/workouts.css',
   './styles/shot-tracker.css',
-  './styles/feature-heroes.css',
   './styles/charts.css',
   './styles/move-library.css',
   './styles/profile.css',
@@ -59,28 +59,26 @@ const STATIC_ASSETS = [
   './js/archetype-engine.js',
   './js/social-hub.js',
   './js/ai-coach.js',
-  './js/court-heatmap.js',
-  './js/notifications.js',
-  './js/workout-timer.js',
-  './js/badges.js',
-  './styles/badges.css',
-  './js/video-review.js',
-  './features/shot-tracking/utils/heatmapGenerator.js',
   './manifest.json'
 ];
 
-/* ── Install: cache static shell ─────────────────────────── */
+/* ── Install: resilient per-file cache (never aborts on missing files) ── */
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(STATIC_ASSETS);
+      var fetches = STATIC_ASSETS.map(function (url) {
+        return fetch(url).then(function (res) {
+          if (res && res.status === 200) return cache.put(url, res);
+        }).catch(function () {}); // silently skip missing files
+      });
+      return Promise.all(fetches);
     }).then(function () {
-      return self.skipWaiting();
+      return self.skipWaiting(); // activate immediately
     })
   );
 });
 
-/* ── Activate: remove old caches ────────────────────────── */
+/* ── Activate: wipe ALL old caches, then claim & reload pages ─────── */
 self.addEventListener('activate', function (event) {
   event.waitUntil(
     caches.keys().then(function (keys) {
@@ -90,6 +88,14 @@ self.addEventListener('activate', function (event) {
       );
     }).then(function () {
       return self.clients.claim();
+    }).then(function () {
+      // Force-navigate all open windows to root so stale cached pages reload.
+      return self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+        .then(function (clients) {
+          clients.forEach(function (client) {
+            client.navigate('./').catch(function () {});
+          });
+        });
     })
   );
 });
