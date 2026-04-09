@@ -15,8 +15,8 @@
   'use strict';
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 3000;  // Cooldown between counted shots (was 1500)
-  var MIN_TRAJECTORY_PTS   = 4;    // Minimum trajectory points before analyzing (was 3)
+  var DEBOUNCE_MS          = 2000;  // Cooldown between counted shots (balanced: was 3000)
+  var MIN_TRAJECTORY_PTS   = 3;    // Minimum trajectory points before analyzing
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
@@ -126,10 +126,10 @@
       centerX: cx, centerY: cy, width: w, height: h,
       left: cx - w / 2, right: cx + w / 2,
       top: cy - h / 2, bottom: cy + h / 2,
-      approachLeft: cx - w * 1.8,
-      approachRight: cx + w * 1.8,
-      approachTop: cy - h * 3.5,
-      approachBottom: cy + h * 3.5
+      approachLeft: cx - w * 2.2,
+      approachRight: cx + w * 2.2,
+      approachTop: cy - h * 4.0,
+      approachBottom: cy + h * 4.0
     };
   }
 
@@ -1275,11 +1275,20 @@
       if (this.tracker.positions.length < MIN_TRAJECTORY_PTS) return;
 
       var traj = getTrajectoryNormalized(this.tracker, vw, vh, 30);
-      var last = traj[traj.length - 1];
-      if (!isInApproachZone(last.x, last.y, this.rimZone)) return;
 
+      // Check if ANY point in the trajectory is in the approach zone (not just last)
+      var anyInApproach = false;
+      for (var ai = 0; ai < traj.length; ai++) {
+        if (isInApproachZone(traj[ai].x, traj[ai].y, this.rimZone)) {
+          anyInApproach = true;
+          break;
+        }
+      }
+      if (!anyInApproach) return;
+
+      // Don't block on rising trend — with noisy detection, trend is unreliable
+      // Instead just check that ball has some downward component somewhere
       var trend = getYTrend(this.tracker, vh);
-      if (trend === 'rising') return;
 
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
