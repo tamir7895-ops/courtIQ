@@ -233,6 +233,32 @@
   }
 
   /* ── Draw loop (runs every rAF while open) ───────────────── */
+  /* ── Compute video content area within canvas (letterbox offset) ── */
+  function _getVideoContentRect() {
+    if (!_videoEl || !_canvas) return { ox: 0, oy: 0, vw: _canvas.width, vh: _canvas.height };
+    var cw = _canvas.width;
+    var ch = _canvas.height;
+    var natW = _videoEl.videoWidth || cw;
+    var natH = _videoEl.videoHeight || ch;
+    var videoAR = natW / natH;
+    var canvasAR = cw / ch;
+    var contentW, contentH, ox, oy;
+    if (videoAR < canvasAR) {
+      // Portrait video in wider canvas — black bars on sides
+      contentH = ch;
+      contentW = ch * videoAR;
+      ox = (cw - contentW) / 2;
+      oy = 0;
+    } else {
+      // Landscape video in taller canvas — black bars top/bottom
+      contentW = cw;
+      contentH = cw / videoAR;
+      ox = 0;
+      oy = (ch - contentH) / 2;
+    }
+    return { ox: ox, oy: oy, vw: contentW, vh: contentH };
+  }
+
   function _drawLoop() {
     if (!_isOpen) return;
     _animFrame = requestAnimationFrame(_drawLoop);
@@ -243,35 +269,42 @@
     var engine = window.ShotDetectionEngine;
     if (!engine) return;
 
-    var cw = _canvas.width;
-    var ch = _canvas.height;
+    /* Video content rect (accounts for letterbox padding) */
+    var vcr = _getVideoContentRect();
+    var ox = vcr.ox, oy = vcr.oy, vw = vcr.vw, vh = vcr.vh;
+
+    /* Helper: convert normalized video coords to canvas pixels */
+    function nx(n) { return ox + n * vw; }
+    function ny(n) { return oy + n * vh; }
+    function nw(n) { return n * vw; }
+    function nh(n) { return n * vh; }
 
     /* Draw raw YOLOX hoop detection (yellow dashed — debug) ── */
     var rawHoop = engine._rawHoopBox;
     if (rawHoop) {
-      var hx = (rawHoop.normCX - rawHoop.normW / 2) * cw;
-      var hy = (rawHoop.normCY - rawHoop.normH / 2) * ch;
-      var hw = rawHoop.normW * cw;
-      var hh = rawHoop.normH * ch;
+      var hx = nx(rawHoop.normCX - rawHoop.normW / 2);
+      var hy = ny(rawHoop.normCY - rawHoop.normH / 2);
+      var hw = nw(rawHoop.normW);
+      var hh = nh(rawHoop.normH);
 
-      _ctx.strokeStyle = 'rgba(255, 255, 0, 0.35)';
-      _ctx.lineWidth   = 1;
+      _ctx.strokeStyle = 'rgba(255, 255, 0, 0.4)';
+      _ctx.lineWidth   = 1.5;
       _ctx.setLineDash([4, 4]);
       _ctx.strokeRect(hx, hy, hw, hh);
       _ctx.setLineDash([]);
 
-      _ctx.fillStyle = 'rgba(255, 255, 0, 0.7)';
-      _ctx.font      = 'bold 9px sans-serif';
-      _ctx.fillText('HOOP ' + (rawHoop.score * 100).toFixed(0) + '%', hx + 2, hy - 3);
+      _ctx.fillStyle = 'rgba(255, 255, 0, 0.8)';
+      _ctx.font      = 'bold 10px sans-serif';
+      _ctx.fillText('HOOP ' + (rawHoop.score * 100).toFixed(0) + '%', hx + 2, hy - 4);
     }
 
     /* Draw rim zone (green — target zone for shot analysis) ── */
     var rim = engine.rimZone;
     if (rim) {
-      var rx = rim.left   * cw;
-      var ry = rim.top    * ch;
-      var rw = rim.width  * cw;
-      var rh = rim.height * ch;
+      var rx = nx(rim.left);
+      var ry = ny(rim.top);
+      var rw = nw(rim.width);
+      var rh = nh(rim.height);
 
       _ctx.strokeStyle = 'rgba(86, 211, 100, 0.7)';
       _ctx.lineWidth   = 2;
@@ -290,8 +323,8 @@
     /* Draw ball dot ─────────────────────────────────────────── */
     var bp = engine.ballPosition;
     if (bp) {
-      var bx = bp.normX * cw;
-      var by = bp.normY * ch;
+      var bx = nx(bp.normX);
+      var by = ny(bp.normY);
 
       /* Outer glow ring */
       _ctx.beginPath();
