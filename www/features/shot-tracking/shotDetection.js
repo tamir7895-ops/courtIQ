@@ -517,6 +517,9 @@
       resetTracker(this.tracker);
       this.lastShotTime = 0;
       this.ballPosition = null;
+      this._rimLockCount = 0;
+      this._rawHoopBox = null;
+      this._lastHoopDetection = null;
     },
 
     /* ── Internal ──────────────────────────────────────────────── */
@@ -633,24 +636,36 @@
         }
 
         /* ── Auto-rim-lock from hoop detection ─────────────────── */
-        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.25) {
+        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.12) {
           var hd = self._lastHoopDetection;
           // Convert from processing canvas coords to normalized 0-1
+          // The ACTUAL RIM is at the BOTTOM of the hoop bounding box
+          // (backboard is above, rim is where ball goes through)
           var normCX = (hd.cx * scaleX) / vw;
-          var normCY = (hd.cy * scaleY) / vh;
-          var normW  = (hd.bw * scaleX) / vw;
-          var normH  = (hd.bh * scaleY) / vh;
-          // Clamp to sane range
-          normW = Math.min(normW, 0.25);
-          normH = Math.min(normH, 0.15);
-          // Smooth update: blend 80% old + 20% new to avoid jitter
-          if (self.rimZone) {
-            normCX = self.rimZone.centerX * 0.8 + normCX * 0.2;
-            normCY = self.rimZone.centerY * 0.8 + normCY * 0.2;
-            normW  = self.rimZone.width   * 0.8 + normW  * 0.2;
-            normH  = self.rimZone.height  * 0.8 + normH  * 0.2;
+          var hoopBottom = ((hd.cy + hd.bh * 0.35) * scaleY) / vh; // 35% below center → near rim
+          var rimW = (hd.bw * scaleX * 0.8) / vw; // rim is ~80% of hoop box width
+          var rimH = (hd.bh * scaleY * 0.25) / vh; // rim height is ~25% of hoop box
+          // Clamp
+          rimW = Math.max(0.03, Math.min(rimW, 0.20));
+          rimH = Math.max(0.02, Math.min(rimH, 0.10));
+          // Smooth update: blend 50/50 for faster convergence
+          if (self.rimZone && self._rimLockCount > 0) {
+            var alpha = Math.min(0.5, 0.15 + self._rimLockCount * 0.05); // ramp up confidence
+            normCX    = self.rimZone.centerX * (1 - alpha) + normCX    * alpha;
+            hoopBottom = self.rimZone.centerY * (1 - alpha) + hoopBottom * alpha;
+            rimW      = self.rimZone.width   * (1 - alpha) + rimW      * alpha;
+            rimH      = self.rimZone.height  * (1 - alpha) + rimH      * alpha;
           }
-          self.setRimZone(normCX, normCY, normW, normH);
+          self._rimLockCount = (self._rimLockCount || 0) + 1;
+          self.setRimZone(normCX, hoopBottom, rimW, rimH);
+          // Store raw hoop box for debug drawing
+          self._rawHoopBox = {
+            normCX: (hd.cx * scaleX) / vw,
+            normCY: (hd.cy * scaleY) / vh,
+            normW: (hd.bw * scaleX) / vw,
+            normH: (hd.bh * scaleY) / vh,
+            score: hd.score
+          };
         }
 
         if (mlBall) {
@@ -738,19 +753,22 @@
 
         // Size filter
         var area = bw * bh;
+
+        // Check for hoop first (any size detection that passes hoop filters)
+        var hoopAspect = bw / (bh || 1);
+        if (hoopScore > 0.10 && hoopScore > bestHoopScore
+            && area > frameArea * 0.0005 && area < frameArea * 0.15
+            && hoopAspect > 0.3 && hoopAspect < 6.0) {
+          bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
+          bestHoopScore = hoopScore;
+        }
+
+        // Ball size filter
         if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) {
-          // Still check for hoop (hoops are larger than ball but max 8% of frame)
-          var hoopAspect = bw / (bh || 1);
-          if (hoopScore > 0.15 && hoopScore > bestHoopScore
-              && area > frameArea * 0.001 && area < frameArea * 0.08
-              && hoopAspect > 1.0 && hoopAspect < 5.0) {
-            bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-            bestHoopScore = hoopScore;
-          }
           continue;
         }
 
-        // Aspect ratio check for ball
+        // Aspect ratio check for ball (balls are roughly round)
         var aspect = Math.max(bw, bh) / (Math.min(bw, bh) || 1);
         if (aspect > 3.0) continue;
 
@@ -758,19 +776,20 @@
           best = { cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore };
           bestScore = ballScore;
         }
-
-        // Also track hoop detections (must be 0.1%-8% of frame, wider than tall)
-        var hoopAR = bw / (bh || 1);
-        if (hoopScore > 0.15 && hoopScore > bestHoopScore
-            && area > frameArea * 0.001 && area < frameArea * 0.08
-            && hoopAR > 1.0 && hoopAR < 5.0) {
-          bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-          bestHoopScore = hoopScore;
-        }
       }
 
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = bestHoop;
+
+      // Debug logging (throttled to every 30th call)
+      this._decodeCount = (this._decodeCount || 0) + 1;
+      if (this._decodeCount % 30 === 1) {
+        console.log('[YOLOX]',
+          'ball:', best ? (best.score * 100).toFixed(1) + '%' : 'none',
+          'hoop:', bestHoop ? (bestHoop.score * 100).toFixed(1) + '% @' + Math.round(bestHoop.cx) + ',' + Math.round(bestHoop.cy) + ' ' + Math.round(bestHoop.bw) + 'x' + Math.round(bestHoop.bh) : 'none',
+          'rim:', this.rimZone ? (this.rimZone.centerX * 100).toFixed(0) + '%,' + (this.rimZone.centerY * 100).toFixed(0) + '%' : 'default'
+        );
+      }
 
       return best;
     },
