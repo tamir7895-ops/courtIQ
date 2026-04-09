@@ -15,8 +15,8 @@
   'use strict';
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
-  var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
+  var DEBOUNCE_MS          = 3000;  // Cooldown between counted shots (was 1500)
+  var MIN_TRAJECTORY_PTS   = 4;    // Minimum trajectory points before analyzing (was 3)
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
@@ -126,10 +126,10 @@
       centerX: cx, centerY: cy, width: w, height: h,
       left: cx - w / 2, right: cx + w / 2,
       top: cy - h / 2, bottom: cy + h / 2,
-      approachLeft: cx - w * 2.5,
-      approachRight: cx + w * 2.5,
-      approachTop: cy - h * 5.0,
-      approachBottom: cy + h * 5.0
+      approachLeft: cx - w * 1.8,
+      approachRight: cx + w * 1.8,
+      approachTop: cy - h * 3.5,
+      approachBottom: cy + h * 3.5
     };
   }
 
@@ -146,7 +146,7 @@
   function isBelowRim(y, rim) { return y > rim.bottom; }
 
   function isWithinHorizontalBounds(x, rim) {
-    var margin = rim.width * 0.5;
+    var margin = rim.width * 0.8; // wider margin (was 0.5)
     return x >= rim.left - margin && x <= rim.right + margin;
   }
 
@@ -156,42 +156,65 @@
     var enteredAbove = false, enteredRim = false, exitedBelow = false;
     var entryFrame = -1, entryPoint = null;
     var nearRim = false;
+    var passedThroughRimY = false;
 
     for (var i = 0; i < trajectory.length; i++) {
       var pt = trajectory[i];
+
+      // Ball was above rim at some point
       if (!enteredAbove && isAboveRim(pt.y, rim)) {
         enteredAbove = true;
       }
+
+      // Ball entered the rim box
       if (enteredAbove && !enteredRim && isInsideRim(pt.x, pt.y, rim)) {
         enteredRim = true;
         entryFrame = pt.frame;
         entryPoint = { x: pt.x, y: pt.y };
       }
-      if (enteredAbove && !nearRim && isInApproachZone(pt.x, pt.y, rim) && Math.abs(pt.y - rim.centerY) < rim.height * 1.5) {
+
+      // Ball is near the rim (approach zone + close to rim Y)
+      if (enteredAbove && !nearRim && isInApproachZone(pt.x, pt.y, rim) && Math.abs(pt.y - rim.centerY) < rim.height * 2.5) {
         nearRim = true;
         if (!entryPoint) entryPoint = { x: pt.x, y: pt.y };
         if (entryFrame < 0) entryFrame = pt.frame;
       }
-      if ((enteredRim || nearRim) && isBelowRim(pt.y, rim)) {
-        var frameLimit = enteredRim ? MADE_MAX_FRAMES : MADE_MAX_FRAMES * 1.5;
-        if (pt.frame - entryFrame <= frameLimit && isWithinHorizontalBounds(pt.x, rim)) {
+
+      // Ball crossed the rim Y level while within horizontal bounds
+      if (enteredAbove && !passedThroughRimY && pt.y >= rim.top && pt.y <= rim.bottom + rim.height && isWithinHorizontalBounds(pt.x, rim)) {
+        passedThroughRimY = true;
+        if (!entryPoint) entryPoint = { x: pt.x, y: pt.y };
+        if (entryFrame < 0) entryFrame = pt.frame;
+      }
+
+      // Ball exited below rim
+      if ((enteredRim || nearRim || passedThroughRimY) && isBelowRim(pt.y, rim)) {
+        var frameLimit = enteredRim ? MADE_MAX_FRAMES : MADE_MAX_FRAMES * 2;
+        if (entryFrame >= 0 && pt.frame - entryFrame <= frameLimit && isWithinHorizontalBounds(pt.x, rim)) {
           exitedBelow = true;
           break;
         }
       }
-      if (enteredRim && pt.frame - entryFrame > MADE_MAX_FRAMES) break;
+
+      if (enteredRim && pt.frame - entryFrame > MADE_MAX_FRAMES * 2) break;
     }
-    var isMade = enteredAbove && (enteredRim || nearRim) && exitedBelow;
+
+    // Made = came from above, passed through/near rim, went below
+    var isMade = enteredAbove && (enteredRim || nearRim || passedThroughRimY) && exitedBelow;
     return { isMade: isMade, entryPoint: entryPoint };
   }
 
   function analyzeMiss(trajectory, rim) {
-    if (trajectory.length < 3) return { isMiss: false, entryPoint: null };
+    if (trajectory.length < 4) return { isMiss: false, entryPoint: null };
     var approached = false, approachPoint = null;
+    var wasAbove = false;
 
     for (var i = 0; i < trajectory.length; i++) {
       var pt = trajectory[i];
-      if (!approached && isInApproachZone(pt.x, pt.y, rim)) {
+      // Must have been above rim first (actual shot, not just walking near hoop)
+      if (pt.y < rim.top) wasAbove = true;
+
+      if (wasAbove && !approached && isInApproachZone(pt.x, pt.y, rim)) {
         approached = true;
         approachPoint = { x: pt.x, y: pt.y };
       }
@@ -203,7 +226,8 @@
         }
       }
     }
-    if (approached) {
+    // Don't count as miss if ball never went above rim (wasn't a shot)
+    if (approached && wasAbove) {
       var last = trajectory[trajectory.length - 1];
       if (!isBelowRim(last.y, rim) || !isWithinHorizontalBounds(last.x, rim)) {
         return { isMiss: true, entryPoint: approachPoint };
@@ -1108,9 +1132,10 @@
         // Score bonus: detections at y=20-50% get 2x boost, y=10-60% get 1.5x
         var hoopPosBonus = (hoopYn > 0.15 && hoopYn < 0.55) ? 2.0 : (hoopYn > 0.08 && hoopYn < 0.65) ? 1.2 : 1.0;
         var adjustedHoopScore = hoopScore * hoopPosBonus;
-        if (hoopScore > 0.08 && adjustedHoopScore > bestHoopScore
-            && area > frameArea * 0.0003 && area < frameArea * 0.25
-            && hoopAspect > 0.15 && hoopAspect < 8.0) {
+        // High-confidence detections (>40%) bypass area/aspect filters
+        var passesFilter = (hoopScore > 0.40) ||
+          (area > frameArea * 0.0003 && area < frameArea * 0.30 && hoopAspect > 0.15 && hoopAspect < 8.0);
+        if (hoopScore > 0.08 && adjustedHoopScore > bestHoopScore && passesFilter) {
           bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
           bestHoopScore = adjustedHoopScore;
         }
