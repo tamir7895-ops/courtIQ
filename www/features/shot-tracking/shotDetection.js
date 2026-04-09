@@ -20,7 +20,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.008; // obj*cls — both already probabilities (sigmoid in model)
+  var BALL_CONFIDENCE      = 0.003; // obj*cls — lowered to catch weaker detections
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
 
@@ -275,12 +275,12 @@
     var gridH = Math.ceil(vh / CELL);
     var grid = new Uint16Array(gridW * gridH);  // orange pixel count per cell
 
-    // Count orange pixels per cell
+    // Count orange/brown-orange pixels per cell (widened for gym lighting)
     for (var y = 0; y < vh; y += COLOR_SCAN_STEP) {
       for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
         var idx = (y * vw + x) * 4;
         var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 140 && g > 50 && g < 180 && b < 100 && r > g * 1.2 && r > b * 2.0) {
+        if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
           var gx = Math.floor(x / CELL);
           var gy = Math.floor(y / CELL);
           grid[gy * gridW + gx]++;
@@ -755,13 +755,11 @@
         // Size filter
         var area = bw * bh;
 
-        // Check for hoop (with Y-position constraint: must be 15%-65% of frame height)
+        // Check for hoop (relaxed — auto-rim-lock uses bottom of bounding box)
         var hoopAspect = bw / (bh || 1);
-        var hoopYfrac = cy / ph;
-        if (hoopScore > 0.10 && hoopScore > bestHoopScore
-            && area > frameArea * 0.0005 && area < frameArea * 0.15
-            && hoopAspect > 0.3 && hoopAspect < 6.0
-            && hoopYfrac > 0.15 && hoopYfrac < 0.65) {
+        if (hoopScore > 0.08 && hoopScore > bestHoopScore
+            && area > frameArea * 0.0003 && area < frameArea * 0.25
+            && hoopAspect > 0.15 && hoopAspect < 8.0) {
           bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
           bestHoopScore = hoopScore;
         }
