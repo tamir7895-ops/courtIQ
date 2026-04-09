@@ -246,7 +246,26 @@
     var cw = _canvas.width;
     var ch = _canvas.height;
 
-    /* Draw rim zone ─────────────────────────────────────────── */
+    /* Draw raw YOLOX hoop detection (yellow dashed — debug) ── */
+    var rawHoop = engine._rawHoopBox;
+    if (rawHoop) {
+      var hx = (rawHoop.normCX - rawHoop.normW / 2) * cw;
+      var hy = (rawHoop.normCY - rawHoop.normH / 2) * ch;
+      var hw = rawHoop.normW * cw;
+      var hh = rawHoop.normH * ch;
+
+      _ctx.strokeStyle = 'rgba(255, 255, 0, 0.35)';
+      _ctx.lineWidth   = 1;
+      _ctx.setLineDash([4, 4]);
+      _ctx.strokeRect(hx, hy, hw, hh);
+      _ctx.setLineDash([]);
+
+      _ctx.fillStyle = 'rgba(255, 255, 0, 0.7)';
+      _ctx.font      = 'bold 9px sans-serif';
+      _ctx.fillText('HOOP ' + (rawHoop.score * 100).toFixed(0) + '%', hx + 2, hy - 3);
+    }
+
+    /* Draw rim zone (green — target zone for shot analysis) ── */
     var rim = engine.rimZone;
     if (rim) {
       var rx = rim.left   * cw;
@@ -254,18 +273,17 @@
       var rw = rim.width  * cw;
       var rh = rim.height * ch;
 
-      _ctx.strokeStyle = 'rgba(86, 211, 100, 0.55)';
+      _ctx.strokeStyle = 'rgba(86, 211, 100, 0.7)';
       _ctx.lineWidth   = 2;
       _ctx.setLineDash([6, 3]);
       _ctx.strokeRect(rx, ry, rw, rh);
       _ctx.setLineDash([]);
 
-      _ctx.fillStyle = 'rgba(86, 211, 100, 0.10)';
+      _ctx.fillStyle = 'rgba(86, 211, 100, 0.08)';
       _ctx.fillRect(rx, ry, rw, rh);
 
-      _ctx.fillStyle   = 'rgba(86, 211, 100, 0.85)';
+      _ctx.fillStyle   = 'rgba(86, 211, 100, 0.9)';
       _ctx.font        = 'bold 11px sans-serif';
-      _ctx.letterSpacing = '0.05em';
       _ctx.fillText('RIM', rx + 4, ry - 5);
     }
 
