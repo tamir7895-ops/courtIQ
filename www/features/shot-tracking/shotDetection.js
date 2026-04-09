@@ -443,6 +443,88 @@
     return { x: bestCluster.cx, y: bestCluster.cy, w: blobW, h: blobH, score: 0.5 + fillRatio * 0.3 };
   }
 
+  /* ── Background Subtraction — find moving objects (ball) ──────────── */
+  var BgSubtractor = {
+    _bgFrame: null,
+    _alpha: 0.03,  // slow background learning rate
+    _framesSinceReset: 0,
+
+    reset: function () {
+      this._bgFrame = null;
+      this._framesSinceReset = 0;
+    },
+
+    /* Update background model and return motion mask ball candidate */
+    detectMovingBall: function (ctx, pw, ph, rimZone) {
+      this._framesSinceReset++;
+      if (this._framesSinceReset < 5) return null; // need a few frames to build bg
+
+      try {
+        var imgData = ctx.getImageData(0, 0, pw, ph);
+        var data = imgData.data;
+      } catch (e) { return null; }
+
+      // Downsample to quarter res for speed
+      var step = 4;
+      var dw = Math.floor(pw / step);
+      var dh = Math.floor(ph / step);
+      var gray = new Float32Array(dw * dh);
+      for (var y = 0; y < dh; y++) {
+        for (var x = 0; x < dw; x++) {
+          var si = ((y * step) * pw + (x * step)) * 4;
+          gray[y * dw + x] = data[si] * 0.3 + data[si + 1] * 0.59 + data[si + 2] * 0.11;
+        }
+      }
+
+      if (!this._bgFrame || this._bgFrame.length !== gray.length) {
+        this._bgFrame = new Float32Array(gray);
+        return null;
+      }
+
+      // Compute difference and update background
+      var motionPx = [];
+      for (var i = 0; i < gray.length; i++) {
+        var diff = Math.abs(gray[i] - this._bgFrame[i]);
+        this._bgFrame[i] += (gray[i] - this._bgFrame[i]) * this._alpha;
+        if (diff > 25) { // significant motion
+          var mx = (i % dw) * step;
+          var my = Math.floor(i / dw) * step;
+          // Only look in upper portion (where ball flies)
+          if (rimZone) {
+            var normY = my / ph;
+            if (normY > rimZone.centerY + 0.15) continue; // skip below rim
+          }
+          motionPx.push({ x: mx, y: my, diff: diff });
+        }
+      }
+
+      if (motionPx.length < 3 || motionPx.length > 500) return null;
+
+      // Cluster motion pixels — find centroid of densest cluster
+      var sumX = 0, sumY = 0;
+      for (var j = 0; j < motionPx.length; j++) {
+        sumX += motionPx[j].x;
+        sumY += motionPx[j].y;
+      }
+      var centX = sumX / motionPx.length;
+      var centY = sumY / motionPx.length;
+
+      // Check cluster is ball-sized (compact, not huge)
+      var spread = 0;
+      for (var k = 0; k < motionPx.length; k++) {
+        var dx = motionPx[k].x - centX;
+        var dy = motionPx[k].y - centY;
+        spread += Math.sqrt(dx * dx + dy * dy);
+      }
+      spread /= motionPx.length;
+
+      var maxSpread = Math.min(pw, ph) * 0.15; // ball shouldn't be bigger than 15% of frame
+      if (spread > maxSpread || spread < 2) return null;
+
+      return { x: centX, y: centY, score: 0.3, source: 'motion' };
+    }
+  };
+
   /* ── Smart Rim Lock — locks hoop position, unlocks on camera motion ── */
   var SmartRimLock = {
     isLocked: false,
@@ -734,6 +816,7 @@
       this._decodeCount = 0;
       this._noBallFrames = 0;
       SmartRimLock.reset();
+      BgSubtractor.reset();
     },
 
     /* ── Internal ──────────────────────────────────────────────── */
@@ -782,20 +865,23 @@
       var pw = self._procW || vw;
       var ph = self._procH || vh;
 
-      /* ── Color detection (primary, every frame) ─────────────── */
-      /* If we have a rim zone, restrict color search to the upper half
-         of the frame (above + around rim) to avoid gym floor false positives */
+      /* ── Multi-source ball detection (every frame) ────────────── */
       var colorBall = null;
+      var motionBall = null;
       if (canvasReady) {
+        // 1. Color detection — restricted to above-rim region
         if (self.rimZone && self.rimZone.centerY > 0) {
-          // Search from top of frame to 20% below rim (where ball flies)
           var searchBottom = Math.min(ph, Math.round((self.rimZone.centerY + 0.20) * ph));
           colorBall = _detectBallInRegion(self._ctx, pw, 0, searchBottom);
         } else {
           colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
         }
+        // 2. Background subtraction — find moving ball-sized objects
+        motionBall = BgSubtractor.detectMovingBall(self._ctx, pw, ph, self.rimZone);
       }
-      self._lastColorBall = colorBall;
+      // Merge: prefer color, fallback to motion
+      var fusedBall = colorBall || motionBall;
+      self._lastColorBall = fusedBall;
 
       /* Scale ball positions from processing canvas back to video coords */
       var scaleX = pw > 0 ? vw / pw : 1;
@@ -804,14 +890,14 @@
       /* ── YOLOX detection (every 3rd frame) ──────────────────── */
       self._frameCount++;
       if (self.model && !self._colorOnlyMode && canvasReady && self._frameCount % 3 === 0) {
-        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, colorBall);
+        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, fusedBall);
         return; // async — will call _scheduleDetection when done
       }
 
-      /* Non-ML frames: use color only */
-      if (colorBall) {
+      /* Non-ML frames: use fused color + motion detection */
+      if (fusedBall) {
         self._mlMissCount++;
-        self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+        self._processBallDetection(fusedBall.x * scaleX, fusedBall.y * scaleY, vw, vh);
       } else {
         self._mlMissCount++;
         self._processNoBall();
@@ -855,6 +941,42 @@
           if (mlBall.score < 0.15) {
             var verified = self._verifyOrange(mlBall.cx, mlBall.cy, Math.max(mlBall.bw, mlBall.bh), pw, ph);
             if (!verified) { mlBall = null; }
+          }
+        }
+
+        /* ── ROI boost: if no ball found but rim is locked, run on cropped region ── */
+        if (!mlBall && SmartRimLock.isLocked && SmartRimLock.lockedRim && self._frameCount % 6 === 0) {
+          var lr = SmartRimLock.lockedRim;
+          // Crop region: 3x rim width, from 40% above rim to 30% below
+          var roiLeft = Math.max(0, Math.round((lr.cx - lr.w * 1.5) * pw));
+          var roiTop  = Math.max(0, Math.round((lr.cy - lr.h * 6) * ph));
+          var roiW    = Math.min(pw - roiLeft, Math.round(lr.w * 3 * pw));
+          var roiH    = Math.min(ph - roiTop, Math.round(lr.h * 10 * ph));
+          if (roiW > 30 && roiH > 30) {
+            // Draw ROI crop to YOLOX canvas at full 416x416 → higher resolution for small ball
+            var roiRatio = Math.min(sz / roiH, sz / roiW);
+            var roiNewW = Math.round(roiW * roiRatio);
+            var roiNewH = Math.round(roiH * roiRatio);
+            _yoloxCtx.fillStyle = 'rgb(114,114,114)';
+            _yoloxCtx.fillRect(0, 0, sz, sz);
+            _yoloxCtx.drawImage(self._canvas, roiLeft, roiTop, roiW, roiH, 0, 0, roiNewW, roiNewH);
+            var roiImgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
+            for (var ri = 0; ri < chSize; ri++) {
+              _yoloxBuf[ri]              = roiImgData[ri * 4];
+              _yoloxBuf[chSize + ri]     = roiImgData[ri * 4 + 1];
+              _yoloxBuf[chSize * 2 + ri] = roiImgData[ri * 4 + 2];
+            }
+            var roiTensor = new ort.Tensor('float32', _yoloxBuf, [1, 3, sz, sz]);
+            // Synchronous-ish: we'll do a nested inference
+            self.model.run({ images: roiTensor }).then(function (roiResults) {
+              var roiBall = self._yoloxDecode(roiResults.output.data, roiRatio, roiW, roiH);
+              if (roiBall && roiBall.score > 0.002) {
+                // Map back to full processing canvas coords
+                roiBall.cx += roiLeft;
+                roiBall.cy += roiTop;
+                self._processBallDetection(roiBall.cx * scaleX, roiBall.cy * scaleY, vw, vh);
+              }
+            }).catch(function () {});
           }
         }
 
