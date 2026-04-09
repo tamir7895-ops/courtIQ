@@ -755,13 +755,17 @@
         // Size filter
         var area = bw * bh;
 
-        // Check for hoop (relaxed — auto-rim-lock uses bottom of bounding box)
+        // Check for hoop — prefer detections in the mid-frame (y=15-55%)
         var hoopAspect = bw / (bh || 1);
-        if (hoopScore > 0.08 && hoopScore > bestHoopScore
+        var hoopYn = cy / ph;
+        // Score bonus: detections at y=20-50% get 2x boost, y=10-60% get 1.5x
+        var hoopPosBonus = (hoopYn > 0.15 && hoopYn < 0.55) ? 2.0 : (hoopYn > 0.08 && hoopYn < 0.65) ? 1.2 : 1.0;
+        var adjustedHoopScore = hoopScore * hoopPosBonus;
+        if (hoopScore > 0.08 && adjustedHoopScore > bestHoopScore
             && area > frameArea * 0.0003 && area < frameArea * 0.25
             && hoopAspect > 0.15 && hoopAspect < 8.0) {
           bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-          bestHoopScore = hoopScore;
+          bestHoopScore = adjustedHoopScore;
         }
 
         // Ball size filter
@@ -832,7 +836,8 @@
         for (var px = 0; px < w; px += 2) {
           var idx = (py * w + px) * 4;
           var r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-          if (r > 140 && g > 50 && g < 180 && b < 100 && r > g * 1.2 && r > b * 2.0) {
+          // Widened to match gym lighting (same as color detection)
+          if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
             orangeCount++;
           }
         }
