@@ -573,6 +573,7 @@
       if (canvasReady) {
         colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
       }
+      self._lastColorBall = colorBall;
 
       /* Scale ball positions from processing canvas back to video coords */
       var scaleX = pw > 0 ? vw / pw : 1;
@@ -754,11 +755,13 @@
         // Size filter
         var area = bw * bh;
 
-        // Check for hoop first (any size detection that passes hoop filters)
+        // Check for hoop (with Y-position constraint: must be 15%-65% of frame height)
         var hoopAspect = bw / (bh || 1);
+        var hoopYfrac = cy / ph;
         if (hoopScore > 0.10 && hoopScore > bestHoopScore
             && area > frameArea * 0.0005 && area < frameArea * 0.15
-            && hoopAspect > 0.3 && hoopAspect < 6.0) {
+            && hoopAspect > 0.3 && hoopAspect < 6.0
+            && hoopYfrac > 0.15 && hoopYfrac < 0.65) {
           bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
           bestHoopScore = hoopScore;
         }
@@ -781,13 +784,29 @@
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = bestHoop;
 
-      // Debug logging (throttled to every 30th call)
+      // Debug logging (throttled to every 20th call)
       this._decodeCount = (this._decodeCount || 0) + 1;
-      if (this._decodeCount % 30 === 1) {
+      if (this._decodeCount % 20 === 1) {
+        // Log top-3 ball and hoop candidates to see what model outputs
+        var topBalls = [];
+        var topHoops = [];
+        for (var di = 0; di < numDets; di++) {
+          var doff = di * YOLOX_STRIDE;
+          var dobj = output[doff + 4];
+          if (dobj < 0.001) continue;
+          var dball = dobj * output[doff + 5];
+          var dhoop = dobj * output[doff + 6];
+          if (dball > 0.001) topBalls.push(dball);
+          if (dhoop > 0.01) topHoops.push(dhoop);
+        }
+        topBalls.sort(function(a,b){return b-a;});
+        topHoops.sort(function(a,b){return b-a;});
         console.log('[YOLOX]',
           'ball:', best ? (best.score * 100).toFixed(1) + '%' : 'none',
-          'hoop:', bestHoop ? (bestHoop.score * 100).toFixed(1) + '% @' + Math.round(bestHoop.cx) + ',' + Math.round(bestHoop.cy) + ' ' + Math.round(bestHoop.bw) + 'x' + Math.round(bestHoop.bh) : 'none',
-          'rim:', this.rimZone ? (this.rimZone.centerX * 100).toFixed(0) + '%,' + (this.rimZone.centerY * 100).toFixed(0) + '%' : 'default'
+          'top3ball:', topBalls.slice(0,3).map(function(s){return (s*100).toFixed(2)+'%'}).join(' '),
+          'hoop:', bestHoop ? (bestHoop.score * 100).toFixed(1) + '% y=' + (bestHoop.cy/ph*100).toFixed(0) + '%' : 'none',
+          'top3hoop:', topHoops.slice(0,3).map(function(s){return (s*100).toFixed(2)+'%'}).join(' '),
+          'color:', this._lastColorBall ? 'yes' : 'no'
         );
       }
 
