@@ -246,6 +246,72 @@
     return 'threePoint';
   }
 
+  /* ── Region-restricted color detection (avoids gym floor) ────── */
+  function _detectBallInRegion(ctx, vw, yStart, yEnd) {
+    if (!ctx || vw < 10 || yEnd <= yStart) return null;
+    var regionH = yEnd - yStart;
+    try {
+      var imgData = ctx.getImageData(0, yStart, vw, regionH);
+      var data = imgData.data;
+    } catch (e) { return null; }
+
+    var CELL = 12;
+    var gridW = Math.ceil(vw / CELL);
+    var gridH = Math.ceil(regionH / CELL);
+    var grid = new Uint16Array(gridW * gridH);
+
+    for (var y = 0; y < regionH; y += COLOR_SCAN_STEP) {
+      for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
+        var idx = (y * vw + x) * 4;
+        var r = data[idx], g = data[idx + 1], b = data[idx + 2];
+        if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
+          grid[Math.floor(y / CELL) * gridW + Math.floor(x / CELL)]++;
+        }
+      }
+    }
+
+    var visited = new Uint8Array(gridW * gridH);
+    var bestCluster = null, bestCount = 0;
+
+    for (var cy = 0; cy < gridH; cy++) {
+      for (var cx = 0; cx < gridW; cx++) {
+        var gi = cy * gridW + cx;
+        if (grid[gi] < 2 || visited[gi]) continue;
+        var queue = [gi]; visited[gi] = 1;
+        var clMinX = cx, clMaxX = cx, clMinY = cy, clMaxY = cy;
+        var clCount = 0, clSumX = 0, clSumY = 0;
+        while (queue.length > 0) {
+          var cur = queue.shift();
+          var curY = Math.floor(cur / gridW), curX = cur % gridW;
+          var cellPx = grid[cur];
+          clCount += cellPx;
+          clSumX += (curX * CELL + CELL / 2) * cellPx;
+          clSumY += (curY * CELL + CELL / 2) * cellPx;
+          if (curX < clMinX) clMinX = curX; if (curX > clMaxX) clMaxX = curX;
+          if (curY < clMinY) clMinY = curY; if (curY > clMaxY) clMaxY = curY;
+          var nb = [curY > 0 ? (curY-1)*gridW+curX : -1, curY < gridH-1 ? (curY+1)*gridW+curX : -1,
+                    curX > 0 ? curY*gridW+(curX-1) : -1, curX < gridW-1 ? curY*gridW+(curX+1) : -1];
+          for (var ni = 0; ni < 4; ni++) {
+            if (nb[ni] >= 0 && !visited[nb[ni]] && grid[nb[ni]] >= 2) { visited[nb[ni]] = 1; queue.push(nb[ni]); }
+          }
+        }
+        if (clCount > bestCount && clCount < 3000) {
+          bestCount = clCount;
+          bestCluster = { count: clCount, cx: clSumX / clCount, cy: clSumY / clCount + yStart,
+            minX: clMinX * CELL, minY: clMinY * CELL + yStart, maxX: (clMaxX+1)*CELL, maxY: (clMaxY+1)*CELL + yStart };
+        }
+      }
+    }
+
+    if (!bestCluster || bestCluster.count < 6) return null;
+    var blobW = bestCluster.maxX - bestCluster.minX;
+    var blobH = bestCluster.maxY - (bestCluster.minY);
+    if (blobW < 3 || blobH < 3) return null;
+    var aspect = Math.max(blobW, blobH) / Math.min(blobW, blobH);
+    if (aspect > 3.5) return null;
+    return { x: bestCluster.cx, y: bestCluster.cy, w: blobW, h: blobH, score: 0.4 };
+  }
+
   /* ── Color-Based Ball Detection (fallback) ─────────────────── */
   /* Uses AdaptiveLearning if available, otherwise hardcoded ranges */
   function detectBallByColor(canvas, ctx, vw, vh) {
@@ -570,9 +636,17 @@
       var ph = self._procH || vh;
 
       /* ── Color detection (primary, every frame) ─────────────── */
+      /* If we have a rim zone, restrict color search to the upper half
+         of the frame (above + around rim) to avoid gym floor false positives */
       var colorBall = null;
       if (canvasReady) {
-        colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+        if (self.rimZone && self.rimZone.centerY > 0) {
+          // Search from top of frame to 20% below rim (where ball flies)
+          var searchBottom = Math.min(ph, Math.round((self.rimZone.centerY + 0.20) * ph));
+          colorBall = _detectBallInRegion(self._ctx, pw, 0, searchBottom);
+        } else {
+          colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+        }
       }
       self._lastColorBall = colorBall;
 
@@ -849,6 +923,7 @@
 
     _processBallDetection: function (cx, cy, vw, vh) {
       updateTracker(this.tracker, cx, cy);
+      this._noBallFrames = 0; // reset prediction counter
       var normX = cx / vw;
       var normY = cy / vh;
       this.ballPosition = { normX: normX, normY: normY };
@@ -869,6 +944,28 @@
 
     _processNoBall: function () {
       updateTracker(this.tracker, null, null);
+      // Keep ball visible for a few frames using last known velocity
+      if (this.ballPosition && this.tracker.positions.length >= 2) {
+        this._noBallFrames = (this._noBallFrames || 0) + 1;
+        if (this._noBallFrames < 8) {
+          // Predict position using last velocity
+          var pts = this.tracker.positions;
+          var last = pts[pts.length - 1];
+          var prev = pts[pts.length - 2];
+          if (last && prev) {
+            var vw = this.videoEl ? this.videoEl.videoWidth : 1;
+            var vh = this.videoEl ? this.videoEl.videoHeight : 1;
+            var vx = (last.x - prev.x) / vw;
+            var vy = (last.y - prev.y) / vh + 0.002; // gravity
+            this.ballPosition = {
+              normX: this.ballPosition.normX + vx,
+              normY: this.ballPosition.normY + vy
+            };
+          }
+          return; // keep showing predicted position
+        }
+      }
+      this._noBallFrames = 0;
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
     },
