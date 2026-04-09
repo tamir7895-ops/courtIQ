@@ -315,9 +315,19 @@
       _ctx.fillStyle = 'rgba(86, 211, 100, 0.08)';
       _ctx.fillRect(rx, ry, rw, rh);
 
-      _ctx.fillStyle   = 'rgba(86, 211, 100, 0.9)';
-      _ctx.font        = 'bold 11px sans-serif';
-      _ctx.fillText('RIM', rx + 4, ry - 5);
+      // Show lock state
+      var lockLabel = engine._rimLocked ? 'RIM 🔒' : 'RIM';
+      var lockColor = engine._rimLocked ? 'rgba(86, 211, 100, 1.0)' : 'rgba(86, 211, 100, 0.7)';
+      _ctx.fillStyle = lockColor;
+      _ctx.font      = 'bold 11px sans-serif';
+      _ctx.fillText(lockLabel, rx + 4, ry - 5);
+
+      // Show border glow when locked
+      if (engine._rimLocked) {
+        _ctx.strokeStyle = 'rgba(86, 211, 100, 0.9)';
+        _ctx.lineWidth = 3;
+        _ctx.strokeRect(rx - 1, ry - 1, rw + 2, rh + 2);
+      }
     }
 
     /* Draw ball dot ─────────────────────────────────────────── */

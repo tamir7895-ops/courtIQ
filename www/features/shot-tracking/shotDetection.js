@@ -48,6 +48,13 @@
   var COLOR_MIN_PIXELS     = 12;   // Minimum orange pixels to count as ball
   var COLOR_MAX_PIXELS     = 8000; // Maximum (too large = not a ball)
 
+  /* ── Smart Rim Lock constants ──────────────────────────────── */
+  var RIM_LOCK_FRAMES      = 8;    // Consecutive consistent detections to lock
+  var RIM_LOCK_DRIFT       = 0.03; // Max normalized drift to count as "same position"
+  var RIM_UNLOCK_MOTION    = 12;   // Global pixel motion threshold to unlock
+  var RIM_SMOOTH_BUFFER    = 6;    // Number of hoop detections to average
+  var CAMERA_MOTION_SAMPLE = 2000; // Pixel pairs to sample for motion detection
+
   /* ── Tracker ────────────────────────────────────────────────── */
   function createTracker() {
     return {
@@ -436,6 +443,144 @@
     return { x: bestCluster.cx, y: bestCluster.cy, w: blobW, h: blobH, score: 0.5 + fillRatio * 0.3 };
   }
 
+  /* ── Smart Rim Lock — locks hoop position, unlocks on camera motion ── */
+  var SmartRimLock = {
+    isLocked: false,
+    lockedRim: null,       // { cx, cy, w, h } normalized
+    _hoopBuffer: [],       // last N detections for smoothing
+    _stableCount: 0,       // consecutive frames with same-ish position
+    _prevFrameData: null,  // downsampled grayscale for motion detection
+    _motionLevel: 0,       // current global motion estimate
+
+    reset: function () {
+      this.isLocked = false;
+      this.lockedRim = null;
+      this._hoopBuffer = [];
+      this._stableCount = 0;
+      this._prevFrameData = null;
+      this._motionLevel = 0;
+    },
+
+    /* Detect global camera motion by sampling pixel differences */
+    detectCameraMotion: function (ctx, pw, ph) {
+      // Downsample to 80px wide grayscale
+      var sw = 80;
+      var sh = Math.round(ph * (sw / pw));
+      var tmpCanvas = document.createElement('canvas');
+      tmpCanvas.width = sw; tmpCanvas.height = sh;
+      var tmpCtx = tmpCanvas.getContext('2d');
+      tmpCtx.drawImage(ctx.canvas, 0, 0, sw, sh);
+      var data = tmpCtx.getImageData(0, 0, sw, sh).data;
+
+      // Convert to grayscale array
+      var gray = new Uint8Array(sw * sh);
+      for (var i = 0; i < gray.length; i++) {
+        gray[i] = Math.round(data[i * 4] * 0.3 + data[i * 4 + 1] * 0.59 + data[i * 4 + 2] * 0.11);
+      }
+
+      if (!this._prevFrameData || this._prevFrameData.length !== gray.length) {
+        this._prevFrameData = gray;
+        this._motionLevel = 0;
+        return 0;
+      }
+
+      // Sample random pixels and compute average absolute diff
+      var totalDiff = 0;
+      var samples = Math.min(CAMERA_MOTION_SAMPLE, gray.length);
+      var step = Math.max(1, Math.floor(gray.length / samples));
+      var count = 0;
+      for (var j = 0; j < gray.length; j += step) {
+        totalDiff += Math.abs(gray[j] - this._prevFrameData[j]);
+        count++;
+      }
+      this._prevFrameData = gray;
+      this._motionLevel = count > 0 ? totalDiff / count : 0;
+      return this._motionLevel;
+    },
+
+    /* Feed a new hoop detection (normalized coords) */
+    feedHoopDetection: function (normCX, normCY, normW, normH, score) {
+      // Add to smoothing buffer
+      this._hoopBuffer.push({ cx: normCX, cy: normCY, w: normW, h: normH, score: score });
+      if (this._hoopBuffer.length > RIM_SMOOTH_BUFFER) {
+        this._hoopBuffer.shift();
+      }
+
+      // Check camera motion — if moving, unlock
+      if (this._motionLevel > RIM_UNLOCK_MOTION) {
+        if (this.isLocked) {
+          this.isLocked = false;
+          this._stableCount = 0;
+        }
+        return this.getSmoothedRim();
+      }
+
+      // If already locked, check if detection drifted too far
+      if (this.isLocked && this.lockedRim) {
+        var drift = Math.abs(normCX - this.lockedRim.cx) + Math.abs(normCY - this.lockedRim.cy);
+        if (drift > RIM_LOCK_DRIFT * 3) {
+          // Big jump — camera probably moved, unlock
+          this.isLocked = false;
+          this._stableCount = 0;
+        } else {
+          // Still locked — return locked position
+          return this.lockedRim;
+        }
+      }
+
+      // Not locked — check stability
+      var smoothed = this.getSmoothedRim();
+      if (smoothed && this._hoopBuffer.length >= 3) {
+        var last = this._hoopBuffer[this._hoopBuffer.length - 1];
+        var drift2 = Math.abs(last.cx - smoothed.cx) + Math.abs(last.cy - smoothed.cy);
+        if (drift2 < RIM_LOCK_DRIFT) {
+          this._stableCount++;
+        } else {
+          this._stableCount = Math.max(0, this._stableCount - 1);
+        }
+
+        if (this._stableCount >= RIM_LOCK_FRAMES) {
+          this.isLocked = true;
+          this.lockedRim = { cx: smoothed.cx, cy: smoothed.cy, w: smoothed.w, h: smoothed.h };
+        }
+      }
+
+      return smoothed;
+    },
+
+    /* Get temporally smoothed rim position from buffer */
+    getSmoothedRim: function () {
+      if (this._hoopBuffer.length === 0) return null;
+      var sumCX = 0, sumCY = 0, sumW = 0, sumH = 0, totalWeight = 0;
+      for (var i = 0; i < this._hoopBuffer.length; i++) {
+        var d = this._hoopBuffer[i];
+        var weight = d.score; // weight by confidence
+        sumCX += d.cx * weight;
+        sumCY += d.cy * weight;
+        sumW  += d.w * weight;
+        sumH  += d.h * weight;
+        totalWeight += weight;
+      }
+      if (totalWeight === 0) return null;
+      return {
+        cx: sumCX / totalWeight,
+        cy: sumCY / totalWeight,
+        w: sumW / totalWeight,
+        h: sumH / totalWeight
+      };
+    },
+
+    /* No detection this frame — maintain state */
+    feedNoDetection: function () {
+      // If locked, keep the locked position (hoop hasn't moved)
+      if (this.isLocked) return this.lockedRim;
+      // Not locked and no detection — slowly decay stable count
+      this._stableCount = Math.max(0, this._stableCount - 1);
+      // Return last smoothed if we have buffer
+      return this._hoopBuffer.length > 0 ? this.getSmoothedRim() : null;
+    }
+  };
+
   /* ── Main Detection Engine ──────────────────────────────────── */
   var ShotDetectionEngine = {
     model: null,
@@ -587,6 +732,8 @@
       this._rawHoopBox = null;
       this._lastHoopDetection = null;
       this._decodeCount = 0;
+      this._noBallFrames = 0;
+      SmartRimLock.reset();
     },
 
     /* ── Internal ──────────────────────────────────────────────── */
@@ -711,30 +858,23 @@
           }
         }
 
-        /* ── Auto-rim-lock from hoop detection ─────────────────── */
-        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.12) {
+        /* ── Smart Rim Lock — camera motion aware ───────────────── */
+        // Detect camera motion
+        if (self._ctx) {
+          SmartRimLock.detectCameraMotion(self._ctx, pw, ph);
+        }
+
+        var rimResult = null;
+        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.08) {
           var hd = self._lastHoopDetection;
-          // Convert from processing canvas coords to normalized 0-1
-          // The ACTUAL RIM is at the BOTTOM of the hoop bounding box
-          // (backboard is above, rim is where ball goes through)
           var normCX = (hd.cx * scaleX) / vw;
-          var hoopBottom = ((hd.cy + hd.bh * 0.35) * scaleY) / vh; // 35% below center → near rim
-          var rimW = (hd.bw * scaleX * 0.8) / vw; // rim is ~80% of hoop box width
-          var rimH = (hd.bh * scaleY * 0.25) / vh; // rim height is ~25% of hoop box
-          // Clamp
-          rimW = Math.max(0.03, Math.min(rimW, 0.20));
-          rimH = Math.max(0.02, Math.min(rimH, 0.10));
-          // Smooth update: blend 50/50 for faster convergence
-          if (self.rimZone && self._rimLockCount > 0) {
-            var alpha = Math.min(0.5, 0.15 + self._rimLockCount * 0.05); // ramp up confidence
-            normCX    = self.rimZone.centerX * (1 - alpha) + normCX    * alpha;
-            hoopBottom = self.rimZone.centerY * (1 - alpha) + hoopBottom * alpha;
-            rimW      = self.rimZone.width   * (1 - alpha) + rimW      * alpha;
-            rimH      = self.rimZone.height  * (1 - alpha) + rimH      * alpha;
-          }
-          self._rimLockCount = (self._rimLockCount || 0) + 1;
-          self.setRimZone(normCX, hoopBottom, rimW, rimH);
-          // Store raw hoop box for debug drawing
+          var hoopBottom = ((hd.cy + hd.bh * 0.35) * scaleY) / vh;
+          var rimW = Math.max(0.03, Math.min((hd.bw * scaleX * 0.8) / vw, 0.20));
+          var rimH = Math.max(0.02, Math.min((hd.bh * scaleY * 0.25) / vh, 0.10));
+
+          rimResult = SmartRimLock.feedHoopDetection(normCX, hoopBottom, rimW, rimH, hd.score);
+
+          // Store raw hoop box for debug
           self._rawHoopBox = {
             normCX: (hd.cx * scaleX) / vw,
             normCY: (hd.cy * scaleY) / vh,
@@ -742,7 +882,17 @@
             normH: (hd.bh * scaleY) / vh,
             score: hd.score
           };
+        } else {
+          rimResult = SmartRimLock.feedNoDetection();
         }
+
+        // Apply rim position (locked or smoothed)
+        if (rimResult) {
+          self.setRimZone(rimResult.cx, rimResult.cy, rimResult.w, rimResult.h);
+        }
+        // Expose lock state for debug UI
+        self._rimLocked = SmartRimLock.isLocked;
+        self._cameraMotion = SmartRimLock._motionLevel;
 
         if (mlBall) {
           self._mlMissCount = 0;
