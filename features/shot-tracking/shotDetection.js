@@ -514,12 +514,13 @@
 
     resetStats: function () {
       this.stats = { made: 0, attempts: 0 };
-      resetTracker(this.tracker);
+      this.tracker = createTracker(); // always create fresh (fixes null crash)
       this.lastShotTime = 0;
       this.ballPosition = null;
       this._rimLockCount = 0;
       this._rawHoopBox = null;
       this._lastHoopDetection = null;
+      this._decodeCount = 0;
     },
 
     /* ── Internal ──────────────────────────────────────────────── */
