@@ -25,7 +25,7 @@
   var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
-  var YOLOX_INPUT_SIZE     = 416;
+  var YOLOX_INPUT_SIZE     = 640;  // v6: 640x640 (was 416 in v4)
   var YOLOX_NUM_CLASSES    = 2;
   var YOLOX_BALL_CLASS     = 0;    // Basketball
   var YOLOX_HOOP_CLASS     = 1;    // Basketball Hoop
@@ -764,7 +764,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny.onnx';
+      var modelPath = 'models/basketball_yolox_tiny_v6.onnx';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['wasm'],
         graphOptimizationLevel: 'basic',
@@ -1067,11 +1067,11 @@
     },
 
     /* ── YOLOX grid table (pre-computed once, input 416×416) ── */
-    /* Strides [8,16,32] → grids [52×52, 26×26, 13×13] = 3549 anchors total */
+    /* Strides [8,16,32] → grids [80×80, 40×40, 20×20] = 8400 anchors (v6 640×640) */
     _buildGrid: function () {
       var strides = [8, 16, 32];
-      var grids = [52, 26, 13];
-      var table = new Float32Array(3549 * 3); // [grid_x, grid_y, stride] per anchor
+      var grids = [80, 40, 20]; // 640/8=80, 640/16=40, 640/32=20
+      var table = new Float32Array(8400 * 3); // [grid_x, grid_y, stride] per anchor
       var idx = 0;
       for (var s = 0; s < 3; s++) {
         var gs = grids[s], stride = strides[s];
