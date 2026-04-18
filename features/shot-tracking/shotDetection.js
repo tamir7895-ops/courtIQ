@@ -2,9 +2,10 @@
    SHOT DETECTION — ML + Color Fallback Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
-   v9 — Custom YOLOX-tiny (Apache 2.0) trained on basketball dataset.
+   v10 — Custom YOLOX-tiny v6 (Apache 2.0) trained on basketball dataset.
         2 classes: Basketball (0), Basketball Hoop (1).
-        Output: [1, 3549, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        Input: 640x640. Output: [1, 8400, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        Best AP@0.5 = 0.885, AP@0.5:0.95 = 0.548 (30 epochs, phase3_human exp)
         YOLOX runs every 3rd frame. Color detection every frame as fallback.
 
    Runs entirely in-browser using:
@@ -25,7 +26,7 @@
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
-  var YOLOX_INPUT_SIZE     = 416;
+  var YOLOX_INPUT_SIZE     = 640;
   var YOLOX_NUM_CLASSES    = 2;
   var YOLOX_BALL_CLASS     = 0;    // Basketball
   var YOLOX_HOOP_CLASS     = 1;    // Basketball Hoop
@@ -552,7 +553,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny.onnx?v=5';
+      var modelPath = 'models/basketball_yolox_tiny_v6.onnx?v=6';
       ort.InferenceSession.create(modelPath, {
         executionProviders: ['webgpu', 'webgl', 'wasm'],
         graphOptimizationLevel: 'all'
@@ -566,7 +567,7 @@
         _yoloxCanvas.width = sz;
         _yoloxCanvas.height = sz;
         _yoloxCtx = _yoloxCanvas.getContext('2d');
-        console.log('[ShotDetection] YOLOX-tiny basketball model loaded (Apache 2.0)');
+        console.log('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
@@ -778,7 +779,7 @@
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
 
-      // Letterbox preprocess: fit processing canvas into 416×416 with gray padding
+      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding
       var ratio = Math.min(sz / ph, sz / pw);
       var newW = Math.round(pw * ratio);
       var newH = Math.round(ph * ratio);
@@ -825,7 +826,7 @@
         // Debug: log raw output stats — EVERY 30 FRAMES for v4 diagnosis
         if (!self._dbgOutputCount) self._dbgOutputCount = 0;
         if (self._dbgOutputCount++ % 30 === 0) {
-          console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (3549*7) + ')');
+          console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (8400*7) + ')');
           // Check raw obj/cls values before postprocess
           var maxObj = 0, maxC0 = 0, maxC1 = 0;
           for (var di = 0; di < outputData.length; di += 7) {
@@ -929,7 +930,7 @@
     /* The ONNX model outputs raw grid offsets, not decoded pixel coords.
        This applies: cx = (raw_cx + grid_x) * stride, w = exp(raw_w) * stride */
     _yoloxPostprocess: function (output) {
-      var sz = YOLOX_INPUT_SIZE; // 416
+      var sz = YOLOX_INPUT_SIZE; // 640
       var strides = [8, 16, 32];
       var idx = 0;
       for (var s = 0; s < strides.length; s++) {
@@ -982,9 +983,9 @@
 
     /* ── YOLOX output decode (custom 2-class model) ─────────── */
     /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
-    /* After _yoloxPostprocess, cx/cy/w/h are in 416x416 input space */
+    /* After _yoloxPostprocess, cx/cy/w/h are in 640x640 input space */
     _yoloxDecode: function (output, ratio, pw, ph) {
-      // Apply grid+stride decoding (converts raw offsets → pixel coords in 416x416 space)
+      // Apply grid+stride decoding (converts raw offsets → pixel coords in 640x640 space)
       this._yoloxPostprocess(output);
 
       var numDets = output.length / YOLOX_STRIDE;
