@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════
    YOLOX Preprocessing Web Worker
    Offloads RGBA→CHW transposition from main thread.
-   Input:  { imageData: Uint8ClampedArray, size: 416 }
+   Input:  { imageData: Uint8ClampedArray, size: 640 }
    Output: { buffer: Float32Array } (transferred, zero-copy)
    ══════════════════════════════════════════════════════════════ */
 self.onmessage = function (e) {
