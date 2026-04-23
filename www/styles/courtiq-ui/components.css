@@ -12,7 +12,17 @@
 #ke-bottom-nav,
 .db-sidebar,
 .ks-header,
-header.ks-header {
+header.ks-header,
+/* Legacy dashboard "always visible" top-content that used to live above the
+   panel switcher — replaced by per-tab ciq-*-screen sections. */
+#db-topbar,
+.db-welcome-hero,
+.db-stats-row,
+.db-top-widgets,
+#dc-card,
+#db-quick-actions,
+#db-skill-stats,
+.glass-sub-nav {
   display: none !important;
 }
 
