@@ -1,0 +1,181 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ UI v2 — tokens.css
+   Source: Claude Design project "CourtIQ Design System"
+           (id 4d34587a-38f6-4bce-9397-e5721f65d010)
+           ui_kits/mobile-app/colors_and_type.css
+   Snapshot: 2026-04-20
+
+   Globally scoped at :root so any page that loads this file sees
+   the new tokens. Existing pages still work because legacy tokens
+   in styles/main.css remain untouched — this file layers on top.
+
+   New components (.ciq-*) live in components.css, gated under
+   body.ciq-active so they do not activate until the shell flag is
+   flipped. That keeps Phase 1 a no-op for unflagged users.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── BRAND FONTS (local @font-face, self-hosted for offline/Capacitor) */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-Medium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+/* ExtraBold also mapped to 900 for semantic "black" usage */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('../../brand-fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+/* Lexend — variable weight body font */
+@font-face {
+  font-family: 'Lexend';
+  src: url('../../brand-fonts/Lexend[wght].ttf') format('truetype-variations'),
+       url('../../brand-fonts/Lexend[wght].ttf') format('truetype');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* ─── CORE PALETTE ─────────────────────────────────────── */
+  --c-bg: #0e1014;
+  --c-surface: #161921;
+  --c-surface2: #1e2129;
+  --c-surface3: #252830;
+  --c-surface-elev: #1c1f28;
+  --c-border: rgba(255,255,255,0.06);
+
+  /* ─── AMBER — brand primary (HOME accent) ──────────────── */
+  --c-amber: #f5a623;
+  --c-amber-hover: #ffc04a;
+  --c-amber-dark: #c88418;
+  --c-amber-dim: rgba(245,166,35,0.12);
+  --c-amber-glow: rgba(245,166,35,0.25);
+  --c-amber-subtle: rgba(245,166,35,0.06);
+
+  /* ─── SECTION ACCENTS (bottom-nav system) ──────────────── */
+  /* Each tab's primary actions and highlights use its accent. */
+  --c-home: #f5a623;   /* amber  — Home  */
+  --c-train: #4ca3ff;  /* blue   — Train */
+  --c-track: #56d364;  /* green  — Track */
+  --c-coach: #bc8cff;  /* purple — Coach */
+  --c-me: #2dd4bf;     /* teal   — Me    */
+
+  --c-home-dim: rgba(245,166,35,0.12);
+  --c-train-dim: rgba(76,163,255,0.12);
+  --c-track-dim: rgba(86,211,100,0.12);
+  --c-coach-dim: rgba(188,140,255,0.12);
+  --c-me-dim: rgba(45,212,191,0.12);
+
+  /* ─── STATUS ──────────────────────────────────────────── */
+  --c-green: #56d364;
+  --c-green-dim: rgba(86,211,100,0.10);
+  --c-red: #e84040;
+  --c-red-dim: rgba(232,64,64,0.10);
+  --c-blue: #4ca3ff;
+  --c-blue-dim: rgba(76,163,255,0.10);
+  --c-teal: #2dd4bf;
+  --c-teal-dim: rgba(45,212,191,0.10);
+  --c-purple: #bc8cff;
+  --c-purple-dim: rgba(188,140,255,0.10);
+
+  /* ─── TEXT HIERARCHY (on dark) ─────────────────────────── */
+  --c-white: #f0ede6;
+  --c-text-primary: #f0ede6;
+  --c-text-secondary: rgba(240,237,230,0.65);
+  --c-text-tertiary: rgba(240,237,230,0.40);
+  --c-text-disabled: rgba(240,237,230,0.22);
+  --c-muted: rgba(240,237,230,0.45);
+  --c-dimmer: rgba(240,237,230,0.22);
+
+  /* ─── GLASSMORPHISM (the signature) ────────────────────── */
+  --glass-bg: rgba(22,25,33,0.7);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-blur: 20px;
+
+  /* ─── RADII ────────────────────────────────────────────── */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  /* ─── SHADOWS / ELEVATION ──────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md: 0 4px 8px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-lg: 0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+  --shadow-xl: 0 16px 48px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-card-lg: 0 4px 12px rgba(0,0,0,0.3), 0 24px 64px rgba(0,0,0,0.35);
+  --shadow-btn: 0 8px 32px rgba(245,166,35,0.35);
+  --shadow-glow: 0 0 40px rgba(245,166,35,0.08);
+  --shadow-amber: 0 0 20px rgba(245,166,35,0.15), 0 0 60px rgba(245,166,35,0.05);
+  --shadow-inset: inset 0 1px 2px rgba(0,0,0,0.3);
+
+  /* ─── SPACING (8px grid) ───────────────────────────────── */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* ─── TYPOGRAPHY ───────────────────────────────────────── */
+  --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+  --font-body: 'Lexend', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --fs-xs: 11px;
+  --fs-sm: 13px;
+  --fs-base: 15px;
+  --fs-md: 17px;
+  --fs-lg: 20px;
+  --fs-xl: 24px;
+  --fs-2xl: 30px;
+  --fs-3xl: 38px;
+  --fs-4xl: 48px;
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semi: 600;
+  --fw-bold: 700;
+  --fw-heavy: 800;
+  --fw-black: 900;
+
+  /* ─── MOTION ───────────────────────────────────────────── */
+  --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --duration-fast: 0.15s;
+  --duration-base: 0.25s;
+  --duration-slow: 0.4s;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── SAFE-AREA (Capacitor/iOS) ────────────────────────── */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}

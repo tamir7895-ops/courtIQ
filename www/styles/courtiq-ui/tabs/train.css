@@ -1,0 +1,268 @@
+/* CourtIQ UI v2 — Train tab styles
+ * Active only when body has .ciq-active, .ciq-v2-train, and .ciq-tab-train.
+ * Ported from Screens.jsx TrainScreen().
+ */
+
+body.ciq-v2-train.ciq-tab-train #db-panel-training,
+body.ciq-v2-train.ciq-tab-train #db-panel-moves { display: none !important; }
+
+#ciq-train-screen { display: none; }
+body.ciq-v2-train.ciq-tab-train #ciq-train-screen { display: block; }
+
+#ciq-train-screen {
+  --accent: var(--c-train);
+  padding: 88px 16px 120px;
+  background: var(--c-bg);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  position: relative;
+}
+
+.ciq-train-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-train);
+}
+.ciq-train-title {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  font-style: italic;
+  margin-top: 4px;
+}
+
+/* Big weekly challenge card */
+.ciq-train-challenge {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  padding: 20px 20px 22px;
+  margin-top: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.ciq-train-challenge::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: radial-gradient(ellipse at 100% 0%, rgba(76,163,255,0.14) 0%, transparent 55%);
+  pointer-events: none;
+}
+.ciq-train-challenge > * { position: relative; }
+
+.ciq-train-week-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-train);
+}
+.ciq-train-week-pill::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c-train);
+  box-shadow: 0 0 8px var(--c-train);
+}
+
+.ciq-train-challenge-name {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--c-white);
+  line-height: 1;
+  margin-top: 10px;
+  text-transform: none;
+}
+.ciq-train-challenge-desc {
+  color: rgba(240,237,230,0.6);
+  font-size: 13px;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+.ciq-train-drills-head {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.4);
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+.ciq-train-drills { list-style: none; padding: 0; margin: 0; }
+.ciq-train-drill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid rgba(255,255,255,0.05);
+}
+.ciq-train-drill-num {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--c-train);
+  width: 24px;
+  flex-shrink: 0;
+}
+.ciq-train-drill-body { flex: 1; min-width: 0; }
+.ciq-train-drill-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-white);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.ciq-train-drill-meta {
+  font-size: 11px;
+  color: rgba(240,237,230,0.45);
+  margin-top: 2px;
+}
+.ciq-train-drill-play {
+  color: var(--c-train);
+  flex-shrink: 0;
+}
+.ciq-train-drill-play svg { width: 16px; height: 16px; }
+
+.ciq-train-cta-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 16px;
+  flex-wrap: wrap;
+}
+.ciq-train-start-btn {
+  background: var(--c-train);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(76,163,255,0.35);
+  transition: transform 0.15s var(--ease-spring, ease);
+}
+.ciq-train-start-btn:hover { transform: translateY(-1px); }
+
+.ciq-train-total { text-align: left; }
+.ciq-train-total-val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--c-white);
+  line-height: 1;
+}
+.ciq-train-total-unit {
+  font-size: 12px;
+  color: rgba(240,237,230,0.45);
+  font-weight: 700;
+  margin-left: 4px;
+}
+.ciq-train-total-lbl {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.4);
+  margin-top: 2px;
+}
+
+/* Weekly goals section */
+.ciq-train-goals-head {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-train);
+  margin-top: 22px;
+}
+.ciq-train-goals {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 10px;
+}
+.ciq-train-goal {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 14px;
+  min-height: 84px;
+}
+.ciq-train-goal .lbl {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.4);
+}
+.ciq-train-goal .val {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--c-white);
+  margin-top: 4px;
+}
+.ciq-train-goal .val .unit {
+  font-size: 11px;
+  color: rgba(240,237,230,0.45);
+  font-weight: 700;
+  margin-left: 4px;
+}
+
+/* Sub-nav chips (Program / Moves Library) */
+.ciq-train-subnav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-top: 16px;
+  scrollbar-width: none;
+}
+.ciq-train-subnav::-webkit-scrollbar { display: none; }
+.ciq-train-subnav button {
+  flex: 0 0 auto;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--c-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ciq-train-subnav button.active {
+  background: var(--c-train-dim);
+  border-color: color-mix(in srgb, var(--c-train) 40%, transparent);
+  color: var(--c-train);
+}

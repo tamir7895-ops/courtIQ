@@ -1,0 +1,83 @@
+/* ═══════════════════════════════════════════════════════════════
+   Shot Tracker v2 — Type & Token Layer
+   Self-hosted fonts + scoped token overrides.
+   Activated ONLY when #shot-tracking-screen carries .stv2-active.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── @font-face (self-hosted from brand-fonts/, offline-ready) ─── */
+@font-face {
+  font-family: 'Lexend';
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/Lexend[wght].ttf') format('truetype-variations'),
+       url('../../../brand-fonts/Lexend[wght].ttf') format('truetype');
+}
+
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/BarlowCondensed-Regular.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/BarlowCondensed-Medium.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/BarlowCondensed-SemiBold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/BarlowCondensed-Bold.ttf') format('truetype');
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+  src: url('../../../brand-fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+}
+
+/* ─── SCOPED TOKEN OVERRIDES ─────────────────────────────────────
+   Only apply while the v2 UI is mounted. See TOKEN_DIFF.md for the
+   per-token rationale. Anything not listed here inherits from the
+   global :root in styles/main.css.
+*/
+#shot-tracking-screen.stv2-active {
+  /* Conflicts resolved in favor of design values (scoped) */
+  --c-muted:      rgba(240,237,230,0.45);            /* main=0.60 → design=0.45 */
+  --c-dimmer:     rgba(240,237,230,0.22);            /* main=0.38 → design=0.22 */
+  --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+                                                      /* main=Lexend → design=BarlowCondensed */
+  --font-body:    'Lexend', system-ui, -apple-system, BlinkMacSystemFont,
+                  'Segoe UI', sans-serif;            /* main has 'Barlow' fallback; design widens */
+
+  /* Naming alias: main.css uses --c-surface-elevated; design uses --c-surface-elev.
+     Provide both so ported code works regardless of which name it references. */
+  --c-surface-elev: var(--c-surface-elevated, #1c1f28);
+
+  /* New tokens the design adds (not in main.css). Scoped to avoid polluting globals.
+     Promotion to global :root is a follow-up task tracked in MIGRATION.md. */
+  --c-home:      #f5a623;
+  --c-train:     #4ca3ff;
+  --c-track:     #56d364;
+  --c-coach:     #bc8cff;
+  --c-me:        #2dd4bf;
+  --c-home-dim:  rgba(245,166,35,0.12);
+  --c-train-dim: rgba(76,163,255,0.12);
+  --c-track-dim: rgba(86,211,100,0.12);
+  --c-coach-dim: rgba(188,140,255,0.12);
+  --c-me-dim:    rgba(45,212,191,0.12);
+}
