@@ -570,8 +570,15 @@
       }
 
       var modelPath = 'models/basketball_yolox_tiny_v6.onnx?v=6';
+      // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
+      // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
+      // with "int64 is not supported" during InferenceSession.create.
+      // Crucially, ORT does NOT auto-fall-through to the next EP on parse
+      // failure — listing webgl ahead of wasm causes the whole load to
+      // throw. WebGPU stays first (modern Chrome/Edge get GPU-accelerated
+      // inference); WASM is the universal fallback.
       ort.InferenceSession.create(modelPath, {
-        executionProviders: ['webgpu', 'webgl', 'wasm'],
+        executionProviders: ['webgpu', 'wasm'],
         graphOptimizationLevel: 'all'
       }).then(function (session) {
         self.model = session;
@@ -784,14 +791,14 @@
       self._frameCount++;
       if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % 6 === 0) {
         self._isDetecting = true;
-        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, colorBall);
+        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall);
       }
 
       self._scheduleDetection();
     },
 
     /* ── YOLOX ONNX inference (async) ─────────────────────────── */
-    _runYoloxInference: function (vw, vh, pw, ph, scaleX, scaleY, colorBall) {
+    _runYoloxInference: function (vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall) {
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
 
@@ -958,13 +965,18 @@
         self._scheduleDetection();
       }).catch(function (e) {
         console.warn('[ShotDetection] YOLOX inference error:', e);
-        // Fallback to color
-        if (colorBall) {
-          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
-        } else {
-          self._processNoBall();
+        // Whatever happens below, the detection flag MUST clear or the
+        // engine will deadlock on the next gate check. Wrap fallback work
+        // and dispose in their own try blocks so a re-throw can't strand us.
+        try {
+          if (colorBall) {
+            self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
+          } else {
+            self._processNoBall();
+          }
+        } catch (innerErr) {
+          console.warn('[ShotDetection] fallback error:', innerErr);
         }
-        // Best-effort dispose if input tensor was created before the error.
         try {
           if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
             pendingInputTensor.dispose();
