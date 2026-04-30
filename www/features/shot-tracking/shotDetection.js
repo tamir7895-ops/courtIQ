@@ -15,6 +15,17 @@
 (function () {
   'use strict';
 
+  /* ── Debug flag ─────────────────────────────────────────────────
+     Gate verbose console.log spam behind a flag. Errors and warnings
+     are not gated — those signal real production issues. Override at
+     runtime: window.ShotDetectionDebug = true; (then reload).
+     ──────────────────────────────────────────────────────────────── */
+  var DEBUG = (typeof window !== 'undefined' && window.ShotDetectionDebug === true);
+  function dlog() {
+    if (!DEBUG) return;
+    console.log.apply(console, arguments);
+  }
+
   /* ── Constants ──────────────────────────────────────────────── */
   var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
   var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
@@ -24,6 +35,10 @@
   var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
+  // YOLOX cadence is hardcoded as `_frameCount % 6 === 0` below. 6 was picked as a
+  // safe floor for low-end devices on the WASM backend (~5 inferences/sec). On WebGPU
+  // we have headroom for every-3rd or every-4th frame; consider auto-tuning the
+  // divisor based on observed inference latency once we see real-device numbers.
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
   var YOLOX_INPUT_SIZE     = 640;
@@ -208,6 +223,29 @@
     if (diff < -Y_TREND_FRAC) return 'rising';
     if (diff > Y_TREND_FRAC) return 'falling';
     return 'flat';
+  }
+
+  /* ── Time-based rising detector ───────────────────────────────
+     Returns true if the ball rose (Y decreased) by at least
+     `minDeltaNorm` of the frame height across any window ending
+     "now" with span up to `windowMs`. Cadence-agnostic — works
+     whether YOLOX runs at 30 Hz, 5 Hz, or 1 Hz.
+   ──────────────────────────────────────────────────────────── */
+  function ballRoseInWindow(tracker, vh, windowMs, minDeltaNorm) {
+    var pts = tracker.positions;
+    if (!pts || pts.length < 2) return false;
+    var now = Date.now();
+    var newest = pts[pts.length - 1];
+    if (!newest) return false;
+    var oldest = null;
+    for (var i = pts.length - 2; i >= 0; i--) {
+      if (now - pts[i].ts > windowMs) break;
+      oldest = pts[i];
+    }
+    if (!oldest) return false;
+    var deltaPx = oldest.y - newest.y;          // positive when ball moved up
+    var deltaNorm = deltaPx / (vh || 720);
+    return deltaNorm >= minDeltaNorm;
   }
 
   /* ── Rim Zone ───────────────────────────────────────────────── */
@@ -512,7 +550,8 @@
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
     _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
-    _risingFrameCount: 0,    // consecutive frames of upward movement
+    _risingFrameCount: 0,    // legacy counter — retained for backwards compat in resets
+    _sawBallAboveRim: false, // sticky flag: was ball ever above rim during this shot?
 
     init: function () {
       var self = this;
@@ -555,8 +594,15 @@
       }
 
       var modelPath = 'models/basketball_yolox_tiny_v6.onnx?v=6';
+      // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
+      // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
+      // with "int64 is not supported" during InferenceSession.create.
+      // Crucially, ORT does NOT auto-fall-through to the next EP on parse
+      // failure — listing webgl ahead of wasm causes the whole load to
+      // throw. WebGPU stays first (modern Chrome/Edge get GPU-accelerated
+      // inference); WASM is the universal fallback.
       ort.InferenceSession.create(modelPath, {
-        executionProviders: ['webgpu', 'webgl', 'wasm'],
+        executionProviders: ['webgpu', 'wasm'],
         graphOptimizationLevel: 'all'
       }).then(function (session) {
         self.model = session;
@@ -568,7 +614,7 @@
         _yoloxCanvas.width = sz;
         _yoloxCanvas.height = sz;
         _yoloxCtx = _yoloxCanvas.getContext('2d');
-        console.log('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
+        dlog('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
@@ -608,6 +654,7 @@
       this._ballMinY = 1.0;
       this._shotStartY = 1.0;
       this._risingFrameCount = 0;
+      this._sawBallAboveRim = false;
       this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
@@ -722,7 +769,7 @@
       var cropBot = botDarkRatio > 0.6 ? Math.floor(vh * 0.12) : 0;
 
       if (cropTop > 0 || cropBot > 0) {
-        console.log('[ShotDetection] UI overlay detected — cropping top=' + cropTop + 'px bottom=' + cropBot + 'px (darkRatio top=' + topDarkRatio.toFixed(2) + ' bot=' + botDarkRatio.toFixed(2) + ')');
+        dlog('[ShotDetection] UI overlay detected — cropping top=' + cropTop + 'px bottom=' + cropBot + 'px (darkRatio top=' + topDarkRatio.toFixed(2) + ' bot=' + botDarkRatio.toFixed(2) + ')');
       }
 
       return { x: 0, y: cropTop, w: vw, h: vh - cropTop - cropBot };
@@ -769,18 +816,21 @@
       self._frameCount++;
       if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % 6 === 0) {
         self._isDetecting = true;
-        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, colorBall);
+        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall);
       }
 
       self._scheduleDetection();
     },
 
     /* ── YOLOX ONNX inference (async) ─────────────────────────── */
-    _runYoloxInference: function (vw, vh, pw, ph, scaleX, scaleY, colorBall) {
+    _runYoloxInference: function (vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall) {
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
 
-      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding
+      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding.
+      // NOTE: image is drawn at (0,0), not centered. The decode at _yoloxDecode uses
+      // `cx / ratio` with no offset, which matches this top-left placement. If you
+      // ever centre the letterbox here, you must subtract the same offsets there.
       var ratio = Math.min(sz / ph, sz / pw);
       var newW = Math.round(pw * ratio);
       var newH = Math.round(ph * ratio);
@@ -791,7 +841,10 @@
 
       var imgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
 
-      // CHW transposition: use Web Worker if available, else inline
+      // CHW transposition: use Web Worker if available, else inline.
+      // Reassigning onmessage per call is safe ONLY because the _isDetecting
+      // guard ensures one inference is in flight at a time. If that ever
+      // changes, switch to a request-id keyed map of pending resolvers.
       var chwReady;
       if (_chwWorker) {
         chwReady = new Promise(function (resolve) {
@@ -808,39 +861,43 @@
         chwReady = Promise.resolve(_yoloxBuf);
       }
 
+      var pendingInputTensor = null;
       chwReady.then(function (chwBuf) {
         var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
+        pendingInputTensor = inputTensor;
         // Debug: log input stats once
-        if (!self._dbgInputLogged) {
+        if (DEBUG && !self._dbgInputLogged) {
           self._dbgInputLogged = true;
           var mn = Infinity, mx = -Infinity;
           for (var di = 0; di < Math.min(1000, chwBuf.length); di++) {
             if (chwBuf[di] < mn) mn = chwBuf[di];
             if (chwBuf[di] > mx) mx = chwBuf[di];
           }
-          console.log('[YOLOX-DBG] input range: ' + mn.toFixed(1) + ' - ' + mx.toFixed(1) + ' len=' + chwBuf.length);
+          dlog('[YOLOX-DBG] input range: ' + mn.toFixed(1) + ' - ' + mx.toFixed(1) + ' len=' + chwBuf.length);
         }
         return self.model.run({ images: inputTensor });
       }).then(function (results) {
         var outputKey = Object.keys(results)[0];
         var outputData = results[outputKey].data;
         // Debug: log raw output stats — EVERY 30 FRAMES for v4 diagnosis
-        if (!self._dbgOutputCount) self._dbgOutputCount = 0;
-        if (self._dbgOutputCount++ % 30 === 0) {
-          console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (8400*7) + ')');
-          // Check raw obj/cls values before postprocess
-          var maxObj = 0, maxC0 = 0, maxC1 = 0;
-          for (var di = 0; di < outputData.length; di += 7) {
-            if (outputData[di+4] > maxObj) maxObj = outputData[di+4];
-            if (outputData[di+5] > maxC0) maxC0 = outputData[di+5];
-            if (outputData[di+6] > maxC1) maxC1 = outputData[di+6];
+        if (DEBUG) {
+          if (!self._dbgOutputCount) self._dbgOutputCount = 0;
+          if (self._dbgOutputCount++ % 30 === 0) {
+            dlog('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (8400*7) + ')');
+            // Check raw obj/cls values before postprocess
+            var maxObj = 0, maxC0 = 0, maxC1 = 0;
+            for (var di = 0; di < outputData.length; di += 7) {
+              if (outputData[di+4] > maxObj) maxObj = outputData[di+4];
+              if (outputData[di+5] > maxC0) maxC0 = outputData[di+5];
+              if (outputData[di+6] > maxC1) maxC1 = outputData[di+6];
+            }
+            dlog('[YOLOX-DBG] raw maxObj=' + maxObj.toFixed(4) + ' maxBall=' + maxC0.toFixed(4) + ' maxHoop=' + maxC1.toFixed(4));
+            var hasNeg = false;
+            for (var di = 0; di < outputData.length; di += 7) {
+              if (outputData[di+4] < 0 || outputData[di+5] < 0 || outputData[di+6] < 0) { hasNeg = true; break; }
+            }
+            dlog('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits) outputKey=' + outputKey);
           }
-          console.log('[YOLOX-DBG] raw maxObj=' + maxObj.toFixed(4) + ' maxBall=' + maxC0.toFixed(4) + ' maxHoop=' + maxC1.toFixed(4));
-          var hasNeg = false;
-          for (var di = 0; di < outputData.length; di += 7) {
-            if (outputData[di+4] < 0 || outputData[di+5] < 0 || outputData[di+6] < 0) { hasNeg = true; break; }
-          }
-          console.log('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits) outputKey=' + outputKey);
         }
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
@@ -881,13 +938,13 @@
         }
 
         // Detection logging
-        if (self._frameCount % 30 === 0) {
+        if (DEBUG && self._frameCount % 30 === 0) {
           var hoopStr = 'none';
           if (self._lastHoopDetection) {
             var hd = self._lastHoopDetection;
             hoopStr = 'score=' + hd.score.toFixed(3) + ' cx=' + hd.cx.toFixed(1) + ' cy=' + hd.cy.toFixed(1);
           }
-          console.log('[ShotDetection] f=' + self._frameCount +
+          dlog('[ShotDetection] f=' + self._frameCount +
             ' vw=' + vw + ' vh=' + vh + ' pw=' + pw + ' ph=' + ph +
             ' ball=' + (mlBall ? 'ML(' + mlBall.score.toFixed(3) + ' cx=' + mlBall.cx.toFixed(1) + ')' : (colorBall ? 'color' : 'none')) +
             ' hoop=' + hoopStr);
@@ -912,16 +969,45 @@
           self._processNoBall();
         }
 
+        // Release ORT tensors. With WebGPU/WebGL backends the underlying
+        // GPU buffers are not GC-tracked, so leaking them across many
+        // frames will eventually hit a memory ceiling. dispose() is a
+        // no-op for plain CPU tensors so this is always safe.
+        try {
+          if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
+            pendingInputTensor.dispose();
+          }
+          if (results) {
+            Object.keys(results).forEach(function (k) {
+              var t = results[k];
+              if (t && typeof t.dispose === 'function') t.dispose();
+            });
+          }
+        } catch (_) { /* tensor lifecycle is best-effort */ }
+        pendingInputTensor = null;
+
         self._isDetecting = false;
         self._scheduleDetection();
       }).catch(function (e) {
         console.warn('[ShotDetection] YOLOX inference error:', e);
-        // Fallback to color
-        if (colorBall) {
-          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
-        } else {
-          self._processNoBall();
+        // Whatever happens below, the detection flag MUST clear or the
+        // engine will deadlock on the next gate check. Wrap fallback work
+        // and dispose in their own try blocks so a re-throw can't strand us.
+        try {
+          if (colorBall) {
+            self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
+          } else {
+            self._processNoBall();
+          }
+        } catch (innerErr) {
+          console.warn('[ShotDetection] fallback error:', innerErr);
         }
+        try {
+          if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
+            pendingInputTensor.dispose();
+          }
+        } catch (_) { /* ignore */ }
+        pendingInputTensor = null;
         self._isDetecting = false;
         self._scheduleDetection();
       });
@@ -1003,9 +1089,9 @@
           break;
         }
       }
-      if (!this._dbgSigmoidLogged) {
+      if (DEBUG && !this._dbgSigmoidLogged) {
         this._dbgSigmoidLogged = true;
-        console.log('[YOLOX] needsSigmoid=' + needsSigmoid);
+        dlog('[YOLOX] needsSigmoid=' + needsSigmoid);
       }
 
       function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
@@ -1050,12 +1136,14 @@
       }
 
       // Debug: log detection counts every 30 frames
-      if (!this._dbgFrame) this._dbgFrame = 0;
-      if (++this._dbgFrame % 30 === 0) {
-        var bestHoop = hoopCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
-        var bestBall = ballCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
-        console.log('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length +
-          ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3));
+      if (DEBUG) {
+        if (!this._dbgFrame) this._dbgFrame = 0;
+        if (++this._dbgFrame % 30 === 0) {
+          var bestHoop = hoopCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+          var bestBall = ballCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+          dlog('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length +
+            ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3));
+        }
       }
 
       // Apply NMS (IoU threshold 0.45)
@@ -1066,15 +1154,27 @@
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
-      // Debug overlay: fire all raw detections (normalized to processing canvas)
+      // Debug overlay: fire all raw detections in PROCESSING-CANVAS space.
+      // The display canvas matches the visible (full) video, so the overlay
+      // needs the crop offset and crop scale to map proc-canvas coords back
+      // through the cropped region into full-video space. videoW / videoH
+      // let the consumer compute the final display-canvas scale.
       if (this.onDebugFrame) {
+        var fullVw = (this.videoEl && this.videoEl.videoWidth) || pw;
+        var fullVh = (this.videoEl && this.videoEl.videoHeight) || ph;
         this.onDebugFrame({
-          balls: ballKeep,
-          hoops: hoopKeep,
-          shotState: this._shotState,
-          frameCount: this._frameCount,
-          procW: pw,
-          procH: ph
+          balls:        ballKeep,
+          hoops:        hoopKeep,
+          shotState:    this._shotState,
+          frameCount:   this._frameCount,
+          procW:        pw,
+          procH:        ph,
+          videoW:       fullVw,
+          videoH:       fullVh,
+          cropOffsetX:  this._cropOffsetX || 0,
+          cropOffsetY:  this._cropOffsetY || 0,
+          cropScaleX:   this._cropScaleX  || 1,
+          cropScaleY:   this._cropScaleY  || 1
         });
       }
 
@@ -1158,6 +1258,22 @@
     _processNoBall: function () {
       this._consecutiveDets = 0;  // Reset consecutive detection count
       updateTracker(this.tracker, null, null);
+
+      // ── Watchdog: prevent the state machine from getting stuck ──
+      // _analyzeShotState only runs while a ball (real or Kalman-predicted)
+      // is available. If the ball vanishes mid-flight and never reappears,
+      // shot_started / near_hoop would otherwise wait forever. Force a
+      // reset to idle 4s after the state was entered.
+      var nowWd = Date.now();
+      if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
+          this._shotStateTime > 0 && (nowWd - this._shotStateTime) > 4000) {
+        this._shotState = 'idle';
+        this._ballMinY = 1.0;
+        this._shotStartY = 1.0;
+        this._risingFrameCount = 0;
+        this._sawBallAboveRim = false;
+      }
+
       // If Kalman is predicting, show predicted position to UI
       var kf = this.tracker.kalman;
       var maxPredictNoBall = this.tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
@@ -1188,7 +1304,7 @@
           var normX = lastPt.x / vw;
           var normY = lastPt.y / vh;
           if (isInApproachZone(normX, normY, this.rimZone)) {
-            console.log('[ShotDetection] timeout miss: ball disappeared near rim');
+            dlog('[ShotDetection] timeout miss: ball disappeared near rim');
             this.lastShotTime = now;
             this.stats.attempts++;
             var launchPt = getLaunchPoint(this.tracker, vw, vh);
@@ -1212,26 +1328,36 @@
       }
     },
 
-    /* ── Simplified shot state machine ─────────────────────────
+    /* ── Shot state machine (time-based, rim-relative) ──────────
        States: idle → shot_started → near_hoop → cooldown → idle
 
-       idle:         ball below hoop, watching for rising motion
-       shot_started: ball rising (Y decreasing for 3+ frames)
-       near_hoop:    ball reached hoop height area, waiting for result
-       cooldown:     shot counted, 1.5s lockout before next shot
+       Design notes (post-eval rewrite):
+       • All thresholds are TIME-based or RIM-RELATIVE so the machine
+         behaves identically at 30 Hz live capture and 5 Hz YOLOX cadence.
+       • idle → shot_started fires on sustained upward motion in any
+         600 ms window; we no longer require the ball to be below the
+         rim, so cameras that look UP at the rim still trigger.
+       • near_hoop entry is 2.5 × rim-heights from the rim center, so
+         the zone scales with how the model sized the hoop bbox
+         instead of using a fixed 0.20 frame fraction.
+       • make / miss is a crossing rule: the ball was seen above the
+         rim, then below the rim, with horizontal alignment. A
+         minimum-motion gate prevents a stationary ball or a short
+         dribble bounce from being counted as a shot.
     ────────────────────────────────────────────────────────────── */
     _analyzeShotState: function (vw, vh, normX, normY) {
       if (!this.rimZone) return;
       var now = Date.now();
       var rim = this.rimZone;
 
-      // Cooldown state
+      // Cooldown
       if (this._shotState === 'cooldown') {
         if (now - this._shotStateTime > DEBOUNCE_MS) {
           this._shotState = 'idle';
           this._ballMinY = 1.0;
           this._shotStartY = 1.0;
           this._risingFrameCount = 0;
+          this._sawBallAboveRim = false;
         }
         return;
       }
@@ -1239,78 +1365,85 @@
       // Track the highest point the ball reaches (lowest Y value)
       if (normY < this._ballMinY) this._ballMinY = normY;
 
-      var trend = getYTrend(this.tracker, vh);
       var pts = this.tracker.positions;
       if (pts.length < MIN_TRAJECTORY_PTS) return;
 
-      // Set extended Kalman prediction flag during active shot states
+      // Extended Kalman prediction during active shot phases
       var isActiveShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
       this.tracker._activeShotExtend = isActiveShotState;
 
-      // ── IDLE: watch for ball starting to rise ──
+      // ── IDLE: trigger on sustained upward motion in a 600 ms window ──
       if (this._shotState === 'idle') {
-        // Count consecutive frames of upward movement
-        if (trend === 'rising') {
-          this._risingFrameCount++;
-        } else {
-          this._risingFrameCount = 0;
-        }
-        // Ball must be below hoop level AND have 5+ consecutive rising frames
-        if (normY > rim.centerY + 0.10 && this._risingFrameCount >= 5) {
-          this._shotState = 'shot_started';
-          this._shotStateTime = now;
-          this._ballMinY = normY;
-          this._shotStartY = normY;  // Record start Y for arc height check
-          this._risingFrameCount = 0;
+        if (ballRoseInWindow(this.tracker, vh, 600, 0.03)) {
+          this._shotState         = 'shot_started';
+          this._shotStateTime     = now;
+          this._ballMinY          = normY;
+          this._shotStartY        = normY;
+          this._risingFrameCount  = 0;
+          this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
         }
         return;
       }
 
-      // ── SHOT_STARTED: ball is rising, watch for it reaching hoop height ──
+      // ── SHOT_STARTED: wait for ball to reach the rim zone ──
       if (this._shotState === 'shot_started') {
-        // Ball reached near hoop height (within 20% of frame from hoop)
-        if (this._ballMinY < rim.centerY + 0.20) {
+        if (normY < rim.centerY) this._sawBallAboveRim = true;
+
+        // Rim-relative entry zone: within 2.5 rim-heights of the rim center.
+        // Scales with however the model sized the hoop bbox, instead of
+        // assuming the rim is far enough below the top of frame for a
+        // fixed 0.20 fraction to make sense.
+        var distFromRim = Math.abs(normY - rim.centerY);
+        if (distFromRim < (rim.height || 0.04) * 2.5) {
           this._shotState = 'near_hoop';
           this._shotStateTime = now;
           return;
         }
-        // Timeout: if ball has been "rising" for >3 seconds without reaching hoop, reset
         if (now - this._shotStateTime > 3000) {
           this._shotState = 'idle';
           this._ballMinY = 1.0;
+          this._shotStartY = 1.0;
+          this._sawBallAboveRim = false;
         }
         return;
       }
 
-      // ── NEAR_HOOP: ball is near hoop, determine make or miss ──
+      // ── NEAR_HOOP: simplified crossing rule with motion gate ──
       if (this._shotState === 'near_hoop') {
-        var hoopXDist = Math.abs(normX - rim.centerX);
-        var nearHoopX = hoopXDist < rim.width * 2.0; // within 2x rim width horizontally
+        var hoopXDist     = Math.abs(normX - rim.centerX);
+        var nearHoopX     = hoopXDist < rim.width * 1.5;        // tight: for MADE
+        var stillNearX    = hoopXDist < rim.width * 3.0;        // loose: still in zone
 
-        // MADE: ball went from above hoop to below hoop while near hoop X
-        // Require minimum arc height of 0.15 normalized from shot start
-        var madeArcHeight = this._shotStartY - this._ballMinY;
-        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX && madeArcHeight >= 0.15) {
+        var ballAboveRim  = normY < rim.centerY;
+        var ballBelowRim  = normY > rim.centerY + (rim.height || 0.04);
+        if (ballAboveRim) this._sawBallAboveRim = true;
+
+        // Minimum-motion gate: ball must have actually risen, scaled to
+        // how far below the rim the shot started. Below the rim by 0.30
+        // gates at 0.09; above the rim or close to it gates at the 0.05
+        // floor so layups under the basket can still register.
+        var arcHeight = this._shotStartY - this._ballMinY;
+        var minMotion = Math.max(0.05, Math.abs(this._shotStartY - rim.centerY) * 0.3);
+
+        // MADE: was above rim, now below rim, horizontally aligned, motion gate cleared
+        if (this._sawBallAboveRim && ballBelowRim && nearHoopX && arcHeight >= minMotion) {
           this._countShot('made', vw, vh, normX, normY, now);
           return;
         }
 
-        // MISS: ball was near hoop but now clearly moved away or fell without going through
-        var ballFarFromHoop = normY > rim.centerY + 0.25 || hoopXDist > rim.width * 4;
-        var ballWentBack = trend === 'rising' && normY < rim.centerY - 0.10;
-        var timeout = now - this._shotStateTime > 2000;
+        // MISS: ball moved away from rim OR timed out, with sufficient motion + above-rim seen
+        var ballFarFromHoop = !stillNearX || normY > rim.centerY + (rim.height || 0.04) * 4;
+        var timeout         = now - this._shotStateTime > 2000;
 
-        if (ballFarFromHoop || ballWentBack || timeout) {
-          // Only count as shot attempt if ball actually got near the hoop
-          // AND ball rose at least 0.15 normalized height from shot start to peak
-          var arcHeight = this._shotStartY - this._ballMinY;
-          if (this._ballMinY < rim.centerY + 0.15 && arcHeight >= 0.15) {
+        if (ballFarFromHoop || timeout) {
+          if (this._sawBallAboveRim && arcHeight >= minMotion) {
             this._countShot('missed', vw, vh, normX, normY, now);
           } else {
-            // Ball never really reached hoop or insufficient arc — not a shot
-            this._shotState = 'idle';
-            this._ballMinY = 1.0;
-            this._shotStartY = 1.0;
+            // Not a real shot — drop back to idle without counting
+            this._shotState     = 'idle';
+            this._ballMinY      = 1.0;
+            this._shotStartY    = 1.0;
+            this._sawBallAboveRim = false;
           }
           return;
         }
@@ -1323,6 +1456,7 @@
       this._shotStateTime = now;
       this._ballMinY = 1.0;
       this._shotStartY = 1.0;
+      this._sawBallAboveRim = false;
 
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
@@ -1342,11 +1476,11 @@
       if (result === 'made' && !madeAnalysis.isMade && missAnalysis.isMiss) {
         // State machine said made, but trajectory says miss — trust trajectory
         finalResult = 'missed';
-        console.log('[ShotTracker] Override: made → missed (trajectory analysis)');
+        dlog('[ShotTracker] Override: made → missed (trajectory analysis)');
       } else if (result === 'missed' && madeAnalysis.isMade) {
         // State machine said miss, but trajectory clearly shows made — trust trajectory
         finalResult = 'made';
-        console.log('[ShotTracker] Override: missed → made (trajectory analysis)');
+        dlog('[ShotTracker] Override: missed → made (trajectory analysis)');
       }
 
       if (finalResult === 'made') this.stats.made++;
@@ -1362,11 +1496,24 @@
         timestamp: now
       };
 
-      console.log('[ShotTracker] ' + finalResult.toUpperCase() +
+      dlog('[ShotTracker] ' + finalResult.toUpperCase() +
         ' (sm=' + result + ' traj_made=' + madeAnalysis.isMade + ' traj_miss=' + missAnalysis.isMiss + ')' +
         ' minY=' + this._ballMinY.toFixed(3) +
         ' hoopY=' + this.rimZone.centerY.toFixed(3) + ' ballX=' + normX.toFixed(3) + ' hoopX=' + this.rimZone.centerX.toFixed(3));
 
       if (window.AdaptiveLearning) {
         window.AdaptiveLearning.onShotCompleted(traj, result, this.rimZone);
-      
+      }
+      if (this.onShotDetected) this.onShotDetected(shotData);
+      resetTracker(this.tracker);
+    },
+
+    _setStatus: function (status) {
+      if (this.onStatusChange) this.onStatusChange(status);
+    }
+  };
+
+  /* ── Expose globally ────────────────────────────────────────── */
+  window.ShotDetectionEngine = ShotDetectionEngine;
+
+})();

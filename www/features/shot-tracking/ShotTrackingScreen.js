@@ -349,6 +349,11 @@
     // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
+    // 1280×720 chosen for visual quality of the live preview and the
+    // recorded video-replay clip. Detection itself downscales to 640px wide,
+    // so a smaller capture (e.g. 854×480) would save ~30% of camera/encoder
+    // power on battery-bound devices without affecting accuracy. Worth
+    // revisiting on mobile if thermal throttling becomes an issue.
     var constraints = {
       video: {
         facingMode: { ideal: 'environment' },
@@ -370,7 +375,21 @@
       })
       .catch(function (err) {
         console.error('Camera access failed:', err);
-        alert('Camera access is required for shot tracking. Please allow camera permissions and try again.');
+        // Distinguish common failure modes so the user sees an actionable message.
+        var name = (err && err.name) || '';
+        var msg;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          msg = 'Camera access was denied. Please allow camera permissions in your browser settings and try again.';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          msg = 'The camera is in use by another app. Close other apps using the camera and try again.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          msg = 'No camera was found on this device.';
+        } else if (name === 'OverconstrainedError') {
+          msg = 'Your camera does not support the requested resolution. Please try again on a different device.';
+        } else {
+          msg = 'Camera access is required for shot tracking. Please allow camera permissions and try again.';
+        }
+        alert(msg);
         closeScreen();
       });
   }
@@ -669,21 +688,32 @@
       }
       if (maxSpread > 0.08) return; // Detections too inconsistent
 
+      // The detected hoop bbox often covers backboard-and-rim or just the
+      // rim itself — we can't tell which from confidence alone. Empirically
+      // pulling the rim estimate down to 75% of the bbox height (i.e. into
+      // the bottom quarter) lands close to the actual rim either way, and
+      // never above it. Manual taps in onRimTap still write the user's
+      // exact (x,y) — this offset only applies to auto-anchor.
+      var BBOX_RIM_OFFSET_FRAC = 0.25;  // shift down by 25% of bbox-h → rim ≈ 75% of bbox
+
       if (!rimLocked) {
-        rimCenter = { x: avgCX, y: avgCY };
+        var anchoredCY = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
+        rimCenter = { x: avgCX, y: anchoredCY };
         rimSize = { w: Math.min(Math.max(avgBW, 0.08), 0.25), h: Math.min(Math.max(avgBH, 0.03), 0.15) };
         rimLocked = true;
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');
-        console.log('[ShotTracker] Hoop locked at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ') from ' + hoopBuffer.length + ' detections');
+        console.log('[ShotTracker] Hoop locked at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
+          ') [bbox cy=' + avgCY.toFixed(3) + ', shifted by ' + (avgBH * BBOX_RIM_OFFSET_FRAC).toFixed(3) +
+          '] from ' + hoopBuffer.length + ' detections');
       } else {
-        // Smooth re-anchor: blend 90% old + 10% new (prevents jitter)
+        var anchoredCYRe = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
+        // Smooth re-anchor: blend 70% old + 30% new (prevents jitter)
         var dx = Math.abs(avgCX - rimCenter.x);
-        var dy = Math.abs(avgCY - rimCenter.y);
+        var dy = Math.abs(anchoredCYRe - rimCenter.y);
         if (dx > 0.08 || dy > 0.08) {
-          // Significant movement — camera shifted
           rimCenter.x = 0.7 * rimCenter.x + 0.3 * avgCX;
-          rimCenter.y = 0.7 * rimCenter.y + 0.3 * avgCY;
+          rimCenter.y = 0.7 * rimCenter.y + 0.3 * anchoredCYRe;
           engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
           console.log('[ShotTracker] Hoop smoothly re-anchored to (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ')');
         }
@@ -925,44 +955,124 @@
       }
 
       // ── DEBUG MODE: Draw bounding boxes + labels ──────────────
+      // Detections arrive in PROCESSING-CANVAS space (the cropped, downscaled
+      // working buffer). To draw correctly on the display canvas we have to
+      // walk the same chain the engine used:
+      //   proc canvas → cropped video region (× cropScale)
+      //                 → full video (+ cropOffset)
+      //                 → display canvas (× cw/videoW)
+      // Without the crop step the boxes drift on screen-recorded sources
+      // that have UI chrome cropped out. Engine fields fall back to safe
+      // defaults so older payloads (no crop info) still render reasonably.
       if (debugMode && debugData) {
-        var dd = debugData;
-        var scaleX = cw / (dd.procW || cw);
-        var scaleY = ch / (dd.procH || ch);
+        var dd        = debugData;
+        var fullVw    = dd.videoW || (dd.procW || cw);
+        var fullVh    = dd.videoH || (dd.procH || ch);
+        var cropOX    = dd.cropOffsetX || 0;
+        var cropOY    = dd.cropOffsetY || 0;
+        var cropSX    = dd.cropScaleX  || 1;
+        var cropSY    = dd.cropScaleY  || 1;
+        var displaySX = cw / fullVw;
+        var displaySY = ch / fullVh;
 
-        // Draw hoop detections (cyan boxes)
+        // proc-canvas (cx, cy) → display-canvas px
+        var toDispX = function (cx) { return (cx * cropSX + cropOX) * displaySX; };
+        var toDispY = function (cy) { return (cy * cropSY + cropOY) * displaySY; };
+        // proc-canvas size → display-canvas size (no offset on a width/height)
+        var toDispW = function (bw) { return bw * cropSX * displaySX; };
+        var toDispH = function (bh) { return bh * cropSY * displaySY; };
+
+        // Draw hoop detections — BLUE bbox = what the model returned
         if (dd.hoops) {
           for (var hi = 0; hi < dd.hoops.length; hi++) {
             var h = dd.hoops[hi];
-            var hx = h.cx * scaleX;
-            var hy = h.cy * scaleY;
-            var hw = h.bw * scaleX;
-            var hh = h.bh * scaleY;
+            var hx = toDispX(h.cx);
+            var hy = toDispY(h.cy);
+            var hw = toDispW(h.bw);
+            var hh = toDispH(h.bh);
             canvasCtx.save();
-            canvasCtx.strokeStyle = '#00e5ff';
+            canvasCtx.strokeStyle = '#3b82f6';
             canvasCtx.lineWidth = 2;
             canvasCtx.strokeRect(hx - hw/2, hy - hh/2, hw, hh);
-            canvasCtx.fillStyle = 'rgba(0,229,255,0.15)';
+            canvasCtx.fillStyle = 'rgba(59,130,246,0.15)';
             canvasCtx.fillRect(hx - hw/2, hy - hh/2, hw, hh);
             // Label
             var hLabel = 'HOOP ' + (h.score * 100).toFixed(0) + '%';
             canvasCtx.font = 'bold 12px monospace';
             canvasCtx.fillStyle = '#000';
             canvasCtx.fillRect(hx - hw/2, hy - hh/2 - 18, canvasCtx.measureText(hLabel).width + 8, 18);
-            canvasCtx.fillStyle = '#00e5ff';
+            canvasCtx.fillStyle = '#3b82f6';
             canvasCtx.fillText(hLabel, hx - hw/2 + 4, hy - hh/2 - 4);
             canvasCtx.restore();
           }
+        }
+
+        // ── State machine badge (top-left corner) ──
+        if (dd.shotState) {
+          var stColor = dd.shotState === 'idle' ? '#888' :
+                        dd.shotState === 'shot_started' ? '#ffaa00' :
+                        dd.shotState === 'near_hoop' ? '#facc15' :
+                        dd.shotState === 'cooldown' ? '#3b82f6' : '#ff4444';
+          var stLabel = 'STATE: ' + dd.shotState.toUpperCase();
+          canvasCtx.save();
+          canvasCtx.font = 'bold 12px monospace';
+          var stW = canvasCtx.measureText(stLabel).width + 12;
+          canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+          canvasCtx.fillRect(8, 8, stW, 22);
+          canvasCtx.fillStyle = stColor;
+          canvasCtx.fillText(stLabel, 14, 24);
+          canvasCtx.restore();
+        }
+
+        // ── Rim-region overlays (estimated rim line + near_hoop zone) ──
+        // Help visually verify whether auto-rim-lock landed where the
+        // actual rim is, vs. drifting up onto the backboard.
+        // rim coords are in FULL-VIDEO normalized space (0..1 of the
+        // visible video), so the display canvas (which is sized to the
+        // visible video) maps directly via cw / ch — no crop step.
+        var rimZ = (engine && engine.rimZone) ? engine.rimZone : null;
+        if (rimZ) {
+          var rimDX = rimZ.centerX * cw;
+          var rimDY = rimZ.centerY * ch;
+          var rimDW = rimZ.width * cw;
+          var rimDH = rimZ.height * ch;
+          canvasCtx.save();
+
+          // Estimated rim line — solid red horizontal line at rim.centerY
+          canvasCtx.strokeStyle = '#ff3b3b';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(0, rimDY);
+          canvasCtx.lineTo(cw, rimDY);
+          canvasCtx.stroke();
+          canvasCtx.font = 'bold 11px monospace';
+          canvasCtx.fillStyle = '#ff3b3b';
+          canvasCtx.fillText('RIM', 6, rimDY - 4);
+
+          // near_hoop zone — dashed yellow rectangle centred on rim
+          // (matches the state-machine geometry: ±1.5 rim widths
+          // horizontally, ±2.5 rim heights vertically)
+          var nzW = rimDW * 3.0;
+          var nzH = rimDH * 5.0;
+          canvasCtx.strokeStyle = '#facc15';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([6, 4]);
+          canvasCtx.strokeRect(rimDX - nzW / 2, rimDY - nzH / 2, nzW, nzH);
+          canvasCtx.setLineDash([]);
+          canvasCtx.fillStyle = '#facc15';
+          canvasCtx.fillText('NEAR_HOOP', rimDX - nzW / 2 + 4, rimDY - nzH / 2 - 4);
+
+          canvasCtx.restore();
         }
 
         // Draw ball detections (green boxes)
         if (dd.balls) {
           for (var bi = 0; bi < dd.balls.length; bi++) {
             var b = dd.balls[bi];
-            var bx2 = b.cx * scaleX;
-            var by2 = b.cy * scaleY;
-            var bw2 = b.bw * scaleX;
-            var bh2 = b.bh * scaleY;
+            var bx2 = toDispX(b.cx);
+            var by2 = toDispY(b.cy);
+            var bw2 = toDispW(b.bw);
+            var bh2 = toDispH(b.bh);
             canvasCtx.save();
             canvasCtx.strokeStyle = '#00ff88';
             canvasCtx.lineWidth = 2;
@@ -1355,11 +1465,17 @@
   }
 
   /* ── Save to Supabase ───────────────────────────────────────── */
+  // The session row + every shot row land in a single transaction via
+  // the save_ai_session_atomic RPC (see supabase/migrations/). On
+  // projects that haven't deployed the migration yet, ShotService falls
+  // back to a two-write path; both saveSession (ON CONFLICT id) and
+  // saveShots (ON CONFLICT session_id, shot_number) are idempotent now,
+  // so partial-failure retries no longer duplicate rows.
   async function saveSessionData(summary) {
     try {
       var zones = categorizeShotsByZone(summary.shots);
 
-      await window.ShotService.saveSession({
+      var sessionPayload = {
         id:             summary.sessionId,
         user_id:        summary.userId,
         session_date:   summary.startTime,
@@ -1376,9 +1492,9 @@
         three_missed:   zones.threePoint.missed,
         ft_made:        (zones.paint.made || 0) + (zones.freeThrow.made || 0),
         ft_missed:      (zones.paint.missed || 0) + (zones.freeThrow.missed || 0)
-      });
+      };
 
-      await window.ShotService.saveShots(summary.shots);
+      await window.ShotService.saveSessionAtomic(sessionPayload, summary.shots);
 
       await window.ShotService.grantXP(
         summary.userId,
@@ -1434,4 +1550,105 @@
       var s = shotList[i];
       var posX = s.launch_x !== undefined ? s.launch_x : s.shot_x;
       var posY = s.launch_y !== undefined ? s.launch_y : s.shot_y;
-      var cx = 50 + posX * (C
+      var cx = 50 + posX * (COURT_W - 100);
+      var cy = RIM_SVG_Y + (1 - posY) * (COURT_H - RIM_SVG_Y - 40);
+      var isMade = s.shot_result === 'made';
+      var dotColor = zoneColorMap[s.shot_zone] || '#ffaa00';
+      if (!isMade) {
+        lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="' + dotColor + '" opacity="0.4" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>');
+      }
+    }
+    // Made on top (brighter, zone-colored with white stroke)
+    for (var j = 0; j < shotList.length; j++) {
+      var s2 = shotList[j];
+      var posX2 = s2.launch_x !== undefined ? s2.launch_x : s2.shot_x;
+      var posY2 = s2.launch_y !== undefined ? s2.launch_y : s2.shot_y;
+      var cx2 = 50 + posX2 * (COURT_W - 100);
+      var cy2 = RIM_SVG_Y + (1 - posY2) * (COURT_H - RIM_SVG_Y - 40);
+      var dotColor2 = zoneColorMap[s2.shot_zone] || '#ffaa00';
+      if (s2.shot_result === 'made') {
+        lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="' + dotColor2 + '" opacity="0.9" stroke="#fff" stroke-width="1"/>');
+      }
+    }
+
+    lines.push('</svg>');
+    return lines.join('');
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     HELPERS
+     ══════════════════════════════════════════════════════════════ */
+  function formatTime(sec) {
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  function formatDuration(ms) {
+    var totalSec = Math.floor(ms / 1000);
+    var min = Math.floor(totalSec / 60);
+    var sec = totalSec % 60;
+    return min > 0 ? min + 'm ' + sec + 's' : sec + 's';
+  }
+
+  function getAccuracyColor(pct) {
+    if (pct >= 65) return '#00ff88';
+    if (pct >= 50) return '#ffaa00';
+    return '#ff4444';
+  }
+
+  function categorizeShotsByZone(shotList) {
+    var zones = {
+      paint:      { made: 0, missed: 0 },
+      midrange:   { made: 0, missed: 0 },
+      threePoint: { made: 0, missed: 0 },
+      freeThrow:  { made: 0, missed: 0 }
+    };
+    for (var i = 0; i < shotList.length; i++) {
+      var s = shotList[i];
+      var zone = s.shot_zone || 'midrange';
+      if (!zones[zone]) zone = 'midrange';
+      if (s.shot_result === 'made') zones[zone].made++;
+      else zones[zone].missed++;
+    }
+    return zones;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     VIDEO UPLOAD ENTRY POINT
+     ══════════════════════════════════════════════════════════════ */
+  /**
+   * Open the shot tracker using a local video file instead of the live camera.
+   * The detection engine processes frames just like live camera mode.
+   * The session auto-advances to Summary when the video finishes playing.
+   *
+   * @param {File} file  A video File object from an <input type="file"> element.
+   */
+  function openFromFile(file) {
+    if (!file) {
+      alert('Please select a video file.');
+      return;
+    }
+    // Accept any file — let the browser decide if it can play it
+    console.log('Opening video file:', file.name, file.type, (file.size / 1048576).toFixed(1) + ' MB');
+
+    // Revoke any previous object URL to free memory
+    if (videoFileUrl) {
+      URL.revokeObjectURL(videoFileUrl);
+      videoFileUrl = null;
+    }
+    videoFileUrl = URL.createObjectURL(file);
+    console.log('Blob URL created:', videoFileUrl);
+    openScreen();
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     EXPOSE GLOBALLY
+     ══════════════════════════════════════════════════════════════ */
+  window.ShotTrackingScreen = {
+    open:         openScreen,
+    close:        closeScreen,
+    openFromFile: openFromFile
+  };
+
+})();
