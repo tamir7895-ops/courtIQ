@@ -845,6 +845,7 @@
   function stopTracking() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     if (overlayAnimFrame) { cancelAnimationFrame(overlayAnimFrame); overlayAnimFrame = null; }
+    if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
     var engine = window.ShotDetectionEngine;
     if (engine) engine.stop();
     if (window.TrailRenderer) TrailRenderer.reset();
