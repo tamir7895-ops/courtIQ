@@ -518,7 +518,6 @@
     onStatusChange: null,
     onDebugFrame: null,     // callback({ balls: [], hoops: [], shotState, kalman, frameCount })
     _isDetecting: false,
-    _mlFailed: false,
     _colorOnlyMode: false,
     _mlMissCount: 0,
     _frameCount: 0,
@@ -535,7 +534,6 @@
     init: function () {
       var self = this;
       self.tracker = createTracker();
-      self._mlFailed = false;
       self._colorOnlyMode = false;
       self._mlMissCount = 0;
       self._frameCount = 0;
@@ -598,7 +596,6 @@
         resolve(true);
       }).catch(function (err) {
         console.warn('[ShotDetection] YOLOX-tiny load failed — color-only mode:', err);
-        self._mlFailed = true;
         self._colorOnlyMode = true;
         self._detectorType = 'none';
         self._setStatus('color-only');
