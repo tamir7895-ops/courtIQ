@@ -225,6 +225,29 @@
     return 'flat';
   }
 
+  /* ── Time-based rising detector ───────────────────────────────
+     Returns true if the ball rose (Y decreased) by at least
+     `minDeltaNorm` of the frame height across any window ending
+     "now" with span up to `windowMs`. Cadence-agnostic — works
+     whether YOLOX runs at 30 Hz, 5 Hz, or 1 Hz.
+   ──────────────────────────────────────────────────────────── */
+  function ballRoseInWindow(tracker, vh, windowMs, minDeltaNorm) {
+    var pts = tracker.positions;
+    if (!pts || pts.length < 2) return false;
+    var now = Date.now();
+    var newest = pts[pts.length - 1];
+    if (!newest) return false;
+    var oldest = null;
+    for (var i = pts.length - 2; i >= 0; i--) {
+      if (now - pts[i].ts > windowMs) break;
+      oldest = pts[i];
+    }
+    if (!oldest) return false;
+    var deltaPx = oldest.y - newest.y;          // positive when ball moved up
+    var deltaNorm = deltaPx / (vh || 720);
+    return deltaNorm >= minDeltaNorm;
+  }
+
   /* ── Rim Zone ───────────────────────────────────────────────── */
   function createRimZone(cx, cy, w, h) {
     return {
@@ -527,7 +550,8 @@
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
     _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
-    _risingFrameCount: 0,    // consecutive frames of upward movement
+    _risingFrameCount: 0,    // legacy counter — retained for backwards compat in resets
+    _sawBallAboveRim: false, // sticky flag: was ball ever above rim during this shot?
 
     init: function () {
       var self = this;
@@ -630,6 +654,7 @@
       this._ballMinY = 1.0;
       this._shotStartY = 1.0;
       this._risingFrameCount = 0;
+      this._sawBallAboveRim = false;
       this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
@@ -1246,6 +1271,7 @@
         this._ballMinY = 1.0;
         this._shotStartY = 1.0;
         this._risingFrameCount = 0;
+        this._sawBallAboveRim = false;
       }
 
       // If Kalman is predicting, show predicted position to UI
@@ -1302,26 +1328,36 @@
       }
     },
 
-    /* ── Simplified shot state machine ─────────────────────────
+    /* ── Shot state machine (time-based, rim-relative) ──────────
        States: idle → shot_started → near_hoop → cooldown → idle
 
-       idle:         ball below hoop, watching for rising motion
-       shot_started: ball rising (Y decreasing for 3+ frames)
-       near_hoop:    ball reached hoop height area, waiting for result
-       cooldown:     shot counted, 1.5s lockout before next shot
+       Design notes (post-eval rewrite):
+       • All thresholds are TIME-based or RIM-RELATIVE so the machine
+         behaves identically at 30 Hz live capture and 5 Hz YOLOX cadence.
+       • idle → shot_started fires on sustained upward motion in any
+         600 ms window; we no longer require the ball to be below the
+         rim, so cameras that look UP at the rim still trigger.
+       • near_hoop entry is 2.5 × rim-heights from the rim center, so
+         the zone scales with how the model sized the hoop bbox
+         instead of using a fixed 0.20 frame fraction.
+       • make / miss is a crossing rule: the ball was seen above the
+         rim, then below the rim, with horizontal alignment. A
+         minimum-motion gate prevents a stationary ball or a short
+         dribble bounce from being counted as a shot.
     ────────────────────────────────────────────────────────────── */
     _analyzeShotState: function (vw, vh, normX, normY) {
       if (!this.rimZone) return;
       var now = Date.now();
       var rim = this.rimZone;
 
-      // Cooldown state
+      // Cooldown
       if (this._shotState === 'cooldown') {
         if (now - this._shotStateTime > DEBOUNCE_MS) {
           this._shotState = 'idle';
           this._ballMinY = 1.0;
           this._shotStartY = 1.0;
           this._risingFrameCount = 0;
+          this._sawBallAboveRim = false;
         }
         return;
       }
@@ -1329,78 +1365,85 @@
       // Track the highest point the ball reaches (lowest Y value)
       if (normY < this._ballMinY) this._ballMinY = normY;
 
-      var trend = getYTrend(this.tracker, vh);
       var pts = this.tracker.positions;
       if (pts.length < MIN_TRAJECTORY_PTS) return;
 
-      // Set extended Kalman prediction flag during active shot states
+      // Extended Kalman prediction during active shot phases
       var isActiveShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
       this.tracker._activeShotExtend = isActiveShotState;
 
-      // ── IDLE: watch for ball starting to rise ──
+      // ── IDLE: trigger on sustained upward motion in a 600 ms window ──
       if (this._shotState === 'idle') {
-        // Count consecutive frames of upward movement
-        if (trend === 'rising') {
-          this._risingFrameCount++;
-        } else {
-          this._risingFrameCount = 0;
-        }
-        // Ball must be below hoop level AND have 5+ consecutive rising frames
-        if (normY > rim.centerY + 0.10 && this._risingFrameCount >= 5) {
-          this._shotState = 'shot_started';
-          this._shotStateTime = now;
-          this._ballMinY = normY;
-          this._shotStartY = normY;  // Record start Y for arc height check
-          this._risingFrameCount = 0;
+        if (ballRoseInWindow(this.tracker, vh, 600, 0.03)) {
+          this._shotState         = 'shot_started';
+          this._shotStateTime     = now;
+          this._ballMinY          = normY;
+          this._shotStartY        = normY;
+          this._risingFrameCount  = 0;
+          this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
         }
         return;
       }
 
-      // ── SHOT_STARTED: ball is rising, watch for it reaching hoop height ──
+      // ── SHOT_STARTED: wait for ball to reach the rim zone ──
       if (this._shotState === 'shot_started') {
-        // Ball reached near hoop height (within 20% of frame from hoop)
-        if (this._ballMinY < rim.centerY + 0.20) {
+        if (normY < rim.centerY) this._sawBallAboveRim = true;
+
+        // Rim-relative entry zone: within 2.5 rim-heights of the rim center.
+        // Scales with however the model sized the hoop bbox, instead of
+        // assuming the rim is far enough below the top of frame for a
+        // fixed 0.20 fraction to make sense.
+        var distFromRim = Math.abs(normY - rim.centerY);
+        if (distFromRim < (rim.height || 0.04) * 2.5) {
           this._shotState = 'near_hoop';
           this._shotStateTime = now;
           return;
         }
-        // Timeout: if ball has been "rising" for >3 seconds without reaching hoop, reset
         if (now - this._shotStateTime > 3000) {
           this._shotState = 'idle';
           this._ballMinY = 1.0;
+          this._shotStartY = 1.0;
+          this._sawBallAboveRim = false;
         }
         return;
       }
 
-      // ── NEAR_HOOP: ball is near hoop, determine make or miss ──
+      // ── NEAR_HOOP: simplified crossing rule with motion gate ──
       if (this._shotState === 'near_hoop') {
-        var hoopXDist = Math.abs(normX - rim.centerX);
-        var nearHoopX = hoopXDist < rim.width * 2.0; // within 2x rim width horizontally
+        var hoopXDist     = Math.abs(normX - rim.centerX);
+        var nearHoopX     = hoopXDist < rim.width * 1.5;        // tight: for MADE
+        var stillNearX    = hoopXDist < rim.width * 3.0;        // loose: still in zone
 
-        // MADE: ball went from above hoop to below hoop while near hoop X
-        // Require minimum arc height of 0.15 normalized from shot start
-        var madeArcHeight = this._shotStartY - this._ballMinY;
-        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX && madeArcHeight >= 0.15) {
+        var ballAboveRim  = normY < rim.centerY;
+        var ballBelowRim  = normY > rim.centerY + (rim.height || 0.04);
+        if (ballAboveRim) this._sawBallAboveRim = true;
+
+        // Minimum-motion gate: ball must have actually risen, scaled to
+        // how far below the rim the shot started. Below the rim by 0.30
+        // gates at 0.09; above the rim or close to it gates at the 0.05
+        // floor so layups under the basket can still register.
+        var arcHeight = this._shotStartY - this._ballMinY;
+        var minMotion = Math.max(0.05, Math.abs(this._shotStartY - rim.centerY) * 0.3);
+
+        // MADE: was above rim, now below rim, horizontally aligned, motion gate cleared
+        if (this._sawBallAboveRim && ballBelowRim && nearHoopX && arcHeight >= minMotion) {
           this._countShot('made', vw, vh, normX, normY, now);
           return;
         }
 
-        // MISS: ball was near hoop but now clearly moved away or fell without going through
-        var ballFarFromHoop = normY > rim.centerY + 0.25 || hoopXDist > rim.width * 4;
-        var ballWentBack = trend === 'rising' && normY < rim.centerY - 0.10;
-        var timeout = now - this._shotStateTime > 2000;
+        // MISS: ball moved away from rim OR timed out, with sufficient motion + above-rim seen
+        var ballFarFromHoop = !stillNearX || normY > rim.centerY + (rim.height || 0.04) * 4;
+        var timeout         = now - this._shotStateTime > 2000;
 
-        if (ballFarFromHoop || ballWentBack || timeout) {
-          // Only count as shot attempt if ball actually got near the hoop
-          // AND ball rose at least 0.15 normalized height from shot start to peak
-          var arcHeight = this._shotStartY - this._ballMinY;
-          if (this._ballMinY < rim.centerY + 0.15 && arcHeight >= 0.15) {
+        if (ballFarFromHoop || timeout) {
+          if (this._sawBallAboveRim && arcHeight >= minMotion) {
             this._countShot('missed', vw, vh, normX, normY, now);
           } else {
-            // Ball never really reached hoop or insufficient arc — not a shot
-            this._shotState = 'idle';
-            this._ballMinY = 1.0;
-            this._shotStartY = 1.0;
+            // Not a real shot — drop back to idle without counting
+            this._shotState     = 'idle';
+            this._ballMinY      = 1.0;
+            this._shotStartY    = 1.0;
+            this._sawBallAboveRim = false;
           }
           return;
         }
@@ -1413,6 +1456,7 @@
       this._shotStateTime = now;
       this._ballMinY = 1.0;
       this._shotStartY = 1.0;
+      this._sawBallAboveRim = false;
 
       var launchPt = getLaunchPoint(this.tracker, vw, vh);
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
