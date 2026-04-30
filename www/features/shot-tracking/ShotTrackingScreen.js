@@ -1179,7 +1179,7 @@
         // rim coords are in FULL-VIDEO normalized space (0..1 of the
         // visible video), so the display canvas (which is sized to the
         // visible video) maps directly via cw / ch — no crop step.
-        var rimZ = (engine && engine.rimZone) ? engine.rimZone : null;
+        var rimZ = (engRef && engRef.rimZone) ? engRef.rimZone : null;
         if (rimZ) {
           var rimDX = rimZ.centerX * cw;
           var rimDY = rimZ.centerY * ch;
