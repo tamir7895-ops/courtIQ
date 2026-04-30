@@ -791,7 +791,10 @@
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
 
-      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding
+      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding.
+      // NOTE: image is drawn at (0,0), not centered. The decode at _yoloxDecode uses
+      // `cx / ratio` with no offset, which matches this top-left placement. If you
+      // ever centre the letterbox here, you must subtract the same offsets there.
       var ratio = Math.min(sz / ph, sz / pw);
       var newW = Math.round(pw * ratio);
       var newH = Math.round(ph * ratio);
@@ -802,7 +805,10 @@
 
       var imgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
 
-      // CHW transposition: use Web Worker if available, else inline
+      // CHW transposition: use Web Worker if available, else inline.
+      // Reassigning onmessage per call is safe ONLY because the _isDetecting
+      // guard ensures one inference is in flight at a time. If that ever
+      // changes, switch to a request-id keyed map of pending resolvers.
       var chwReady;
       if (_chwWorker) {
         chwReady = new Promise(function (resolve) {
@@ -1173,6 +1179,21 @@
     _processNoBall: function () {
       this._consecutiveDets = 0;  // Reset consecutive detection count
       updateTracker(this.tracker, null, null);
+
+      // ── Watchdog: prevent the state machine from getting stuck ──
+      // _analyzeShotState only runs while a ball (real or Kalman-predicted)
+      // is available. If the ball vanishes mid-flight and never reappears,
+      // shot_started / near_hoop would otherwise wait forever. Force a
+      // reset to idle 4s after the state was entered.
+      var nowWd = Date.now();
+      if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
+          this._shotStateTime > 0 && (nowWd - this._shotStateTime) > 4000) {
+        this._shotState = 'idle';
+        this._ballMinY = 1.0;
+        this._shotStartY = 1.0;
+        this._risingFrameCount = 0;
+      }
+
       // If Kalman is predicting, show predicted position to UI
       var kf = this.tracker.kalman;
       var maxPredictNoBall = this.tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;

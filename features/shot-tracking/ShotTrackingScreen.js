@@ -370,7 +370,21 @@
       })
       .catch(function (err) {
         console.error('Camera access failed:', err);
-        alert('Camera access is required for shot tracking. Please allow camera permissions and try again.');
+        // Distinguish common failure modes so the user sees an actionable message.
+        var name = (err && err.name) || '';
+        var msg;
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+          msg = 'Camera access was denied. Please allow camera permissions in your browser settings and try again.';
+        } else if (name === 'NotReadableError' || name === 'TrackStartError') {
+          msg = 'The camera is in use by another app. Close other apps using the camera and try again.';
+        } else if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+          msg = 'No camera was found on this device.';
+        } else if (name === 'OverconstrainedError') {
+          msg = 'Your camera does not support the requested resolution. Please try again on a different device.';
+        } else {
+          msg = 'Camera access is required for shot tracking. Please allow camera permissions and try again.';
+        }
+        alert(msg);
         closeScreen();
       });
   }
@@ -925,6 +939,11 @@
       }
 
       // ── DEBUG MODE: Draw bounding boxes + labels ──────────────
+      // REVIEW: detections arrive in PROCESSING-CANVAS space (cropped region
+      // already applied). Mapping to display canvas via cw/dd.procW skips
+      // the UI-overlay crop offset, so on screen-recording videos with
+      // cropped chrome the boxes will be visually shifted by the crop.
+      // Debug overlay only — does not affect detection accuracy.
       if (debugMode && debugData) {
         var dd = debugData;
         var scaleX = cw / (dd.procW || cw);
@@ -1355,6 +1374,14 @@
   }
 
   /* ── Save to Supabase ───────────────────────────────────────── */
+  // REVIEW: The retry path on partial-failure is fragile. If saveSession
+  // succeeds but saveShots fails (network drop mid-flight), retrying will
+  // hit an ai_shot_sessions PK conflict because summary.sessionId is reused.
+  // Two-write transactions belong server-side or behind an RPC; consider
+  // moving this to a single Supabase function once the model stabilises.
+  // Also: ai_shots has no natural unique key here, so a duplicate
+  // saveShots() call would create duplicate rows unless the table has
+  // a unique constraint on (session_id, shot_number).
   async function saveSessionData(summary) {
     try {
       var zones = categorizeShotsByZone(summary.shots);
