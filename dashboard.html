@@ -28,8 +28,16 @@
   <link rel="stylesheet" href="styles/shop.css?v=3" />
   <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
   <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
-  <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2-type.css?v=1" />
-  <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2.css?v=1" />
+  <!--
+    Shot Tracker v2 stylesheets — DORMANT.
+    All SHOT_TRACKER_V2 feature flags in features/shot-tracking/v2/config.js
+    are currently false; the new UI is not rendered. These CSS files have
+    no selectors that affect the live v1 markup, but parsing them costs ~12KB
+    on every page load. Keep these links commented until at least one V2
+    screen flag is flipped on, then uncomment.
+  -->
+  <!-- <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2-type.css?v=1" /> -->
+  <!-- <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2.css?v=1" /> -->
   <link rel="stylesheet" href="styles/charts.css?v=3" />
   <link rel="stylesheet" href="styles/move-library.css?v=3" />
   <link rel="stylesheet" href="styles/challenge.css?v=3" />
@@ -43,11 +51,24 @@
   <!-- CourtIQ UI v2 — tokens + components (unconditional as of Phase 7) -->
   <link rel="stylesheet" href="styles/courtiq-ui/tokens.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/components.css?v=1" />
+  <!-- Phase 10 — design-maturity foundation -->
+  <link rel="stylesheet" href="styles/courtiq-ui/icons.css?v=10" />
+  <link rel="stylesheet" href="styles/courtiq-ui/hierarchy.css?v=10" />
+  <link rel="stylesheet" href="styles/courtiq-ui/templates.css?v=10" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/home.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/track.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/train.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/coach.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/me.css?v=1" />
+  <!-- Phase 8 — restoration units -->
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/me-settings.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/train-drill-generator.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/train-player.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/track-heatmap.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/track-zones.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/track-sessions.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/home-calendar.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/me-social.css?v=1" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"></script>
 </head>
@@ -1595,8 +1616,8 @@
             <h2 class="ks-featured-title">Shot<br>Tracker</h2>
             <p class="ks-featured-desc">Analyze every shot in real-time with YOLOX AI detection — works live with your camera or from uploaded video.</p>
             <div class="ks-featured-actions">
-              <button class="ks-btn-primary" id="ast-launch-btn">📷 Launch Camera</button>
-              <button class="ks-btn-outline" id="ast-upload-btn">↑ Upload Video</button>
+              <button class="ks-btn-primary" onclick="ShotTrackingScreen.open()">📷 Launch Camera</button>
+              <button class="ks-btn-outline" onclick="document.getElementById('ast-file-input').click()">↑ Upload Video</button>
             </div>
           </div>
           <div class="ks-featured-img" id="lab-tracker-summary" style="display:flex;align-items:center;justify-content:center">
@@ -2780,17 +2801,32 @@ if(window.__PREVIEW_MODE__){
 <script src="features/shot-tracking/adaptiveLearning.js" defer></script>
 <script src="features/shot-tracking/shotDetection.js" defer></script>
 <script src="features/shot-tracking/shotService.js" defer></script>
+<!-- Video Review: post-session shot replay with trajectory overlay (must load BEFORE ShotTrackingScreen) -->
+<script src="js/video-review.js" defer></script>
 <script src="features/shot-tracking/ShotTrackingScreen.js" defer></script>
 <script src="features/shot-tracking/index.js" defer></script>
 
 <!-- CourtIQ UI v2 — shell (flag-gated; does nothing when SHELL_ACTIVE=false) -->
 <script src="features/ui-v2/config.js" defer></script>
+<!-- Phase 10 — design-maturity foundation: must load BEFORE shell + tab modules -->
+<script src="features/ui-v2/icons.js" defer></script>
+<script src="features/ui-v2/templates.js" defer></script>
 <script src="features/ui-v2/shell.js" defer></script>
 <script src="features/ui-v2/tabs/home.js" defer></script>
 <script src="features/ui-v2/tabs/track.js" defer></script>
 <script src="features/ui-v2/tabs/train.js" defer></script>
 <script src="features/ui-v2/tabs/coach.js" defer></script>
 <script src="features/ui-v2/tabs/me.js" defer></script>
+<!-- Phase 8 — restoration units -->
+<script src="features/ui-v2/tabs/me-trophies.js" defer></script>
+<script src="features/ui-v2/tabs/me-settings.js" defer></script>
+<script src="features/ui-v2/tabs/train-drill-generator.js" defer></script>
+<script src="features/ui-v2/tabs/train-player.js" defer></script>
+<script src="features/ui-v2/tabs/track-heatmap.js" defer></script>
+<script src="features/ui-v2/tabs/track-zones.js" defer></script>
+<script src="features/ui-v2/tabs/track-sessions.js" defer></script>
+<script src="features/ui-v2/tabs/home-calendar.js" defer></script>
+<script src="features/ui-v2/tabs/me-social.js" defer></script>
 
 <!-- KE Stats period chip toggler -->
 <script>
