@@ -63,11 +63,6 @@
       }, 400);
     }
 
-    // Check streak badges
-    if (typeof BadgeSystem !== 'undefined') BadgeSystem.checkStreakBadges(data.current);
-    // Schedule streak warning for later today
-    if (typeof NotificationManager !== 'undefined') NotificationManager.scheduleStreakWarning();
-
     // Check milestones
     var milestone = MILESTONE_MESSAGES[data.current];
     if (milestone) {

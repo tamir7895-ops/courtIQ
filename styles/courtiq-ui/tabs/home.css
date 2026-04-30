@@ -1,0 +1,343 @@
+/* CourtIQ UI v2 — Home tab styles
+ * Active only when body has both .ciq-active and .ciq-tab-v2-home.
+ * Ported from ui_kits/mobile-app/Screens.jsx HomeScreen().
+ */
+
+/* Hide legacy home panel content when v2 Home is active */
+body.ciq-v2-home.ciq-tab-home #db-panel-home { display: none !important; }
+
+/* Root home container — only visible when v2 Home is on */
+#ciq-home-screen { display: none; }
+body.ciq-v2-home.ciq-tab-home #ciq-home-screen { display: block; }
+
+#ciq-home-screen {
+  --accent: var(--c-home);
+  padding: 88px 16px 120px;
+  background: var(--c-bg);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  min-height: 100vh;
+  position: relative;
+}
+
+/* ─── Sub-nav chips (Today / Log / History / Calendar / Notifications) ─── */
+.ciq-home-subnav {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.ciq-home-subnav::-webkit-scrollbar { display: none; }
+.ciq-home-subnav button {
+  flex: 0 0 auto;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--c-muted);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+.ciq-home-subnav button:hover { color: var(--c-white); }
+.ciq-home-subnav button.active {
+  background: var(--c-home-dim);
+  border-color: color-mix(in srgb, var(--c-home) 40%, transparent);
+  color: var(--c-home);
+}
+
+/* ─── Profile hero ──────────────────────────────────────── */
+.ciq-home-hero {
+  border-radius: 24px;
+  background: linear-gradient(135deg, #f5a623 0%, #c88418 100%);
+  padding: 16px 18px 18px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(245,166,35,0.35);
+  display: flex;
+  gap: 14px;
+}
+.ciq-home-hero-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+.ciq-home-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(14,16,20,0.85);
+  color: var(--c-amber);
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  align-self: flex-start;
+}
+.ciq-home-hero-name {
+  font-family: var(--font-display);
+  font-size: 40px;
+  font-weight: 900;
+  font-style: italic;
+  color: #0c0d0f;
+  line-height: 1;
+  margin-top: 10px;
+  word-break: break-word;
+}
+.ciq-home-hero-meta {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #0c0d0f;
+  margin-top: 4px;
+  opacity: 0.85;
+}
+.ciq-home-hero-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+.ciq-home-hero-actions button {
+  border: none;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.ciq-home-hero-actions .btn-edit { background: rgba(14,16,20,0.75); color: var(--c-amber); }
+.ciq-home-hero-actions .btn-share { background: #0c0d0f; color: var(--c-white); }
+
+.ciq-home-hero-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  align-self: center;
+  background: #0c0d0f;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.ciq-home-hero-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ─── Level / XP card ───────────────────────────────────── */
+.ciq-home-level {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  padding: 16px;
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.ciq-home-level-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: rgba(245,166,35,0.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-amber);
+  flex-shrink: 0;
+}
+.ciq-home-level-body { flex: 1; min-width: 0; }
+.ciq-home-level-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.ciq-home-level-rank {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 14px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+.ciq-home-level-xp {
+  font-size: 11px;
+  color: rgba(240,237,230,0.45);
+}
+.ciq-home-level-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 100px;
+  margin-top: 6px;
+  overflow: hidden;
+}
+.ciq-home-level-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #f5a623, #ffc04a);
+  transition: width 0.4s var(--ease-out-expo, ease);
+}
+.ciq-home-streak {
+  text-align: center;
+  flex-shrink: 0;
+  min-width: 48px;
+}
+.ciq-home-streak-val {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--c-white);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-content: center;
+}
+.ciq-home-streak-val svg { color: var(--c-amber); }
+.ciq-home-streak-lbl {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.45);
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+/* ─── Daily challenge ───────────────────────────────────── */
+.ciq-home-challenge {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  padding: 16px 18px;
+  margin-top: 14px;
+  position: relative;
+  overflow: hidden;
+}
+.ciq-home-challenge::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--c-amber), transparent);
+  opacity: 0.5;
+}
+.ciq-home-challenge-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+.ciq-home-challenge-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--c-white);
+  line-height: 1.1;
+  margin-top: 6px;
+}
+.ciq-home-challenge-sub {
+  font-size: 12px;
+  color: rgba(240,237,230,0.5);
+  margin-top: 4px;
+}
+.ciq-home-challenge-cta { margin-top: 12px; }
+
+/* Reuse primary-btn look, but scoped here to avoid depending on .ciq-primary-btn in the DOM */
+.ciq-home-btn-primary {
+  background: var(--accent, #f5a623);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent, #f5a623) 35%, transparent);
+}
+
+/* ─── Performance insight + stats ───────────────────────── */
+.ciq-home-insight {
+  margin-top: 20px;
+}
+.ciq-home-insight .eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+.ciq-home-insight-title {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  font-style: italic;
+  margin-top: 4px;
+}
+.ciq-home-insight-text {
+  color: rgba(240,237,230,0.65);
+  font-size: 14px;
+  margin-top: 8px;
+  line-height: 1.5;
+}
+
+.ciq-home-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 14px;
+}
+.ciq-home-stats .tile {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.ciq-home-stats .tile .lbl {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-tertiary);
+}
+.ciq-home-stats .tile .val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--c-white);
+  line-height: 1;
+  margin-top: 6px;
+}
+.ciq-home-stats .tile .val.accent { color: var(--c-amber); }

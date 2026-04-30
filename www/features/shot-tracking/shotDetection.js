@@ -2,9 +2,10 @@
    SHOT DETECTION — ML + Color Fallback Ball Detection
    + Centroid Tracker + Shot Result Analysis
 
-   v9 — Custom YOLOX-tiny (Apache 2.0) trained on basketball dataset.
+   v10 — Custom YOLOX-tiny v6 (Apache 2.0) trained on basketball dataset.
         2 classes: Basketball (0), Basketball Hoop (1).
-        Output: [1, 3549, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        Input: 640x640. Output: [1, 8400, 7] = [cx, cy, w, h, objectness, ball_score, hoop_score]
+        Best AP@0.5 = 0.885, AP@0.5:0.95 = 0.548 (30 epochs, phase3_human exp)
         YOLOX runs every 3rd frame. Color detection every frame as fallback.
 
    Runs entirely in-browser using:
@@ -15,17 +16,17 @@
   'use strict';
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 2000;  // Cooldown between counted shots (balanced: was 3000)
-  var MIN_TRAJECTORY_PTS   = 3;    // Minimum trajectory points before analyzing
+  var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
+  var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
   var MAX_HISTORY          = 50;   // Larger rolling buffer
-  var MAX_GAP_FRAMES       = 12;   // More grace frames for ball vanishing
+  var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.003; // obj*cls — lowered to catch weaker detections
+  var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
-  var DETECTION_INTERVAL   = 60;   // ~16 FPS detection rate
+  var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
-  var YOLOX_INPUT_SIZE     = 640;  // v6: 640x640 (was 416 in v4)
+  var YOLOX_INPUT_SIZE     = 640;
   var YOLOX_NUM_CLASSES    = 2;
   var YOLOX_BALL_CLASS     = 0;    // Basketball
   var YOLOX_HOOP_CLASS     = 1;    // Basketball Hoop
@@ -35,6 +36,14 @@
   var _yoloxBuf    = null;
   var _yoloxCanvas = null;
   var _yoloxCtx    = null;
+
+  // Web Worker for CHW preprocessing (offloads ~520K array writes from main thread)
+  var _chwWorker   = null;
+  try {
+    _chwWorker = new Worker('features/shot-tracking/yoloxWorker.js');
+  } catch (e) {
+    console.warn('[ShotDetection] Web Worker unavailable, using main thread CHW');
+  }
 
   /* Area thresholds as fractions of total frame area */
   var BALL_MIN_AREA_FRAC   = 0.00005;  // Very small — distant shots
@@ -48,43 +57,123 @@
   var COLOR_MIN_PIXELS     = 12;   // Minimum orange pixels to count as ball
   var COLOR_MAX_PIXELS     = 8000; // Maximum (too large = not a ball)
 
-  /* ── Smart Rim Lock constants ──────────────────────────────── */
-  var RIM_LOCK_FRAMES      = 8;    // Consecutive consistent detections to lock
-  var RIM_LOCK_DRIFT       = 0.03; // Max normalized drift to count as "same position"
-  var RIM_UNLOCK_MOTION    = 12;   // Global pixel motion threshold to unlock
-  var RIM_SMOOTH_BUFFER    = 6;    // Number of hoop detections to average
-  var CAMERA_MOTION_SAMPLE = 2000; // Pixel pairs to sample for motion detection
+  /* ── 2D Kalman Filter (position + velocity) ─────────────────── */
+  /* State: [x, y, vx, vy]  —  constant-velocity model with gravity */
+  var KALMAN_PROCESS_NOISE = 0.5;   // How much we trust the physics model
+  var KALMAN_MEASURE_NOISE = 3.0;   // How noisy the detections are (pixels)
+  var KALMAN_GRAVITY       = 0.6;   // Gravity pull per frame (0.4 was too weak, ball stalled mid-flight)
+  var KALMAN_MAX_PREDICT   = 60;    // Max frames to predict (~2s at 30fps — covers long 3-pointers)
 
-  /* ── Tracker ────────────────────────────────────────────────── */
+  function createKalman() {
+    return {
+      x: 0, y: 0, vx: 0, vy: 0,    // State estimate
+      // Covariance diagonal (simplified — no cross-terms needed for this use case)
+      px: 100, py: 100, pvx: 100, pvy: 100,
+      initialized: false,
+      predictCount: 0                 // Frames since last measurement
+    };
+  }
+
+  function kalmanPredict(kf) {
+    // State prediction (constant velocity + gravity on Y)
+    kf.x  += kf.vx;
+    kf.y  += kf.vy + KALMAN_GRAVITY * 0.5;
+    kf.vy += KALMAN_GRAVITY;
+    // Covariance grows with process noise
+    kf.px  += kf.pvx + KALMAN_PROCESS_NOISE;
+    kf.py  += kf.pvy + KALMAN_PROCESS_NOISE;
+    kf.pvx += KALMAN_PROCESS_NOISE;
+    kf.pvy += KALMAN_PROCESS_NOISE;
+    kf.predictCount++;
+  }
+
+  function kalmanUpdate(kf, mx, my) {
+    if (!kf.initialized) {
+      kf.x = mx; kf.y = my; kf.vx = 0; kf.vy = 0;
+      kf.px = KALMAN_MEASURE_NOISE; kf.py = KALMAN_MEASURE_NOISE;
+      kf.pvx = 10; kf.pvy = 10;
+      kf.initialized = true;
+      kf.predictCount = 0;
+      return;
+    }
+    // Kalman gains (simplified diagonal)
+    var kx  = kf.px  / (kf.px  + KALMAN_MEASURE_NOISE);
+    var ky  = kf.py  / (kf.py  + KALMAN_MEASURE_NOISE);
+    // Innovation (measurement residual)
+    var ix = mx - kf.x;
+    var iy = my - kf.y;
+    // Update velocity from position correction (clamped to prevent jitter explosions)
+    kf.vx = Math.max(-100, Math.min(100, kf.vx + ix * 0.3));
+    kf.vy = Math.max(-120, Math.min(120, kf.vy + iy * 0.3));
+    // Update position
+    kf.x += kx * ix;
+    kf.y += ky * iy;
+    // Update covariance
+    kf.px  *= (1 - kx);
+    kf.py  *= (1 - ky);
+    kf.pvx *= 0.95;  // Velocity covariance decays slowly
+    kf.pvy *= 0.95;
+    kf.predictCount = 0;
+  }
+
+  function kalmanReset(kf) {
+    kf.x = 0; kf.y = 0; kf.vx = 0; kf.vy = 0;
+    kf.px = 100; kf.py = 100; kf.pvx = 100; kf.pvy = 100;
+    kf.initialized = false;
+    kf.predictCount = 0;
+  }
+
+  /* ── Tracker (with Kalman filter) ──────────────────────────── */
   function createTracker() {
     return {
       positions: [],
       lastSeenFrame: -1,
       isTracking: false,
-      frameCount: 0
+      frameCount: 0,
+      kalman: createKalman()
     };
   }
 
   function updateTracker(tracker, x, y) {
     var frameNum = tracker.frameCount++;
+    var kf = tracker.kalman;
+
     if (x !== null && y !== null) {
+      // Measurement available — update Kalman
+      kalmanUpdate(kf, x, y);
+      // Use Kalman-smoothed position
+      var sx = kf.x;
+      var sy = kf.y;
+
       var last = tracker.positions[tracker.positions.length - 1];
       if (last) {
-        var dx = Math.abs(x - last.x);
-        var dy = Math.abs(y - last.y);
+        var dx = Math.abs(sx - last.x);
+        var dy = Math.abs(sy - last.y);
         if (dx < MIN_MOVEMENT_PX && dy < MIN_MOVEMENT_PX) {
           tracker.lastSeenFrame = frameNum;
           return;
         }
       }
-      tracker.positions.push({ x: x, y: y, frame: frameNum, ts: Date.now() });
+      tracker.positions.push({ x: sx, y: sy, frame: frameNum, ts: Date.now() });
       if (tracker.positions.length > MAX_HISTORY) {
         tracker.positions = tracker.positions.slice(-MAX_HISTORY);
       }
       tracker.lastSeenFrame = frameNum;
       tracker.isTracking = true;
     } else {
-      if (tracker.isTracking && frameNum - tracker.lastSeenFrame > MAX_GAP_FRAMES) {
+      // No measurement — predict with Kalman if still within prediction window
+      // Extended window during active shot (RISING/FALLING) via _activeShot flag
+      var maxPredict = tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
+      if (kf.initialized && kf.predictCount < maxPredict) {
+        kalmanPredict(kf);
+        // Push predicted position (marked as predicted)
+        tracker.positions.push({ x: kf.x, y: kf.y, frame: frameNum, ts: Date.now(), predicted: true });
+        if (tracker.positions.length > MAX_HISTORY) {
+          tracker.positions = tracker.positions.slice(-MAX_HISTORY);
+        }
+        tracker.lastSeenFrame = frameNum;
+        // Keep tracking alive during prediction
+      } else if (tracker.isTracking && frameNum - tracker.lastSeenFrame > MAX_GAP_FRAMES) {
         tracker.isTracking = false;
       }
     }
@@ -94,6 +183,7 @@
     tracker.positions = [];
     tracker.lastSeenFrame = -1;
     tracker.isTracking = false;
+    kalmanReset(tracker.kalman);
   }
 
   function getTrajectoryNormalized(tracker, w, h, count) {
@@ -126,15 +216,18 @@
       centerX: cx, centerY: cy, width: w, height: h,
       left: cx - w / 2, right: cx + w / 2,
       top: cy - h / 2, bottom: cy + h / 2,
-      approachLeft: cx - w * 2.2,
-      approachRight: cx + w * 2.2,
-      approachTop: cy - h * 4.0,
-      approachBottom: cy + h * 4.0
+      approachLeft: cx - w * 2.5,
+      approachRight: cx + w * 2.5,
+      approachTop: cy - h * 8.0,
+      approachBottom: cy + h * 10.0
     };
   }
 
   function isInsideRim(x, y, rim) {
-    return x >= rim.left && x <= rim.right && y >= rim.top && y <= rim.bottom;
+    // Use expanded vertical zone (2x rim height) for more forgiving transit detection
+    var expandedTop = rim.top - rim.height;
+    var expandedBottom = rim.bottom + rim.height;
+    return x >= rim.left && x <= rim.right && y >= expandedTop && y <= expandedBottom;
   }
 
   function isInApproachZone(x, y, rim) {
@@ -146,7 +239,7 @@
   function isBelowRim(y, rim) { return y > rim.bottom; }
 
   function isWithinHorizontalBounds(x, rim) {
-    var margin = rim.width * 0.8; // wider margin (was 0.5)
+    var margin = rim.width * 0.5;
     return x >= rim.left - margin && x <= rim.right + margin;
   }
 
@@ -156,65 +249,42 @@
     var enteredAbove = false, enteredRim = false, exitedBelow = false;
     var entryFrame = -1, entryPoint = null;
     var nearRim = false;
-    var passedThroughRimY = false;
 
     for (var i = 0; i < trajectory.length; i++) {
       var pt = trajectory[i];
-
-      // Ball was above rim at some point
       if (!enteredAbove && isAboveRim(pt.y, rim)) {
         enteredAbove = true;
       }
-
-      // Ball entered the rim box
       if (enteredAbove && !enteredRim && isInsideRim(pt.x, pt.y, rim)) {
         enteredRim = true;
         entryFrame = pt.frame;
         entryPoint = { x: pt.x, y: pt.y };
       }
-
-      // Ball is near the rim (approach zone + close to rim Y)
-      if (enteredAbove && !nearRim && isInApproachZone(pt.x, pt.y, rim) && Math.abs(pt.y - rim.centerY) < rim.height * 2.5) {
+      if (enteredAbove && !nearRim && isInApproachZone(pt.x, pt.y, rim) && Math.abs(pt.y - rim.centerY) < rim.height * 1.5) {
         nearRim = true;
         if (!entryPoint) entryPoint = { x: pt.x, y: pt.y };
         if (entryFrame < 0) entryFrame = pt.frame;
       }
-
-      // Ball crossed the rim Y level while within horizontal bounds
-      if (enteredAbove && !passedThroughRimY && pt.y >= rim.top && pt.y <= rim.bottom + rim.height && isWithinHorizontalBounds(pt.x, rim)) {
-        passedThroughRimY = true;
-        if (!entryPoint) entryPoint = { x: pt.x, y: pt.y };
-        if (entryFrame < 0) entryFrame = pt.frame;
-      }
-
-      // Ball exited below rim
-      if ((enteredRim || nearRim || passedThroughRimY) && isBelowRim(pt.y, rim)) {
-        var frameLimit = enteredRim ? MADE_MAX_FRAMES : MADE_MAX_FRAMES * 2;
-        if (entryFrame >= 0 && pt.frame - entryFrame <= frameLimit && isWithinHorizontalBounds(pt.x, rim)) {
+      if ((enteredRim || nearRim) && isBelowRim(pt.y, rim)) {
+        var frameLimit = enteredRim ? MADE_MAX_FRAMES : MADE_MAX_FRAMES * 1.5;
+        if (pt.frame - entryFrame <= frameLimit && isWithinHorizontalBounds(pt.x, rim)) {
           exitedBelow = true;
           break;
         }
       }
-
-      if (enteredRim && pt.frame - entryFrame > MADE_MAX_FRAMES * 2) break;
+      if (enteredRim && pt.frame - entryFrame > MADE_MAX_FRAMES) break;
     }
-
-    // Made = came from above, passed through/near rim, went below
-    var isMade = enteredAbove && (enteredRim || nearRim || passedThroughRimY) && exitedBelow;
+    var isMade = enteredAbove && (enteredRim || nearRim) && exitedBelow;
     return { isMade: isMade, entryPoint: entryPoint };
   }
 
   function analyzeMiss(trajectory, rim) {
-    if (trajectory.length < 4) return { isMiss: false, entryPoint: null };
+    if (trajectory.length < 3) return { isMiss: false, entryPoint: null };
     var approached = false, approachPoint = null;
-    var wasAbove = false;
 
     for (var i = 0; i < trajectory.length; i++) {
       var pt = trajectory[i];
-      // Must have been above rim first (actual shot, not just walking near hoop)
-      if (pt.y < rim.top) wasAbove = true;
-
-      if (wasAbove && !approached && isInApproachZone(pt.x, pt.y, rim)) {
+      if (!approached && isInApproachZone(pt.x, pt.y, rim)) {
         approached = true;
         approachPoint = { x: pt.x, y: pt.y };
       }
@@ -226,9 +296,14 @@
         }
       }
     }
-    // Don't count as miss if ball never went above rim (wasn't a shot)
-    if (approached && wasAbove) {
+    if (approached) {
       var last = trajectory[trajectory.length - 1];
+      // Don't trigger miss if ball is above or inside the rim zone — it could still go through!
+      if (isAboveRim(last.y, rim)) return { isMiss: false, entryPoint: null };
+      var nearRimVertically = Math.abs(last.y - rim.centerY) < rim.height * 3;
+      if (nearRimVertically && isWithinHorizontalBounds(last.x, rim)) return { isMiss: false, entryPoint: null };
+      // Need at least 8 trajectory points before deciding miss (give ball time to transit)
+      if (trajectory.length < 8) return { isMiss: false, entryPoint: null };
       if (!isBelowRim(last.y, rim) || !isWithinHorizontalBounds(last.x, rim)) {
         return { isMiss: true, entryPoint: approachPoint };
       }
@@ -277,72 +352,6 @@
     return 'threePoint';
   }
 
-  /* ── Region-restricted color detection (avoids gym floor) ────── */
-  function _detectBallInRegion(ctx, vw, yStart, yEnd) {
-    if (!ctx || vw < 10 || yEnd <= yStart) return null;
-    var regionH = yEnd - yStart;
-    try {
-      var imgData = ctx.getImageData(0, yStart, vw, regionH);
-      var data = imgData.data;
-    } catch (e) { return null; }
-
-    var CELL = 12;
-    var gridW = Math.ceil(vw / CELL);
-    var gridH = Math.ceil(regionH / CELL);
-    var grid = new Uint16Array(gridW * gridH);
-
-    for (var y = 0; y < regionH; y += COLOR_SCAN_STEP) {
-      for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
-        var idx = (y * vw + x) * 4;
-        var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
-          grid[Math.floor(y / CELL) * gridW + Math.floor(x / CELL)]++;
-        }
-      }
-    }
-
-    var visited = new Uint8Array(gridW * gridH);
-    var bestCluster = null, bestCount = 0;
-
-    for (var cy = 0; cy < gridH; cy++) {
-      for (var cx = 0; cx < gridW; cx++) {
-        var gi = cy * gridW + cx;
-        if (grid[gi] < 2 || visited[gi]) continue;
-        var queue = [gi]; visited[gi] = 1;
-        var clMinX = cx, clMaxX = cx, clMinY = cy, clMaxY = cy;
-        var clCount = 0, clSumX = 0, clSumY = 0;
-        while (queue.length > 0) {
-          var cur = queue.shift();
-          var curY = Math.floor(cur / gridW), curX = cur % gridW;
-          var cellPx = grid[cur];
-          clCount += cellPx;
-          clSumX += (curX * CELL + CELL / 2) * cellPx;
-          clSumY += (curY * CELL + CELL / 2) * cellPx;
-          if (curX < clMinX) clMinX = curX; if (curX > clMaxX) clMaxX = curX;
-          if (curY < clMinY) clMinY = curY; if (curY > clMaxY) clMaxY = curY;
-          var nb = [curY > 0 ? (curY-1)*gridW+curX : -1, curY < gridH-1 ? (curY+1)*gridW+curX : -1,
-                    curX > 0 ? curY*gridW+(curX-1) : -1, curX < gridW-1 ? curY*gridW+(curX+1) : -1];
-          for (var ni = 0; ni < 4; ni++) {
-            if (nb[ni] >= 0 && !visited[nb[ni]] && grid[nb[ni]] >= 2) { visited[nb[ni]] = 1; queue.push(nb[ni]); }
-          }
-        }
-        if (clCount > bestCount && clCount < 3000) {
-          bestCount = clCount;
-          bestCluster = { count: clCount, cx: clSumX / clCount, cy: clSumY / clCount + yStart,
-            minX: clMinX * CELL, minY: clMinY * CELL + yStart, maxX: (clMaxX+1)*CELL, maxY: (clMaxY+1)*CELL + yStart };
-        }
-      }
-    }
-
-    if (!bestCluster || bestCluster.count < 6) return null;
-    var blobW = bestCluster.maxX - bestCluster.minX;
-    var blobH = bestCluster.maxY - (bestCluster.minY);
-    if (blobW < 3 || blobH < 3) return null;
-    var aspect = Math.max(blobW, blobH) / Math.min(blobW, blobH);
-    if (aspect > 3.5) return null;
-    return { x: bestCluster.cx, y: bestCluster.cy, w: blobW, h: blobH, score: 0.4 };
-  }
-
   /* ── Color-Based Ball Detection (fallback) ─────────────────── */
   /* Uses AdaptiveLearning if available, otherwise hardcoded ranges */
   function detectBallByColor(canvas, ctx, vw, vh) {
@@ -372,12 +381,12 @@
     var gridH = Math.ceil(vh / CELL);
     var grid = new Uint16Array(gridW * gridH);  // orange pixel count per cell
 
-    // Count orange/brown-orange pixels per cell (widened for gym lighting)
+    // Count orange pixels per cell
     for (var y = 0; y < vh; y += COLOR_SCAN_STEP) {
       for (var x = 0; x < vw; x += COLOR_SCAN_STEP) {
         var idx = (y * vw + x) * 4;
         var r = data[idx], g = data[idx + 1], b = data[idx + 2];
-        if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
+        if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
           var gx = Math.floor(x / CELL);
           var gy = Math.floor(y / CELL);
           grid[gy * gridW + gx]++;
@@ -457,6 +466,10 @@
     var aspect = Math.max(blobW, blobH) / Math.min(blobW, blobH);
     if (aspect > 3.0) return null;
 
+    // Cluster compactness: w/h ratio between 0.5-2.0 rejects elongated shapes (arms/legs)
+    var whRatio = blobW / (blobH || 1);
+    if (whRatio < 0.5 || whRatio > 2.0) return null;
+
     var blobArea = blobW * blobH;
     var frameArea = vw * vh;
     if (blobArea < frameArea * BALL_MIN_AREA_FRAC || blobArea > frameArea * BALL_MAX_AREA_FRAC) return null;
@@ -466,226 +479,6 @@
 
     return { x: bestCluster.cx, y: bestCluster.cy, w: blobW, h: blobH, score: 0.5 + fillRatio * 0.3 };
   }
-
-  /* ── Background Subtraction — find moving objects (ball) ──────────── */
-  var BgSubtractor = {
-    _bgFrame: null,
-    _alpha: 0.03,  // slow background learning rate
-    _framesSinceReset: 0,
-
-    reset: function () {
-      this._bgFrame = null;
-      this._framesSinceReset = 0;
-    },
-
-    /* Update background model and return motion mask ball candidate */
-    detectMovingBall: function (ctx, pw, ph, rimZone) {
-      this._framesSinceReset++;
-      if (this._framesSinceReset < 5) return null; // need a few frames to build bg
-
-      try {
-        var imgData = ctx.getImageData(0, 0, pw, ph);
-        var data = imgData.data;
-      } catch (e) { return null; }
-
-      // Downsample to quarter res for speed
-      var step = 4;
-      var dw = Math.floor(pw / step);
-      var dh = Math.floor(ph / step);
-      var gray = new Float32Array(dw * dh);
-      for (var y = 0; y < dh; y++) {
-        for (var x = 0; x < dw; x++) {
-          var si = ((y * step) * pw + (x * step)) * 4;
-          gray[y * dw + x] = data[si] * 0.3 + data[si + 1] * 0.59 + data[si + 2] * 0.11;
-        }
-      }
-
-      if (!this._bgFrame || this._bgFrame.length !== gray.length) {
-        this._bgFrame = new Float32Array(gray);
-        return null;
-      }
-
-      // Compute difference and update background
-      var motionPx = [];
-      for (var i = 0; i < gray.length; i++) {
-        var diff = Math.abs(gray[i] - this._bgFrame[i]);
-        this._bgFrame[i] += (gray[i] - this._bgFrame[i]) * this._alpha;
-        if (diff > 25) { // significant motion
-          var mx = (i % dw) * step;
-          var my = Math.floor(i / dw) * step;
-          // Only look in upper portion (where ball flies)
-          if (rimZone) {
-            var normY = my / ph;
-            if (normY > rimZone.centerY + 0.15) continue; // skip below rim
-          }
-          motionPx.push({ x: mx, y: my, diff: diff });
-        }
-      }
-
-      if (motionPx.length < 3 || motionPx.length > 500) return null;
-
-      // Cluster motion pixels — find centroid of densest cluster
-      var sumX = 0, sumY = 0;
-      for (var j = 0; j < motionPx.length; j++) {
-        sumX += motionPx[j].x;
-        sumY += motionPx[j].y;
-      }
-      var centX = sumX / motionPx.length;
-      var centY = sumY / motionPx.length;
-
-      // Check cluster is ball-sized (compact, not huge)
-      var spread = 0;
-      for (var k = 0; k < motionPx.length; k++) {
-        var dx = motionPx[k].x - centX;
-        var dy = motionPx[k].y - centY;
-        spread += Math.sqrt(dx * dx + dy * dy);
-      }
-      spread /= motionPx.length;
-
-      var maxSpread = Math.min(pw, ph) * 0.15; // ball shouldn't be bigger than 15% of frame
-      if (spread > maxSpread || spread < 2) return null;
-
-      return { x: centX, y: centY, score: 0.3, source: 'motion' };
-    }
-  };
-
-  /* ── Smart Rim Lock — locks hoop position, unlocks on camera motion ── */
-  var SmartRimLock = {
-    isLocked: false,
-    lockedRim: null,       // { cx, cy, w, h } normalized
-    _hoopBuffer: [],       // last N detections for smoothing
-    _stableCount: 0,       // consecutive frames with same-ish position
-    _prevFrameData: null,  // downsampled grayscale for motion detection
-    _motionLevel: 0,       // current global motion estimate
-
-    reset: function () {
-      this.isLocked = false;
-      this.lockedRim = null;
-      this._hoopBuffer = [];
-      this._stableCount = 0;
-      this._prevFrameData = null;
-      this._motionLevel = 0;
-    },
-
-    /* Detect global camera motion by sampling pixel differences */
-    detectCameraMotion: function (ctx, pw, ph) {
-      // Downsample to 80px wide grayscale
-      var sw = 80;
-      var sh = Math.round(ph * (sw / pw));
-      var tmpCanvas = document.createElement('canvas');
-      tmpCanvas.width = sw; tmpCanvas.height = sh;
-      var tmpCtx = tmpCanvas.getContext('2d');
-      tmpCtx.drawImage(ctx.canvas, 0, 0, sw, sh);
-      var data = tmpCtx.getImageData(0, 0, sw, sh).data;
-
-      // Convert to grayscale array
-      var gray = new Uint8Array(sw * sh);
-      for (var i = 0; i < gray.length; i++) {
-        gray[i] = Math.round(data[i * 4] * 0.3 + data[i * 4 + 1] * 0.59 + data[i * 4 + 2] * 0.11);
-      }
-
-      if (!this._prevFrameData || this._prevFrameData.length !== gray.length) {
-        this._prevFrameData = gray;
-        this._motionLevel = 0;
-        return 0;
-      }
-
-      // Sample random pixels and compute average absolute diff
-      var totalDiff = 0;
-      var samples = Math.min(CAMERA_MOTION_SAMPLE, gray.length);
-      var step = Math.max(1, Math.floor(gray.length / samples));
-      var count = 0;
-      for (var j = 0; j < gray.length; j += step) {
-        totalDiff += Math.abs(gray[j] - this._prevFrameData[j]);
-        count++;
-      }
-      this._prevFrameData = gray;
-      this._motionLevel = count > 0 ? totalDiff / count : 0;
-      return this._motionLevel;
-    },
-
-    /* Feed a new hoop detection (normalized coords) */
-    feedHoopDetection: function (normCX, normCY, normW, normH, score) {
-      // Add to smoothing buffer
-      this._hoopBuffer.push({ cx: normCX, cy: normCY, w: normW, h: normH, score: score });
-      if (this._hoopBuffer.length > RIM_SMOOTH_BUFFER) {
-        this._hoopBuffer.shift();
-      }
-
-      // Check camera motion — if moving, unlock
-      if (this._motionLevel > RIM_UNLOCK_MOTION) {
-        if (this.isLocked) {
-          this.isLocked = false;
-          this._stableCount = 0;
-        }
-        return this.getSmoothedRim();
-      }
-
-      // If already locked, check if detection drifted too far
-      if (this.isLocked && this.lockedRim) {
-        var drift = Math.abs(normCX - this.lockedRim.cx) + Math.abs(normCY - this.lockedRim.cy);
-        if (drift > RIM_LOCK_DRIFT * 3) {
-          // Big jump — camera probably moved, unlock
-          this.isLocked = false;
-          this._stableCount = 0;
-        } else {
-          // Still locked — return locked position
-          return this.lockedRim;
-        }
-      }
-
-      // Not locked — check stability
-      var smoothed = this.getSmoothedRim();
-      if (smoothed && this._hoopBuffer.length >= 3) {
-        var last = this._hoopBuffer[this._hoopBuffer.length - 1];
-        var drift2 = Math.abs(last.cx - smoothed.cx) + Math.abs(last.cy - smoothed.cy);
-        if (drift2 < RIM_LOCK_DRIFT) {
-          this._stableCount++;
-        } else {
-          this._stableCount = Math.max(0, this._stableCount - 1);
-        }
-
-        if (this._stableCount >= RIM_LOCK_FRAMES) {
-          this.isLocked = true;
-          this.lockedRim = { cx: smoothed.cx, cy: smoothed.cy, w: smoothed.w, h: smoothed.h };
-        }
-      }
-
-      return smoothed;
-    },
-
-    /* Get temporally smoothed rim position from buffer */
-    getSmoothedRim: function () {
-      if (this._hoopBuffer.length === 0) return null;
-      var sumCX = 0, sumCY = 0, sumW = 0, sumH = 0, totalWeight = 0;
-      for (var i = 0; i < this._hoopBuffer.length; i++) {
-        var d = this._hoopBuffer[i];
-        var weight = d.score; // weight by confidence
-        sumCX += d.cx * weight;
-        sumCY += d.cy * weight;
-        sumW  += d.w * weight;
-        sumH  += d.h * weight;
-        totalWeight += weight;
-      }
-      if (totalWeight === 0) return null;
-      return {
-        cx: sumCX / totalWeight,
-        cy: sumCY / totalWeight,
-        w: sumW / totalWeight,
-        h: sumH / totalWeight
-      };
-    },
-
-    /* No detection this frame — maintain state */
-    feedNoDetection: function () {
-      // If locked, keep the locked position (hoop hasn't moved)
-      if (this.isLocked) return this.lockedRim;
-      // Not locked and no detection — slowly decay stable count
-      this._stableCount = Math.max(0, this._stableCount - 1);
-      // Return last smoothed if we have buffer
-      return this._hoopBuffer.length > 0 ? this.getSmoothedRim() : null;
-    }
-  };
 
   /* ── Main Detection Engine ──────────────────────────────────── */
   var ShotDetectionEngine = {
@@ -703,6 +496,7 @@
     ballPosition: null,
     onShotDetected: null,
     onBallUpdate: null,
+    onHoopDetected: null,
     onStatusChange: null,
     _isDetecting: false,
     _mlFailed: false,
@@ -712,18 +506,15 @@
     _detectorType: 'none',   // 'yolox' | 'none'
     _procW: 0,
     _procH: 0,
+    _lastMLBallPos: null,    // { x, y, frame } — last YOLOX ball detection for guided color search
+    _shotState: 'idle',      // idle | shot_started | near_hoop | cooldown
+    _shotStateTime: 0,       // timestamp when current state started
+    _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
+    _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
+    _risingFrameCount: 0,    // consecutive frames of upward movement
 
     init: function () {
       var self = this;
-
-      // Model already loaded — reset only runtime state, keep detector type
-      if (self.model) {
-        self.tracker = createTracker();
-        self._mlMissCount = 0;
-        self._frameCount = 0;
-        return Promise.resolve(true);
-      }
-
       self.tracker = createTracker();
       self._mlFailed = false;
       self._colorOnlyMode = false;
@@ -737,18 +528,16 @@
         self._ctx = self._canvas.getContext('2d', { willReadFrequently: true });
       }
 
-      // Guard: if a load is already in progress, return the same promise
-      if (self._loadingPromise) return self._loadingPromise;
+      if (self.model) {
+        self._detectorType = 'yolox';
+        return Promise.resolve(true);
+      }
 
       self._setStatus('loading');
 
-      self._loadingPromise = new Promise(function (resolve) {
-        self._tryLoadModel(function (result) {
-          self._loadingPromise = null;  // clear guard when done
-          resolve(result);
-        });
+      return new Promise(function (resolve) {
+        self._tryLoadModel(resolve);
       });
-      return self._loadingPromise;
     },
 
     _tryLoadModel: function (resolve) {
@@ -764,11 +553,10 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny_v6.onnx';
+      var modelPath = 'models/basketball_yolox_tiny_v6.onnx?v=6';
       ort.InferenceSession.create(modelPath, {
-        executionProviders: ['wasm'],
-        graphOptimizationLevel: 'basic',
-        executionMode: 'sequential'
+        executionProviders: ['webgpu', 'webgl', 'wasm'],
+        graphOptimizationLevel: 'all'
       }).then(function (session) {
         self.model = session;
         self._detectorType = 'yolox';
@@ -779,7 +567,7 @@
         _yoloxCanvas.width = sz;
         _yoloxCanvas.height = sz;
         _yoloxCtx = _yoloxCanvas.getContext('2d');
-        console.log('[ShotDetection] YOLOX-tiny basketball model loaded (Apache 2.0)');
+        console.log('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
@@ -814,6 +602,12 @@
       this.lastShotTime = 0;
       this._mlMissCount = 0;
       this._frameCount = 0;
+      this._shotState = 'idle';
+      this._shotStateTime = 0;
+      this._ballMinY = 1.0;
+      this._shotStartY = 1.0;
+      this._risingFrameCount = 0;
+      this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -831,16 +625,9 @@
 
     resetStats: function () {
       this.stats = { made: 0, attempts: 0 };
-      this.tracker = createTracker(); // always create fresh (fixes null crash)
+      resetTracker(this.tracker);
       this.lastShotTime = 0;
       this.ballPosition = null;
-      this._rimLockCount = 0;
-      this._rawHoopBox = null;
-      this._lastHoopDetection = null;
-      this._decodeCount = 0;
-      this._noBallFrames = 0;
-      SmartRimLock.reset();
-      BgSubtractor.reset();
     },
 
     /* ── Internal ──────────────────────────────────────────────── */
@@ -858,29 +645,93 @@
       var vh = this.videoEl.videoHeight;
       if (vw < 10 || vh < 10) return false;
 
-      /* Downscale to max 480px wide for processing performance */
-      var maxW = 480;
-      var scale = vw > maxW ? maxW / vw : 1;
-      var pw = Math.floor(vw * scale);
-      var ph = Math.floor(vh * scale);
+      /* ── Auto-detect UI overlay (screen recording) ──────────── */
+      /* If video has overlay UI (nav bar at top, buttons at bottom),
+         crop it out before processing. Detected once on first frame. */
+      if (this._cropRegion === undefined) {
+        this._cropRegion = this._detectUIOverlay(vw, vh);
+      }
+      var crop = this._cropRegion;
+
+      /* Source region from video (after crop) */
+      var srcX = crop.x, srcY = crop.y;
+      var srcW = crop.w, srcH = crop.h;
+
+      /* Downscale to max 640px wide for processing (was 480 — too small for distant balls) */
+      var maxW = 640;
+      var scale = srcW > maxW ? maxW / srcW : 1;
+      var pw = Math.floor(srcW * scale);
+      var ph = Math.floor(srcH * scale);
 
       if (this._canvas.width !== pw) this._canvas.width = pw;
       if (this._canvas.height !== ph) this._canvas.height = ph;
-      this._ctx.drawImage(this.videoEl, 0, 0, pw, ph);
+      /* Draw only the cropped region of the video */
+      this._ctx.drawImage(this.videoEl, srcX, srcY, srcW, srcH, 0, 0, pw, ph);
 
-      /* Store processed dimensions for downstream use */
+      /* Store crop info for coordinate mapping back to full video */
       this._procW = pw;
       this._procH = ph;
+      this._cropOffsetX = srcX;
+      this._cropOffsetY = srcY;
+      this._cropScaleX = srcW / pw;
+      this._cropScaleY = srcH / ph;
       return true;
+    },
+
+    /* ── Detect if video has UI overlay (screen recording) ─────── */
+    /* Checks for dark bands at top/bottom that indicate app chrome */
+    _detectUIOverlay: function (vw, vh) {
+      /* Draw first frame to a temp canvas for analysis */
+      var tc = document.createElement('canvas');
+      tc.width = vw; tc.height = vh;
+      var tctx = tc.getContext('2d');
+      tctx.drawImage(this.videoEl, 0, 0, vw, vh);
+
+      /* Sample darkness at top and bottom bands */
+      var topDark = 0, botDark = 0;
+      var sampleRows = Math.min(Math.floor(vh * 0.12), 100);
+      var step = 8;
+
+      try {
+        /* Top band */
+        var topData = tctx.getImageData(0, 0, vw, sampleRows).data;
+        var topTotal = 0;
+        for (var i = 0; i < topData.length; i += step * 4) {
+          var brightness = (topData[i] + topData[i+1] + topData[i+2]) / 3;
+          if (brightness < 50) topDark++;
+          topTotal++;
+        }
+        /* Bottom band */
+        var botData = tctx.getImageData(0, vh - sampleRows, vw, sampleRows).data;
+        var botTotal = 0;
+        for (var i = 0; i < botData.length; i += step * 4) {
+          var brightness = (botData[i] + botData[i+1] + botData[i+2]) / 3;
+          if (brightness < 50) botDark++;
+          botTotal++;
+        }
+      } catch(e) {
+        return { x: 0, y: 0, w: vw, h: vh };
+      }
+
+      var topDarkRatio = topTotal > 0 ? topDark / topTotal : 0;
+      var botDarkRatio = botTotal > 0 ? botDark / botTotal : 0;
+
+      /* If >60% of top/bottom is dark = likely UI overlay from screen recording */
+      var cropTop = topDarkRatio > 0.6 ? Math.floor(vh * 0.13) : 0;
+      var cropBot = botDarkRatio > 0.6 ? Math.floor(vh * 0.12) : 0;
+
+      if (cropTop > 0 || cropBot > 0) {
+        console.log('[ShotDetection] UI overlay detected — cropping top=' + cropTop + 'px bottom=' + cropBot + 'px (darkRatio top=' + topDarkRatio.toFixed(2) + ' bot=' + botDarkRatio.toFixed(2) + ')');
+      }
+
+      return { x: 0, y: cropTop, w: vw, h: vh - cropTop - cropBot };
     },
 
     _detectFrame: function () {
       var self = this;
       if (!self.isRunning || !self.videoEl) return;
-      if (self._isDetecting) { self._scheduleDetection(); return; }
       if (self.videoEl.readyState < 2) { self._scheduleDetection(); return; }
 
-      self._isDetecting = true;
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
 
@@ -889,45 +740,37 @@
       var pw = self._procW || vw;
       var ph = self._procH || vh;
 
-      /* ── Multi-source ball detection (every frame) ────────────── */
+      /* ── Color detection runs EVERY frame (not blocked by YOLOX) ── */
       var colorBall = null;
-      var motionBall = null;
       if (canvasReady) {
-        // 1. Color detection — restricted to above-rim region
-        if (self.rimZone && self.rimZone.centerY > 0) {
-          var searchBottom = Math.min(ph, Math.round((self.rimZone.centerY + 0.20) * ph));
-          colorBall = _detectBallInRegion(self._ctx, pw, 0, searchBottom);
+        colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+      }
+
+      /* Scale ball positions from processing canvas back to FULL video coords
+         (accounts for UI crop: proc canvas → cropped region → full video) */
+      var scaleX = self._cropScaleX || (pw > 0 ? vw / pw : 1);
+      var scaleY = self._cropScaleY || (ph > 0 ? vh / ph : 1);
+      var offsetX = self._cropOffsetX || 0;
+      var offsetY = self._cropOffsetY || 0;
+
+      /* Process color detection — skip on frames where YOLOX will run */
+      var isYoloxFrame = self.model && !self._colorOnlyMode && canvasReady &&
+                         (self._frameCount + 1) % 6 === 0;
+      if (!self._isDetecting && !isYoloxFrame) {
+        if (colorBall) {
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
-          colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+          self._processNoBall();
         }
-        // 2. Background subtraction — find moving ball-sized objects
-        motionBall = BgSubtractor.detectMovingBall(self._ctx, pw, ph, self.rimZone);
       }
-      // Merge: prefer color, fallback to motion
-      var fusedBall = colorBall || motionBall;
-      self._lastColorBall = fusedBall;
 
-      /* Scale ball positions from processing canvas back to video coords */
-      var scaleX = pw > 0 ? vw / pw : 1;
-      var scaleY = ph > 0 ? vh / ph : 1;
-
-      /* ── YOLOX detection (every 3rd frame) ──────────────────── */
+      /* ── YOLOX detection (every 6th frame, async, non-blocking) ── */
       self._frameCount++;
-      if (self.model && !self._colorOnlyMode && canvasReady && self._frameCount % 3 === 0) {
-        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, fusedBall);
-        return; // async — will call _scheduleDetection when done
+      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % 6 === 0) {
+        self._isDetecting = true;
+        self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, colorBall);
       }
 
-      /* Non-ML frames: use fused color + motion detection */
-      if (fusedBall) {
-        self._mlMissCount++;
-        self._processBallDetection(fusedBall.x * scaleX, fusedBall.y * scaleY, vw, vh);
-      } else {
-        self._mlMissCount++;
-        self._processNoBall();
-      }
-
-      self._isDetecting = false;
       self._scheduleDetection();
     },
 
@@ -936,7 +779,7 @@
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
 
-      // Letterbox preprocess: fit processing canvas into 416×416 with gray padding
+      // Letterbox preprocess: fit processing canvas into 640×640 with gray padding
       var ratio = Math.min(sz / ph, sz / pw);
       var newW = Math.round(pw * ratio);
       var newH = Math.round(ph * ratio);
@@ -946,106 +789,123 @@
       _yoloxCtx.drawImage(self._canvas, 0, 0, pw, ph, 0, 0, newW, newH);
 
       var imgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
-      var chSize = sz * sz;
-      for (var i = 0; i < chSize; i++) {
-        _yoloxBuf[i]              = imgData[i * 4];     // R
-        _yoloxBuf[chSize + i]     = imgData[i * 4 + 1]; // G
-        _yoloxBuf[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+
+      // CHW transposition: use Web Worker if available, else inline
+      var chwReady;
+      if (_chwWorker) {
+        chwReady = new Promise(function (resolve) {
+          _chwWorker.onmessage = function (ev) { resolve(ev.data.buffer); };
+          _chwWorker.postMessage({ imageData: imgData, size: sz }, [imgData.buffer]);
+        });
+      } else {
+        var chSize = sz * sz;
+        for (var i = 0; i < chSize; i++) {
+          _yoloxBuf[i]              = imgData[i * 4];
+          _yoloxBuf[chSize + i]     = imgData[i * 4 + 1];
+          _yoloxBuf[chSize * 2 + i] = imgData[i * 4 + 2];
+        }
+        chwReady = Promise.resolve(_yoloxBuf);
       }
 
-      var inputTensor = new ort.Tensor('float32', _yoloxBuf, [1, 3, sz, sz]);
-
-      self.model.run({ images: inputTensor }).then(function (results) {
-        var outputData = results.output.data;
+      chwReady.then(function (chwBuf) {
+        var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
+        // Debug: log input stats once
+        if (!self._dbgInputLogged) {
+          self._dbgInputLogged = true;
+          var mn = Infinity, mx = -Infinity;
+          for (var di = 0; di < Math.min(1000, chwBuf.length); di++) {
+            if (chwBuf[di] < mn) mn = chwBuf[di];
+            if (chwBuf[di] > mx) mx = chwBuf[di];
+          }
+          console.log('[YOLOX-DBG] input range: ' + mn.toFixed(1) + ' - ' + mx.toFixed(1) + ' len=' + chwBuf.length);
+        }
+        return self.model.run({ images: inputTensor });
+      }).then(function (results) {
+        var outputKey = Object.keys(results)[0];
+        var outputData = results[outputKey].data;
+        // Debug: log raw output stats — EVERY 30 FRAMES for v4 diagnosis
+        if (!self._dbgOutputCount) self._dbgOutputCount = 0;
+        if (self._dbgOutputCount++ % 30 === 0) {
+          console.log('[YOLOX-DBG] output len=' + outputData.length + ' (expect ' + (8400*7) + ')');
+          // Check raw obj/cls values before postprocess
+          var maxObj = 0, maxC0 = 0, maxC1 = 0;
+          for (var di = 0; di < outputData.length; di += 7) {
+            if (outputData[di+4] > maxObj) maxObj = outputData[di+4];
+            if (outputData[di+5] > maxC0) maxC0 = outputData[di+5];
+            if (outputData[di+6] > maxC1) maxC1 = outputData[di+6];
+          }
+          console.log('[YOLOX-DBG] raw maxObj=' + maxObj.toFixed(4) + ' maxBall=' + maxC0.toFixed(4) + ' maxHoop=' + maxC1.toFixed(4));
+          var hasNeg = false;
+          for (var di = 0; di < outputData.length; di += 7) {
+            if (outputData[di+4] < 0 || outputData[di+5] < 0 || outputData[di+6] < 0) { hasNeg = true; break; }
+          }
+          console.log('[YOLOX-DBG] hasNegatives=' + hasNeg + ' (false=sigmoid, true=logits) outputKey=' + outputKey);
+        }
 
         var mlBall = self._yoloxDecode(outputData, ratio, pw, ph);
 
+        // Fire hoop detection callback (normalized 0-1 coords relative to full video)
+        if (self.onHoopDetected && self._lastHoopDetection) {
+          var h = self._lastHoopDetection;
+          self.onHoopDetected({
+            cx: (h.cx * scaleX + offsetX) / vw, cy: (h.cy * scaleY + offsetY) / vh,
+            bw: (h.bw * scaleX) / vw, bh: (h.bh * scaleY) / vh,
+            score: h.score
+          });
+        }
+
         if (mlBall) {
-          // For low-confidence detections, verify orange color in the region
-          if (mlBall.score < 0.15) {
+          // Reject ML detections with very low confidence — likely false positives
+          if (mlBall.score < 0.02) { mlBall = null; }
+          // For medium-confidence, verify orange color in the region
+          else if (mlBall.score < 0.15) {
             var verified = self._verifyOrange(mlBall.cx, mlBall.cy, Math.max(mlBall.bw, mlBall.bh), pw, ph);
             if (!verified) { mlBall = null; }
           }
         }
 
-        /* ── ROI boost: if no ball found but rim is locked, run on cropped region ── */
-        if (!mlBall && SmartRimLock.isLocked && SmartRimLock.lockedRim && self._frameCount % 6 === 0) {
-          var lr = SmartRimLock.lockedRim;
-          // Crop region: 3x rim width, from 40% above rim to 30% below
-          var roiLeft = Math.max(0, Math.round((lr.cx - lr.w * 1.5) * pw));
-          var roiTop  = Math.max(0, Math.round((lr.cy - lr.h * 6) * ph));
-          var roiW    = Math.min(pw - roiLeft, Math.round(lr.w * 3 * pw));
-          var roiH    = Math.min(ph - roiTop, Math.round(lr.h * 10 * ph));
-          if (roiW > 30 && roiH > 30) {
-            // Draw ROI crop to YOLOX canvas at full 416x416 → higher resolution for small ball
-            var roiRatio = Math.min(sz / roiH, sz / roiW);
-            var roiNewW = Math.round(roiW * roiRatio);
-            var roiNewH = Math.round(roiH * roiRatio);
-            _yoloxCtx.fillStyle = 'rgb(114,114,114)';
-            _yoloxCtx.fillRect(0, 0, sz, sz);
-            _yoloxCtx.drawImage(self._canvas, roiLeft, roiTop, roiW, roiH, 0, 0, roiNewW, roiNewH);
-            var roiImgData = _yoloxCtx.getImageData(0, 0, sz, sz).data;
-            for (var ri = 0; ri < chSize; ri++) {
-              _yoloxBuf[ri]              = roiImgData[ri * 4];
-              _yoloxBuf[chSize + ri]     = roiImgData[ri * 4 + 1];
-              _yoloxBuf[chSize * 2 + ri] = roiImgData[ri * 4 + 2];
-            }
-            var roiTensor = new ort.Tensor('float32', _yoloxBuf, [1, 3, sz, sz]);
-            // Synchronous-ish: we'll do a nested inference
-            self.model.run({ images: roiTensor }).then(function (roiResults) {
-              var roiBall = self._yoloxDecode(roiResults.output.data, roiRatio, roiW, roiH);
-              if (roiBall && roiBall.score > 0.002) {
-                // Map back to full processing canvas coords
-                roiBall.cx += roiLeft;
-                roiBall.cy += roiTop;
-                self._processBallDetection(roiBall.cx * scaleX, roiBall.cy * scaleY, vw, vh);
-              }
-            }).catch(function () {});
+        // Temporal consistency: require 2 consecutive frames with detection
+        // Prevents single-frame false positives from triggering tracking
+        if (mlBall) {
+          if (!self._prevMLBall) {
+            // First detection — hold, don't use yet
+            self._prevMLBall = mlBall;
+            mlBall = null;
+          } else {
+            // Second consecutive — accept and clear
+            self._prevMLBall = mlBall;
           }
-        }
-
-        /* ── Smart Rim Lock — camera motion aware ───────────────── */
-        // Detect camera motion
-        if (self._ctx) {
-          SmartRimLock.detectCameraMotion(self._ctx, pw, ph);
-        }
-
-        var rimResult = null;
-        if (self._lastHoopDetection && self._lastHoopDetection.score > 0.08) {
-          var hd = self._lastHoopDetection;
-          var normCX = (hd.cx * scaleX) / vw;
-          var hoopBottom = ((hd.cy + hd.bh * 0.35) * scaleY) / vh;
-          var rimW = Math.max(0.03, Math.min((hd.bw * scaleX * 0.8) / vw, 0.20));
-          var rimH = Math.max(0.02, Math.min((hd.bh * scaleY * 0.25) / vh, 0.10));
-
-          rimResult = SmartRimLock.feedHoopDetection(normCX, hoopBottom, rimW, rimH, hd.score);
-
-          // Store raw hoop box for debug
-          self._rawHoopBox = {
-            normCX: (hd.cx * scaleX) / vw,
-            normCY: (hd.cy * scaleY) / vh,
-            normW: (hd.bw * scaleX) / vw,
-            normH: (hd.bh * scaleY) / vh,
-            score: hd.score
-          };
         } else {
-          rimResult = SmartRimLock.feedNoDetection();
+          self._prevMLBall = null;
         }
 
-        // Apply rim position (locked or smoothed)
-        if (rimResult) {
-          self.setRimZone(rimResult.cx, rimResult.cy, rimResult.w, rimResult.h);
+        // Detection logging
+        if (self._frameCount % 30 === 0) {
+          var hoopStr = 'none';
+          if (self._lastHoopDetection) {
+            var hd = self._lastHoopDetection;
+            hoopStr = 'score=' + hd.score.toFixed(3) + ' cx=' + hd.cx.toFixed(1) + ' cy=' + hd.cy.toFixed(1);
+          }
+          console.log('[ShotDetection] f=' + self._frameCount +
+            ' vw=' + vw + ' vh=' + vh + ' pw=' + pw + ' ph=' + ph +
+            ' ball=' + (mlBall ? 'ML(' + mlBall.score.toFixed(3) + ' cx=' + mlBall.cx.toFixed(1) + ')' : (colorBall ? 'color' : 'none')) +
+            ' hoop=' + hoopStr);
         }
-        // Expose lock state for debug UI
-        self._rimLocked = SmartRimLock.isLocked;
-        self._cameraMotion = SmartRimLock._motionLevel;
 
         if (mlBall) {
           self._mlMissCount = 0;
-          self._processBallDetection(mlBall.cx * scaleX, mlBall.cy * scaleY, vw, vh);
-        } else if (colorBall) {
+          self._mlEverDetected = true;
+          self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
+          self._lastDetSource = 'ml';
+          self._lastDetConf = mlBall.score;
+          self._processBallDetection(mlBall.cx * scaleX + offsetX, mlBall.cy * scaleY + offsetY, vw, vh);
+        } else if (colorBall && (self._mlMissCount < 30 || !self._mlEverDetected)) {
+          // Color fallback: use if ML recently saw ball OR ML never detected anything
+          // (ML may not work on all videos — e.g. outdoor, dark, screen recordings)
           self._mlMissCount++;
-          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+          self._lastDetSource = 'color';
+          self._lastDetConf = 0;
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
           self._mlMissCount++;
           self._processNoBall();
@@ -1057,7 +917,7 @@
         console.warn('[ShotDetection] YOLOX inference error:', e);
         // Fallback to color
         if (colorBall) {
-          self._processBallDetection(colorBall.x * scaleX, colorBall.y * scaleY, vw, vh);
+          self._processBallDetection(colorBall.x * scaleX + offsetX, colorBall.y * scaleY + offsetY, vw, vh);
         } else {
           self._processNoBall();
         }
@@ -1066,125 +926,146 @@
       });
     },
 
-    /* ── YOLOX grid table (pre-computed once, input 416×416) ── */
-    /* Strides [8,16,32] → grids [80×80, 40×40, 20×20] = 8400 anchors (v6 640×640) */
-    _buildGrid: function () {
+    /* ── YOLOX grid+stride postprocess (required for raw ONNX output) ── */
+    /* The ONNX model outputs raw grid offsets, not decoded pixel coords.
+       This applies: cx = (raw_cx + grid_x) * stride, w = exp(raw_w) * stride */
+    _yoloxPostprocess: function (output) {
+      var sz = YOLOX_INPUT_SIZE; // 640
       var strides = [8, 16, 32];
-      var grids = [80, 40, 20]; // 640/8=80, 640/16=40, 640/32=20
-      var table = new Float32Array(8400 * 3); // [grid_x, grid_y, stride] per anchor
       var idx = 0;
-      for (var s = 0; s < 3; s++) {
-        var gs = grids[s], stride = strides[s];
-        for (var gy = 0; gy < gs; gy++) {
-          for (var gx = 0; gx < gs; gx++) {
-            table[idx * 3]     = gx;
-            table[idx * 3 + 1] = gy;
-            table[idx * 3 + 2] = stride;
+      for (var s = 0; s < strides.length; s++) {
+        var stride = strides[s];
+        var hsize = Math.floor(sz / stride);
+        var wsize = Math.floor(sz / stride);
+        for (var y = 0; y < hsize; y++) {
+          for (var x = 0; x < wsize; x++) {
+            var off = idx * YOLOX_STRIDE;
+            output[off]     = (output[off]     + x) * stride; // cx
+            output[off + 1] = (output[off + 1] + y) * stride; // cy
+            output[off + 2] = Math.exp(output[off + 2]) * stride; // w
+            output[off + 3] = Math.exp(output[off + 3]) * stride; // h
             idx++;
           }
         }
       }
-      this._gridTable = table;
+      return output;
+    },
+
+    /* ── IoU helper for NMS ──────────────────────────────────── */
+    _computeIoU: function (a, b) {
+      var ax1 = a.cx - a.bw / 2, ay1 = a.cy - a.bh / 2;
+      var ax2 = a.cx + a.bw / 2, ay2 = a.cy + a.bh / 2;
+      var bx1 = b.cx - b.bw / 2, by1 = b.cy - b.bh / 2;
+      var bx2 = b.cx + b.bw / 2, by2 = b.cy + b.bh / 2;
+      var ix1 = Math.max(ax1, bx1), iy1 = Math.max(ay1, by1);
+      var ix2 = Math.min(ax2, bx2), iy2 = Math.min(ay2, by2);
+      var inter = Math.max(0, ix2 - ix1) * Math.max(0, iy2 - iy1);
+      var union = a.bw * a.bh + b.bw * b.bh - inter;
+      return union > 0 ? inter / union : 0;
+    },
+
+    /* ── Greedy NMS ──────────────────────────────────────────── */
+    _greedyNMS: function (dets, iouThresh) {
+      dets.sort(function (a, b) { return b.score - a.score; });
+      var keep = [];
+      for (var i = 0; i < dets.length; i++) {
+        var suppressed = false;
+        for (var j = 0; j < keep.length; j++) {
+          if (this._computeIoU(dets[i], keep[j]) > iouThresh) {
+            suppressed = true;
+            break;
+          }
+        }
+        if (!suppressed) keep.push(dets[i]);
+      }
+      return keep;
     },
 
     /* ── YOLOX output decode (custom 2-class model) ─────────── */
-    /* Output: [1, N, 7] = [cx_off, cy_off, w_log, h_log, obj_prob, ball_prob, hoop_prob]
-       - Coords are RAW offsets: decode via (offset + grid) * stride, exp(w)*stride
-       - obj/cls are already sigmoid probabilities (applied inside model)           */
+    /* Output shape: [1, N, 7] where each row = [cx, cy, w, h, objectness, ball_score, hoop_score] */
+    /* After _yoloxPostprocess, cx/cy/w/h are in 640x640 input space */
     _yoloxDecode: function (output, ratio, pw, ph) {
-      if (!this._gridTable) this._buildGrid();
-      var grid = this._gridTable;
+      // Apply grid+stride decoding (converts raw offsets → pixel coords in 640x640 space)
+      this._yoloxPostprocess(output);
 
       var numDets = output.length / YOLOX_STRIDE;
-      var best = null;
-      var bestScore = 0;
-      var bestHoop = null;
-      var bestHoopScore = 0;
+      var ballCandidates = [];
+      var hoopCandidates = [];
       var frameArea = pw * ph;
+
+      // Auto-detect: if any obj/cls value is negative, output is raw logits (needs sigmoid)
+      // ORT-Web may skip fused sigmoid depending on version/backend
+      var needsSigmoid = false;
+      for (var si = 0; si < Math.min(output.length, 700); si += YOLOX_STRIDE) {
+        if (output[si + 4] < 0 || output[si + 5] < 0 || output[si + 6] < 0) {
+          needsSigmoid = true;
+          break;
+        }
+      }
+      if (!this._dbgSigmoidLogged) {
+        this._dbgSigmoidLogged = true;
+        console.log('[YOLOX] needsSigmoid=' + needsSigmoid);
+      }
+
+      function sigmoid(x) { return 1 / (1 + Math.exp(-x)); }
 
       for (var i = 0; i < numDets; i++) {
         var off = i * YOLOX_STRIDE;
+        var obj = needsSigmoid ? sigmoid(output[off + 4]) : output[off + 4];
+        if (obj < 0.01) continue;
 
-        // obj and cls are already sigmoid probabilities
-        var obj = output[off + 4];
-        if (obj < 0.001) continue;  // fast reject near-zero anchors
+        var cx = output[off]     / ratio;
+        var cy = output[off + 1] / ratio;
+        var bw = output[off + 2] / ratio;
+        var bh = output[off + 3] / ratio;
 
-        // Decode absolute pixel coordinates from raw offsets + grid
-        var gx     = grid[i * 3];
-        var gy     = grid[i * 3 + 1];
-        var stride = grid[i * 3 + 2];
+        var rawBall = needsSigmoid ? sigmoid(output[off + 5]) : output[off + 5];
+        var rawHoop = needsSigmoid ? sigmoid(output[off + 6]) : output[off + 6];
+        var ballScore = obj * rawBall;  // class 0 = Basketball
+        var hoopScore = obj * rawHoop;  // class 1 = Hoop
 
-        var cx = ((output[off]     + gx) * stride) / ratio;
-        var cy = ((output[off + 1] + gy) * stride) / ratio;
-        var bw = (Math.exp(output[off + 2]) * stride) / ratio;
-        var bh = (Math.exp(output[off + 3]) * stride) / ratio;
-
-        // Score = obj_prob × class_prob (both already probabilities)
-        var ballScore = obj * output[off + 5];  // class 0 = Basketball
-        var hoopScore = obj * output[off + 6];  // class 1 = Hoop
-
-        // Size filter
         var area = bw * bh;
+        var det = { cx: cx, cy: cy, bw: bw, bh: bh };
 
-        // Check for hoop — prefer detections in the mid-frame (y=15-55%)
-        var hoopAspect = bw / (bh || 1);
-        var hoopYn = cy / ph;
-        // Score bonus: detections at y=20-50% get 2x boost, y=10-60% get 1.5x
-        var hoopPosBonus = (hoopYn > 0.15 && hoopYn < 0.55) ? 2.0 : (hoopYn > 0.08 && hoopYn < 0.65) ? 1.2 : 1.0;
-        var adjustedHoopScore = hoopScore * hoopPosBonus;
-        // High-confidence detections (>40%) bypass area/aspect filters
-        var passesFilter = (hoopScore > 0.40) ||
-          (area > frameArea * 0.0003 && area < frameArea * 0.30 && hoopAspect > 0.15 && hoopAspect < 8.0);
-        if (hoopScore > 0.08 && adjustedHoopScore > bestHoopScore && passesFilter) {
-          bestHoop = { cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore };
-          bestHoopScore = adjustedHoopScore;
+        // Hoop candidates — threshold 0.10 balances precision vs recall
+        // Area filter: hoop should be 0.1%-8% of frame (not 40%)
+        // Aspect ratio: hoops are wider than tall (1.5-5.0 w/h ratio)
+        if (hoopScore > 0.10 && area > frameArea * 0.001 && area < frameArea * 0.08) {
+          var hoopAspect = bw / (bh || 1);
+          if (hoopAspect >= 1.5 && hoopAspect <= 5.0) {
+            det.score = hoopScore;
+            hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
+          }
         }
 
-        // Ball size filter
-        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) {
-          continue;
-        }
-
-        // Aspect ratio check for ball (balls are roughly round)
+        // Ball candidates — size + aspect ratio filter
+        if (area < frameArea * BALL_MIN_AREA_FRAC || area > frameArea * BALL_MAX_AREA_FRAC) continue;
         var aspect = Math.max(bw, bh) / (Math.min(bw, bh) || 1);
         if (aspect > 3.0) continue;
 
-        if (ballScore >= BALL_CONFIDENCE && ballScore > bestScore) {
-          best = { cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore };
-          bestScore = ballScore;
+        if (ballScore >= BALL_CONFIDENCE) {
+          ballCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore });
         }
       }
+
+      // Debug: log detection counts every 30 frames
+      if (!this._dbgFrame) this._dbgFrame = 0;
+      if (++this._dbgFrame % 30 === 0) {
+        var bestHoop = hoopCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+        var bestBall = ballCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+        console.log('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length +
+          ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3));
+      }
+
+      // Apply NMS (IoU threshold 0.45)
+      var NMS_THRESH = 0.45;
+      var ballKeep = this._greedyNMS(ballCandidates, NMS_THRESH);
+      var hoopKeep = this._greedyNMS(hoopCandidates, NMS_THRESH);
 
       // Store latest hoop detection for auto rim-lock
-      this._lastHoopDetection = bestHoop;
+      this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
-      // Debug logging (throttled to every 20th call)
-      this._decodeCount = (this._decodeCount || 0) + 1;
-      if (this._decodeCount % 20 === 1) {
-        // Log top-3 ball and hoop candidates to see what model outputs
-        var topBalls = [];
-        var topHoops = [];
-        for (var di = 0; di < numDets; di++) {
-          var doff = di * YOLOX_STRIDE;
-          var dobj = output[doff + 4];
-          if (dobj < 0.001) continue;
-          var dball = dobj * output[doff + 5];
-          var dhoop = dobj * output[doff + 6];
-          if (dball > 0.001) topBalls.push(dball);
-          if (dhoop > 0.01) topHoops.push(dhoop);
-        }
-        topBalls.sort(function(a,b){return b-a;});
-        topHoops.sort(function(a,b){return b-a;});
-        console.log('[YOLOX]',
-          'ball:', best ? (best.score * 100).toFixed(1) + '%' : 'none',
-          'top3ball:', topBalls.slice(0,3).map(function(s){return (s*100).toFixed(2)+'%'}).join(' '),
-          'hoop:', bestHoop ? (bestHoop.score * 100).toFixed(1) + '% y=' + (bestHoop.cy/ph*100).toFixed(0) + '%' : 'none',
-          'top3hoop:', topHoops.slice(0,3).map(function(s){return (s*100).toFixed(2)+'%'}).join(' '),
-          'color:', this._lastColorBall ? 'yes' : 'no'
-        );
-      }
-
-      return best;
+      return ballKeep.length > 0 ? ballKeep[0] : null;
     },
 
     /* ── Orange color verification for low-confidence ML hits ─── */
@@ -1208,8 +1089,7 @@
         for (var px = 0; px < w; px += 2) {
           var idx = (py * w + px) * 4;
           var r = imgData[idx], g = imgData[idx + 1], b = imgData[idx + 2];
-          // Widened to match gym lighting (same as color detection)
-          if (r > 110 && g > 35 && g < 200 && b < 130 && r > g * 1.05 && r > b * 1.4) {
+          if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
             orangeCount++;
           }
         }
@@ -1218,12 +1098,35 @@
       return orangeCount > totalPx * 0.08; // at least 8% orange pixels
     },
 
+    _consecutiveDets: 0,       // consecutive detection count for velocity jump rejection
+    _prevBallNorm: null,       // previous ball normalized position {x, y}
+
     _processBallDetection: function (cx, cy, vw, vh) {
-      updateTracker(this.tracker, cx, cy);
-      this._noBallFrames = 0; // reset prediction counter
       var normX = cx / vw;
       var normY = cy / vh;
-      this.ballPosition = { normX: normX, normY: normY };
+
+      // Velocity jump rejection: if ball jumps > 0.15 normalized distance
+      // and fewer than 3 consecutive detections, reject as likely player switch
+      if (this._prevBallNorm) {
+        var dx = normX - this._prevBallNorm.x;
+        var dy = normY - this._prevBallNorm.y;
+        var jumpDist = Math.sqrt(dx * dx + dy * dy);
+        if (jumpDist > 0.15 && this._consecutiveDets < 3) {
+          // Reject this detection — likely jumped to a player
+          this._consecutiveDets = 0;
+          this._prevBallNorm = { x: normX, y: normY };
+          return;
+        }
+      }
+      this._consecutiveDets++;
+      this._prevBallNorm = { x: normX, y: normY };
+
+      updateTracker(this.tracker, cx, cy);
+      this.ballPosition = {
+        normX: normX, normY: normY,
+        source: this._lastDetSource || 'color',
+        confidence: this._lastDetConf || 0
+      };
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
 
       /* Feed to adaptive learning (Level 1 + 3) */
@@ -1240,104 +1143,222 @@
     },
 
     _processNoBall: function () {
+      this._consecutiveDets = 0;  // Reset consecutive detection count
       updateTracker(this.tracker, null, null);
-      // Keep ball visible for a few frames using last known velocity
-      if (this.ballPosition && this.tracker.positions.length >= 2) {
-        this._noBallFrames = (this._noBallFrames || 0) + 1;
-        if (this._noBallFrames < 8) {
-          // Predict position using last velocity
-          var pts = this.tracker.positions;
-          var last = pts[pts.length - 1];
-          var prev = pts[pts.length - 2];
-          if (last && prev) {
-            var vw = this.videoEl ? this.videoEl.videoWidth : 1;
-            var vh = this.videoEl ? this.videoEl.videoHeight : 1;
-            var vx = (last.x - prev.x) / vw;
-            var vy = (last.y - prev.y) / vh + 0.002; // gravity
-            this.ballPosition = {
-              normX: this.ballPosition.normX + vx,
-              normY: this.ballPosition.normY + vy
-            };
-          }
-          return; // keep showing predicted position
-        }
+      // If Kalman is predicting, show predicted position to UI
+      var kf = this.tracker.kalman;
+      var maxPredictNoBall = this.tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
+      if (kf.initialized && kf.predictCount > 0 && kf.predictCount <= maxPredictNoBall) {
+        var vw = this.videoEl ? this.videoEl.videoWidth : 1;
+        var vh = this.videoEl ? this.videoEl.videoHeight : 1;
+        this.ballPosition = {
+          normX: kf.x / vw, normY: kf.y / vh,
+          source: 'predicted', confidence: 0
+        };
+        if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
+        // Continue analyzing shot state with predicted position
+        this._analyzeShotState(vw, vh, kf.x / vw, kf.y / vh);
+        return;
       }
-      this._noBallFrames = 0;
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
-    },
 
-    _analyzeShotState: function (vw, vh, normX, normY) {
-      if (!this.rimZone) return;
-
-      var now = Date.now();
-      if (now - this.lastShotTime < DEBOUNCE_MS) return;
-      if (this.tracker.positions.length < MIN_TRAJECTORY_PTS) return;
-
-      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 30);
-
-      // Check if ANY point in the trajectory is in the approach zone (not just last)
-      var anyInApproach = false;
-      for (var ai = 0; ai < traj.length; ai++) {
-        if (isInApproachZone(traj[ai].x, traj[ai].y, this.rimZone)) {
-          anyInApproach = true;
-          break;
+      // Timeout-based miss: if ball was tracked near rim and disappeared
+      if (this.rimZone && this.tracker.positions.length >= MIN_TRAJECTORY_PTS && !this.tracker.isTracking) {
+        var now = Date.now();
+        if (now - this.lastShotTime < DEBOUNCE_MS) return;
+        var vw = this.videoEl ? this.videoEl.videoWidth : 1;
+        var vh = this.videoEl ? this.videoEl.videoHeight : 1;
+        var pts = this.tracker.positions;
+        var lastPt = pts[pts.length - 1];
+        if (lastPt) {
+          var normX = lastPt.x / vw;
+          var normY = lastPt.y / vh;
+          if (isInApproachZone(normX, normY, this.rimZone)) {
+            console.log('[ShotDetection] timeout miss: ball disappeared near rim');
+            this.lastShotTime = now;
+            this.stats.attempts++;
+            var launchPt = getLaunchPoint(this.tracker, vw, vh);
+            var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+            var missData = {
+              result: 'missed',
+              shotX: normX,
+              shotY: normY,
+              trajectory: getTrajectoryNormalized(this.tracker, vw, vh, 20),
+              launchPoint: launchPt,
+              shotZone: shotZone,
+              timestamp: now
+            };
+            if (window.AdaptiveLearning) {
+              window.AdaptiveLearning.onShotCompleted(missData.trajectory, 'missed', this.rimZone);
+            }
+            if (this.onShotDetected) this.onShotDetected(missData);
+            resetTracker(this.tracker);
+          }
         }
       }
-      if (!anyInApproach) return;
+    },
 
-      // Don't block on rising trend — with noisy detection, trend is unreliable
-      // Instead just check that ball has some downward component somewhere
-      var trend = getYTrend(this.tracker, vh);
+    /* ── Simplified shot state machine ─────────────────────────
+       States: idle → shot_started → near_hoop → cooldown → idle
 
-      var launchPt = getLaunchPoint(this.tracker, vw, vh);
-      var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+       idle:         ball below hoop, watching for rising motion
+       shot_started: ball rising (Y decreasing for 3+ frames)
+       near_hoop:    ball reached hoop height area, waiting for result
+       cooldown:     shot counted, 1.5s lockout before next shot
+    ────────────────────────────────────────────────────────────── */
+    _analyzeShotState: function (vw, vh, normX, normY) {
+      if (!this.rimZone) return;
+      var now = Date.now();
+      var rim = this.rimZone;
 
-      // Check made
-      var madeResult = analyzeMade(traj, this.rimZone);
-      if (madeResult.isMade) {
-        this.lastShotTime = now;
-        this.stats.made++;
-        this.stats.attempts++;
-        var shotData = {
-          result: 'made',
-          shotX: madeResult.entryPoint ? madeResult.entryPoint.x : normX,
-          shotY: madeResult.entryPoint ? madeResult.entryPoint.y : normY,
-          trajectory: traj.slice(-20),
-          launchPoint: launchPt,
-          shotZone: shotZone,
-          timestamp: now
-        };
-        /* Level 2: Trajectory learning */
-        if (window.AdaptiveLearning) {
-          window.AdaptiveLearning.onShotCompleted(traj, 'made', this.rimZone);
+      // Cooldown state
+      if (this._shotState === 'cooldown') {
+        if (now - this._shotStateTime > DEBOUNCE_MS) {
+          this._shotState = 'idle';
+          this._ballMinY = 1.0;
+          this._shotStartY = 1.0;
+          this._risingFrameCount = 0;
         }
-        if (this.onShotDetected) this.onShotDetected(shotData);
-        resetTracker(this.tracker);
         return;
       }
 
-      // Check miss
-      var missResult = analyzeMiss(traj, this.rimZone);
-      if (missResult.isMiss) {
-        this.lastShotTime = now;
-        this.stats.attempts++;
-        var missData = {
-          result: 'missed',
-          shotX: missResult.entryPoint ? missResult.entryPoint.x : normX,
-          shotY: missResult.entryPoint ? missResult.entryPoint.y : normY,
-          trajectory: traj.slice(-20),
-          launchPoint: launchPt,
-          shotZone: shotZone,
-          timestamp: now
-        };
-        /* Level 2: Trajectory learning */
-        if (window.AdaptiveLearning) {
-          window.AdaptiveLearning.onShotCompleted(traj, 'missed', this.rimZone);
+      // Track the highest point the ball reaches (lowest Y value)
+      if (normY < this._ballMinY) this._ballMinY = normY;
+
+      var trend = getYTrend(this.tracker, vh);
+      var pts = this.tracker.positions;
+      if (pts.length < MIN_TRAJECTORY_PTS) return;
+
+      // Set extended Kalman prediction flag during active shot states
+      var isActiveShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
+      this.tracker._activeShotExtend = isActiveShotState;
+
+      // ── IDLE: watch for ball starting to rise ──
+      if (this._shotState === 'idle') {
+        // Count consecutive frames of upward movement
+        if (trend === 'rising') {
+          this._risingFrameCount++;
+        } else {
+          this._risingFrameCount = 0;
         }
-        if (this.onShotDetected) this.onShotDetected(missData);
-        resetTracker(this.tracker);
+        // Ball must be below hoop level AND have 5+ consecutive rising frames
+        if (normY > rim.centerY + 0.10 && this._risingFrameCount >= 5) {
+          this._shotState = 'shot_started';
+          this._shotStateTime = now;
+          this._ballMinY = normY;
+          this._shotStartY = normY;  // Record start Y for arc height check
+          this._risingFrameCount = 0;
+        }
+        return;
       }
+
+      // ── SHOT_STARTED: ball is rising, watch for it reaching hoop height ──
+      if (this._shotState === 'shot_started') {
+        // Ball reached near hoop height (within 20% of frame from hoop)
+        if (this._ballMinY < rim.centerY + 0.20) {
+          this._shotState = 'near_hoop';
+          this._shotStateTime = now;
+          return;
+        }
+        // Timeout: if ball has been "rising" for >3 seconds without reaching hoop, reset
+        if (now - this._shotStateTime > 3000) {
+          this._shotState = 'idle';
+          this._ballMinY = 1.0;
+        }
+        return;
+      }
+
+      // ── NEAR_HOOP: ball is near hoop, determine make or miss ──
+      if (this._shotState === 'near_hoop') {
+        var hoopXDist = Math.abs(normX - rim.centerX);
+        var nearHoopX = hoopXDist < rim.width * 2.0; // within 2x rim width horizontally
+
+        // MADE: ball went from above hoop to below hoop while near hoop X
+        // Require minimum arc height of 0.15 normalized from shot start
+        var madeArcHeight = this._shotStartY - this._ballMinY;
+        if (this._ballMinY < rim.centerY && normY > rim.centerY + rim.height * 2 && nearHoopX && madeArcHeight >= 0.15) {
+          this._countShot('made', vw, vh, normX, normY, now);
+          return;
+        }
+
+        // MISS: ball was near hoop but now clearly moved away or fell without going through
+        var ballFarFromHoop = normY > rim.centerY + 0.25 || hoopXDist > rim.width * 4;
+        var ballWentBack = trend === 'rising' && normY < rim.centerY - 0.10;
+        var timeout = now - this._shotStateTime > 2000;
+
+        if (ballFarFromHoop || ballWentBack || timeout) {
+          // Only count as shot attempt if ball actually got near the hoop
+          // AND ball rose at least 0.15 normalized height from shot start to peak
+          var arcHeight = this._shotStartY - this._ballMinY;
+          if (this._ballMinY < rim.centerY + 0.15 && arcHeight >= 0.15) {
+            this._countShot('missed', vw, vh, normX, normY, now);
+          } else {
+            // Ball never really reached hoop or insufficient arc — not a shot
+            this._shotState = 'idle';
+            this._ballMinY = 1.0;
+            this._shotStartY = 1.0;
+          }
+          return;
+        }
+      }
+    },
+
+    _countShot: function (result, vw, vh, normX, normY, now) {
+      this.lastShotTime = now;
+      this._shotState = 'cooldown';
+      this._shotStateTime = now;
+      this._ballMinY = 1.0;
+      this._shotStartY = 1.0;
+
+      var launchPt = getLaunchPoint(this.tracker, vw, vh);
+      var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+      var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
+
+      // ── Trajectory-based verification (analyzeMade/analyzeMiss) ──
+      // Normalize pixel trajectory to 0-1 space to match rimZone coordinates
+      var rawPts = this.tracker.positions.slice(-30);
+      var normTraj = rawPts.map(function (pt) {
+        return { x: pt.x / vw, y: pt.y / vh, frame: pt.frame };
+      });
+      var madeAnalysis = analyzeMade(normTraj, this.rimZone);
+      var missAnalysis = analyzeMiss(normTraj, this.rimZone);
+
+      // Cross-check state machine result with trajectory analysis
+      var finalResult = result;
+      if (result === 'made' && !madeAnalysis.isMade && missAnalysis.isMiss) {
+        // State machine said made, but trajectory says miss — trust trajectory
+        finalResult = 'missed';
+        console.log('[ShotTracker] Override: made → missed (trajectory analysis)');
+      } else if (result === 'missed' && madeAnalysis.isMade) {
+        // State machine said miss, but trajectory clearly shows made — trust trajectory
+        finalResult = 'made';
+        console.log('[ShotTracker] Override: missed → made (trajectory analysis)');
+      }
+
+      if (finalResult === 'made') this.stats.made++;
+      this.stats.attempts++;
+
+      var shotData = {
+        result: finalResult,
+        shotX: normX,
+        shotY: normY,
+        trajectory: traj,
+        launchPoint: launchPt,
+        shotZone: shotZone,
+        timestamp: now
+      };
+
+      console.log('[ShotTracker] ' + finalResult.toUpperCase() +
+        ' (sm=' + result + ' traj_made=' + madeAnalysis.isMade + ' traj_miss=' + missAnalysis.isMiss + ')' +
+        ' minY=' + this._ballMinY.toFixed(3) +
+        ' hoopY=' + this.rimZone.centerY.toFixed(3) + ' ballX=' + normX.toFixed(3) + ' hoopX=' + this.rimZone.centerX.toFixed(3));
+
+      if (window.AdaptiveLearning) {
+        window.AdaptiveLearning.onShotCompleted(traj, result, this.rimZone);
+      }
+      if (this.onShotDetected) this.onShotDetected(shotData);
+      resetTracker(this.tracker);
     },
 
     _setStatus: function (status) {

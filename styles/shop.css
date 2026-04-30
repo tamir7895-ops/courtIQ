@@ -28,7 +28,6 @@
 
 /* ── Wallet / Coin Display ───────────────────────────────────── */
 .shop-wallet {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -37,21 +36,6 @@
   border-radius: 12px;
   padding: 10px 18px;
   flex-shrink: 0;
-  overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.shop-wallet::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
-}
-.shop-wallet:hover {
-  border-color: rgba(245,166,35,0.25);
-  box-shadow: 0 2px 12px rgba(245,166,35,0.06);
 }
 .shop-wallet-icon {
   font-size: 22px;
@@ -85,11 +69,6 @@
   border-radius: 12px;
   border: 2px solid var(--c-border);
   background: #141518;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.shop-preview canvas:hover {
-  border-color: rgba(245,166,35,0.2);
-  box-shadow: 0 4px 24px rgba(245,166,35,0.06);
 }
 .shop-preview-label {
   font-size: 12px;
@@ -121,7 +100,6 @@
 }
 
 .shop-item {
-  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
@@ -129,27 +107,11 @@
   border: 1px solid var(--c-border);
   border-radius: 10px;
   padding: 12px 14px;
-  overflow: hidden;
-  transition: border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
-}
-.shop-item::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
+  transition: border-color 0.25s ease, transform 0.25s ease;
 }
 .shop-item:hover {
-  border-color: rgba(245,166,35,0.3);
+  border-color: rgba(245,166,35,0.2);
   transform: translateY(-1px);
-  box-shadow: 0 4px 20px rgba(245,166,35,0.08), 0 0 0 1px rgba(245,166,35,0.05);
-}
-.shop-item:hover::before {
-  opacity: 1;
 }
 
 .shop-item--owned {
@@ -174,11 +136,6 @@
   justify-content: center;
   background: rgba(245,166,35,0.06);
   border-radius: 8px;
-  transition: background 0.3s ease, transform 0.3s ease;
-}
-.shop-item:hover .shop-item-icon {
-  background: rgba(245,166,35,0.1);
-  transform: scale(1.05);
 }
 .shop-item--owned .shop-item-icon {
   background: rgba(86,211,100,0.08);
@@ -267,27 +224,11 @@
 
 /* ── Info Footer ─────────────────────────────────────────────── */
 .shop-info {
-  position: relative;
   margin-top: 20px;
   padding: 16px;
   background: rgba(245,166,35,0.04);
   border: 1px solid rgba(245,166,35,0.08);
   border-radius: 10px;
-  overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-.shop-info::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, rgba(245,166,35,0.2), transparent);
-}
-.shop-info:hover {
-  border-color: rgba(245,166,35,0.15);
-  box-shadow: 0 2px 12px rgba(245,166,35,0.04);
 }
 .shop-info p {
   margin: 0 0 6px;

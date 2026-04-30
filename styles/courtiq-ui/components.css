@@ -1,0 +1,240 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ UI v2 — components.css
+   Source: Claude Design "ui_kits/mobile-app/ui-kit.css"
+
+   As of Phase 7 (2026-04-20), rules apply unconditionally — the
+   `body.ciq-active` gate was removed and `.ciq-*` is the only
+   design system on the dashboard.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Hide any lingering legacy chrome ───────────────────── */
+.ks-bottom-nav,
+#ke-bottom-nav,
+.db-sidebar,
+.ks-header,
+header.ks-header,
+/* Legacy dashboard "always visible" top-content that used to live above the
+   panel switcher — replaced by per-tab ciq-*-screen sections. */
+#db-topbar,
+.db-welcome-hero,
+.db-stats-row,
+.db-top-widgets,
+#dc-card,
+#db-quick-actions,
+#db-skill-stats,
+.glass-sub-nav {
+  display: none !important;
+}
+
+/* ─── Screen container ───────────────────────────────────── */
+.ciq-screen {
+  background: var(--c-bg);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  min-height: 100%;
+  position: relative;
+  overflow-x: hidden;
+  padding-top: 54px;     /* status bar */
+  padding-bottom: 96px;  /* bottom nav */
+}
+.ciq-screen::before {
+  content: '';
+  position: absolute; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  pointer-events: none;
+  z-index: 50;
+  opacity: 0.5;
+}
+
+/* ─── Eyebrow + Title ────────────────────────────────────── */
+.ciq-eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+.ciq-title {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  font-style: italic;
+}
+
+/* ─── Glass surface (the signature) ──────────────────────── */
+.ciq-glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--shadow-card);
+  position: relative;
+  overflow: hidden;
+}
+
+/* ─── Topbar ─────────────────────────────────────────────── */
+.ciq-topbar {
+  position: fixed;
+  top: var(--safe-top, 0px);
+  left: 0; right: 0;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 1000;
+  background: linear-gradient(180deg, rgba(14,16,20,0.95) 0%, rgba(14,16,20,0.6) 70%, transparent 100%);
+  pointer-events: none;
+}
+.ciq-topbar > * { pointer-events: auto; }
+.ciq-topbar .brand {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  color: var(--c-white);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ciq-topbar .brand span { color: var(--c-amber); }
+
+/* ─── Icon button ────────────────────────────────────────── */
+.ciq-icon-btn {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-muted);
+  cursor: pointer;
+}
+
+/* ─── Bottom nav (5 tabs) ────────────────────────────────── */
+.ciq-bottom-nav {
+  position: fixed;
+  left: 10px; right: 10px;
+  bottom: calc(16px + var(--safe-bottom, 0px));
+  background: rgba(14,16,20,0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  padding: 10px 6px 12px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  z-index: 1000;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+.ciq-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 2px;
+  color: rgba(240,237,230,0.45);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+.ciq-nav-item svg {
+  width: 22px; height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.ciq-nav-item .lb {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.ciq-nav-item.active { color: var(--accent, #f5a623); }
+.ciq-nav-item.active .chip {
+  background: color-mix(in srgb, var(--accent, #f5a623) 18%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #f5a623) 35%, transparent);
+  padding: 6px 14px;
+  border-radius: 14px;
+  margin-bottom: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ciq-nav-item .chip { padding: 0; }
+
+/* ─── Buttons ────────────────────────────────────────────── */
+.ciq-primary-btn {
+  background: var(--accent, #f5a623);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 24px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--accent, #f5a623) 35%, transparent);
+}
+.ciq-secondary-btn {
+  background: rgba(255,255,255,0.06);
+  color: var(--c-white);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 12px 20px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+
+/* ─── Stat tile ──────────────────────────────────────────── */
+.ciq-stat-tile {
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  padding: 12px 14px;
+}
+.ciq-stat-tile .lbl {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-text-tertiary);
+}
+.ciq-stat-tile .val {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--c-white);
+  line-height: 1;
+  margin-top: 6px;
+}
+.ciq-stat-tile .val.accent { color: var(--accent, #f5a623); }
+
+/* ─── Row layout ─────────────────────────────────────────── */
+.ciq-row { display: flex; gap: 10px; }
+.ciq-row > * { flex: 1; min-width: 0; }
+
+/* ─── Scrollbar hide on screen containers ────────────────── */
+.ciq-screen,
+.ciq-screen * { scrollbar-width: none; }
+.ciq-screen::-webkit-scrollbar,
+.ciq-screen *::-webkit-scrollbar { display: none; }

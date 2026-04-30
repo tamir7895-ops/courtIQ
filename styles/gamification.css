@@ -13,14 +13,6 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--r-md);
   margin-bottom: 24px;
-  position: relative;
-  overflow: hidden;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.xp-widget:hover {
-  border-color: rgba(245,166,35,0.15);
-  box-shadow: 0 0 20px rgba(245,166,35,0.06);
 }
 
 /* Level badge */
@@ -34,12 +26,6 @@
   font-size: 20px;
   flex-shrink: 0;
   border: 2px solid;
-  box-shadow: 0 0 12px rgba(245,166,35,0.1);
-  transition: transform 0.3s ease;
-}
-
-.xp-badge:hover {
-  transform: scale(1.05);
 }
 
 .xp-badge--rookie       { background: rgba(140,140,140,0.12); border-color: rgba(140,140,140,0.4); }
@@ -103,7 +89,6 @@
   border-radius: 4px;
   transition: width 0.6s cubic-bezier(0.4,0,0.2,1);
   position: relative;
-  box-shadow: 0 0 8px rgba(245,166,35,0.3);
 }
 
 .xp-bar-fill::after {

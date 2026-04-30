@@ -5,13 +5,6 @@
    save-to-plan (localStorage), and lazy animation loading.
    ============================================================ */
 
-/* ── Inject timer-button styles ─────────────────────────────── */
-(function(){
-  var s = document.createElement('style');
-  s.textContent = '.drill-timer-btn{background:rgba(245,166,35,0.12);color:#f5a623;border:1px solid rgba(245,166,35,0.25);border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;text-transform:uppercase;letter-spacing:0.03em;transition:all 0.2s;font-family:inherit;}.drill-timer-btn:hover{background:rgba(245,166,35,0.2);}';
-  document.head.appendChild(s);
-})();
-
 /* ── Drill Database ──────────────────────────────────────────
    Each drill has:
      id, name, description, duration_minutes, reps_or_sets,
@@ -2645,7 +2638,6 @@ function _buildCard(drill, idx) {
   </div>
 
   <div class="drill-card-actions">
-    <button class="drill-timer-btn" onclick="if(typeof WorkoutTimer!=='undefined'){var d=_DRILLS_DB.find(function(x){return x.id==='${drill.id}'});if(d)WorkoutTimer.open(d);}">⏱ Timer</button>
     <button
       class="${saveClass}"
       id="drill-save-btn-${drill.id}"
@@ -2983,10 +2975,50 @@ function _renderLibrary() {
     infoEl.textContent = parts.length > 0 ? `Filtered: ${parts.join(' · ')}` : 'Showing all';
   }
 
-  // Render cards
-  grid.innerHTML = pool.length === 0
-    ? '<div class="drills-library-empty">No drills match your filters. Try broadening your search.</div>'
-    : pool.map(drill => _buildLibraryCard(drill)).join('');
+  if (pool.length === 0) {
+    grid.innerHTML = '<div class="drills-library-empty">No drills match your filters.</div>';
+    return;
+  }
+
+  // Group by focus area
+  const groups = {};
+  pool.forEach(function(d) {
+    if (!groups[d.focus_area]) groups[d.focus_area] = [];
+    groups[d.focus_area].push(d);
+  });
+
+  // Category order
+  const ORDER = ['Shooting', 'Ball Handling', 'Defense', 'Finishing', 'Footwork', 'Conditioning', 'Passing', 'Strength', 'Vertical'];
+  const cats = Object.keys(groups).sort(function(a, b) {
+    return (ORDER.indexOf(a) === -1 ? 99 : ORDER.indexOf(a)) - (ORDER.indexOf(b) === -1 ? 99 : ORDER.indexOf(b));
+  });
+
+  // If a search/filter is active, auto-open all groups
+  const autoOpen = (search !== '' || _libFocusFilter !== 'All' || _libDiffFilter !== 'All');
+
+  grid.innerHTML = cats.map(function(cat) {
+    const drills = groups[cat];
+    const icon   = _FOCUS_ICONS[cat] || '🏀';
+    const colors = _FOCUS_COLORS[cat] || { bg: 'rgba(245,166,35,0.12)', color: '#f5a623' };
+    const openCls = autoOpen ? ' open' : '';
+    return `<div class="drill-cat-group${openCls}" data-cat="${cat}">
+  <div class="drill-cat-header" onclick="drillCatToggle(this)">
+    <div class="drill-cat-icon" style="background:${colors.bg};color:${colors.color}">${icon}</div>
+    <div class="drill-cat-name">${cat}</div>
+    <span class="drill-cat-count">${drills.length} drill${drills.length !== 1 ? 's' : ''}</span>
+    <span class="drill-cat-chevron">›</span>
+  </div>
+  <div class="drill-cat-body">
+    ${drills.map(d => _buildLibraryCard(d)).join('')}
+  </div>
+</div>`;
+  }).join('');
+}
+
+function drillCatToggle(headerEl) {
+  const group = headerEl.closest('.drill-cat-group');
+  if (!group) return;
+  group.classList.toggle('open');
 }
 
 /* ── Focus-area color map for icon backgrounds ──────────────── */
@@ -3011,26 +3043,39 @@ function _buildLibraryCard(drill) {
   const saveClass  = saved ? 'drill-lib-save-btn saved' : 'drill-lib-save-btn';
 
   return `
-<div class="drill-lib-card focus-${focusClass}" data-drill-id="${drill.id}">
-  <div class="drill-lib-icon-box ${focusClass}">
-    <span>${icon}</span>
+<div class="drill-lib-accordion" data-drill-id="${drill.id}">
+  <div class="drill-lib-row" onclick="drillLibToggleExpand('${drill.id}')">
+    <div class="drill-lib-row-icon focus-${focusClass}">${icon}</div>
+    <div class="drill-lib-row-name">${drill.name}</div>
+    <span class="drill-lib-row-focus">${drill.focus_area}</span>
+    <span class="drill-difficulty-badge ${diffClass}">${drill.difficulty}</span>
+    <span class="drill-lib-row-dur">⏱ ${drill.duration_minutes}m</span>
+    <span class="drill-lib-row-chevron">›</span>
   </div>
-  <div class="drill-lib-card-info">
-    <div class="drill-lib-card-name">${drill.name}</div>
-    <p class="drill-lib-card-desc">${drill.description}</p>
-    <div class="drill-lib-card-meta">
-      <span>⏱ ${drill.duration_minutes} min</span>
-      <span class="meta-divider"></span>
+  <div class="drill-lib-body">
+    <p class="drill-lib-body-desc">${drill.description}</p>
+    <div class="drill-lib-body-meta">
       <span>🔁 ${drill.reps_or_sets}</span>
-      <span class="meta-divider"></span>
+      <span>⏱ ${drill.duration_minutes} min</span>
       <span class="drill-difficulty-badge ${diffClass}">${drill.difficulty}</span>
     </div>
-  </div>
-  <div class="drill-lib-card-actions">
-    <button class="drill-lib-start-btn" onclick="drillWorkoutOpen('${drill.id}')">Start →</button>
-    <button class="${saveClass}" data-save-id="${drill.id}" onclick="event.stopPropagation();drillToggleSave('${drill.id}')" aria-label="${saved ? 'Saved' : 'Save to plan'}">${saveLbl}</button>
+    <div class="drill-lib-body-actions">
+      <button class="drill-lib-start-btn" onclick="event.stopPropagation();drillWorkoutOpen('${drill.id}')">▶ Start Drill</button>
+      <button class="${saveClass}" data-save-id="${drill.id}" onclick="event.stopPropagation();drillToggleSave('${drill.id}')" aria-label="${saved ? 'Saved' : 'Save to plan'}">${saveLbl} ${saved ? 'Saved' : 'Save'}</button>
+    </div>
   </div>
 </div>`;
+}
+
+function drillLibToggleExpand(drillId) {
+  const el = document.querySelector('.drill-lib-accordion[data-drill-id="' + drillId + '"]');
+  if (!el) return;
+  const isOpen = el.classList.contains('open');
+  // Close all others
+  document.querySelectorAll('.drill-lib-accordion.open').forEach(function(a) {
+    a.classList.remove('open');
+  });
+  if (!isOpen) el.classList.add('open');
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -4026,3 +4071,187 @@ function workoutNextDrill() {
   drillWorkoutOpen(next.id);
   _toast(`Next: ${next.name} (${queue.length} remaining)`);
 }
+
+/* ══════════════════════════════════════════════════════════════
+   WORKOUTS PANEL — missing interactive handlers
+   ══════════════════════════════════════════════════════════════ */
+
+/* A) workoutsOpenDetail — referenced by workout cards but was missing */
+function workoutsOpenDetail(id) {
+  var workoutMap = {
+    'kyrie-handles': { mode: 'library', focus: 'Ball Handling' }
+  };
+  var target = workoutMap[id] || { mode: 'library', focus: 'All' };
+  if (typeof drillsShowMode === 'function') drillsShowMode(target.mode);
+  if (target.focus !== 'All' && typeof drillsSetFocusFilter === 'function') {
+    drillsSetFocusFilter(target.focus, null);
+  }
+  if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+}
+window.workoutsOpenDetail = workoutsOpenDetail;
+
+/* B–E) Wire up workout image cards, drill list items, FAB, and "View All" */
+(function () {
+  'use strict';
+
+  function _switchToDrillsTab(mode, category) {
+    if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+    if (typeof drillsShowMode === 'function') drillsShowMode(mode || 'library');
+    if (category && typeof drillsSetFocusFilter === 'function') {
+      drillsSetFocusFilter(category, null);
+    }
+  }
+
+  function initWorkoutsPanelHandlers() {
+    /* B) Workout image cards */
+    document.querySelectorAll('.ks-workout-img-card').forEach(function (card) {
+      card.addEventListener('click', function () {
+        var titleEl = card.querySelector('.ks-workout-img-card-title');
+        var category = card.dataset.category || 'All';
+        _switchToDrillsTab('library', category !== 'All' ? category : null);
+      });
+    });
+
+    /* C) Popular drills list items */
+    document.querySelectorAll('.ks-drill-item').forEach(function (item) {
+      item.addEventListener('click', function () {
+        var category = item.dataset.category || 'All';
+        _switchToDrillsTab('library', category !== 'All' ? category : null);
+      });
+    });
+
+    /* D) FAB "add" button */
+    document.querySelectorAll('.ks-fab').forEach(function (fab) {
+      fab.addEventListener('click', function () {
+        if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+        if (typeof drillsShowMode === 'function') drillsShowMode('generator');
+      });
+    });
+  }
+
+  /* E) "View All" section link — event delegation (works even on dynamic HTML) */
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.ks-section-link');
+    if (btn && btn.textContent.trim() === 'View All') {
+      if (typeof dbSwitchTab === 'function') dbSwitchTab('drills', null);
+      if (typeof drillsShowMode === 'function') drillsShowMode('library');
+      if (typeof drillsSetFocusFilter === 'function') drillsSetFocusFilter('Shooting', null);
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initWorkoutsPanelHandlers);
+  } else {
+    initWorkoutsPanelHandlers();
+  }
+})();
+
+/* ══════════════════════════════════════════════════════════════
+   WORKOUTS PANEL — dynamic hero card, weekly goal, FAB fix
+   ══════════════════════════════════════════════════════════════ */
+(function WorkoutsHeroSystem() {
+
+  /* Archetype → recommended workout hero data */
+  var ARCHETYPE_HERO = {
+    scorer:    { title:'SCORING MACHINE',    sub:'Elite shooting & finishing drills',   badge:'Scorer Build',   wktId:'wkt-001', filter:'Shooting',     imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0' },
+    playmaker: { title:'PLAYMAKER SERIES',   sub:'Court vision & handle mastery',       badge:'Playmaker Build',wktId:'wkt-002', filter:'Ball Handling', imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw' },
+    defender:  { title:'LOCKDOWN PROTOCOL',  sub:'On-ball defense & lateral speed',     badge:'Defender Build', wktId:'wkt-006', filter:'Defense',       imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuA32Dz89F0nXDEXjWTUiE_wggJNOY9oguXPQVGe0HAdw6nb5DRMrExG2dU2OmVCNnjvOUISzlPvIPyLEs2iSF-Jk9KurJNv5LWT7W5LxevfqSk8YhVda4FXKI_smNxXHyouxD-vPFQOW8dkI8FODNl0XBv4SMOukjZvL4qU8t4RlTuQQ4xZf5AAcmQ-Vzjz16YETVpaf5rndUvjH50dmt__1Dio4reNK0iaOySQJ18589ozv2DTmTxrSGH87JTrSONc4b-qte8WRAw' },
+    'two-way': { title:'TWO-WAY ELITE',      sub:'Offense + defense complete package',  badge:'Two-Way Build',  wktId:'wkt-010', filter:'All',           imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuC2y0aWDM5KPkNHsalnbeMGPemY53aK_nIkbOyP3U6FRd_rgL4_DI_DWkXv3yAwcyjkV2H2z6Pqro6AMMPyIV6KEV51gl-Dryb5YHyVSFTb2he0QrzXwh1ms1iOKJvD5hZsyy4osNdxNM3p9FgE7AXAuuire0PVEmktE_QAUDDJWZ0ScCnHNBIy6rqff8o-6fH68oQ-NvZWF6amQC29b2XIw4gN4d5b96wkd5c6MDQPeGVro8x7ke4QR_hX38nqS9AutOCEYxv1c4U' },
+    'rim-runner':{ title:'RIM DOMINANCE',    sub:'Post moves, finishing & athleticism', badge:'Rim Runner',     wktId:'wkt-008', filter:'Conditioning',  imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuCiE4tIGkSesA5XJv64PhXGzZYGvroR5JZs9vwMYiIl00A84C-YBWxUXsOU0eHaFfL0BGC-tiivo_lpW4s5GSTt_wCHDNRX1tJpuX4t0odZjlWuee5B1XfNRpRhPUY14nmiU4Qr5KP7mKXIjkOtUuVt2TyR3fRy5ZkPyh60jNyGaxVAyvOrZsEMP7HL6CatDz2hifdUFZ0CGPPvuQUfW8nH1kh3OrZ0riQjEPyFklSroD4NqeA0T0oqS04zDRR1zjSzJ6VZ9D6wfk0' },
+    default:   { title:'SIGNATURE HANDLES',  sub:'Recommended for your archetype',      badge:'Elite Combo',    wktId:'wkt-002', filter:'Ball Handling', imgUrl:'https://lh3.googleusercontent.com/aida-public/AB6AXuDcg2wT5o80WJYTotpKNQ6BAWJmjLnKJDuMPPI_uw4C_BOwU9DfsUR8T43T5ijJu54TsM00U5urf7ZFEl1edB-a7g4RrJkgx5nsBMSAdg7wYFOWopDT-WyGB3wHUlFX4DYKB_1O-q7W9_uIeZsnJk9Q-oxoloEbmdChQ6mgazNCjIQrqqaKXQtzWrv9J3LbDHaKYldTpW00t0kuEln1P7kngmsw53JFBJ98yN4fIi7x4J0_QHgu5kLh6p5ZFZKnQr7F1cyDRpt6uiw' },
+  };
+
+  var _heroWktId = 'wkt-002';
+
+  function getArchetypeHero() {
+    try {
+      var arc = JSON.parse(localStorage.getItem('courtiq-archetype') || '{}');
+      var key = (arc.key || '').toLowerCase().replace(/\s+/g,'-');
+      return ARCHETYPE_HERO[key] || ARCHETYPE_HERO['default'];
+    } catch(e) { return ARCHETYPE_HERO['default']; }
+  }
+
+  function renderHero() {
+    var h = getArchetypeHero();
+    _heroWktId = h.wktId;
+    var imgEl   = document.getElementById('wkt-hero-img');
+    var titleEl = document.getElementById('wkt-hero-title');
+    var subEl   = document.getElementById('wkt-hero-sub');
+    var badgeEl = document.getElementById('wkt-hero-badge');
+    if (imgEl)   imgEl.src         = h.imgUrl;
+    if (titleEl) titleEl.textContent = h.title;
+    if (subEl)   subEl.textContent  = h.sub;
+    if (badgeEl) badgeEl.textContent = h.badge;
+  }
+
+  function renderWeeklyGoal() {
+    var done  = (typeof dbSessions !== 'undefined') ? dbSessions.length : 0;
+    var total = 5;
+    var pct   = Math.min(100, Math.round((done / total) * 100));
+    var doneEl = document.getElementById('wkt-goal-done');
+    var barEl  = document.getElementById('wkt-goal-bar');
+    if (doneEl) doneEl.textContent = done;
+    if (barEl)  requestAnimationFrame(function(){ barEl.style.width = pct + '%'; });
+  }
+
+  /* Global: called by START NOW button */
+  window.workoutsHeroStart = function() {
+    var h = getArchetypeHero();
+    if (h.filter && typeof workoutsSetFilter === 'function') {
+      workoutsSetFilter(h.filter, null);
+    }
+    if (typeof workoutStartSelected === 'function') {
+      workoutStartSelected(h.wktId);
+    }
+  };
+
+  /* Fix FAB: open generator tab, not just drills */
+  function fixFab() {
+    document.querySelectorAll('#db-panel-workouts .ks-fab').forEach(function(fab) {
+      fab.onclick = function() {
+        if (typeof workoutsShowGenerator === 'function') workoutsShowGenerator();
+        else if (typeof dbSwitchTab === 'function') {
+          dbSwitchTab('drills');
+          setTimeout(function(){
+            if (typeof drillsShowMode === 'function') drillsShowMode('generator');
+          }, 200);
+        }
+      };
+    });
+  }
+
+  /* Fix "Precision Shooting > View All" */
+  function fixViewAll() {
+    var wktPanel = document.getElementById('db-panel-workouts');
+    if (!wktPanel) return;
+    var links = wktPanel.querySelectorAll('.ks-section-link');
+    links.forEach(function(btn) {
+      if (!btn.getAttribute('onclick')) {
+        btn.onclick = function() {
+          if (typeof workoutsSetFilter === 'function') workoutsSetFilter('Shooting', null);
+        };
+      }
+    });
+  }
+
+  function init() {
+    renderHero();
+    renderWeeklyGoal();
+    fixFab();
+    fixViewAll();
+  }
+
+  /* Re-run when workouts tab is opened */
+  var _origSwitch = window.dbSwitchTab;
+  if (typeof _origSwitch === 'function') {
+    window.dbSwitchTab = function(id, btn) {
+      _origSwitch(id, btn);
+      if (id === 'workouts') setTimeout(function(){ renderHero(); renderWeeklyGoal(); fixFab(); }, 100);
+    };
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
+
+  window.WorkoutsHeroSystem = { render: renderHero, renderGoal: renderWeeklyGoal };
+})();
