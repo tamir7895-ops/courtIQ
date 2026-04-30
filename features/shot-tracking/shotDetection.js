@@ -518,14 +518,12 @@
     onStatusChange: null,
     onDebugFrame: null,     // callback({ balls: [], hoops: [], shotState, kalman, frameCount })
     _isDetecting: false,
-    _mlFailed: false,
     _colorOnlyMode: false,
     _mlMissCount: 0,
     _frameCount: 0,
     _detectorType: 'none',   // 'yolox' | 'none'
     _procW: 0,
     _procH: 0,
-    _lastMLBallPos: null,    // { x, y, frame } — last YOLOX ball detection for guided color search
     _shotState: 'idle',      // idle | shot_started | near_hoop | cooldown
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
@@ -536,7 +534,6 @@
     init: function () {
       var self = this;
       self.tracker = createTracker();
-      self._mlFailed = false;
       self._colorOnlyMode = false;
       self._mlMissCount = 0;
       self._frameCount = 0;
@@ -599,7 +596,6 @@
         resolve(true);
       }).catch(function (err) {
         console.warn('[ShotDetection] YOLOX-tiny load failed — color-only mode:', err);
-        self._mlFailed = true;
         self._colorOnlyMode = true;
         self._detectorType = 'none';
         self._setStatus('color-only');
@@ -642,7 +638,6 @@
       this._shotStartY = 1.0;
       this._sawBallAboveRim = false;
       this._rimStabilized = false;
-      this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -940,7 +935,6 @@
         if (mlBall) {
           self._mlMissCount = 0;
           self._mlEverDetected = true;
-          self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
           self._lastDetSource = 'ml';
           self._lastDetConf = mlBall.score;
           self._processBallDetection(mlBall.cx * scaleX + offsetX, mlBall.cy * scaleY + offsetY, vw, vh);

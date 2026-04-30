@@ -3,9 +3,16 @@
    Self-contained UI module for the AI Shot Tracker feature.
 
    Phases:
-     1. RIM LOCK — Camera preview, user taps rim to calibrate
-     2. TRACKING — Live detection overlay with stats
-     3. SUMMARY  — Post-session results + shot chart + save
+     1. TRACKING — Camera preview opens; YOLOX auto-locks the rim
+                   on first stable hoop detection, then continuously
+                   EMA-tracks it. Manual tap appears as a fallback
+                   if no auto-lock within MANUAL_FALLBACK_MS.
+     2. SUMMARY  — Post-session results + shot chart + save
+
+   Legacy "rim lock" / "3-point calibration" overlays are still in
+   the DOM and bound (see onRimTap, enterThreePtCalibration) but
+   are bypassed by the default flow. Kept for a future settings
+   entry that lets users force-calibrate manually.
 
    Dependencies:
      - ShotDetectionEngine  (shotDetection.js)
@@ -845,6 +852,7 @@
   function stopTracking() {
     if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
     if (overlayAnimFrame) { cancelAnimationFrame(overlayAnimFrame); overlayAnimFrame = null; }
+    if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
     var engine = window.ShotDetectionEngine;
     if (engine) engine.stop();
     if (window.TrailRenderer) TrailRenderer.reset();
@@ -1171,7 +1179,7 @@
         // rim coords are in FULL-VIDEO normalized space (0..1 of the
         // visible video), so the display canvas (which is sized to the
         // visible video) maps directly via cw / ch — no crop step.
-        var rimZ = (engine && engine.rimZone) ? engine.rimZone : null;
+        var rimZ = (engRef && engRef.rimZone) ? engRef.rimZone : null;
         if (rimZ) {
           var rimDX = rimZ.centerX * cw;
           var rimDY = rimZ.centerY * ch;
