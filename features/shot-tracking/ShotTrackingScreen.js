@@ -58,7 +58,6 @@
 
   // Auto rim-tracking state (reset each session in openScreen)
   var rimAutoMode         = true;   // false once user manually taps
-  var rimAutoLockedAt     = 0;      // timestamp of first auto-lock
   var rimStabilizationT   = null;   // setTimeout handle
   var lastHoopDetectAt    = 0;      // timestamp of last accepted hoop detection
   var lastHoopConfidence  = 0;
@@ -291,7 +290,6 @@
 
     // Reset auto rim-tracking state
     rimAutoMode = true;
-    rimAutoLockedAt = 0;
     if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
     lastHoopDetectAt = 0;
     lastHoopConfidence = 0;
@@ -780,7 +778,6 @@
           h: Math.min(Math.max(avgBH, 0.03), 0.15)
         };
         rimLocked = true;
-        rimAutoLockedAt = Date.now();
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');
         setAutoStatus('Hoop found - calibrating...', 'found');
