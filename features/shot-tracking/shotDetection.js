@@ -552,6 +552,7 @@
     _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
     _risingFrameCount: 0,    // legacy counter — retained for backwards compat in resets
     _sawBallAboveRim: false, // sticky flag: was ball ever above rim during this shot?
+    _rimStabilized: false,   // gate: state machine ignores rim until screen flips this on
 
     init: function () {
       var self = this;
@@ -631,6 +632,13 @@
       this.rimZone = createRimZone(normCX, normCY, normW, normH);
     },
 
+    // Toggled by the screen once the auto-locked rim has had time to converge.
+    // When false, _analyzeShotState short-circuits — keeps the state machine
+    // from counting shots while the rim position is still drifting in.
+    setRimStabilized: function (b) {
+      this._rimStabilized = !!b;
+    },
+
     setThreePtDistance: function (dist) {
       this.threePtDistance = dist;
     },
@@ -655,6 +663,7 @@
       this._shotStartY = 1.0;
       this._risingFrameCount = 0;
       this._sawBallAboveRim = false;
+      this._rimStabilized = false;
       this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
@@ -1346,7 +1355,11 @@
          dribble bounce from being counted as a shot.
     ────────────────────────────────────────────────────────────── */
     _analyzeShotState: function (vw, vh, normX, normY) {
-      if (!this.rimZone) return;
+      // _rimStabilized is the screen's "rim has finished converging" signal.
+      // Until that flips on, we ignore everything — the EMA on the auto-lock
+      // is still settling and we don't want phantom shots from a rim zone
+      // that's drifting across the frame.
+      if (!this.rimZone || !this._rimStabilized) return;
       var now = Date.now();
       var rim = this.rimZone;
 
