@@ -153,12 +153,72 @@
       };
     });
 
-    var res = await client.from('ai_shots').insert(records).select();
+    // Upsert (instead of insert) so a retry after a partial failure
+    // overwrites the same logical shot rather than creating a duplicate.
+    // Requires the (session_id, shot_number) unique constraint installed
+    // by supabase/migrations/save_ai_session_atomic.sql.
+    var res = await client
+      .from('ai_shots')
+      .upsert(records, { onConflict: 'session_id,shot_number' })
+      .select();
     if (res.error) {
       console.error('Failed to save shots:', res.error);
       throw res.error;
     }
     return res.data ? res.data.length : 0;
+  }
+
+  /* ── Save session + shots atomically (preferred) ────────────────
+     Calls the save_ai_session_atomic Postgres function so the session
+     row and every shot row land in a single transaction. If the RPC
+     is unavailable (older project that hasn't run the migration yet,
+     network error, permission issue), we fall back to the legacy
+     two-write path. The legacy path is now also idempotent thanks
+     to the upsert on saveShots — partial-failure retries no longer
+     duplicate rows on the second call.
+
+     Returns the session id on success, or null on full failure.
+   ─────────────────────────────────────────────────────────────── */
+  async function saveSessionAtomic(session, shots) {
+    // Anonymous path — same buffering as the individual functions.
+    if (isAnonymousUserId(session && session.user_id)) {
+      notifySignInRequired();
+      var offlineRecord = Object.assign({}, session, {
+        offline: true,
+        savedAt: new Date().toISOString()
+      });
+      appendOffline(LS_OFFLINE_SESSIONS, offlineRecord);
+      if (shots && shots.length) {
+        shots.forEach(function (s) { appendOffline(LS_OFFLINE_SHOTS, s); });
+      }
+      return null;
+    }
+
+    var client = getClient();
+
+    try {
+      var rpc = await client.rpc('save_ai_session_atomic', {
+        p_session: session,
+        p_shots:   shots || []
+      });
+      if (rpc.error) throw rpc.error;
+      // Postgres function returns the session id (TEXT). The client
+      // surfaces it via rpc.data.
+      return rpc.data || (session && session.id) || null;
+    } catch (err) {
+      // Fall back to the legacy two-write so users on projects that
+      // haven't deployed the migration yet keep working. The upsert
+      // on saveShots makes the fallback safe to retry after a flake.
+      console.warn('[ShotService] atomic RPC unavailable, falling back to two-write:', err && err.message);
+      try {
+        await saveSession(session);
+        if (shots && shots.length) await saveShots(shots);
+        return session && session.id;
+      } catch (fallbackErr) {
+        console.error('[ShotService] legacy save also failed:', fallbackErr);
+        throw fallbackErr;
+      }
+    }
   }
 
   /* ── Grant XP ───────────────────────────────────────────────── */
@@ -295,13 +355,14 @@
 
   /* ── Expose globally ────────────────────────────────────────── */
   window.ShotService = {
-    saveSession:       saveSession,
-    saveShots:         saveShots,
-    grantXP:           grantXP,
-    fetchSessions:     fetchSessions,
-    fetchSessionShots: fetchSessionShots,
-    fetchZoneHistory:  fetchZoneHistory,
-    deleteSession:     deleteSession
+    saveSession:        saveSession,
+    saveShots:          saveShots,
+    saveSessionAtomic:  saveSessionAtomic,
+    grantXP:            grantXP,
+    fetchSessions:      fetchSessions,
+    fetchSessionShots:  fetchSessionShots,
+    fetchZoneHistory:   fetchZoneHistory,
+    deleteSession:      deleteSession
   };
 
 })();

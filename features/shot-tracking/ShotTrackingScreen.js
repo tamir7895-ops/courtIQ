@@ -944,24 +944,41 @@
       }
 
       // ── DEBUG MODE: Draw bounding boxes + labels ──────────────
-      // REVIEW: detections arrive in PROCESSING-CANVAS space (cropped region
-      // already applied). Mapping to display canvas via cw/dd.procW skips
-      // the UI-overlay crop offset, so on screen-recording videos with
-      // cropped chrome the boxes will be visually shifted by the crop.
-      // Debug overlay only — does not affect detection accuracy.
+      // Detections arrive in PROCESSING-CANVAS space (the cropped, downscaled
+      // working buffer). To draw correctly on the display canvas we have to
+      // walk the same chain the engine used:
+      //   proc canvas → cropped video region (× cropScale)
+      //                 → full video (+ cropOffset)
+      //                 → display canvas (× cw/videoW)
+      // Without the crop step the boxes drift on screen-recorded sources
+      // that have UI chrome cropped out. Engine fields fall back to safe
+      // defaults so older payloads (no crop info) still render reasonably.
       if (debugMode && debugData) {
-        var dd = debugData;
-        var scaleX = cw / (dd.procW || cw);
-        var scaleY = ch / (dd.procH || ch);
+        var dd        = debugData;
+        var fullVw    = dd.videoW || (dd.procW || cw);
+        var fullVh    = dd.videoH || (dd.procH || ch);
+        var cropOX    = dd.cropOffsetX || 0;
+        var cropOY    = dd.cropOffsetY || 0;
+        var cropSX    = dd.cropScaleX  || 1;
+        var cropSY    = dd.cropScaleY  || 1;
+        var displaySX = cw / fullVw;
+        var displaySY = ch / fullVh;
+
+        // proc-canvas (cx, cy) → display-canvas px
+        var toDispX = function (cx) { return (cx * cropSX + cropOX) * displaySX; };
+        var toDispY = function (cy) { return (cy * cropSY + cropOY) * displaySY; };
+        // proc-canvas size → display-canvas size (no offset on a width/height)
+        var toDispW = function (bw) { return bw * cropSX * displaySX; };
+        var toDispH = function (bh) { return bh * cropSY * displaySY; };
 
         // Draw hoop detections (cyan boxes)
         if (dd.hoops) {
           for (var hi = 0; hi < dd.hoops.length; hi++) {
             var h = dd.hoops[hi];
-            var hx = h.cx * scaleX;
-            var hy = h.cy * scaleY;
-            var hw = h.bw * scaleX;
-            var hh = h.bh * scaleY;
+            var hx = toDispX(h.cx);
+            var hy = toDispY(h.cy);
+            var hw = toDispW(h.bw);
+            var hh = toDispH(h.bh);
             canvasCtx.save();
             canvasCtx.strokeStyle = '#00e5ff';
             canvasCtx.lineWidth = 2;
@@ -983,10 +1000,10 @@
         if (dd.balls) {
           for (var bi = 0; bi < dd.balls.length; bi++) {
             var b = dd.balls[bi];
-            var bx2 = b.cx * scaleX;
-            var by2 = b.cy * scaleY;
-            var bw2 = b.bw * scaleX;
-            var bh2 = b.bh * scaleY;
+            var bx2 = toDispX(b.cx);
+            var by2 = toDispY(b.cy);
+            var bw2 = toDispW(b.bw);
+            var bh2 = toDispH(b.bh);
             canvasCtx.save();
             canvasCtx.strokeStyle = '#00ff88';
             canvasCtx.lineWidth = 2;
@@ -1379,19 +1396,17 @@
   }
 
   /* ── Save to Supabase ───────────────────────────────────────── */
-  // REVIEW: The retry path on partial-failure is fragile. If saveSession
-  // succeeds but saveShots fails (network drop mid-flight), retrying will
-  // hit an ai_shot_sessions PK conflict because summary.sessionId is reused.
-  // Two-write transactions belong server-side or behind an RPC; consider
-  // moving this to a single Supabase function once the model stabilises.
-  // Also: ai_shots has no natural unique key here, so a duplicate
-  // saveShots() call would create duplicate rows unless the table has
-  // a unique constraint on (session_id, shot_number).
+  // The session row + every shot row land in a single transaction via
+  // the save_ai_session_atomic RPC (see supabase/migrations/). On
+  // projects that haven't deployed the migration yet, ShotService falls
+  // back to a two-write path; both saveSession (ON CONFLICT id) and
+  // saveShots (ON CONFLICT session_id, shot_number) are idempotent now,
+  // so partial-failure retries no longer duplicate rows.
   async function saveSessionData(summary) {
     try {
       var zones = categorizeShotsByZone(summary.shots);
 
-      await window.ShotService.saveSession({
+      var sessionPayload = {
         id:             summary.sessionId,
         user_id:        summary.userId,
         session_date:   summary.startTime,
@@ -1408,9 +1423,9 @@
         three_missed:   zones.threePoint.missed,
         ft_made:        (zones.paint.made || 0) + (zones.freeThrow.made || 0),
         ft_missed:      (zones.paint.missed || 0) + (zones.freeThrow.missed || 0)
-      });
+      };
 
-      await window.ShotService.saveShots(summary.shots);
+      await window.ShotService.saveSessionAtomic(sessionPayload, summary.shots);
 
       await window.ShotService.grantXP(
         summary.userId,

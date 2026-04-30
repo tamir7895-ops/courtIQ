@@ -1117,15 +1117,27 @@
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
-      // Debug overlay: fire all raw detections (normalized to processing canvas)
+      // Debug overlay: fire all raw detections in PROCESSING-CANVAS space.
+      // The display canvas matches the visible (full) video, so the overlay
+      // needs the crop offset and crop scale to map proc-canvas coords back
+      // through the cropped region into full-video space. videoW / videoH
+      // let the consumer compute the final display-canvas scale.
       if (this.onDebugFrame) {
+        var fullVw = (this.videoEl && this.videoEl.videoWidth) || pw;
+        var fullVh = (this.videoEl && this.videoEl.videoHeight) || ph;
         this.onDebugFrame({
-          balls: ballKeep,
-          hoops: hoopKeep,
-          shotState: this._shotState,
-          frameCount: this._frameCount,
-          procW: pw,
-          procH: ph
+          balls:        ballKeep,
+          hoops:        hoopKeep,
+          shotState:    this._shotState,
+          frameCount:   this._frameCount,
+          procW:        pw,
+          procH:        ph,
+          videoW:       fullVw,
+          videoH:       fullVh,
+          cropOffsetX:  this._cropOffsetX || 0,
+          cropOffsetY:  this._cropOffsetY || 0,
+          cropScaleX:   this._cropScaleX  || 1,
+          cropScaleY:   this._cropScaleY  || 1
         });
       }
 
