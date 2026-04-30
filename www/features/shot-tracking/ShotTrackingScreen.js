@@ -29,6 +29,21 @@
   var RIM_SVG_Y = 63;
   var THREE_PT_R = 190;
 
+  /* ── Auto rim-tracking constants ────────────────────────────── */
+  // Per-detection EMA on rim center / size. 0.3 ≈ 80% convergence in 4
+  // frames (~0.8s at 5Hz YOLOX cadence) — enough to track a phone that
+  // gets nudged, slow enough to ignore single-frame bbox noise.
+  var RIM_EMA_ALPHA         = 0.3;
+  // Time after the first auto-lock before the state machine is allowed
+  // to count shots. The rim is still drifting toward its true position
+  // during this window.
+  var RIM_STABILIZATION_MS  = 2000;
+  // No hoop detection for this long → rim is "lost", state machine is
+  // re-gated until detections resume. ~10 frames at 5Hz.
+  var HOOP_LOST_MS          = 2000;
+  // No auto-lock within this window → reveal the manual-tap fallback UI.
+  var MANUAL_FALLBACK_MS    = 5000;
+
   /* ── State ──────────────────────────────────────────────────── */
   var phase = 'idle'; // idle | rimlock | threept | tracking | summary
   var stream = null;
@@ -40,6 +55,15 @@
   var rimCenter = null;       // { x, y } normalized (0-1)
   var rimSize   = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
   var rimLocked = false;
+
+  // Auto rim-tracking state (reset each session in openScreen)
+  var rimAutoMode         = true;   // false once user manually taps
+  var rimAutoLockedAt     = 0;      // timestamp of first auto-lock
+  var rimStabilizationT   = null;   // setTimeout handle
+  var lastHoopDetectAt    = 0;      // timestamp of last accepted hoop detection
+  var lastHoopConfidence  = 0;
+  var hoopLost            = false;
+  var manualFallbackShown = false;
 
   // 3PT calibration state
   var threePtPoint = null;    // { x, y } normalized — user-tapped 3PT line point
@@ -265,6 +289,15 @@
     threePtPoint = null;
     threePtDistance = 0;
 
+    // Reset auto rim-tracking state
+    rimAutoMode = true;
+    rimAutoLockedAt = 0;
+    if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
+    lastHoopDetectAt = 0;
+    lastHoopConfidence = 0;
+    hoopLost = false;
+    manualFallbackShown = false;
+
     // Skip rimlock — go straight to tracking with auto-detection
     els.rimlock.classList.remove('active');
     els.threept.classList.remove('active');
@@ -452,12 +485,34 @@
      RIM LOCK PHASE
      ══════════════════════════════════════════════════════════════ */
   function onRimTap(e) {
-    if (rimLocked) return;
-
     var rect = els.rimlockTap.getBoundingClientRect();
     var normX = (e.clientX - rect.left) / rect.width;
     var normY = (e.clientY - rect.top) / rect.height;
 
+    // Manual-fallback path during tracking — single tap commits and turns
+    // off the auto-EMA so the user's choice sticks. Allowed even if an
+    // auto-lock just happened: the explicit tap means "use my position".
+    if (phase === 'tracking') {
+      rimCenter = { x: normX, y: normY };
+      rimLocked = true;
+      rimAutoMode = false;
+      hoopLost = false;
+      if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
+
+      var engine = window.ShotDetectionEngine;
+      engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+      engine.setRimStabilized(true);
+
+      els.rimlock.classList.remove('active');
+      manualFallbackShown = false;
+      setAutoStatus('Manual rim set', 'tracking');
+      console.log('[ShotTracker] Manual rim tap → ' + normX.toFixed(3) + ',' + normY.toFixed(3));
+      return;
+    }
+
+    // Legacy multi-step calibration path — kept intact for future use
+    // (e.g. surfacing as an explicit "calibrate manually" settings entry).
+    if (rimLocked) return;
     rimCenter = { x: normX, y: normY };
     updateRimIndicator();
     toggleCrosshairs(false);
@@ -606,6 +661,10 @@
     els.accuracy.textContent = '0%';
     els.timer.textContent = '0:00';
 
+    // Auto-tracking initial state — the watchdog and onHoopDetected
+    // path will move us through 'found' → 'tracking' as detections arrive.
+    setAutoStatus('Looking for hoop...', 'searching');
+
     // Start timer
     timerInterval = setInterval(function () {
       elapsedSec++;
@@ -653,6 +712,13 @@
     var hoopBuffer = [];
     var HOOP_BUFFER_SIZE = 5;
 
+    // The detected hoop bbox often covers backboard-and-rim or just the
+    // rim itself — we can't tell which from confidence alone. Pulling the
+    // rim estimate down to 75% of the bbox height (bottom quarter) lands
+    // close to the real rim either way, and never above it. Manual taps
+    // in onRimTap write the user's exact (x,y) — this offset is auto-only.
+    var BBOX_RIM_OFFSET_FRAC = 0.25;  // shift down by 25% of bbox-h → rim ≈ 75% of bbox
+
     engine.onHoopDetected = function (hoop) {
       // Reject garbage detections near edges or with impossible size
       if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
@@ -660,64 +726,95 @@
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
       if (hoop.score < 0.10) return;
 
-      // Accumulate detections for smoothing
-      hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score });
-      if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
+      // Accept this detection — record liveness
+      lastHoopDetectAt = Date.now();
+      lastHoopConfidence = hoop.score;
 
-      // Need at least 3 consistent detections before acting
-      if (hoopBuffer.length < 3) return;
-
-      // Compute average position from buffer
-      var avgCX = 0, avgCY = 0, avgBW = 0, avgBH = 0;
-      for (var hi = 0; hi < hoopBuffer.length; hi++) {
-        avgCX += hoopBuffer[hi].cx;
-        avgCY += hoopBuffer[hi].cy;
-        avgBW += hoopBuffer[hi].bw;
-        avgBH += hoopBuffer[hi].bh;
-      }
-      avgCX /= hoopBuffer.length;
-      avgCY /= hoopBuffer.length;
-      avgBW /= hoopBuffer.length;
-      avgBH /= hoopBuffer.length;
-
-      // Check consistency — reject if detections are too spread out (std > 5%)
-      var maxSpread = 0;
-      for (var hi = 0; hi < hoopBuffer.length; hi++) {
-        var spread = Math.abs(hoopBuffer[hi].cx - avgCX) + Math.abs(hoopBuffer[hi].cy - avgCY);
-        if (spread > maxSpread) maxSpread = spread;
-      }
-      if (maxSpread > 0.08) return; // Detections too inconsistent
-
-      // The detected hoop bbox often covers backboard-and-rim or just the
-      // rim itself — we can't tell which from confidence alone. Empirically
-      // pulling the rim estimate down to 75% of the bbox height (i.e. into
-      // the bottom quarter) lands close to the actual rim either way, and
-      // never above it. Manual taps in onRimTap still write the user's
-      // exact (x,y) — this offset only applies to auto-anchor.
-      var BBOX_RIM_OFFSET_FRAC = 0.25;  // shift down by 25% of bbox-h → rim ≈ 75% of bbox
-
-      if (!rimLocked) {
-        var anchoredCY = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
-        rimCenter = { x: avgCX, y: anchoredCY };
-        rimSize = { w: Math.min(Math.max(avgBW, 0.08), 0.25), h: Math.min(Math.max(avgBH, 0.03), 0.15) };
-        rimLocked = true;
-        engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
-        onDetectionStatus('detecting');
-        console.log('[ShotTracker] Hoop locked at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
-          ') [bbox cy=' + avgCY.toFixed(3) + ', shifted by ' + (avgBH * BBOX_RIM_OFFSET_FRAC).toFixed(3) +
-          '] from ' + hoopBuffer.length + ' detections');
-      } else {
-        var anchoredCYRe = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
-        // Smooth re-anchor: blend 70% old + 30% new (prevents jitter)
-        var dx = Math.abs(avgCX - rimCenter.x);
-        var dy = Math.abs(anchoredCYRe - rimCenter.y);
-        if (dx > 0.08 || dy > 0.08) {
-          rimCenter.x = 0.7 * rimCenter.x + 0.3 * avgCX;
-          rimCenter.y = 0.7 * rimCenter.y + 0.3 * anchoredCYRe;
-          engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
-          console.log('[ShotTracker] Hoop smoothly re-anchored to (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) + ')');
+      // Recovery from a previous "lost" period — re-enable counting
+      // immediately. The rim was already calibrated; brief occlusions
+      // (player crossing in front, etc.) shouldn't force re-stabilization.
+      if (hoopLost) {
+        hoopLost = false;
+        if (rimLocked && rimAutoMode) {
+          engine.setRimStabilized(true);
+          setAutoStatus('Tracking', 'tracking');
         }
       }
+
+      // Manual mode: user already tapped — auto-EMA stays out of the way.
+      if (!rimAutoMode) return;
+
+      // Accumulate detections for the INITIAL lock only — once locked,
+      // we EMA on every accepted detection for smooth tracking.
+      if (!rimLocked) {
+        hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score });
+        if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
+        if (hoopBuffer.length < 3) return;
+
+        // Average over buffer
+        var avgCX = 0, avgCY = 0, avgBW = 0, avgBH = 0;
+        for (var hi = 0; hi < hoopBuffer.length; hi++) {
+          avgCX += hoopBuffer[hi].cx;
+          avgCY += hoopBuffer[hi].cy;
+          avgBW += hoopBuffer[hi].bw;
+          avgBH += hoopBuffer[hi].bh;
+        }
+        avgCX /= hoopBuffer.length;
+        avgCY /= hoopBuffer.length;
+        avgBW /= hoopBuffer.length;
+        avgBH /= hoopBuffer.length;
+
+        // Reject if buffer is too spread out — wait for a calmer window
+        var maxSpread = 0;
+        for (var hj = 0; hj < hoopBuffer.length; hj++) {
+          var spread = Math.abs(hoopBuffer[hj].cx - avgCX) + Math.abs(hoopBuffer[hj].cy - avgCY);
+          if (spread > maxSpread) maxSpread = spread;
+        }
+        if (maxSpread > 0.08) return;
+
+        // First lock — commit and arm the stabilization timer
+        var anchoredCY = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
+        rimCenter = { x: avgCX, y: anchoredCY };
+        rimSize = {
+          w: Math.min(Math.max(avgBW, 0.08), 0.25),
+          h: Math.min(Math.max(avgBH, 0.03), 0.15)
+        };
+        rimLocked = true;
+        rimAutoLockedAt = Date.now();
+        engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+        onDetectionStatus('detecting');
+        setAutoStatus('Hoop found - calibrating...', 'found');
+        // Don't count shots until the EMA has had time to settle.
+        if (rimStabilizationT) clearTimeout(rimStabilizationT);
+        rimStabilizationT = setTimeout(function () {
+          if (rimLocked && rimAutoMode && !hoopLost) {
+            engine.setRimStabilized(true);
+            setAutoStatus('Tracking', 'tracking');
+          }
+        }, RIM_STABILIZATION_MS);
+
+        console.log('[ShotTracker] Auto-lock at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
+          ') [bbox cy=' + avgCY.toFixed(3) + ', +' + (avgBH * BBOX_RIM_OFFSET_FRAC).toFixed(3) +
+          '] from ' + hoopBuffer.length + ' detections');
+        return;
+      }
+
+      // Already locked + auto mode: continuous EMA on every detection.
+      // FREEZE during active shot states — the ball can occlude the rim,
+      // shifting the bbox; updating mid-flight would skew the near_hoop
+      // zone the state machine is using to judge make/miss.
+      var st = engine._shotState;
+      if (st === 'shot_started' || st === 'near_hoop') return;
+
+      var anchoredCYNew = hoop.cy + hoop.bh * BBOX_RIM_OFFSET_FRAC;
+      var newW = Math.min(Math.max(hoop.bw, 0.08), 0.25);
+      var newH = Math.min(Math.max(hoop.bh, 0.03), 0.15);
+      var a = RIM_EMA_ALPHA;
+      rimCenter.x = (1 - a) * rimCenter.x + a * hoop.cx;
+      rimCenter.y = (1 - a) * rimCenter.y + a * anchoredCYNew;
+      rimSize.w   = (1 - a) * rimSize.w   + a * newW;
+      rimSize.h   = (1 - a) * rimSize.h   + a * newH;
+      engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
     };
 
     // Initialize adaptive learning system
@@ -776,10 +873,12 @@
         txt.textContent = 'Color tracking active';
         break;
       case 'detecting':
-        txt.textContent = rimLocked ? 'Tracking' : 'Tracking (no hoop)';
+        txt.textContent = rimLocked ? 'Tracking' : 'Looking for hoop...';
+        if (!rimLocked) dot.classList.add('loading');
         break;
       case 'detecting-learned':
-        txt.textContent = rimLocked ? 'Tracking (AI learned)' : 'Tracking (no hoop)';
+        txt.textContent = rimLocked ? 'Tracking (AI learned)' : 'Looking for hoop...';
+        if (!rimLocked) dot.classList.add('loading');
         break;
       case 'error':
         dot.classList.add('error');
@@ -788,6 +887,32 @@
       default:
         txt.textContent = status;
     }
+  }
+
+  // Auto-tracking status writer — used by the EMA path and the watchdog
+  // to surface where we are in the lock lifecycle. `kind` controls the
+  // dot styling: 'searching' / 'lost' use the loading pulse, others are
+  // the steady green dot.
+  function setAutoStatus(text, kind) {
+    if (!els.statusText || !els.statusDot) return;
+    els.statusText.textContent = text;
+    els.statusDot.className = 'st-status-dot';
+    if (kind === 'searching' || kind === 'lost') {
+      els.statusDot.classList.add('loading');
+    } else if (kind === 'error') {
+      els.statusDot.classList.add('error');
+    }
+  }
+
+  // Reveal the legacy rim-lock overlay in single-tap fallback mode —
+  // used when YOLOX hasn't found the hoop after MANUAL_FALLBACK_MS.
+  function showManualRimFallback() {
+    if (!els.rimlock || !els.rimlockText) return;
+    els.rimlock.classList.add('active');
+    els.rimlockText.textContent = "Can't find the hoop - tap the rim to set it manually";
+    if (els.sizeControls) els.sizeControls.classList.remove('active');
+    if (els.lockBtn) els.lockBtn.classList.remove('active');
+    toggleCrosshairs(false);
   }
 
   /* ── Shot callback ──────────────────────────────────────────── */
@@ -898,6 +1023,25 @@
     function draw() {
       if (phase !== 'tracking') return;
       overlayAnimFrame = requestAnimationFrame(draw);
+
+      // ── Auto-tracking watchdog ───────────────────────────────
+      // Runs at the rAF cadence (~60Hz); both checks are time-based,
+      // so the cost is just two timestamp comparisons per frame.
+      var nowTs = Date.now();
+      var engRef = window.ShotDetectionEngine;
+      // Hoop lost — gate the state machine until we see it again.
+      if (rimLocked && rimAutoMode && lastHoopDetectAt > 0 && !hoopLost &&
+          (nowTs - lastHoopDetectAt > HOOP_LOST_MS)) {
+        hoopLost = true;
+        if (engRef) engRef.setRimStabilized(false);
+        setAutoStatus('Searching for hoop...', 'lost');
+      }
+      // Manual fallback reveal — auto-detect hasn't found the hoop yet.
+      if (!rimLocked && !manualFallbackShown && sessionStart > 0 &&
+          (nowTs - sessionStart > MANUAL_FALLBACK_MS)) {
+        manualFallbackShown = true;
+        showManualRimFallback();
+      }
 
       var cw = canvasEl.width;
       var ch = canvasEl.height;
@@ -1039,15 +1183,26 @@
           canvasCtx.save();
 
           // Estimated rim line — solid red horizontal line at rim.centerY
-          canvasCtx.strokeStyle = '#ff3b3b';
+          // (or grey-dashed if the EMA is currently frozen during a shot,
+          //  since the rim won't move until the shot resolves).
+          var rimFrozen = (dd.shotState === 'shot_started' || dd.shotState === 'near_hoop');
+          canvasCtx.strokeStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
           canvasCtx.lineWidth = 2;
+          if (rimFrozen) canvasCtx.setLineDash([4, 4]);
           canvasCtx.beginPath();
           canvasCtx.moveTo(0, rimDY);
           canvasCtx.lineTo(cw, rimDY);
           canvasCtx.stroke();
+          canvasCtx.setLineDash([]);
           canvasCtx.font = 'bold 11px monospace';
-          canvasCtx.fillStyle = '#ff3b3b';
-          canvasCtx.fillText('RIM', 6, rimDY - 4);
+          // Compose the rim label: mode + confidence (auto only) + FROZEN
+          var rimLbl = 'RIM ' + (rimAutoMode ? 'AUTO' : 'MANUAL');
+          if (rimAutoMode && lastHoopConfidence > 0) {
+            rimLbl += ' ' + (lastHoopConfidence * 100).toFixed(0) + '%';
+          }
+          if (rimFrozen) rimLbl += ' [FROZEN]';
+          canvasCtx.fillStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
+          canvasCtx.fillText(rimLbl, 6, rimDY - 4);
 
           // near_hoop zone — dashed yellow rectangle centred on rim
           // (matches the state-machine geometry: ±1.5 rim widths
