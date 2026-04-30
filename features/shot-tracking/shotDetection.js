@@ -35,6 +35,10 @@
   var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
+  // YOLOX cadence is hardcoded as `_frameCount % 6 === 0` below. 6 was picked as a
+  // safe floor for low-end devices on the WASM backend (~5 inferences/sec). On WebGPU
+  // we have headroom for every-3rd or every-4th frame; consider auto-tuning the
+  // divisor based on observed inference latency once we see real-device numbers.
 
   /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
   var YOLOX_INPUT_SIZE     = 640;
@@ -825,8 +829,10 @@
         chwReady = Promise.resolve(_yoloxBuf);
       }
 
+      var pendingInputTensor = null;
       chwReady.then(function (chwBuf) {
         var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
+        pendingInputTensor = inputTensor;
         // Debug: log input stats once
         if (DEBUG && !self._dbgInputLogged) {
           self._dbgInputLogged = true;
@@ -931,6 +937,23 @@
           self._processNoBall();
         }
 
+        // Release ORT tensors. With WebGPU/WebGL backends the underlying
+        // GPU buffers are not GC-tracked, so leaking them across many
+        // frames will eventually hit a memory ceiling. dispose() is a
+        // no-op for plain CPU tensors so this is always safe.
+        try {
+          if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
+            pendingInputTensor.dispose();
+          }
+          if (results) {
+            Object.keys(results).forEach(function (k) {
+              var t = results[k];
+              if (t && typeof t.dispose === 'function') t.dispose();
+            });
+          }
+        } catch (_) { /* tensor lifecycle is best-effort */ }
+        pendingInputTensor = null;
+
         self._isDetecting = false;
         self._scheduleDetection();
       }).catch(function (e) {
@@ -941,6 +964,13 @@
         } else {
           self._processNoBall();
         }
+        // Best-effort dispose if input tensor was created before the error.
+        try {
+          if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
+            pendingInputTensor.dispose();
+          }
+        } catch (_) { /* ignore */ }
+        pendingInputTensor = null;
         self._isDetecting = false;
         self._scheduleDetection();
       });

@@ -349,6 +349,11 @@
     // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
+    // 1280×720 chosen for visual quality of the live preview and the
+    // recorded video-replay clip. Detection itself downscales to 640px wide,
+    // so a smaller capture (e.g. 854×480) would save ~30% of camera/encoder
+    // power on battery-bound devices without affecting accuracy. Worth
+    // revisiting on mobile if thermal throttling becomes an issue.
     var constraints = {
       video: {
         facingMode: { ideal: 'environment' },
