@@ -28,8 +28,16 @@
   <link rel="stylesheet" href="styles/shop.css?v=3" />
   <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
   <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
-  <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2-type.css?v=1" />
-  <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2.css?v=1" />
+  <!--
+    Shot Tracker v2 stylesheets — DORMANT.
+    All SHOT_TRACKER_V2 feature flags in features/shot-tracking/v2/config.js
+    are currently false; the new UI is not rendered. These CSS files have
+    no selectors that affect the live v1 markup, but parsing them costs ~12KB
+    on every page load. Keep these links commented until at least one V2
+    screen flag is flipped on, then uncomment.
+  -->
+  <!-- <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2-type.css?v=1" /> -->
+  <!-- <link rel="stylesheet" href="features/shot-tracking/v2/shot-tracker-v2.css?v=1" /> -->
   <link rel="stylesheet" href="styles/charts.css?v=3" />
   <link rel="stylesheet" href="styles/move-library.css?v=3" />
   <link rel="stylesheet" href="styles/challenge.css?v=3" />

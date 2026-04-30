@@ -7,9 +7,51 @@
      ai_shots         — individual shot records
      shot_sessions    — legacy table for dashboard compat
      profiles         — XP grant via user_data column
+
+   Anonymous users: Supabase has FK constraints on user_id columns.
+   When the visitor is not signed in, every persistence call writes
+   to localStorage instead and surfaces a one-time toast asking the
+   user to sign in. Returning early prevents FK errors and silent
+   data loss.
    ══════════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
+
+  /* ── localStorage fallback keys (offline / signed-out mode) ──── */
+  var LS_OFFLINE_SESSIONS = 'courtiq-ai-sessions-offline';
+  var LS_OFFLINE_SHOTS    = 'courtiq-ai-shots-offline';
+
+  /* ── Auth helpers ───────────────────────────────────────────── */
+  function isAnonymousUserId(userId) {
+    return !userId || userId === 'anonymous' || typeof userId !== 'string';
+  }
+
+  /* Show one toast per session when an offline write happens,
+     so we don't spam the user with a toast on every shot. */
+  var _toastShownThisSession = false;
+  function notifySignInRequired() {
+    if (_toastShownThisSession) return;
+    _toastShownThisSession = true;
+    if (typeof showToast === 'function') {
+      showToast('Sign in to save your sessions to the cloud', 'warning');
+    } else {
+      console.warn('[ShotService] Sign in to save sessions to the cloud');
+    }
+  }
+
+  function appendOffline(lsKey, record) {
+    try {
+      var raw = localStorage.getItem(lsKey);
+      var arr = raw ? JSON.parse(raw) : [];
+      arr.push(record);
+      // Cap offline buffer at 200 records to avoid quota errors.
+      if (arr.length > 200) arr = arr.slice(-200);
+      localStorage.setItem(lsKey, JSON.stringify(arr));
+    } catch (e) {
+      // localStorage full or disabled — there's no graceful recovery here.
+      console.warn('[ShotService] offline append failed:', e);
+    }
+  }
 
   function getClient() {
     if (typeof sb !== 'undefined') return sb;
@@ -19,9 +61,20 @@
   /* ── Save session ───────────────────────────────────────────── */
   /**
    * @param {Object} session
-   * @returns {Promise<Object>} Inserted record
+   * @returns {Promise<Object>} Inserted record (or offline stub)
    */
   async function saveSession(session) {
+    // Anonymous path — never call Supabase.
+    if (isAnonymousUserId(session.user_id)) {
+      notifySignInRequired();
+      var offlineRecord = Object.assign({}, session, {
+        offline:    true,
+        savedAt:    new Date().toISOString()
+      });
+      appendOffline(LS_OFFLINE_SESSIONS, offlineRecord);
+      return offlineRecord;
+    }
+
     var client = getClient();
 
     // 1. Insert into ai_shot_sessions
@@ -73,6 +126,15 @@
    */
   async function saveShots(shots) {
     if (!shots || shots.length === 0) return 0;
+
+    // Anonymous path — buffer to localStorage instead of failing FK.
+    var firstUid = shots[0] && shots[0].user_id;
+    if (isAnonymousUserId(firstUid)) {
+      notifySignInRequired();
+      shots.forEach(function (s) { appendOffline(LS_OFFLINE_SHOTS, s); });
+      return shots.length;
+    }
+
     var client = getClient();
 
     var records = shots.map(function (s) {
@@ -117,6 +179,12 @@
       localStorage.setItem(lsKey, JSON.stringify(data));
     } catch (e) { /* silent */ }
 
+    // Anonymous: localStorage XP only — no profile to sync.
+    if (isAnonymousUserId(userId)) {
+      notifySignInRequired();
+      return false;
+    }
+
     // 2. Sync to Supabase profiles table
     var client = getClient();
     try {
@@ -153,6 +221,7 @@
 
   /* ── Fetch sessions ─────────────────────────────────────────── */
   async function fetchSessions(userId, limit) {
+    if (isAnonymousUserId(userId)) return [];
     var client = getClient();
     limit = limit || 20;
     var res = await client
@@ -179,6 +248,7 @@
 
   /* ── Fetch zone history ─────────────────────────────────────── */
   async function fetchZoneHistory(userId, period) {
+    if (isAnonymousUserId(userId)) return null;
     var client = getClient();
     period = period || 'week';
     var query = client.from('ai_shots').select('shot_zone, shot_result').eq('user_id', userId);
