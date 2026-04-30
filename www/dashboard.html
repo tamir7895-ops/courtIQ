@@ -1595,8 +1595,8 @@
             <h2 class="ks-featured-title">Shot<br>Tracker</h2>
             <p class="ks-featured-desc">Analyze every shot in real-time with YOLOX AI detection — works live with your camera or from uploaded video.</p>
             <div class="ks-featured-actions">
-              <button class="ks-btn-primary" onclick="ShotTrackingScreen.openCamera()">📷 Launch Camera</button>
-              <button class="ks-btn-outline" onclick="document.getElementById('ast-file-input').click()">↑ Upload Video</button>
+              <button class="ks-btn-primary" id="ast-launch-btn">📷 Launch Camera</button>
+              <button class="ks-btn-outline" id="ast-upload-btn">↑ Upload Video</button>
             </div>
           </div>
           <div class="ks-featured-img" id="lab-tracker-summary" style="display:flex;align-items:center;justify-content:center">
@@ -3019,3 +3019,4 @@ if ('serviceWorker' in navigator) {
 
 </body>
 </html>
+                                                              

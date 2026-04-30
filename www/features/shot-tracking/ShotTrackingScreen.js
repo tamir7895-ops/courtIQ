@@ -54,6 +54,10 @@
   var streak        = 0;
   var maxStreak     = 0;
 
+  // Debug overlay state
+  var debugMode = false;
+  var debugData = { balls: [], hoops: [], shotState: 'idle', frameCount: 0 };
+
   // DOM refs (populated in buildHTML)
   var els = {};
 
@@ -122,10 +126,15 @@
         '<div class="st-flash" id="st-flash"></div>',
         '<div class="st-result-text" id="st-result-text"></div>',
         '<div class="st-bottom-bar">',
+          '<button class="st-debug-toggle" id="st-debug-toggle" title="Toggle Debug Overlay">&#x1f41b;</button>',
           '<button class="st-stop-btn" id="st-stop-btn">',
             '<div class="st-stop-icon"></div>',
             '<span class="st-stop-text">End Session</span>',
           '</button>',
+        '</div>',
+        /* ── Debug info panel (hidden by default) ── */
+        '<div class="st-debug-panel" id="st-debug-panel">',
+          '<div id="st-debug-info"></div>',
         '</div>',
         /* ── End session confirmation modal ── */
         '<div class="st-confirm-modal" id="st-confirm-modal">',
@@ -180,6 +189,9 @@
     els.flash            = document.getElementById('st-flash');
     els.resultText       = document.getElementById('st-result-text');
     els.stopBtn          = document.getElementById('st-stop-btn');
+    els.debugToggle      = document.getElementById('st-debug-toggle');
+    els.debugPanel       = document.getElementById('st-debug-panel');
+    els.debugInfo        = document.getElementById('st-debug-info');
     els.summary          = document.getElementById('st-summary');
     els.summaryContent   = document.getElementById('st-summary-content');
 
@@ -203,6 +215,11 @@
     els.threeptConfirm.addEventListener('click', onThreePtConfirm);
     els.threeptSkip.addEventListener('click', onThreePtSkip);
     els.stopBtn.addEventListener('click', onStopSession);
+    els.debugToggle.addEventListener('click', function () {
+      debugMode = !debugMode;
+      els.debugToggle.classList.toggle('active', debugMode);
+      els.debugPanel.classList.toggle('active', debugMode);
+    });
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -610,6 +627,7 @@
     engine.onShotDetected = onShotDetected;
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
+    engine.onDebugFrame   = function (data) { debugData = data; };
 
     // Auto-detect hoop from YOLOX + continuous re-anchoring
     // Smoothing buffer: accumulate detections before locking/re-anchoring
@@ -904,6 +922,78 @@
         canvasCtx.fillStyle = dotColor;
         canvasCtx.fill();
         canvasCtx.restore();
+      }
+
+      // ── DEBUG MODE: Draw bounding boxes + labels ──────────────
+      if (debugMode && debugData) {
+        var dd = debugData;
+        var scaleX = cw / (dd.procW || cw);
+        var scaleY = ch / (dd.procH || ch);
+
+        // Draw hoop detections (cyan boxes)
+        if (dd.hoops) {
+          for (var hi = 0; hi < dd.hoops.length; hi++) {
+            var h = dd.hoops[hi];
+            var hx = h.cx * scaleX;
+            var hy = h.cy * scaleY;
+            var hw = h.bw * scaleX;
+            var hh = h.bh * scaleY;
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#00e5ff';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(hx - hw/2, hy - hh/2, hw, hh);
+            canvasCtx.fillStyle = 'rgba(0,229,255,0.15)';
+            canvasCtx.fillRect(hx - hw/2, hy - hh/2, hw, hh);
+            // Label
+            var hLabel = 'HOOP ' + (h.score * 100).toFixed(0) + '%';
+            canvasCtx.font = 'bold 12px monospace';
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.fillRect(hx - hw/2, hy - hh/2 - 18, canvasCtx.measureText(hLabel).width + 8, 18);
+            canvasCtx.fillStyle = '#00e5ff';
+            canvasCtx.fillText(hLabel, hx - hw/2 + 4, hy - hh/2 - 4);
+            canvasCtx.restore();
+          }
+        }
+
+        // Draw ball detections (green boxes)
+        if (dd.balls) {
+          for (var bi = 0; bi < dd.balls.length; bi++) {
+            var b = dd.balls[bi];
+            var bx2 = b.cx * scaleX;
+            var by2 = b.cy * scaleY;
+            var bw2 = b.bw * scaleX;
+            var bh2 = b.bh * scaleY;
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#00ff88';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.strokeRect(bx2 - bw2/2, by2 - bh2/2, bw2, bh2);
+            canvasCtx.fillStyle = 'rgba(0,255,136,0.12)';
+            canvasCtx.fillRect(bx2 - bw2/2, by2 - bh2/2, bw2, bh2);
+            // Label
+            var bLabel = 'BALL ' + (b.score * 100).toFixed(0) + '%';
+            canvasCtx.font = 'bold 12px monospace';
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.fillRect(bx2 - bw2/2, by2 - bh2/2 - 18, canvasCtx.measureText(bLabel).width + 8, 18);
+            canvasCtx.fillStyle = '#00ff88';
+            canvasCtx.fillText(bLabel, bx2 - bw2/2 + 4, by2 - bh2/2 - 4);
+            canvasCtx.restore();
+          }
+        }
+
+        // Update debug info panel
+        if (els.debugInfo && dd.frameCount % 5 === 0) {
+          var stateColor = dd.shotState === 'idle' ? '#888' :
+                           dd.shotState === 'shot_started' ? '#ffaa00' :
+                           dd.shotState === 'near_hoop' ? '#00ff88' : '#ff4444';
+          els.debugInfo.innerHTML =
+            '<b>Frame:</b> ' + dd.frameCount +
+            ' &nbsp; <b>State:</b> <span style="color:' + stateColor + '">' + (dd.shotState || 'idle') + '</span>' +
+            '<br><b>Balls:</b> ' + (dd.balls ? dd.balls.length : 0) +
+            ' &nbsp; <b>Hoops:</b> ' + (dd.hoops ? dd.hoops.length : 0) +
+            (dd.balls && dd.balls[0] ? '<br><b>Best ball:</b> ' + (dd.balls[0].score * 100).toFixed(1) + '%' : '') +
+            (dd.hoops && dd.hoops[0] ? ' &nbsp; <b>Best hoop:</b> ' + (dd.hoops[0].score * 100).toFixed(1) + '%' : '') +
+            (currentBall ? '<br><b>Track:</b> ' + currentBall.source + ' (' + currentBall.normX.toFixed(2) + ', ' + currentBall.normY.toFixed(2) + ')' : '');
+        }
       }
     }
 
@@ -1344,105 +1434,4 @@
       var s = shotList[i];
       var posX = s.launch_x !== undefined ? s.launch_x : s.shot_x;
       var posY = s.launch_y !== undefined ? s.launch_y : s.shot_y;
-      var cx = 50 + posX * (COURT_W - 100);
-      var cy = RIM_SVG_Y + (1 - posY) * (COURT_H - RIM_SVG_Y - 40);
-      var isMade = s.shot_result === 'made';
-      var dotColor = zoneColorMap[s.shot_zone] || '#ffaa00';
-      if (!isMade) {
-        lines.push('<circle cx="' + cx.toFixed(1) + '" cy="' + cy.toFixed(1) + '" r="5" fill="' + dotColor + '" opacity="0.4" stroke="rgba(255,255,255,0.3)" stroke-width="0.5"/>');
-      }
-    }
-    // Made on top (brighter, zone-colored with white stroke)
-    for (var j = 0; j < shotList.length; j++) {
-      var s2 = shotList[j];
-      var posX2 = s2.launch_x !== undefined ? s2.launch_x : s2.shot_x;
-      var posY2 = s2.launch_y !== undefined ? s2.launch_y : s2.shot_y;
-      var cx2 = 50 + posX2 * (COURT_W - 100);
-      var cy2 = RIM_SVG_Y + (1 - posY2) * (COURT_H - RIM_SVG_Y - 40);
-      var dotColor2 = zoneColorMap[s2.shot_zone] || '#ffaa00';
-      if (s2.shot_result === 'made') {
-        lines.push('<circle cx="' + cx2.toFixed(1) + '" cy="' + cy2.toFixed(1) + '" r="6" fill="' + dotColor2 + '" opacity="0.9" stroke="#fff" stroke-width="1"/>');
-      }
-    }
-
-    lines.push('</svg>');
-    return lines.join('');
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     HELPERS
-     ══════════════════════════════════════════════════════════════ */
-  function formatTime(sec) {
-    var m = Math.floor(sec / 60);
-    var s = sec % 60;
-    return m + ':' + (s < 10 ? '0' : '') + s;
-  }
-
-  function formatDuration(ms) {
-    var totalSec = Math.floor(ms / 1000);
-    var min = Math.floor(totalSec / 60);
-    var sec = totalSec % 60;
-    return min > 0 ? min + 'm ' + sec + 's' : sec + 's';
-  }
-
-  function getAccuracyColor(pct) {
-    if (pct >= 65) return '#00ff88';
-    if (pct >= 50) return '#ffaa00';
-    return '#ff4444';
-  }
-
-  function categorizeShotsByZone(shotList) {
-    var zones = {
-      paint:      { made: 0, missed: 0 },
-      midrange:   { made: 0, missed: 0 },
-      threePoint: { made: 0, missed: 0 },
-      freeThrow:  { made: 0, missed: 0 }
-    };
-    for (var i = 0; i < shotList.length; i++) {
-      var s = shotList[i];
-      var zone = s.shot_zone || 'midrange';
-      if (!zones[zone]) zone = 'midrange';
-      if (s.shot_result === 'made') zones[zone].made++;
-      else zones[zone].missed++;
-    }
-    return zones;
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     VIDEO UPLOAD ENTRY POINT
-     ══════════════════════════════════════════════════════════════ */
-  /**
-   * Open the shot tracker using a local video file instead of the live camera.
-   * The detection engine processes frames just like live camera mode.
-   * The session auto-advances to Summary when the video finishes playing.
-   *
-   * @param {File} file  A video File object from an <input type="file"> element.
-   */
-  function openFromFile(file) {
-    if (!file) {
-      alert('Please select a video file.');
-      return;
-    }
-    // Accept any file — let the browser decide if it can play it
-    console.log('Opening video file:', file.name, file.type, (file.size / 1048576).toFixed(1) + ' MB');
-
-    // Revoke any previous object URL to free memory
-    if (videoFileUrl) {
-      URL.revokeObjectURL(videoFileUrl);
-      videoFileUrl = null;
-    }
-    videoFileUrl = URL.createObjectURL(file);
-    console.log('Blob URL created:', videoFileUrl);
-    openScreen();
-  }
-
-  /* ══════════════════════════════════════════════════════════════
-     EXPOSE GLOBALLY
-     ══════════════════════════════════════════════════════════════ */
-  window.ShotTrackingScreen = {
-    open:         openScreen,
-    close:        closeScreen,
-    openFromFile: openFromFile
-  };
-
-})();
+      var cx = 50 + posX * (C

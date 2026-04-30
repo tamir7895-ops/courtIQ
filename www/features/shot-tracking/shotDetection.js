@@ -498,6 +498,7 @@
     onBallUpdate: null,
     onHoopDetected: null,
     onStatusChange: null,
+    onDebugFrame: null,     // callback({ balls: [], hoops: [], shotState, kalman, frameCount })
     _isDetecting: false,
     _mlFailed: false,
     _colorOnlyMode: false,
@@ -1065,6 +1066,18 @@
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
+      // Debug overlay: fire all raw detections (normalized to processing canvas)
+      if (this.onDebugFrame) {
+        this.onDebugFrame({
+          balls: ballKeep,
+          hoops: hoopKeep,
+          shotState: this._shotState,
+          frameCount: this._frameCount,
+          procW: pw,
+          procH: ph
+        });
+      }
+
       return ballKeep.length > 0 ? ballKeep[0] : null;
     },
 
@@ -1356,17 +1369,4 @@
 
       if (window.AdaptiveLearning) {
         window.AdaptiveLearning.onShotCompleted(traj, result, this.rimZone);
-      }
-      if (this.onShotDetected) this.onShotDetected(shotData);
-      resetTracker(this.tracker);
-    },
-
-    _setStatus: function (status) {
-      if (this.onStatusChange) this.onStatusChange(status);
-    }
-  };
-
-  /* ── Expose globally ────────────────────────────────────────── */
-  window.ShotDetectionEngine = ShotDetectionEngine;
-
-})();
+      

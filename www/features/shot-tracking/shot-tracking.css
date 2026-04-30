@@ -772,8 +772,12 @@
   cursor: pointer;
 }
 
-/* ── Animations ───────────────────────────────────────────────── */
-@keyframes st-fadeInDown {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
+/* ── Debug overlay ────────────────────────────────────────────── */
+.st-debug-toggle {
+  position: absolute;
+  bottom: 20px;
+  left: 20px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius:
