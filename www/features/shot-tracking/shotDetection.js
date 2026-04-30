@@ -525,7 +525,6 @@
     _detectorType: 'none',   // 'yolox' | 'none'
     _procW: 0,
     _procH: 0,
-    _lastMLBallPos: null,    // { x, y, frame } — last YOLOX ball detection for guided color search
     _shotState: 'idle',      // idle | shot_started | near_hoop | cooldown
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
@@ -642,7 +641,6 @@
       this._shotStartY = 1.0;
       this._sawBallAboveRim = false;
       this._rimStabilized = false;
-      this._lastMLBallPos = null;
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -940,7 +938,6 @@
         if (mlBall) {
           self._mlMissCount = 0;
           self._mlEverDetected = true;
-          self._lastMLBallPos = { x: mlBall.cx, y: mlBall.cy, frame: self._frameCount };
           self._lastDetSource = 'ml';
           self._lastDetConf = mlBall.score;
           self._processBallDetection(mlBall.cx * scaleX + offsetX, mlBall.cy * scaleY + offsetY, vw, vh);
