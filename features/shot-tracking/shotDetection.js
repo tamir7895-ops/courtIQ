@@ -64,9 +64,6 @@
   var BALL_MIN_AREA_FRAC   = 0.00005;  // Very small — distant shots
   var BALL_MAX_AREA_FRAC   = 0.18;     // Very large — close-up shots
 
-  /* Y-trend diff threshold as fraction of frame height */
-  var Y_TREND_FRAC         = 0.003;   // Lower — catch slower arcing shots
-
   /* Color detection constants */
   var COLOR_SCAN_STEP      = 4;    // Pixel step for color scanning (performance)
   var COLOR_MIN_PIXELS     = 12;   // Minimum orange pixels to count as ball
@@ -206,23 +203,6 @@
     return tracker.positions.slice(-count).map(function (pt) {
       return { x: pt.x / w, y: pt.y / h, frame: pt.frame };
     });
-  }
-
-  function getYTrend(tracker, vh, lookback) {
-    lookback = lookback || 8;
-    var pts = tracker.positions;
-    if (pts.length < lookback) return 'flat';
-    var recent = pts.slice(-lookback);
-    var mid = Math.floor(recent.length / 2);
-    var firstAvg = 0, secondAvg = 0;
-    for (var i = 0; i < mid; i++) firstAvg += recent[i].y;
-    firstAvg /= mid;
-    for (var j = mid; j < recent.length; j++) secondAvg += recent[j].y;
-    secondAvg /= (recent.length - mid);
-    var diff = (secondAvg - firstAvg) / (vh || 720);
-    if (diff < -Y_TREND_FRAC) return 'rising';
-    if (diff > Y_TREND_FRAC) return 'falling';
-    return 'flat';
   }
 
   /* ── Time-based rising detector ───────────────────────────────
@@ -550,7 +530,6 @@
     _shotStateTime: 0,       // timestamp when current state started
     _ballMinY: 1.0,          // lowest Y (highest point) seen during current shot arc
     _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
-    _risingFrameCount: 0,    // legacy counter — retained for backwards compat in resets
     _sawBallAboveRim: false, // sticky flag: was ball ever above rim during this shot?
     _rimStabilized: false,   // gate: state machine ignores rim until screen flips this on
 
@@ -661,7 +640,6 @@
       this._shotStateTime = 0;
       this._ballMinY = 1.0;
       this._shotStartY = 1.0;
-      this._risingFrameCount = 0;
       this._sawBallAboveRim = false;
       this._rimStabilized = false;
       this._lastMLBallPos = null;
@@ -1279,7 +1257,6 @@
         this._shotState = 'idle';
         this._ballMinY = 1.0;
         this._shotStartY = 1.0;
-        this._risingFrameCount = 0;
         this._sawBallAboveRim = false;
       }
 
@@ -1369,7 +1346,6 @@
           this._shotState = 'idle';
           this._ballMinY = 1.0;
           this._shotStartY = 1.0;
-          this._risingFrameCount = 0;
           this._sawBallAboveRim = false;
         }
         return;
@@ -1392,7 +1368,6 @@
           this._shotStateTime     = now;
           this._ballMinY          = normY;
           this._shotStartY        = normY;
-          this._risingFrameCount  = 0;
           this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
         }
         return;
