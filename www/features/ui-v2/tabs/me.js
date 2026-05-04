@@ -1,170 +1,283 @@
-/* CourtIQ UI v2 — Me tab module (teal accent).
+/* CourtIQ UI v2 — Me tab renderer (Wave 1 redesign)
  *
- * When COURTIQ_UI_V2.ME_TAB is true:
- *   1. Injects #ciq-me-screen above the dashboard main.
- *   2. Syncs name/position/bio/avatar from #db-panel-archetype hooks.
- *   3. Syncs 3 stats (Sessions, Avg Shots Made, Field Goal %).
- *   4. Sub-nav chips — Profile (stay) / Social / Shop → dbSwitchTab.
- *
- * Notes:
- *   - The legacy 3D avatar canvas stays in #db-panel-archetype (hidden
- *     while v2-me is active). Three.js still runs but renders off-screen.
- *   - Trophy case values are static placeholders here; badges.js writes
- *     to DOM IDs that could be wired in a later pass.
- *
- * No changes to player-profile.js, avatar-*.js, social-hub.js, badges.js.
+ * Ports _design-import/v2/components/me-screen.jsx (compact). Single
+ * scrollable screen with sub-nav chips: Profile, Trophies, Social, Shop.
+ * Wires to DataService / Gamification / AvatarCustomizer / SocialHub
+ * when their globals exist; falls back to fixture data.
  */
 (function () {
   'use strict';
 
   if (!window.COURTIQ_UI_V2 || !window.COURTIQ_UI_V2.ME_TAB) return;
+  var DOM = window.CourtIQ_V2_DOM;
+  if (!DOM) { console.warn('[me-v2] dom-helpers missing'); return; }
+  var h = DOM.h, svg = DOM.svg;
 
-  var SUB_TABS = [
-    { id: 'profile', legacy: 'archetype', label: 'Profile' },
-    { id: 'social',  legacy: 'social',    label: 'Social' },
-    { id: 'shop',    legacy: 'shop',      label: 'Shop' }
-  ];
+  var FIXTURE = {
+    profile: {
+      name: 'Alex Rivera', position: 'Combo Guard',
+      level: 14, levelName: 'ALL-STAR', totalXP: 12488, weeklyXP: 320,
+      avatarSeed: 'alex-rivera-1',
+      coins: 320, archetype: 'Score-First Combo', signature: 'Catch-and-shoot · midrange'
+    },
+    stats: [
+      { lbl: 'GAMES',     val: '47' },
+      { lbl: 'AVG FG%',   val: '52' },
+      { lbl: 'TOP STREAK',val: '14' }
+    ],
+    trophies: [
+      { id: 't1', name: 'First Bucket',   earned: true,  tier: 'BRONZE' },
+      { id: 't2', name: 'Hot Hand',       earned: true,  tier: 'SILVER' },
+      { id: 't3', name: 'Centurion',      earned: true,  tier: 'GOLD'   },
+      { id: 't4', name: 'Sniper',         earned: false, tier: 'GOLD'   },
+      { id: 't5', name: 'All-Star',       earned: true,  tier: 'GOLD'   },
+      { id: 't6', name: 'Diamond Hands',  earned: false, tier: 'DIAMOND'}
+    ],
+    leaderboard: [
+      { rank: 1, name: 'Marcus J.', xp: 18402, you: false },
+      { rank: 2, name: 'You',       xp: 12488, you: true  },
+      { rank: 3, name: 'Tia P.',    xp: 11140, you: false }
+    ]
+  };
 
-  var TROPHIES = [
-    { n: 'First',     e: '🏆' },
-    { n: 'Dedicated', e: '💪' },
-    { n: 'Sniper',    e: '🎯' },
-    { n: 'All-Star',  e: '⭐' }
-  ];
-
-  function ICON_TROPHY() {
-    return '<svg viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>';
-  }
-  function ICON_MAIL() {
-    return '<svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>';
-  }
-
-  function buildScreen() {
-    var host = document.createElement('section');
-    host.id = 'ciq-me-screen';
-    host.setAttribute('role', 'region');
-    host.setAttribute('aria-label', 'Me');
-
-    var subButtons = SUB_TABS.map(function (t, i) {
-      return '<button type="button" class="' + (i === 0 ? 'active' : '') + '" data-ciq-subtab="' + t.id + '" data-ciq-legacy="' + t.legacy + '">' + t.label + '</button>';
-    }).join('');
-
-    var trophyHTML = TROPHIES.map(function (t, i) {
-      var earned = i < 2; // first two unlocked as a demo; badges.js can update this later
-      return '<div class="ciq-me-trophy ' + (earned ? 'earned' : '') + '">'
-        + '<div class="emoji">' + (earned ? t.e : '🔒') + '</div>'
-        + '<div class="n">' + t.n + '</div>'
-        + '</div>';
-    }).join('');
-
-    host.innerHTML = ''
-      + '<nav class="ciq-me-subnav" aria-label="Me sections">' + subButtons + '</nav>'
-      + '<div class="ciq-me-hero">'
-      +   '<div class="ciq-me-avatar"><img data-ciq-slot="avatar" alt="avatar"/></div>'
-      +   '<div class="ciq-me-id">'
-      +     '<div class="ciq-me-position" data-ciq-slot="position">POINT GUARD</div>'
-      +     '<div class="ciq-me-name" data-ciq-slot="name">Player</div>'
-      +     '<div class="ciq-me-bio" data-ciq-slot="bio">Complete onboarding to personalise your profile.</div>'
-      +   '</div>'
-      + '</div>'
-
-      + '<div class="ciq-me-stats">'
-      +   '<div class="ciq-me-stat"><div class="lbl">Sessions Logged</div><div class="val" data-ciq-slot="s1">—</div></div>'
-      +   '<div class="ciq-me-stat"><div class="lbl">Avg Shots Made</div><div class="val" data-ciq-slot="s2">—</div></div>'
-      +   '<div class="ciq-me-stat"><div class="lbl">Field Goal %</div><div class="val accent" data-ciq-slot="s3">—</div></div>'
-      + '</div>'
-
-      + '<div class="ciq-me-section-head">' + ICON_TROPHY() + '<div class="eyebrow">Trophy Case</div></div>'
-      + '<div class="ciq-me-trophies" data-ciq-slot="trophies">' + trophyHTML + '</div>'
-
-      + '<div class="ciq-me-section-head"><div class="eyebrow">Account</div></div>'
-      + '<div class="ciq-me-account">'
-      +   '<div class="ciq-me-account-icon">' + ICON_MAIL() + '</div>'
-      +   '<div class="ciq-me-account-body">'
-      +     '<div class="ciq-me-account-lbl">Email Address</div>'
-      +     '<div class="ciq-me-account-val" data-ciq-slot="email">—</div>'
-      +   '</div>'
-      +   '<div class="ciq-me-chev">›</div>'
-      + '</div>';
-
-    return host;
-  }
-
-  function textOf(sel) { var el = document.querySelector(sel); return el ? (el.textContent || '').trim() : ''; }
-  function setSlot(host, slot, value) {
-    var el = host.querySelector('[data-ciq-slot="' + slot + '"]');
-    if (!el) return;
-    if (el.tagName === 'IMG') { if (value) el.src = value; return; }
-    if (value) el.textContent = value;
-  }
-
-  function syncFromLegacy(host) {
-    var name = textOf('#ks-profile-full-name');
-    if (name) setSlot(host, 'name', name);
-
-    var pos = textOf('#ks-profile-position-tag');
-    if (pos) setSlot(host, 'position', pos);
-
-    var bio = textOf('#ks-profile-bio');
-    if (bio) setSlot(host, 'bio', bio);
-
-    var avatar = document.getElementById('ks-profile-avatar-img');
-    if (avatar && avatar.getAttribute('src')) setSlot(host, 'avatar', avatar.getAttribute('src'));
-
-    var s1 = textOf('#prof-stat1-val'); if (s1) setSlot(host, 's1', s1);
-    var s2 = textOf('#prof-stat2-val'); if (s2) setSlot(host, 's2', s2);
-    var s3 = textOf('#prof-stat3-val'); if (s3) setSlot(host, 's3', s3);
-
-    // Email from global auth state (Supabase exposes via sb / supabase on window)
+  function realProfile() {
+    var p = JSON.parse(JSON.stringify(FIXTURE.profile));
     try {
-      var email = (window.sb && window.sb.auth && window.sb.auth.session && window.sb.auth.session().user && window.sb.auth.session().user.email)
-        || (window.currentUser && window.currentUser.email)
-        || '';
-      if (email) setSlot(host, 'email', email);
-    } catch (e) { /* silent */ }
-  }
-
-  function wireActions(host) {
-    host.addEventListener('click', function (e) {
-      var t = e.target.closest('[data-ciq-subtab]');
-      if (!t) return;
-      host.querySelectorAll('.ciq-me-subnav button').forEach(function (b) { b.classList.toggle('active', b === t); });
-      var legacy = t.getAttribute('data-ciq-legacy');
-      if (legacy && legacy !== 'archetype' && typeof window.dbSwitchTab === 'function') {
-        window.dbSwitchTab(legacy);
+      if (window.dataService && typeof window.dataService.getProfile === 'function') {
+        var pr = window.dataService.getProfile();
+        if (pr) {
+          if (pr.name) p.name = pr.name;
+          if (pr.position) p.position = pr.position;
+          if (pr.avatarSeed) p.avatarSeed = pr.avatarSeed;
+        }
       }
+      if (window.gamification && typeof window.gamification.getStats === 'function') {
+        var s = window.gamification.getStats();
+        if (s) {
+          if (typeof s.level === 'number') p.level = s.level;
+          if (typeof s.xp === 'number') p.totalXP = s.xp;
+          if (typeof s.coins === 'number') p.coins = s.coins;
+        }
+      }
+    } catch (e) { /* fixture */ }
+    return p;
+  }
+
+  function settingsIcon() {
+    return svg('svg', { viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none' }, [
+      svg('circle', { cx: '12', cy: '12', r: '3', stroke: 'currentColor', 'stroke-width': '1.6' }),
+      svg('path', { d: 'M12 3v2M12 19v2M3 12h2M19 12h2M5 5l1.5 1.5M17.5 17.5L19 19M5 19l1.5-1.5M17.5 6.5L19 5',
+        stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' })
+    ]);
+  }
+  function backIcon() {
+    return svg('svg', { width: '14', height: '14', viewBox: '0 0 14 14', fill: 'none' },
+      [svg('path', { d: 'M9 2L4 7l5 5', stroke: 'currentColor', 'stroke-width': '1.6',
+        'stroke-linecap': 'round', 'stroke-linejoin': 'round' })]);
+  }
+
+  function buildAvatarNode(seed, size) {
+    if (window.MeAvatar && typeof window.MeAvatar === 'function') {
+      try { return window.MeAvatar({ seed: seed, size: size }); } catch (e) { /* fallback */ }
+    }
+    var img = document.createElement('img');
+    img.src = 'https://api.dicebear.com/9.x/avataaars/svg?seed=' + encodeURIComponent(seed || 'CourtIQ');
+    img.width = size; img.height = size; img.alt = '';
+    return img;
+  }
+
+  function buildHero(p, ctx) {
+    var hero = h('section', { class: 'me-sec me-sec--first' }, [
+      h('div', { class: 'me-hero' }, [
+        h('button', { class: 'me-avatar', 'aria-label': 'Customize avatar', onclick: ctx.customize }, [
+          buildAvatarNode(p.avatarSeed, 84),
+          h('span', { class: 'me-avatar__edit', text: '✎' })
+        ]),
+        h('div', { class: 'me-hero__name', text: p.name }),
+        h('div', { class: 'me-hero__meta' }, [
+          h('span', { class: 'me-hero__badge' }, [h('span', { class: 'me-hero__badge-dot' }), ' ' + p.position.toUpperCase()]),
+          h('span', { class: 'me-hero__badge' }, [' LV ' + p.level + ' · ' + p.levelName])
+        ]),
+        h('div', { class: 'me-hero__sig' }, [
+          h('div', { class: 'me-hero__sig-lbl', text: 'ARCHETYPE' }),
+          h('div', { class: 'me-hero__sig-val', text: p.archetype })
+        ])
+      ])
+    ]);
+    return hero;
+  }
+
+  function buildProfilePage(p, ctx) {
+    var statsRow = h('div', { class: 'me-stats' });
+    FIXTURE.stats.forEach(function (s) {
+      statsRow.appendChild(h('div', { class: 'me-stat me-glass' }, [
+        h('div', { class: 'me-stat__lbl', text: s.lbl }),
+        h('div', { class: 'me-stat__val', text: s.val })
+      ]));
     });
+
+    return [
+      buildHero(p, ctx),
+      h('section', { class: 'me-sec' }, [
+        h('div', { class: 'me-sec__head' }, [h('div', { class: 'me-sec__title', text: 'Stats' })]),
+        statsRow
+      ]),
+      h('section', { class: 'me-sec' }, [
+        h('div', { class: 'me-glass me-card' }, [
+          h('div', { class: 'me-card__lbl', text: 'XP THIS WEEK' }),
+          h('div', { class: 'me-card__val', text: '+' + p.weeklyXP }),
+          h('div', { class: 'me-card__sub', text: 'Level ' + p.level + ' · ' + p.totalXP.toLocaleString() + ' total' })
+        ])
+      ])
+    ];
   }
 
-  function init() {
-    var main = document.querySelector('.db-main-inner, #db-main-inner, .db-main, main');
-    if (!main) {
-      console.warn('[ciq-me] main container not found; skipping');
-      return;
-    }
-
-    var host = buildScreen();
-    main.appendChild(host);
-    wireActions(host);
-
-    syncFromLegacy(host);
-    setTimeout(function () { syncFromLegacy(host); }, 400);
-    setTimeout(function () { syncFromLegacy(host); }, 1500);
-
-    var legacyPanel = document.getElementById('db-panel-archetype');
-    if (legacyPanel && 'MutationObserver' in window) {
-      var mo = new MutationObserver(function () { syncFromLegacy(host); });
-      mo.observe(legacyPanel, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['src'] });
-    }
-
-    document.body.classList.add('ciq-v2-me');
-
-    window.CIQ_ME = { host: host, syncNow: function () { syncFromLegacy(host); } };
+  function buildTrophiesPage() {
+    var grid = h('div', { class: 'me-trophies' });
+    FIXTURE.trophies.forEach(function (t) {
+      grid.appendChild(h('div', {
+        class: 'me-trophy me-glass' + (t.earned ? '' : ' is-locked'),
+        'data-tier': t.tier
+      }, [
+        h('div', { class: 'me-trophy__icon' }, [
+          h('span', { text: t.earned ? '🏆' : '🔒' })
+        ]),
+        h('div', { class: 'me-trophy__name', text: t.name }),
+        h('div', { class: 'me-trophy__tier', text: t.tier })
+      ]));
+    });
+    return [
+      h('section', { class: 'me-sec me-sec--first' }, [
+        h('div', { class: 'me-sec__head' }, [
+          h('div', { class: 'me-sec__title', text: 'Trophy Case' }),
+          h('div', { class: 'me-sec__more', text: FIXTURE.trophies.filter(function (x) { return x.earned; }).length + '/' + FIXTURE.trophies.length })
+        ]),
+        grid
+      ])
+    ];
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
+  function buildSocialPage(ctx) {
+    var rows = h('div', { class: 'me-leader' });
+    FIXTURE.leaderboard.forEach(function (e) {
+      rows.appendChild(h('div', { class: 'me-leader__row' + (e.you ? ' is-you' : '') }, [
+        h('div', { class: 'me-leader__rank', text: '#' + e.rank }),
+        h('div', { class: 'me-leader__name', text: e.name }),
+        h('div', { class: 'me-leader__xp', text: e.xp.toLocaleString() + ' XP' })
+      ]));
+    });
+    return [
+      h('section', { class: 'me-sec me-sec--first' }, [
+        h('div', { class: 'me-sec__head' }, [h('div', { class: 'me-sec__title', text: 'Leaderboard' })]),
+        h('div', { class: 'me-glass' }, [rows])
+      ]),
+      h('section', { class: 'me-sec' }, [
+        h('button', { class: 'me-cta',
+          onclick: function () {
+            try { if (window.socialHub && typeof window.socialHub.sendChallenge === 'function') window.socialHub.sendChallenge(); }
+            catch (e) {}
+          } }, ['Send Challenge'])
+      ])
+    ];
   }
+
+  function buildShopPage(p) {
+    var items = [
+      { id: 'h1', name: 'Headband',     price: 100, owned: true,  cat: 'accessories' },
+      { id: 'h2', name: 'Sweatband',    price: 75,  owned: false, cat: 'accessories' },
+      { id: 'h3', name: 'Armband',      price: 60,  owned: false, cat: 'accessories' },
+      { id: 'h4', name: 'Sport Glasses',price: 250, owned: false, cat: 'accessories' }
+    ];
+    var grid = h('div', { class: 'me-shop__grid' });
+    items.forEach(function (i) {
+      grid.appendChild(h('div', { class: 'me-shop__card me-glass' + (i.owned ? ' is-owned' : '') }, [
+        h('div', { class: 'me-shop__name', text: i.name }),
+        h('div', { class: 'me-shop__price', text: i.owned ? 'OWNED' : i.price + ' COINS' })
+      ]));
+    });
+    return [
+      h('section', { class: 'me-sec me-sec--first' }, [
+        h('div', { class: 'me-glass me-shop__wallet' }, [
+          h('div', { class: 'me-shop__wallet-l' }, [
+            h('div', { class: 'me-shop__wallet-num', text: String(p.coins) }),
+            h('div', { class: 'me-shop__wallet-lbl', text: 'COINS · LV ' + p.level })
+          ])
+        ])
+      ]),
+      h('section', { class: 'me-sec' }, [
+        h('div', { class: 'me-shop__cats' }, [
+          h('button', { class: 'me-shop__cat is-active', text: 'ACCESSORIES' }),
+          h('button', { class: 'me-shop__cat', text: 'HAIR' }),
+          h('button', { class: 'me-shop__cat', text: 'BEARD' })
+        ]),
+        grid
+      ])
+    ];
+  }
+
+  var state = { tab: 'profile' };
+  var hostRef = null;
+
+  function paint() {
+    if (!hostRef) return;
+    var p = realProfile();
+    var ctx = {
+      customize: function () {
+        try {
+          if (window.avatarCustomizer && typeof window.avatarCustomizer.open === 'function') {
+            window.avatarCustomizer.open();
+          }
+        } catch (e) { /* legacy */ }
+      },
+      openSettings: function () { /* TODO: settings sheet */ }
+    };
+
+    DOM.clearChildren(hostRef);
+    var stamp = h('div', { class: 'me-stamp' }, [
+      h('div', { class: 'me-stamp__l' }, [
+        h('button', { class: 'me-stamp__icon-btn', 'aria-label': 'Back',
+          onclick: function () { if (window.CIQ_SHELL) window.CIQ_SHELL.switchTo('home'); } }, [backIcon()]),
+        h('div', null, [
+          h('div', { class: 'me-stamp__eyebrow', text: 'ME · IDENTITY' }),
+          h('div', { class: 'me-stamp__meta', text: 'LV ' + p.level + ' · ' + p.totalXP.toLocaleString() + ' XP' })
+        ])
+      ]),
+      h('button', { class: 'me-stamp__icon-btn me-stamp__gear', 'aria-label': 'Settings',
+        onclick: ctx.openSettings }, [settingsIcon()])
+    ]);
+
+    var subnav = h('div', { class: 'me-subnav' });
+    [{ id: 'profile', label: 'Profile' }, { id: 'trophies', label: 'Trophies' },
+     { id: 'social', label: 'Social' }, { id: 'shop', label: 'Shop' }].forEach(function (c) {
+      subnav.appendChild(h('button', {
+        class: 'me-chip' + (state.tab === c.id ? ' is-active' : ''), text: c.label,
+        onclick: function () { state.tab = c.id; paint(); }
+      }));
+    });
+
+    var pageNodes;
+    if (state.tab === 'profile')      pageNodes = buildProfilePage(p, ctx);
+    else if (state.tab === 'trophies') pageNodes = buildTrophiesPage();
+    else if (state.tab === 'social')   pageNodes = buildSocialPage(ctx);
+    else                                pageNodes = buildShopPage(p);
+
+    var scroll = h('div', { class: 'me-scroll' });
+    pageNodes.forEach(function (n) { if (n) scroll.appendChild(n); });
+
+    var screen = h('div', { class: 'me' }, [stamp, subnav, scroll]);
+    hostRef.appendChild(screen);
+  }
+
+  function render(host) {
+    DOM.hideLegacyPanels();
+    hostRef = DOM.ensureHost('ciq-v2-me');
+    paint();
+  }
+
+  function cleanup() {
+    if (hostRef) DOM.clearChildren(hostRef);
+    DOM.restoreLegacyPanels();
+  }
+
+  window.CourtIQ_V2_Me = { render: render, cleanup: cleanup };
 })();

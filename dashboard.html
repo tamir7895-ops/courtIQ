@@ -69,6 +69,12 @@
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/track-sessions.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/home-calendar.css?v=1" />
   <link rel="stylesheet" href="styles/courtiq-ui/tabs/me-social.css?v=1" />
+  <!-- Wave 1 — Claude Design v2 redesign (new screens + shared court component) -->
+  <link rel="stylesheet" href="styles/courtiq-ui/ciq-court.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/camera-hud.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/post-session.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/onboarding.css?v=1" />
+  <link rel="stylesheet" href="styles/courtiq-ui/tabs/me-shop.css?v=1" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" integrity="sha384-bs/nf9FbdNouRbMiFcrcZfLXYPKiPaGVGplVbv7dLGECccEXDW+S3zjqSKR5ZEaD" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"></script>
 </head>
@@ -2808,6 +2814,7 @@ if(window.__PREVIEW_MODE__){
 
 <!-- CourtIQ UI v2 — shell (flag-gated; does nothing when SHELL_ACTIVE=false) -->
 <script src="features/ui-v2/config.js" defer></script>
+<script src="features/ui-v2/dom-helpers.js" defer></script>
 <!-- Phase 10 — design-maturity foundation: must load BEFORE shell + tab modules -->
 <script src="features/ui-v2/icons.js" defer></script>
 <script src="features/ui-v2/templates.js" defer></script>
@@ -2827,6 +2834,10 @@ if(window.__PREVIEW_MODE__){
 <script src="features/ui-v2/tabs/track-sessions.js" defer></script>
 <script src="features/ui-v2/tabs/home-calendar.js" defer></script>
 <script src="features/ui-v2/tabs/me-social.js" defer></script>
+<!-- Wave 1 — Claude Design v2 redesign (new screens) -->
+<script src="features/ui-v2/tabs/camera-hud.js" defer></script>
+<script src="features/ui-v2/tabs/post-session.js" defer></script>
+<script src="features/ui-v2/tabs/onboarding-v2.js" defer></script>
 
 <!-- KE Stats period chip toggler -->
 <script>
