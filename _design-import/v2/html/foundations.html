@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CourtIQ v2 · Wave 0 — Foundations</title>
+<link rel="stylesheet" href="../colors_and_type.css" />
+<link rel="stylesheet" href="foundations.css" />
+<style>
+  body {
+    background: var(--c-bg);
+    color: var(--c-white);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  body::before {
+    content:''; position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:1; opacity:.5;
+  }
+  .doc { max-width: 1180px; margin: 0 auto; padding: 64px 48px 160px; position: relative; z-index: 2; }
+
+  /* masthead */
+  .masthead { display: grid; grid-template-columns: auto 1fr auto; gap: 24px; align-items: center; padding-bottom: 28px; border-bottom: 1px solid rgba(255,255,255,0.08); margin-bottom: 56px; }
+  .mark {
+    width: 60px; height: 60px; border-radius: 14px;
+    background: linear-gradient(135deg, #ff5a3c 0%, #ff3a14 60%, #c81100 100%);
+    display: grid; place-items: center;
+    box-shadow: 0 12px 32px rgba(255,26,0,0.30), inset 0 1px 0 rgba(255,255,255,0.25);
+  }
+  .masthead .kicker { font-family: var(--font-display); font-size: 11px; font-weight:800; letter-spacing:.22em; text-transform:uppercase; color: var(--c-brand-hover); }
+  .masthead h1 { font-family: var(--font-display); font-size:42px; font-weight:900; line-height: 0.95; letter-spacing: -0.015em; text-transform: uppercase; font-style: italic; }
+  .masthead h1 em { color: var(--c-brand); font-style: italic; }
+  .masthead .stamp { font-family: var(--font-display); font-size: 10px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--c-success); padding: 5px 10px; border-radius: 999px; background: var(--c-success-dim); border: 1px solid color-mix(in srgb, var(--c-success) 30%, transparent); }
+
+  /* section heading */
+  .sec { margin: 96px 0 24px; }
+  .sec:first-of-type { margin-top: 24px; }
+  .sec .num { font-family: var(--font-display); font-size: 13px; font-weight: 800; letter-spacing: .22em; color: var(--c-brand-hover); text-transform: uppercase; }
+  .sec h2 { font-family: var(--font-display); font-size: 30px; font-weight: 900; line-height: 1; letter-spacing: -0.01em; text-transform: uppercase; margin: 6px 0 4px; }
+  .sec .lede { font-size: 14.5px; color: var(--c-text-secondary); max-width: 70ch; margin-top: 8px; }
+  .sec .lede code { font-family: 'SF Mono', ui-monospace, monospace; font-size: 12.5px; color: var(--c-white); background: rgba(255,255,255,0.06); padding: 1px 6px; border-radius: 4px; }
+  .rule { height: 1px; background: rgba(255,255,255,0.08); margin-top: 16px; }
+
+  /* token row — color swatches */
+  .tokens { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 28px; }
+  .tok {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 14px;
+    padding: 18px 18px 16px;
+  }
+  .tok .swatch { height: 64px; border-radius: 10px; margin-bottom: 14px; border: 1px solid rgba(255,255,255,.06); position: relative; overflow: hidden; }
+  .tok .swatch.glow::after { content:''; position:absolute; inset:-1px; border-radius:10px; box-shadow: 0 0 30px var(--c-brand-glow); pointer-events:none; }
+  .tok .name { font-family:'SF Mono', ui-monospace, monospace; font-size: 11.5px; color: var(--c-white); }
+  .tok .hex  { font-family:'SF Mono', ui-monospace, monospace; font-size: 11px; color: var(--c-text-tertiary); margin-top: 3px; }
+  .tok .role { font-family: var(--font-display); font-size: 10px; font-weight:800; letter-spacing:.18em; text-transform: uppercase; color: var(--c-text-tertiary); margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+  /* split — brand vs amber */
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 28px; }
+  .split > div {
+    border-radius: 18px; padding: 22px 24px 26px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    position: relative; overflow: hidden;
+  }
+  .split .lbl { font-family: var(--font-display); font-size: 11px; font-weight:800; letter-spacing:.2em; text-transform: uppercase; color: var(--c-text-tertiary); margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .split .lbl .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .split h3 { font-family: var(--font-display); font-size: 26px; font-weight: 900; text-transform: uppercase; line-height: 1.05; }
+  .split p { font-size: 13px; color: var(--c-text-secondary); margin: 8px 0 16px; }
+  .split ul { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .split li { font-size: 12.5px; color: var(--c-text-secondary); display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; }
+  .split li::before { content: ''; width: 4px; height: 4px; border-radius: 50%; background: var(--accent, currentColor); margin-top: 6px; }
+  .split.brand-side > div:first-child { --accent: var(--c-brand); }
+  .split.brand-side > div:last-child  { --accent: var(--c-amber); }
+
+  /* trinity demo — three stacked surfaces */
+  .trinity { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+  .trinity .demo { padding: 24px; border-radius: 22px; min-height: 220px; display: flex; flex-direction: column; justify-content: space-between; gap: 14px; position: relative; overflow: hidden; }
+  .trinity .lbl-row { display: flex; align-items: center; justify-content: space-between; }
+  .trinity .lbl { font-family: var(--font-display); font-size: 10px; font-weight:800; letter-spacing:.2em; text-transform: uppercase; color: rgba(255,255,255,0.55); }
+  .trinity .badge { font-family: var(--font-display); font-size: 10px; font-weight:800; letter-spacing: .14em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+  .trinity .h .badge { color: var(--c-brand-hover); background: var(--c-brand-dim); border: 1px solid var(--c-brand-dim); }
+  .trinity .g .badge { color: var(--c-amber); background: var(--c-amber-dim); border: 1px solid var(--c-amber-dim); }
+  .trinity .f .badge { color: var(--c-text-secondary); background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
+  .trinity h4 { font-family: var(--font-display); font-size: 22px; font-weight: 900; text-transform: uppercase; line-height: 1.05; }
+  .trinity .desc { font-size: 12.5px; color: var(--c-text-secondary); }
+  .trinity .rules { display: grid; grid-template-columns: 1fr; gap: 4px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .trinity .rules div { font-size: 11.5px; color: var(--c-text-tertiary); display: grid; grid-template-columns: 60px 1fr; gap: 8px; }
+  .trinity .rules .k { font-family: var(--font-display); font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--c-white); }
+  .trinity .h { /* hero */ }
+  .trinity .f { background: var(--surface-flat); border: 1px dashed rgba(255,255,255,0.10); }
+
+  /* states grid */
+  .states { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; margin-top: 28px; }
+  .state-cell { display: flex; flex-direction: column; gap: 10px; }
+  .state-cell .heading { display: flex; align-items: baseline; gap: 10px; }
+  .state-cell .heading h4 { font-family: var(--font-display); font-size: 16px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+  .state-cell .heading .pill { font-family: var(--font-display); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; color: var(--c-text-tertiary); padding: 3px 8px; background: rgba(255,255,255,0.04); border-radius: 4px; }
+
+  /* skeleton demo card */
+  .sk-card { padding: 18px; background: var(--surface-glass); border: 1px solid var(--surface-glass-border); border-radius: 16px; backdrop-filter: blur(20px); display: flex; flex-direction: column; gap: 12px; }
+  .sk-row { display: flex; align-items: center; gap: 12px; }
+
+  /* locked demo: a card faux-shop item */
+  .lock-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .shop-tile {
+    background: var(--surface-glass);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--surface-glass-border);
+    border-radius: 16px;
+    padding: 18px 14px 14px;
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+  }
+  .shop-tile .av {
+    width: 72px; height: 72px; border-radius: 50%;
+    background: linear-gradient(135deg, #2a3142, #1a1f2c);
+    display: grid; place-items: center;
+    border: 1px solid rgba(255,255,255,0.06);
+  }
+  .shop-tile .name { font-family: var(--font-display); font-size: 13px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--c-white); }
+  .shop-tile .price { font-family: var(--font-display); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--c-amber); }
+
+  /* italic-voice demo */
+  .voice-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+  .voice-demo .panel { background: var(--surface-glass); backdrop-filter: blur(20px); border: 1px solid var(--surface-glass-border); border-radius: 18px; padding: 22px; min-height: 200px; display: flex; flex-direction: column; gap: 12px; }
+  .voice-demo .header-row { display: flex; align-items: center; justify-content: space-between; }
+  .voice-demo .ok-row, .voice-demo .bad-row { display: flex; flex-wrap: wrap; gap: 6px; }
+  .voice-demo .chip { font-family: var(--font-display); font-size: 10px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; padding: 4px 8px; border-radius: 4px; }
+  .voice-demo .chip.do { color: var(--c-success); background: var(--c-success-dim); border: 1px solid color-mix(in srgb, var(--c-success) 25%, transparent); }
+  .voice-demo .chip.no { color: var(--c-brand); background: var(--c-brand-dim); border: 1px solid color-mix(in srgb, var(--c-brand) 25%, transparent); }
+  .stat-upright { font-family: var(--font-display); font-size: 56px; font-weight: 900; line-height: 1; color: var(--c-amber); letter-spacing: -0.02em; font-feature-settings: "tnum" 1; }
+  .stat-upright .pct { font-size: 32px; color: var(--c-text-tertiary); margin-left: 2px; }
+  .label-upright { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--c-text-tertiary); }
+
+  /* xref demo */
+  .xref-demo { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+  .xref-demo .panel { padding: 22px; border-radius: 18px; border: 1px solid var(--surface-glass-border); background: var(--surface-glass); backdrop-filter: blur(20px); }
+  .xref-demo .panel.coach { --accent: var(--c-coach); }
+  .xref-demo .panel.coach .accent-line { color: var(--c-coach); }
+  .xref-demo .panel.bad   { --accent: var(--c-train); border-color: rgba(255,58,20,0.30); }
+  .xref-demo .panel-head { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: .2em; text-transform: uppercase; color: var(--accent, var(--c-text-tertiary)); }
+  .xref-demo .panel-head .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .xref-demo .verdict { font-family: var(--font-display); font-size: 22px; font-weight: 900; font-style: italic; line-height: 1.05; text-transform: uppercase; color: var(--c-white); margin: 14px 0 8px; }
+  .xref-demo .verdict em { color: var(--accent); font-style: italic; }
+  .xref-demo p { font-size: 13px; color: var(--c-text-secondary); margin-bottom: 12px; }
+  .xref-demo .bad-card {
+    background: var(--c-train-dim);
+    border: 1px solid color-mix(in srgb, var(--c-train) 30%, transparent);
+    border-radius: 12px;
+    padding: 14px;
+    color: var(--c-train);
+    font-family: var(--font-display);
+    font-size: 13px; font-weight: 800;
+    letter-spacing: .08em; text-transform: uppercase;
+    margin-top: 8px;
+  }
+  .xref-demo .bad-banner {
+    margin-top: 10px;
+    font-family: var(--font-display); font-size: 10px; font-weight: 800;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--c-brand);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .xref-demo .bad-banner svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+  .xref-demo .ok-banner {
+    margin-top: 10px;
+    font-family: var(--font-display); font-size: 10px; font-weight: 800;
+    letter-spacing: .18em; text-transform: uppercase;
+    color: var(--c-success);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .xref-demo .ok-banner svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2; }
+
+  /* contract table */
+  .contract { margin-top: 28px; border-radius: 18px; overflow: hidden; border: 1px solid var(--surface-glass-border); background: var(--surface-glass); backdrop-filter: blur(20px); }
+  .contract table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .contract th, .contract td { padding: 12px 16px; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); vertical-align: top; }
+  .contract tr:last-child td { border-bottom: none; }
+  .contract th { font-family: var(--font-display); font-size: 10px; font-weight:800; letter-spacing:.2em; text-transform: uppercase; color: var(--c-text-tertiary); background: rgba(255,255,255,0.02); }
+  .contract td.k { font-family: 'SF Mono', ui-monospace, monospace; font-size: 12px; color: var(--c-white); }
+  .contract td.v { color: var(--c-text-secondary); }
+  .contract td.r { font-family: var(--font-display); font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--c-amber); }
+
+  /* end note */
+  .endnote { margin-top: 80px; padding-top: 28px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; gap: 12px; font-size: 13px; color: var(--c-text-tertiary); }
+  .endnote strong { color: var(--c-white); font-family: var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+
+  .nogap { margin-top: 0 !important; }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ═══════ MASTHEAD ═══════ -->
+  <header class="masthead">
+    <div class="mark" aria-hidden="true">
+      <svg width="36" height="36" viewBox="0 0 44 44" fill="none">
+        <circle cx="22" cy="22" r="16" stroke="#fff" stroke-width="2.4"/>
+        <path d="M6 22h32M22 6v32M9.5 11.5C14 16 14 28 9.5 32.5M34.5 11.5C30 16 30 28 34.5 32.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="kicker">Wave 00 · Foundations · CSS only · No screens yet</div>
+      <h1>The contract that makes <em>everything else</em> possible.</h1>
+    </div>
+    <span class="stamp">Approved · build</span>
+  </header>
+
+  <!-- ═══════ 1 · BRAND vs AMBER ═══════ -->
+  <section class="sec nogap">
+    <div class="num">01 · Brand vs Amber</div>
+    <h2>Two reds that never collide</h2>
+    <p class="lede">
+      <code>--c-brand</code> is the logo color, lifted from the brand sheet. It belongs to the <strong>chrome</strong> — logo, splash, app icon, celebration moments, error accents.
+      <code>--c-amber</code> stays exactly where it was: the <strong>Home tab accent</strong>, nothing more. They're never legal in the same role.
+    </p>
+  </section>
+
+  <div class="split brand-side">
+    <div>
+      <div class="lbl"><span class="dot" style="background: var(--c-brand)"></span>--c-brand · #ff3a14</div>
+      <h3>The brand voice</h3>
+      <p>The logo's red-orange. Reaches for it when the app is speaking <em>as itself</em>: chrome, celebration, error, urgency.</p>
+      <ul>
+        <li>Logo · masthead · splash · app icon</li>
+        <li>Error states (camera denied, AI failed, network)</li>
+        <li>Level-up &amp; workout-complete celebrations</li>
+        <li>Coach-to-Train drill outline pulse</li>
+      </ul>
+    </div>
+    <div>
+      <div class="lbl"><span class="dot" style="background: var(--c-amber)"></span>--c-amber / --c-home · #f5a623</div>
+      <h3>The Home tab</h3>
+      <p>The "what now" tab accent. Untouched. No new responsibilities. Stays in its lane so the 5-tab system keeps its symmetry.</p>
+      <ul>
+        <li>Home tab landing accent</li>
+        <li>Daily Challenge highlight</li>
+        <li>XP &amp; streak amber moments</li>
+        <li>Big stat numerals (FG%, sessions logged)</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="tokens" style="margin-top: 16px;">
+    <div class="tok"><div class="swatch glow" style="background:#ff3a14"></div><div class="name">--c-brand</div><div class="hex">#ff3a14</div><div class="role">Brand · logo · celebration</div></div>
+    <div class="tok"><div class="swatch" style="background:#ff5a3c"></div><div class="name">--c-brand-hover</div><div class="hex">#ff5a3c</div><div class="role">Brand · hover</div></div>
+    <div class="tok"><div class="swatch" style="background:#c81100"></div><div class="name">--c-brand-dark</div><div class="hex">#c81100</div><div class="role">Brand · pressed</div></div>
+    <div class="tok"><div class="swatch" style="background:#f5a623"></div><div class="name">--c-amber</div><div class="hex">#f5a623</div><div class="role">Home · tab accent</div></div>
+  </div>
+
+  <!-- ═══════ 2 · SURFACE TRINITY ═══════ -->
+  <section class="sec">
+    <div class="num">02 · Surface Trinity</div>
+    <h2>Three surfaces, three jobs, no overlap</h2>
+    <p class="lede">
+      The single rule that fixes "everything is glass." Every component must reach into <strong>one of three semantic surfaces</strong> — never raw palette.
+      <code>--surface-hero</code> is the one bold thing per screen. <code>--surface-glass</code> groups ambient content. <code>--surface-flat</code> is for rows, lists, dividers.
+    </p>
+  </section>
+
+  <div class="trinity">
+    <div class="demo h ciq-hero">
+      <div class="lbl-row">
+        <span class="lbl">--surface-hero</span>
+        <span class="badge">1 per screen</span>
+      </div>
+      <h4>The bold thing</h4>
+      <div class="desc">Today's challenge. The verdict. The Start button. Solid fill, accent or photo.</div>
+      <div class="rules">
+        <div><span class="k">Bg</span><span>solid · #1a1d26 or accent</span></div>
+        <div><span class="k">Border</span><span>1px / 10% white</span></div>
+        <div><span class="k">Shadow</span><span>deep, grounded</span></div>
+      </div>
+    </div>
+    <div class="demo g ciq-glass-v2">
+      <div class="lbl-row">
+        <span class="lbl">--surface-glass</span>
+        <span class="badge">grouping</span>
+      </div>
+      <h4>Ambient grouping</h4>
+      <div class="desc">A cluster of related content. Stat tiles, drill picker, settings group. Blurred &amp; tinted.</div>
+      <div class="rules">
+        <div><span class="k">Bg</span><span>22,25,33 / 70%</span></div>
+        <div><span class="k">Blur</span><span>20px</span></div>
+        <div><span class="k">Border</span><span>1px / 8% white</span></div>
+      </div>
+    </div>
+    <div class="demo f">
+      <div class="lbl-row">
+        <span class="lbl">--surface-flat</span>
+        <span class="badge">rows · inline</span>
+      </div>
+      <h4>Transparent rows</h4>
+      <div class="desc">List rows, settings entries, recent sessions. Hairline divider, no shadow, no chrome.</div>
+      <div class="rules">
+        <div><span class="k">Bg</span><span>transparent</span></div>
+        <div><span class="k">Divider</span><span>1px / 4% white</span></div>
+        <div><span class="k">Shadow</span><span>none</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- contract -->
+  <div class="contract">
+    <table>
+      <thead><tr><th>Component</th><th>Allowed surface</th><th>Disallowed</th></tr></thead>
+      <tbody>
+        <tr><td class="k">.ciq-stat-tile (hero stat)</td><td class="v">--surface-hero or solid accent</td><td class="r">no glass</td></tr>
+        <tr><td class="k">.ciq-stat-tile (secondary)</td><td class="v">--surface-glass</td><td class="r">—</td></tr>
+        <tr><td class="k">List row · session · drill</td><td class="v">--surface-flat</td><td class="r">no glass per-row</td></tr>
+        <tr><td class="k">BottomSheet</td><td class="v">--surface-glass over scrim</td><td class="r">—</td></tr>
+        <tr><td class="k">DetailOverlay (camera, workout)</td><td class="v">--surface-hero (full-bleed)</td><td class="r">no glass HUD</td></tr>
+        <tr><td class="k">Inline xref / chip</td><td class="v">--surface-flat</td><td class="r">no colored card</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══════ 3 · STATE CLASSES ═══════ -->
+  <section class="sec">
+    <div class="num">03 · The Four Missing States</div>
+    <h2>Error · Success · Skeleton · Locked</h2>
+    <p class="lede">
+      Each state ships as a single class with a prescribed structure and copy pattern. Authors don't compose state UI ad-hoc — they pick the class.
+    </p>
+  </section>
+
+  <div class="states">
+
+    <!-- ERROR -->
+    <div class="state-cell">
+      <div class="heading"><h4>.ciq-error</h4><span class="pill">camera · ai fail · network</span></div>
+      <div class="ciq-error">
+        <div class="ciq-error__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+        </div>
+        <div class="ciq-error__title">Camera blocked</div>
+        <div class="ciq-error__body">CourtIQ needs camera access to detect shots. Open Settings to allow it.</div>
+        <button class="ciq-error__cta">Open Settings</button>
+      </div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="state-cell">
+      <div class="heading"><h4>.ciq-success</h4><span class="pill">workout · save · level up</span></div>
+      <div class="ciq-success">
+        <div class="ciq-success__icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+        </div>
+        <div class="ciq-success__title">Workout logged</div>
+        <div class="ciq-success__body">12 drills · 38 minutes · 142 reps</div>
+        <span class="ciq-success__stat">+150 XP</span>
+      </div>
+    </div>
+
+    <!-- SKELETON -->
+    <div class="state-cell">
+      <div class="heading"><h4>.ciq-skeleton</h4><span class="pill">data-heavy screens</span></div>
+      <div class="sk-card">
+        <div class="sk-row">
+          <div class="ciq-skeleton ciq-skeleton--circle" style="width:48px;height:48px;"></div>
+          <div style="flex:1; display:flex; flex-direction:column; gap:6px;">
+            <div class="ciq-skeleton" style="height:14px; width:70%;"></div>
+            <div class="ciq-skeleton" style="height:11px; width:40%;"></div>
+          </div>
+        </div>
+        <div class="ciq-skeleton ciq-skeleton--block" style="height:80px;"></div>
+        <div style="display:flex; gap:10px;">
+          <div class="ciq-skeleton" style="flex:1;height:36px;"></div>
+          <div class="ciq-skeleton" style="flex:1;height:36px;"></div>
+          <div class="ciq-skeleton" style="flex:1;height:36px;"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LOCKED -->
+    <div class="state-cell">
+      <div class="heading"><h4>.ciq-locked</h4><span class="pill">premium · level-gated</span></div>
+      <div class="lock-grid">
+        <div class="shop-tile">
+          <div class="av">
+            <svg width="40" height="40" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="14" r="6" stroke="#f5a623" stroke-width="2.4"/><rect x="11" y="22" width="22" height="14" rx="6" stroke="#f5a623" stroke-width="2.4"/></svg>
+          </div>
+          <div class="name">Headband</div>
+          <div class="price">100 ⛀</div>
+        </div>
+        <div class="shop-tile ciq-locked">
+          <div class="av">
+            <svg width="40" height="40" viewBox="0 0 44 44" fill="none"><circle cx="22" cy="14" r="6" stroke="#bc8cff" stroke-width="2.4"/><path d="M11 22h22v14H11z" stroke="#bc8cff" stroke-width="2.4"/></svg>
+          </div>
+          <div class="name">Gold Chain</div>
+          <div class="price">200 ⛀</div>
+          <span class="ciq-locked__chip">
+            <svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+            Reach Level 3
+          </span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ═══════ 4 · ITALIC AS VOICE ═══════ -->
+  <section class="sec">
+    <div class="num">04 · Italic as Voice</div>
+    <h2>Italic display = the human voice. Nothing else.</h2>
+    <p class="lede">
+      Reserved for verdicts, hero titles, and celebration overlays. Stats and labels stay <strong>upright</strong>. The signature gets its weight back.
+    </p>
+  </section>
+
+  <div class="voice-demo">
+    <div class="panel">
+      <div class="header-row">
+        <span class="label-upright" style="color: var(--c-success)">Do · Italic = voice</span>
+        <span class="chip do">Allowed</span>
+      </div>
+      <div class="ciq-voice ciq-voice--lg">You're <span style="color:var(--c-coach)">leaving threes</span> on the rack.</div>
+      <div class="ok-row">
+        <span class="chip do">verdict</span>
+        <span class="chip do">hero title</span>
+        <span class="chip do">celebration overlay</span>
+        <span class="chip do">"swish" stamp</span>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="header-row">
+        <span class="label-upright">Do · Upright = data</span>
+        <span class="chip do">Allowed</span>
+      </div>
+      <div style="display:flex; align-items:baseline; gap: 14px; margin-top: 4px;">
+        <span class="stat-upright">62<span class="pct">%</span></span>
+        <div style="display:flex; flex-direction:column; gap:4px;">
+          <span class="label-upright">Field goal</span>
+          <span class="label-upright" style="color:var(--c-text-secondary)">Last 7 days</span>
+        </div>
+      </div>
+      <div class="bad-row" style="margin-top:auto;">
+        <span class="chip no">no italic on stats</span>
+        <span class="chip no">no italic on eyebrows</span>
+        <span class="chip no">no italic on body</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 5 · CROSS-TAB REFERENCE ═══════ -->
+  <section class="sec">
+    <div class="num">05 · Cross-tab Reference</div>
+    <h2>Source tab keeps the accent. Destination is text + arrow.</h2>
+    <p class="lede">
+      When tab A references tab B's content, the reference card stays in tab A's color. We never render a colored card from another tab inside this one — that's what makes the screen feel like a five-color rainbow.
+    </p>
+  </section>
+
+  <div class="xref-demo">
+    <!-- DO -->
+    <div class="panel coach" style="--accent: var(--c-coach);">
+      <div class="panel-head"><span class="dot"></span>Coach insight</div>
+      <div class="verdict">Your <em>right corner</em> is hot. Lean into it.</div>
+      <p>Eight of your last nine corner threes fell. Your catch-and-shoot mechanics are tighter than two weeks ago.</p>
+
+      <button class="ciq-xref" style="--accent: var(--c-coach);">
+        Run drill
+        <span class="ciq-xref__target">Corner Three Lock-in · Train</span>
+        <svg class="ciq-xref__arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+      </button>
+      <div class="ok-banner">
+        <svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>
+        Allowed · purple stays the speaker, Train is just text + arrow
+      </div>
+    </div>
+
+    <!-- DON'T -->
+    <div class="panel bad">
+      <div class="panel-head" style="color: var(--c-coach);"><span class="dot"></span>Coach insight</div>
+      <div class="verdict" style="--accent: var(--c-coach);">Your <em>right corner</em> is hot. Lean into it.</div>
+      <p>Eight of your last nine corner threes fell. Your catch-and-shoot mechanics are tighter than two weeks ago.</p>
+      <div class="bad-card">
+        ▶ Corner Three Lock-in · Train · 12 reps
+      </div>
+      <div class="bad-banner">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/><path d="M8 8l8 8M16 8l-8 8"/></svg>
+        Disallowed · the blue card hijacks the screen's color identity
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════ 6 · SIGNATURE EASING ═══════ -->
+  <section class="sec">
+    <div class="num">06 · Signature easing</div>
+    <h2>--ease-swish · the curve every celebration uses</h2>
+    <p class="lede">
+      <code>cubic-bezier(0.2, 0.85, 0.3, 1)</code> — fast in, slow settle. The motion equivalent of a ball dropping cleanly through the net. Every celebration moment uses this exact curve at five different durations.
+    </p>
+  </section>
+
+  <div class="contract">
+    <table>
+      <thead><tr><th>Moment</th><th>Duration</th><th>Color</th><th>Curve</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Made shot flash</td><td class="v">600ms</td><td class="v" style="color:var(--c-success)">--c-success</td><td class="r">--ease-swish</td></tr>
+        <tr><td class="k">Streak ≥3 "Heating up"</td><td class="v">800ms</td><td class="v" style="color:var(--c-success)">success → amber</td><td class="r">--ease-swish</td></tr>
+        <tr><td class="k">Drill complete</td><td class="v">600ms</td><td class="v" style="color:var(--c-amber)">--c-amber</td><td class="r">--ease-swish</td></tr>
+        <tr><td class="k">Level up</td><td class="v">1200ms</td><td class="v" style="color:var(--c-brand)">--c-brand</td><td class="r">--ease-swish</td></tr>
+        <tr><td class="k">Workout complete</td><td class="v">1500ms</td><td class="v" style="color:var(--c-brand)">--c-brand (full overlay)</td><td class="r">--ease-swish</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- end -->
+  <div class="endnote">
+    <div><strong>Status</strong> · Wave 0 · v2/foundations.css landed</div>
+    <div><strong>Next</strong> · Wave 1.A — Live Camera HUD (per your direction)</div>
+  </div>
+
+</div>
+</body>
+</html>

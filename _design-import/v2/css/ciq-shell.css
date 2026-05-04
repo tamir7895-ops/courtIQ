@@ -1,0 +1,165 @@
+/* ciq-shell.css — Shared shell styles for BottomNav + BottomSheet */
+
+/* ════════════════════════════════════════════════════
+   BOTTOM NAV — global tab bar
+   ════════════════════════════════════════════════════ */
+.ciq-nav {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 80;
+  padding: 10px 16px 22px;
+  pointer-events: none;
+}
+.ciq-nav__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,8,12,0) 0%, rgba(6,8,12,0.55) 30%, rgba(6,8,12,0.92) 100%);
+  pointer-events: none;
+}
+.ciq-nav__row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 22px;
+  background: rgba(14, 16, 20, 0.78);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 12px 36px rgba(0,0,0,0.45);
+  pointer-events: auto;
+}
+.ciq-nav__btn {
+  flex: 1;
+  appearance: none; cursor: pointer;
+  background: transparent; border: none;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px;
+  padding: 6px 2px 4px;
+  color: rgba(240,236,228,0.50);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 200ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.ciq-nav__btn:hover { color: rgba(240,236,228,0.80); }
+
+.ciq-nav__icon-wrap {
+  position: relative;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+}
+.ciq-nav__icon {
+  width: 22px; height: 22px;
+  position: relative; z-index: 2;
+  transition: transform 220ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.ciq-nav__btn.is-active .ciq-nav__icon {
+  stroke-width: 2;
+}
+.ciq-nav__fill {
+  position: absolute;
+  inset: -2px;
+  background: currentColor;
+  opacity: 0.16;
+  border-radius: 8px;
+  z-index: 1;
+  box-shadow: 0 0 16px var(--ciq-nav-glow);
+}
+.ciq-nav__btn.is-active {
+  font-weight: 800;
+}
+.ciq-nav__btn.is-active .ciq-nav__lbl {
+  letter-spacing: 0.18em;
+}
+.ciq-nav__dot {
+  position: absolute;
+  bottom: -2px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px var(--ciq-nav-glow);
+}
+.ciq-nav__lbl {
+  line-height: 1;
+}
+
+/* ════════════════════════════════════════════════════
+   BOTTOM SHEET — settings + custom overlays
+   ════════════════════════════════════════════════════ */
+.ciq-sheet-root {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex; align-items: flex-end;
+}
+.ciq-sheet-scrim {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  animation: ciq-sheet-fade 220ms ease-out;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+@keyframes ciq-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ciq-sheet {
+  position: relative;
+  width: 100%;
+  max-height: 82%;
+  background: linear-gradient(180deg, rgba(20,24,32,0.96) 0%, rgba(10,12,16,0.98) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  border-radius: 24px 24px 0 0;
+  padding: 8px 18px 32px;
+  animation: ciq-sheet-up 320ms cubic-bezier(0.2, 0.85, 0.3, 1);
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.7);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  color: #f0ece4;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+@keyframes ciq-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.ciq-sheet__handle {
+  width: 40px; height: 4px;
+  border-radius: 999px;
+  background: rgba(240,236,228,0.32);
+  margin: 6px auto 12px;
+}
+.ciq-sheet__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 6px;
+}
+.ciq-sheet__title {
+  font-family: "Anton", "Bebas Neue", "Helvetica Neue", sans-serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--ciq-sheet-accent, #2dd4bf);
+}
+.ciq-sheet__close {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(240,236,228,0.14);
+  background: transparent; color: #f0ece4;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.ciq-sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0 0;
+  flex: 1;
+}
+.ciq-sheet__body::-webkit-scrollbar { width: 0; }

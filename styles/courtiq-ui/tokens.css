@@ -178,4 +178,59 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
+
+  /* ════════════════════════════════════════════════════════════
+     Wave 0 · Foundations (from Claude Design v2 foundations.css)
+     ════════════════════════════════════════════════════════════ */
+
+  /* ─── BRAND vs AMBER (logo/celebration vs Home accent) ──── */
+  /* The logo color, lifted from the brand sheet (#FF1A00 family).
+     Used ONLY for: logo chrome, splash, celebration moments,
+     error accents, app icon backgrounds. Never as a tab accent. */
+  --c-brand:        #ff3a14;
+  --c-brand-hover:  #ff5a3c;
+  --c-brand-dark:   #c81100;
+  --c-brand-dim:    rgba(255, 58, 20, 0.12);
+  --c-brand-glow:   rgba(255, 58, 20, 0.35);
+  --c-brand-subtle: rgba(255, 58, 20, 0.06);
+
+  /* ─── SURFACE TRINITY ───────────────────────────────────── */
+  /* Three semantic surface roles. Components reach into ONE of
+     these — never directly into raw palette. Fixes the
+     "everything-is-glass" tendency. */
+
+  /* HERO — solid, accent or photo. One per screen. */
+  --surface-hero:        #1a1d26;
+  --surface-hero-border: rgba(255, 255, 255, 0.10);
+  --surface-hero-shadow: 0 12px 40px rgba(0, 0, 0, 0.45),
+                         inset 0 1px 0 rgba(255, 255, 255, 0.05);
+
+  /* GLASS — ambient grouping (kept aligned with legacy --glass-*
+     tokens above so old and new rules render identically). */
+  --surface-glass:        var(--glass-bg);
+  --surface-glass-border: var(--glass-border);
+  --surface-glass-blur:   var(--glass-blur);
+  --surface-glass-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
+                          0 8px 24px rgba(0, 0, 0, 0.25);
+
+  /* FLAT — transparent. List rows, dividers, inline. No shadow. */
+  --surface-flat:          transparent;
+  --surface-flat-border:   rgba(255, 255, 255, 0.05);
+  --surface-flat-hairline: rgba(255, 255, 255, 0.04);
+
+  /* ─── STATE TOKENS ──────────────────────────────────────── */
+  --c-error:       var(--c-brand);
+  --c-error-dim:   var(--c-brand-dim);
+  --c-success:     var(--c-track);     /* aliases the green tab accent */
+  --c-success-dim: var(--c-track-dim);
+
+  /* Skeleton shimmer */
+  --skeleton-base:  rgba(255, 255, 255, 0.04);
+  --skeleton-shine: rgba(255, 255, 255, 0.10);
+
+  /* Locked dimmer */
+  --locked-overlay: rgba(14, 16, 20, 0.72);
+
+  /* ─── SIGNATURE EASING (the SWISH curve) ─────────────────── */
+  --ease-swish: cubic-bezier(0.2, 0.85, 0.3, 1);
 }
