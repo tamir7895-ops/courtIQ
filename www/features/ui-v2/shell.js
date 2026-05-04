@@ -1,59 +1,115 @@
-/* CourtIQ UI v2 — shell.js
+/* CourtIQ UI v2 — shell.js (Wave 1 redesign)
  *
- * Thin vanilla-JS module. When SHELL_ACTIVE is true:
- *   1. Adds `body.ciq-active` so components.css activates.
- *   2. Renders a fixed topbar (CourtIQ logo + notifications button).
- *   3. Renders a 5-tab bottom nav (Home, Train, Track, Coach, Me).
- *   4. Routes tab clicks onto the existing `dbSwitchTab()` so all
- *      legacy panel content keeps rendering inside the shell.
- *   5. Maintains `body.ciq-tab-<id>` so tab CSS can target the
- *      active tab without JS further.
+ * Renders the v2 chrome: keeps the lightweight topbar (logo + bell)
+ * and replaces the bottom nav with the new Claude Design `.ciq-nav`
+ * markup — colored active glow, dot indicator, refined stroke icons.
  *
- * No panel JS changes. Rollback = set SHELL_ACTIVE=false and reload.
+ * Tab activation order on click:
+ *   1. window.CourtIQ_V2_<TabName>.render(host)  — new v2 renderer
+ *   2. window.dbSwitchTab(legacyId)              — legacy panel switcher
+ *
+ * As v2 renderers land they take over their tab; until then the legacy
+ * panel keeps rendering. Rollback = SHELL_ACTIVE=false in config.js.
+ *
+ * All DOM is built via createElement / createElementNS — no innerHTML.
  */
 (function () {
   'use strict';
 
   if (!window.COURTIQ_UI_V2 || !window.COURTIQ_UI_V2.SHELL_ACTIVE) return;
 
-  /* ── Tab registry — maps v2 tab id → legacy panel id consumed by dbSwitchTab ── */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+
+  /* Tab registry — maps v2 tab id → legacy panel id + renderer global. */
   var TABS = [
-    { id: 'home',  legacy: 'home',      label: 'Home',  accent: '#f5a623' },
-    { id: 'train', legacy: 'training',  label: 'Train', accent: '#4ca3ff' },
-    { id: 'track', legacy: 'shots',     label: 'Track', accent: '#56d364' },
-    { id: 'coach', legacy: 'coach',     label: 'Coach', accent: '#bc8cff' },
-    { id: 'me',    legacy: 'archetype', label: 'Me',    accent: '#2dd4bf' }
+    { id: 'home',  legacy: 'home',      label: 'Home',  accent: '#f5a623', glow: 'rgba(245,166,35,0.40)',  rendererGlobal: 'CourtIQ_V2_Home'  },
+    { id: 'train', legacy: 'training',  label: 'Train', accent: '#4ca3ff', glow: 'rgba(76,163,255,0.40)',  rendererGlobal: 'CourtIQ_V2_Train' },
+    { id: 'track', legacy: 'shots',     label: 'Track', accent: '#56d364', glow: 'rgba(86,211,100,0.40)',  rendererGlobal: 'CourtIQ_V2_Track' },
+    { id: 'coach', legacy: 'coach',     label: 'Coach', accent: '#bc8cff', glow: 'rgba(188,140,255,0.40)', rendererGlobal: 'CourtIQ_V2_Coach' },
+    { id: 'me',    legacy: 'archetype', label: 'Me',    accent: '#2dd4bf', glow: 'rgba(45,212,191,0.40)',  rendererGlobal: 'CourtIQ_V2_Me'    }
   ];
 
-  /* ── Inline stroke icons (lifted from design's Icons.jsx) ── */
-  function svg(paths, size) {
-    size = size || 22;
-    return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" '
-      + 'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
-      + paths + '</svg>';
-  }
-  var ICONS = {
-    home:  function (s) { return svg('<path d="M3 12l9-9 9 9"/><path d="M5 10v10h14V10"/>', s); },
-    train: function (s) { return svg('<path d="M6.5 6.5l11 11"/><circle cx="5" cy="5" r="2"/><circle cx="19" cy="19" r="2"/>', s); },
-    track: function (s) { return svg('<path d="M3 3v18h18"/><path d="M7 15l4-4 4 4 5-5"/>', s); },
-    coach: function (s) { return svg('<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>', s); },
-    me:    function (s) { return svg('<circle cx="12" cy="8" r="4"/><path d="M4 21v-2a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v2"/>', s); },
-    bell:  function (s) { return svg('<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>', s); }
+  /* Refined stroke-icon path data (from _design-import/v2/components/ciq-shell.jsx). */
+  var ICON_PATHS = {
+    home:  [['path', { d: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z' }]],
+    train: [
+      ['path', { d: 'M6 6L4 4M18 6l2-2M6 18l-2 2M18 18l2 2' }],
+      ['path', { d: 'M9 9l-3 0 0 6 3 0M15 9l3 0 0 6-3 0M9 12h6' }]
+    ],
+    track: [
+      ['path', { d: 'M3 17l5-5 4 4 8-8' }],
+      ['path', { d: 'M16 8h4v4' }]
+    ],
+    coach: [['path', { d: 'M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z' }]],
+    me:    [
+      ['circle', { cx: '12', cy: '8', r: '4' }],
+      ['path',   { d: 'M4 21a8 8 0 0 1 16 0' }]
+    ]
   };
 
-  /* ── Brand mark — CourtIQ logo SVG from Chrome.jsx TopBar ── */
-  var BRAND_SVG = '<svg width="26" height="26" viewBox="0 0 200 200" style="flex-shrink:0">'
-    + '<circle cx="100" cy="100" r="86" fill="none" stroke="#F5A623" stroke-width="7"/>'
-    + '<path d="M100 14 Q78 58, 100 100 Q122 58, 100 14 Z" fill="#F5A623"/>'
-    + '<path d="M186 100 Q142 78, 100 100 Q142 122, 186 100 Z" fill="#F5A623"/>'
-    + '<path d="M100 186 Q122 142, 100 100 Q78 142, 100 186 Z" fill="#F5A623"/>'
-    + '<path d="M14 100 Q58 122, 100 100 Q58 78, 14 100 Z" fill="#F5A623"/>'
-    + '</svg>';
+  function svgEl(tag, attrs) {
+    var el = document.createElementNS(SVG_NS, tag);
+    if (attrs) {
+      Object.keys(attrs).forEach(function (k) { el.setAttribute(k, attrs[k]); });
+    }
+    return el;
+  }
+
+  function buildIcon(tabId) {
+    var svg = svgEl('svg', {
+      viewBox: '0 0 24 24',
+      class: 'ciq-nav__icon',
+      fill: 'none',
+      stroke: 'currentColor',
+      'stroke-width': '1.6',
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round'
+    });
+    ICON_PATHS[tabId].forEach(function (p) { svg.appendChild(svgEl(p[0], p[1])); });
+    return svg;
+  }
+
+  function buildBellIcon() {
+    var svg = svgEl('svg', {
+      viewBox: '0 0 24 24',
+      width: '18', height: '18',
+      fill: 'none', stroke: 'currentColor',
+      'stroke-width': '2',
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round'
+    });
+    svg.appendChild(svgEl('path', { d: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9' }));
+    svg.appendChild(svgEl('path', { d: 'M13.73 21a2 2 0 0 1-3.46 0' }));
+    return svg;
+  }
+
+  function buildBrandMark() {
+    var svg = svgEl('svg', { width: '26', height: '26', viewBox: '0 0 200 200', style: 'flex-shrink:0' });
+    svg.appendChild(svgEl('circle', { cx: '100', cy: '100', r: '86', fill: 'none', stroke: '#F5A623', 'stroke-width': '7' }));
+    var paths = [
+      'M100 14 Q78 58, 100 100 Q122 58, 100 14 Z',
+      'M186 100 Q142 78, 100 100 Q142 122, 186 100 Z',
+      'M100 186 Q122 142, 100 100 Q78 142, 100 186 Z',
+      'M14 100 Q58 122, 100 100 Q58 78, 14 100 Z'
+    ];
+    paths.forEach(function (d) { svg.appendChild(svgEl('path', { d: d, fill: '#F5A623' })); });
+    return svg;
+  }
+
+  function el(tag, opts, children) {
+    var n = document.createElement(tag);
+    if (opts) {
+      if (opts.className) n.className = opts.className;
+      if (opts.text) n.textContent = opts.text;
+      if (opts.attrs) Object.keys(opts.attrs).forEach(function (k) { n.setAttribute(k, opts.attrs[k]); });
+      if (opts.style) n.setAttribute('style', opts.style);
+    }
+    if (children) children.forEach(function (c) { if (c) n.appendChild(c); });
+    return n;
+  }
 
   function findMount() {
     var mount = document.getElementById('ciq-chrome-mount');
     if (mount) return mount;
-    // Fallback: create one as last child of body so we can still render.
     mount = document.createElement('div');
     mount.id = 'ciq-chrome-mount';
     document.body.appendChild(mount);
@@ -61,44 +117,69 @@
   }
 
   function renderTopbar(container) {
-    var topbar = document.createElement('div');
-    topbar.className = 'ciq-topbar';
-    topbar.innerHTML =
-      '<div class="brand">' + BRAND_SVG + 'COURT<span>IQ</span></div>'
-      + '<button class="ciq-icon-btn" aria-label="Notifications" data-ciq-action="notifications">'
-      + ICONS.bell(18)
-      + '</button>';
-    container.appendChild(topbar);
-    topbar.querySelector('[data-ciq-action="notifications"]').addEventListener('click', function () {
+    var brandMark = buildBrandMark();
+    var brandLabelCourt = document.createTextNode('COURT');
+    var iqSpan = el('span', { text: 'IQ' });
+    var brand = el('div', { className: 'brand' });
+    brand.appendChild(brandMark);
+    brand.appendChild(brandLabelCourt);
+    brand.appendChild(iqSpan);
+
+    var bellBtn = el('button', {
+      className: 'ciq-icon-btn',
+      attrs: { 'aria-label': 'Notifications', 'data-ciq-action': 'notifications' }
+    }, [buildBellIcon()]);
+    bellBtn.addEventListener('click', function () {
       if (typeof window.dbSwitchTab === 'function') {
         window.dbSwitchTab('notifications');
       }
     });
+
+    var topbar = el('div', { className: 'ciq-topbar' }, [brand, bellBtn]);
+    container.appendChild(topbar);
+  }
+
+  function buildNavButton(tab) {
+    var fill = el('span', { className: 'ciq-nav__fill', attrs: { 'aria-hidden': 'true' } });
+    var iconWrap = el('span', { className: 'ciq-nav__icon-wrap' }, [fill, buildIcon(tab.id)]);
+    var label = el('span', { className: 'ciq-nav__lbl', text: tab.label });
+    var dot = el('span', { className: 'ciq-nav__dot', attrs: { 'aria-hidden': 'true' } });
+    var btn = el('button', {
+      className: 'ciq-nav__btn',
+      attrs: { type: 'button', role: 'tab', 'data-ciq-tab': tab.id }
+    }, [iconWrap, label, dot]);
+    btn.addEventListener('click', function () { switchTo(tab.id); });
+    return btn;
   }
 
   function renderBottomNav(container) {
-    var nav = document.createElement('div');
-    nav.className = 'ciq-bottom-nav';
-    nav.setAttribute('role', 'tablist');
-    nav.style.setProperty('--accent', TABS[0].accent);
-
-    TABS.forEach(function (t) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'ciq-nav-item';
-      btn.setAttribute('role', 'tab');
-      btn.setAttribute('data-ciq-tab', t.id);
-      btn.setAttribute('data-ciq-legacy', t.legacy);
-      btn.style.setProperty('--accent', t.accent);
-      btn.innerHTML =
-        '<div class="chip">' + ICONS[t.id](20) + '</div>'
-        + '<div class="lb">' + t.label + '</div>';
-      btn.addEventListener('click', function () { switchTo(t.id); });
-      nav.appendChild(btn);
-    });
-
+    var bg = el('div', { className: 'ciq-nav__bg' });
+    var row = el('div', { className: 'ciq-nav__row' });
+    TABS.forEach(function (t) { row.appendChild(buildNavButton(t)); });
+    var nav = el('div', { className: 'ciq-nav', attrs: { role: 'tablist' } }, [bg, row]);
     container.appendChild(nav);
     return nav;
+  }
+
+  function paintActive(tabId) {
+    var def = TABS.find(function (t) { return t.id === tabId; });
+    if (!def) return;
+    var nav = document.querySelector('.ciq-nav');
+    if (nav) nav.style.setProperty('--ciq-nav-glow', def.glow);
+    var btns = document.querySelectorAll('.ciq-nav__btn');
+    btns.forEach(function (b) {
+      var active = b.getAttribute('data-ciq-tab') === tabId;
+      b.classList.toggle('is-active', active);
+      if (active) {
+        b.style.color = def.accent;
+        b.style.setProperty('--ciq-nav-glow', def.glow);
+      } else {
+        b.style.color = '';
+        b.style.removeProperty('--ciq-nav-glow');
+      }
+    });
+    TABS.forEach(function (t) { document.body.classList.remove('ciq-tab-' + t.id); });
+    document.body.classList.add('ciq-tab-' + tabId);
   }
 
   var currentTab = 'home';
@@ -106,24 +187,23 @@
     var def = TABS.find(function (t) { return t.id === tabId; });
     if (!def) return;
     currentTab = tabId;
+    paintActive(tabId);
 
-    // Paint active state
-    document.querySelectorAll('.ciq-nav-item').forEach(function (el) {
-      var active = el.getAttribute('data-ciq-tab') === tabId;
-      el.classList.toggle('active', active);
-    });
-    var nav = document.querySelector('.ciq-bottom-nav');
-    if (nav) nav.style.setProperty('--accent', def.accent);
-
-    // Body-level class so per-tab CSS can target.
-    TABS.forEach(function (t) { document.body.classList.remove('ciq-tab-' + t.id); });
-    document.body.classList.add('ciq-tab-' + tabId);
-
-    // Delegate to legacy panel switcher.
+    var renderer = window[def.rendererGlobal];
+    if (renderer && typeof renderer.render === 'function') {
+      var host = document.getElementById('db-main-inner') || document.body;
+      try {
+        renderer.render(host);
+      } catch (e) {
+        console.error('[ciq-shell] v2 renderer for', tabId, 'threw', e);
+        if (typeof window.dbSwitchTab === 'function') window.dbSwitchTab(def.legacy);
+      }
+      return;
+    }
     if (typeof window.dbSwitchTab === 'function') {
       window.dbSwitchTab(def.legacy);
     } else {
-      console.warn('[ciq-shell] dbSwitchTab not found on window; legacy panel not switched');
+      console.warn('[ciq-shell] no renderer or dbSwitchTab for', tabId);
     }
   }
 
@@ -133,7 +213,6 @@
     var mount = findMount();
     renderTopbar(mount);
     renderBottomNav(mount);
-    // Default highlight + route to initial tab after a tick so dashboard.js has registered.
     setTimeout(function () { switchTo(currentTab); }, 0);
   }
 
@@ -143,6 +222,5 @@
     init();
   }
 
-  // Expose for manual testing in console: CIQ_SHELL.switchTo('track')
   window.CIQ_SHELL = { switchTo: switchTo, TABS: TABS };
 })();
