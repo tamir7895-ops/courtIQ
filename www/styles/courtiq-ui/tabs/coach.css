@@ -1,149 +1,133 @@
 /* CourtIQ UI v2 — Coach tab styles (purple accent).
- * Strategy: the existing #db-panel-coach is a weekly performance
- * form the user fills in to recalibrate the AI program. We keep
- * that form working but (a) prepend a v2-styled intro block with
- * an AI-chat look, and (b) re-skin the form's text to match.
+ *
+ * Phase 10.1 — Insight Card landing replaces the chat-bubble intro.
+ * The legacy #db-panel-coach form stays underneath, lightly re-skinned.
  */
 
+/* ── Panel padding for the v2 layout ───────────────────────── */
 body.ciq-v2-coach.ciq-tab-coach #db-panel-coach {
-  padding-top: 80px;
+  padding-top: 96px;
   padding-bottom: 120px;
 }
 
+/* ── Visibility gate for the prepended intro ───────────────── */
 #ciq-coach-intro { display: none; }
 body.ciq-v2-coach.ciq-tab-coach #ciq-coach-intro { display: block; }
 
-#ciq-coach-intro {
+/* HeroPage embedded inside an existing panel — strip its full-screen
+ * padding/background; the panel above already provides them. */
+#ciq-coach-intro.ciq-template--hero {
   --accent: var(--c-coach);
   padding: 0 16px;
   margin-bottom: 20px;
+  min-height: 0;
+  background: transparent;
   font-family: var(--font-body);
 }
-/* Hide the legacy intro header (title + description) — our v2 chat replaces it */
+#ciq-coach-intro .ciq-hero-head { margin-bottom: 16px; }
+
+/* Hide the legacy intro header (title + description) — our v2 hero replaces it */
 body.ciq-v2-coach.ciq-tab-coach #db-panel-coach > div:first-of-type:not(#ciq-coach-intro) {
   display: none !important;
 }
 
-.ciq-coach-eyebrow {
-  font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: var(--c-coach);
-}
-.ciq-coach-title {
-  font-family: var(--font-display);
-  font-size: 48px;
-  font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  color: var(--c-white);
-  font-style: italic;
-  margin-top: 4px;
+/* ── Insight Card ──────────────────────────────────────────── */
+.ciq-insight-card {
+  --accent: var(--c-coach);
+  padding: 22px 22px 20px;
+  border-radius: 22px;
 }
 
-/* Chat-style intro block */
-.ciq-coach-chat {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.ciq-coach-msg {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-}
-.ciq-coach-msg.self { justify-content: flex-end; }
-.ciq-coach-avatar {
-  width: 36px; height: 36px;
-  border-radius: 12px;
-  background: rgba(188,140,255,0.14);
+.ciq-insight-head {
   display: flex;
   align-items: center;
-  justify-content: center;
-  color: var(--c-coach);
-  flex-shrink: 0;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
 }
-.ciq-coach-avatar svg { width: 18px; height: 18px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.ciq-coach-bubble {
-  background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur));
-  border: 1px solid var(--glass-border);
-  border-radius: 4px 20px 20px 20px;
-  padding: 12px 14px;
-  max-width: 82%;
+.ciq-insight-meta-chip {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(240, 237, 230, 0.55);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.ciq-insight-headline {
+  font-size: 26px;
+  line-height: 1.05;
+  margin: 0 0 14px;
   color: var(--c-white);
-  font-size: 14px;
-  line-height: 1.5;
 }
-.ciq-coach-bubble strong { color: var(--c-coach); }
-.ciq-coach-msg.self .ciq-coach-bubble {
-  background: var(--c-coach);
-  color: #0c0d0f;
-  border: none;
-  border-radius: 20px 4px 20px 20px;
-}
-.ciq-coach-recs {
-  margin-top: 10px;
+
+.ciq-insight-bullets {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
-.ciq-coach-rec {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: rgba(255,255,255,0.04);
-  border: 1px solid rgba(255,255,255,0.06);
-  padding: 8px 12px;
-  border-radius: 10px;
-}
-.ciq-coach-rec .play {
-  width: 14px; height: 14px;
-  border-radius: 50%;
-  background: var(--c-coach);
+.ciq-insight-bullets li {
   position: relative;
-  flex-shrink: 0;
+  padding-left: 18px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: rgba(240, 237, 230, 0.78);
 }
-.ciq-coach-rec .play::before {
+.ciq-insight-bullets li::before {
   content: '';
   position: absolute;
-  left: 4px; top: 3px;
-  border-left: 6px solid #0c0d0f;
-  border-top: 4px solid transparent;
-  border-bottom: 4px solid transparent;
-}
-.ciq-coach-rec .t {
-  flex: 1;
-  font-family: var(--font-display);
-  font-size: 13px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--c-white);
-}
-.ciq-coach-rec .chev {
-  color: rgba(240,237,230,0.3);
-  font-size: 18px;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--c-coach);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--c-coach) 60%, transparent);
 }
 
-.ciq-coach-divider {
-  margin: 22px 0 8px;
+.ciq-insight-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.ciq-insight-actions .ciq-cta--primary { flex: 0 1 auto; }
+
+/* ── Recommended drills section ────────────────────────────── */
+.ciq-coach-recs {
+  margin-top: 22px;
+}
+.ciq-coach-recs .ciq-section-meta-chip {
   font-family: var(--font-display);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  color: var(--c-coach);
+  color: rgba(240, 237, 230, 0.5);
 }
 
-/* Light re-skin of the legacy coach form — only under ciq-v2-coach */
+/* Tighten the list-row look for the coach context — purple tile accent */
+.ciq-coach-recs .ciq-list-row {
+  --accent: var(--c-coach);
+}
+.ciq-coach-recs .ciq-list-row:hover {
+  border-color: color-mix(in srgb, var(--c-coach) 35%, var(--glass-border));
+}
+
+/* ── Light re-skin of the legacy coach form (kept) ─────────── */
 body.ciq-v2-coach.ciq-tab-coach #db-panel-coach .db-card {
   background: var(--glass-bg);
   backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--glass-border);
   border-radius: 20px;
   box-shadow: var(--shadow-card);
@@ -160,5 +144,5 @@ body.ciq-v2-coach.ciq-tab-coach #db-panel-coach #coach-gen-btn {
   font-weight: 800;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  box-shadow: 0 8px 24px rgba(188,140,255,0.35);
+  box-shadow: 0 8px 24px rgba(188, 140, 255, 0.35);
 }

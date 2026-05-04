@@ -1,0 +1,71 @@
+/* CourtIQ UI v2 — Icon system styles (Phase 10.0.A)
+ * Sizing rules + standard icon containers.
+ * The .ciq-ic class is added by ICONS.create(); these rules layer
+ * size + colour through CSS variables for predictability.
+ */
+
+.ciq-ic {
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+/* Sizing — used via class on the icon's parent or directly. */
+.ciq-ic--xs { width: 14px; height: 14px; }
+.ciq-ic--sm { width: 16px; height: 16px; }
+.ciq-ic--md { width: 20px; height: 20px; }
+.ciq-ic--lg { width: 24px; height: 24px; }
+.ciq-ic--xl { width: 32px; height: 32px; }
+
+/* Icon container — square with rounded corners, used in tiles, rows, badges. */
+.ciq-ic-tile {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--c-muted);
+  flex-shrink: 0;
+}
+.ciq-ic-tile--sm { width: 32px; height: 32px; border-radius: 10px; }
+.ciq-ic-tile--lg { width: 48px; height: 48px; border-radius: 14px; }
+
+/* Accent variants — the icon container takes the accent of its parent tab. */
+body.ciq-tab-home  .ciq-ic-tile.accent,
+.ciq-ic-tile.accent-home  { background: var(--c-home-dim);  border-color: color-mix(in srgb, var(--c-home) 35%, transparent);  color: var(--c-home); }
+body.ciq-tab-train .ciq-ic-tile.accent,
+.ciq-ic-tile.accent-train { background: var(--c-train-dim); border-color: color-mix(in srgb, var(--c-train) 35%, transparent); color: var(--c-train); }
+body.ciq-tab-track .ciq-ic-tile.accent,
+.ciq-ic-tile.accent-track { background: var(--c-track-dim); border-color: color-mix(in srgb, var(--c-track) 35%, transparent); color: var(--c-track); }
+body.ciq-tab-coach .ciq-ic-tile.accent,
+.ciq-ic-tile.accent-coach { background: var(--c-coach-dim); border-color: color-mix(in srgb, var(--c-coach) 35%, transparent); color: var(--c-coach); }
+body.ciq-tab-me    .ciq-ic-tile.accent,
+.ciq-ic-tile.accent-me    { background: var(--c-me-dim);    border-color: color-mix(in srgb, var(--c-me) 35%, transparent);    color: var(--c-me); }
+
+/* Status icon — circle with glow, used for indicators in eyebrows. */
+.ciq-ic-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 8px currentColor;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.ciq-ic-dot--pulse { animation: ciq-pulse-dot 1.8s ease-in-out infinite; }
+
+@keyframes ciq-pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+
+/* Loading spinner — uses the courtRim icon spinning, basketball-flavored. */
+.ciq-loading-spinner {
+  width: 18px; height: 18px;
+  display: inline-block;
+  animation: ciq-spin 0.9s linear infinite;
+}
+@keyframes ciq-spin {
+  to { transform: rotate(360deg); }
+}

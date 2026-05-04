@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<title>Shot Tracker — Camera Detection Flow</title>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<link rel="stylesheet" href="colors_and_type.css"/>
+<link rel="stylesheet" href="shot-tracker.css"/>
+</head>
+<body>
+
+<div class="canvas">
+  <div class="canvas-header">
+    <div class="eb">SHOT TRACKER · V2</div>
+    <h1>Camera Detection<br/><span class="accent">Flow.</span></h1>
+    <p>
+      Four-screen live capture flow for CourtIQ's hero feature. YOLOX-tiny detection over a formal
+      shot state machine, rendered like an NBA broadcast. Inherits the Apple-style glass, court-grid
+      texture, and amber/green section accents from the existing design system.
+    </p>
+    <div class="meta-row">
+      <span class="chip">390 × 844 · Capacitor iOS/Android</span>
+      <span class="chip chip-green">Track · Green accent</span>
+      <span class="chip chip-amber">Hoop Lock · Amber</span>
+      <span class="chip">Dark mode only</span>
+    </div>
+  </div>
+
+  <div class="note-strip" style="margin-bottom: 6px;">
+    <strong>How to use:</strong>
+    <span>Screens 1→4 flow left-to-right. Tap a screen to advance. Turn on <strong style="color:#7ee589">Tweaks</strong> (toolbar) to switch states, densities, and camera backgrounds live.</span>
+  </div>
+
+  <div class="device-grid" id="device-grid"></div>
+</div>
+
+<!-- Tweaks panel container (rendered by React) -->
+<div id="tweaks-root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="ShotIcons.jsx"></script>
+<script type="text/babel" src="CamStage.jsx"></script>
+<script type="text/babel" src="Screen1_Setup.jsx"></script>
+<script type="text/babel" src="Screen2_Active.jsx"></script>
+<script type="text/babel" src="Screen3_Replay.jsx"></script>
+<script type="text/babel" src="Screen4_Summary.jsx"></script>
+
+<script type="text/babel" data-presets="env,react">
+const { useState, useEffect } = React;
+
+const TWEAK_DEFAULTS = /*EDITMODE-BEGIN*/{
+  "hoopLocked": true,
+  "state": "tracking",
+  "detectionDensity": "broadcast",
+  "replayOutcome": "made",
+  "bgStyle": "moody",
+  "safeAreaViz": false,
+  "showReplayModal": true
+}/*EDITMODE-END*/;
+
+function DeviceCell({ num, title, sub, children, screenKey, active, onActivate }) {
+  return (
+    <div className="device-cell" data-screen-label={`0${num} ${title}`}>
+      <div className="cell-header">
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 12 }}>
+          <div className="cell-num">0{num}</div>
+          <div style={{ paddingBottom: 6 }}>
+            <div className="cell-title">{title}</div>
+          </div>
+        </div>
+        <div className="cell-sub">{sub}</div>
+      </div>
+      <div style={{
+        position: 'relative',
+        borderRadius: 48,
+        outline: active ? '2px solid rgba(86,211,100,0.7)' : 'none',
+        outlineOffset: 6,
+        transition: 'outline 0.2s',
+      }} onClick={onActivate}>
+        <IOSDevice dark={true} width={390} height={844}>
+          <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', borderRadius: 'inherit', background: '#000' }}>
+            {children}
+          </div>
+        </IOSDevice>
+      </div>
+    </div>
+  );
+}
+
+function Toggle({ on, onClick }) {
+  return <div className={'toggle-sw' + (on ? ' on' : '')} onClick={onClick}/>;
+}
+
+function Seg({ options, value, onChange }) {
+  return (
+    <div className="seg">
+      {options.map(o => (
+        <button key={o.v}
+                className={value === o.v ? 'active' : ''}
+                onClick={() => onChange(o.v)}>{o.l}</button>
+      ))}
+    </div>
+  );
+}
+
+function TweaksPanel({ cfg, setCfg, editMode }) {
+  if (!editMode) return null;
+  const set = (k, v) => setCfg(c => ({ ...c, [k]: v }));
+  return (
+    <div className="tweaks-panel">
+      <h3>Tweaks</h3>
+      <div className="sub">Switch states, densities, and background live.</div>
+
+      <div className="field">
+        <div className="field-label">Session State (Screen 2)</div>
+        <Seg value={cfg.state} onChange={v => set('state', v)}
+             options={[
+               { v: 'ready',    l: 'Ready' },
+               { v: 'detected', l: 'Det.' },
+               { v: 'tracking', l: 'Track' },
+               { v: 'scored',   l: 'Scored' },
+               { v: 'miss',     l: 'Miss' },
+             ]}/>
+      </div>
+
+      <div className="field">
+        <div className="field-label">Detection Density</div>
+        <Seg value={cfg.detectionDensity} onChange={v => set('detectionDensity', v)}
+             options={[
+               { v: 'minimal',   l: 'Min' },
+               { v: 'broadcast', l: 'Broadcast' },
+               { v: 'max',       l: 'Max' },
+             ]}/>
+      </div>
+
+      <div className="field">
+        <div className="field-label">Camera Background</div>
+        <Seg value={cfg.bgStyle} onChange={v => set('bgStyle', v)}
+             options={[
+               { v: 'moody',    l: 'Gym' },
+               { v: 'gradient', l: 'Grad' },
+               { v: 'sketch',   l: 'Wire' },
+             ]}/>
+      </div>
+
+      <div className="field">
+        <div className="field-label">Replay Outcome (Screen 3)</div>
+        <Seg value={cfg.replayOutcome} onChange={v => set('replayOutcome', v)}
+             options={[{ v: 'made', l: 'Made' }, { v: 'miss', l: 'Missed' }]}/>
+      </div>
+
+      <div className="field field-toggle">
+        <span>Hoop Locked (Screen 1)</span>
+        <Toggle on={cfg.hoopLocked} onClick={() => set('hoopLocked', !cfg.hoopLocked)}/>
+      </div>
+      <div className="field field-toggle">
+        <span>Safe-Area Viz</span>
+        <Toggle on={cfg.safeAreaViz} onClick={() => set('safeAreaViz', !cfg.safeAreaViz)}/>
+      </div>
+      <div className="field field-toggle">
+        <span>Show Replay Modal</span>
+        <Toggle on={cfg.showReplayModal} onClick={() => set('showReplayModal', !cfg.showReplayModal)}/>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [cfg, setCfg] = useState(TWEAK_DEFAULTS);
+  const [editMode, setEditMode] = useState(false);
+
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (!e.data) return;
+      if (e.data.type === '__activate_edit_mode')   setEditMode(true);
+      if (e.data.type === '__deactivate_edit_mode') setEditMode(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  // persist tweaks
+  useEffect(() => {
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: cfg }, '*');
+  }, [cfg]);
+
+  return (
+    <>
+      <DeviceCell num={1} title="Setup"
+                  sub="Frame the hoop, pick a drill, set a target. Amber dashed guide + scan line while locking; solid amber when locked.">
+        <Screen1_Setup hoopLocked={cfg.hoopLocked} bgStyle={cfg.bgStyle}/>
+      </DeviceCell>
+      <DeviceCell num={2} title="Active Session"
+                  sub="Hero screen. YOLOX-tiny detection overlays, floating glass stats, state-machine pill, broadcast-style UX.">
+        <Screen2_Active state={cfg.state} detectionDensity={cfg.detectionDensity}
+                        bgStyle={cfg.bgStyle} safeAreaViz={cfg.safeAreaViz}/>
+      </DeviceCell>
+      <DeviceCell num={3} title="Shot Replay"
+                  sub="Micro-moment 2s after each shot. Frozen frame with arc, outcome bloom, release/arc/time readout, 5s auto-keep.">
+        {cfg.showReplayModal
+          ? <Screen3_Replay outcome={cfg.replayOutcome} bgStyle={cfg.bgStyle}/>
+          : <Screen2_Active state="ready" detectionDensity={cfg.detectionDensity} bgStyle={cfg.bgStyle}/>}
+      </DeviceCell>
+      <DeviceCell num={4} title="Summary"
+                  sub="Post-session. Massive 78%, accuracy trend line, 2×2 stat grid, save/retry. Court-grid texture on dark.">
+        <Screen4_Summary/>
+      </DeviceCell>
+
+      <TweaksPanel cfg={cfg} setCfg={setCfg} editMode={editMode}/>
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('device-grid')).render(<App/>);
+</script>
+
+</body>
+</html>

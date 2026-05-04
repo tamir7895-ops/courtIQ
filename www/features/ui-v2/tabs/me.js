@@ -75,7 +75,7 @@
       + '</div>'
 
       + '<div class="ciq-me-section-head">' + ICON_TROPHY() + '<div class="eyebrow">Trophy Case</div></div>'
-      + '<div class="ciq-me-trophies">' + trophyHTML + '</div>'
+      + '<div class="ciq-me-trophies" data-ciq-slot="trophies">' + trophyHTML + '</div>'
 
       + '<div class="ciq-me-section-head"><div class="eyebrow">Account</div></div>'
       + '<div class="ciq-me-account">'

@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Home · Today · CourtIQ v2</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Lexend:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%;font-size:16px}
+body{font-family:'Lexend',system-ui,-apple-system,sans-serif;background:#0e1014;color:#f0ede6;overflow-x:hidden;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:24px 0}
+
+:root{
+  --c-bg:#0e1014;--c-surface:#161921;--c-surface2:#1e2129;
+  --c-border:rgba(255,255,255,0.06);
+  --c-home:#f5a623;--c-home-dim:rgba(245,166,35,0.12);--c-home-glow:rgba(245,166,35,0.25);
+  --c-train:#4ca3ff;--c-track:#56d364;--c-coach:#bc8cff;--c-me:#2dd4bf;
+  --c-brand:#ff3a14;
+  --c-white:#f0ede6;--c-text-primary:#f0ede6;--c-text-secondary:rgba(240,237,230,0.65);
+  --c-text-tertiary:rgba(240,237,230,0.40);--c-muted:rgba(240,237,230,0.45);
+  --c-green:#56d364;--c-red:#e84040;
+  --glass-bg:rgba(22,25,33,0.7);--glass-border:rgba(255,255,255,0.08);--glass-blur:20px;
+  --r-sm:10px;--r-md:16px;--r-lg:24px;
+  --shadow-card:0 1px 2px rgba(0,0,0,0.3),0 8px 24px rgba(0,0,0,0.25);
+  --font-display:'Barlow Condensed','Impact',sans-serif;
+  --font-body:'Lexend',system-ui,sans-serif;
+  --ease-swish:cubic-bezier(0.2,0.85,0.3,1);
+}
+
+.phone-frame{
+  width:393px;min-height:852px;background:var(--c-bg);
+  border-radius:44px;overflow:hidden;position:relative;
+  box-shadow:0 0 0 2px rgba(255,255,255,0.08),0 24px 80px rgba(0,0,0,0.6);
+}
+
+/* ─── iOS Status Bar ────────────────────────────────────── */
+.status-bar{display:flex;justify-content:space-between;align-items:center;padding:14px 28px 0;height:54px;position:relative;z-index:100}
+.status-bar .time{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:0.5px}
+.status-bar .notch{width:126px;height:34px;background:#000;border-radius:0 0 20px 20px;position:absolute;left:50%;transform:translateX(-50%);top:0}
+.status-bar .icons{display:flex;gap:5px;align-items:center;font-size:13px;opacity:0.9}
+.status-bar .icons svg{width:18px;height:18px;fill:var(--c-white)}
+
+/* ─── Hero greeting ─────────────────────────────────────── */
+.hero{padding:8px 20px 0}
+.greeting{
+  font-family:var(--font-display);font-size:28px;font-weight:700;
+  font-style:italic;color:var(--c-white);margin-bottom:4px;
+}
+.greeting .name{color:var(--c-home)}
+.hero-row{display:flex;align-items:center;gap:16px;margin:12px 0 6px}
+.streak{
+  display:flex;align-items:center;gap:6px;
+  font-family:var(--font-display);font-size:18px;font-weight:800;color:var(--c-home);
+  cursor:pointer;
+}
+.streak .flame{font-size:22px}
+.xp-bar-wrap{flex:1}
+.xp-label{
+  display:flex;justify-content:space-between;align-items:center;
+  font-family:var(--font-display);font-size:11px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--c-text-tertiary);
+  margin-bottom:4px;
+}
+.xp-label .tier{color:var(--c-home)}
+.xp-bar{
+  height:6px;border-radius:3px;background:rgba(255,255,255,0.06);overflow:hidden;
+}
+.xp-fill{
+  height:100%;border-radius:3px;width:65%;
+  background:linear-gradient(90deg,var(--c-home),#ffc04a);
+  transition:width 0.6s var(--ease-swish);
+}
+
+/* ─── Sub-nav ───────────────────────────────────────────── */
+.sub-nav{display:flex;gap:8px;padding:16px 20px 12px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.sub-nav::-webkit-scrollbar{display:none}
+.chip{
+  font-family:var(--font-display);font-size:13px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:8px 18px;border-radius:20px;white-space:nowrap;
+  background:transparent;border:1px solid var(--glass-border);
+  color:var(--c-text-secondary);cursor:pointer;transition:all 0.2s;
+}
+.chip.active{background:var(--c-home-dim);border-color:var(--c-home);color:var(--c-home)}
+.chip:not(.active):hover{background:rgba(255,255,255,0.04)}
+
+/* ─── Content ───────────────────────────────────────────── */
+.content{padding:0 20px 100px}
+.surface{display:none}
+.surface.active{display:block}
+
+/* ─── Glass card ────────────────────────────────────────── */
+.glass-card{
+  background:var(--glass-bg);
+  backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));
+  border:1px solid var(--glass-border);
+  border-radius:var(--r-md);padding:20px;
+  box-shadow:var(--shadow-card);margin-bottom:16px;
+}
+
+/* ─── Daily Challenge ───────────────────────────────────── */
+.challenge-card{border-color:rgba(245,166,35,0.25)}
+.challenge-eyebrow{
+  font-family:var(--font-display);font-size:11px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--c-home);
+  margin-bottom:8px;display:flex;align-items:center;gap:8px;
+}
+.challenge-eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--c-home);box-shadow:0 0 8px var(--c-home-glow)}
+.challenge-title{
+  font-family:var(--font-display);font-size:22px;font-weight:800;
+  text-transform:uppercase;letter-spacing:1px;color:var(--c-white);margin-bottom:6px;
+}
+.challenge-desc{
+  font-family:var(--font-body);font-size:14px;color:var(--c-text-secondary);
+  font-weight:300;line-height:1.5;margin-bottom:14px;
+}
+.challenge-meta{
+  display:flex;gap:16px;margin-bottom:16px;
+}
+.meta-item{
+  font-family:var(--font-display);font-size:12px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--c-text-tertiary);
+}
+.meta-item strong{color:var(--c-home);font-weight:800;font-size:16px;display:block;margin-top:2px}
+
+.btn-amber{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;padding:14px;border:none;border-radius:var(--r-sm);
+  font-family:var(--font-display);font-size:14px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;cursor:pointer;
+  color:#fff;background:var(--c-home);
+  box-shadow:0 8px 32px rgba(245,166,35,0.3);transition:all 0.25s;
+}
+.btn-amber:hover{filter:brightness(1.1);transform:translateY(-1px)}
+.btn-amber:active{transform:translateY(0);filter:brightness(0.95)}
+
+/* ─── Workout summary card ──────────────────────────────── */
+.workout-card .card-header{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;
+}
+.card-label{
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--c-text-tertiary);
+}
+.card-badge{
+  font-family:var(--font-display);font-size:11px;font-weight:700;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:4px 10px;border-radius:12px;
+}
+.badge-train{background:rgba(76,163,255,0.12);color:var(--c-train)}
+.badge-track{background:rgba(86,211,100,0.12);color:var(--c-track)}
+.badge-coach{background:rgba(188,140,255,0.12);color:var(--c-coach)}
+
+.workout-stats{display:flex;gap:0}
+.workout-stat{
+  flex:1;text-align:center;padding:8px 0;
+  border-right:1px solid var(--c-border);
+}
+.workout-stat:last-child{border-right:none}
+.workout-stat .stat-num{
+  font-family:var(--font-display);font-size:24px;font-weight:800;color:var(--c-white);
+}
+.workout-stat .stat-label{
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--c-text-tertiary);
+  margin-top:2px;
+}
+.btn-outline{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;padding:12px;margin-top:14px;
+  border:1px solid var(--glass-border);border-radius:var(--r-sm);
+  background:transparent;font-family:var(--font-display);font-size:13px;
+  font-weight:600;letter-spacing:2px;text-transform:uppercase;
+  cursor:pointer;color:var(--c-text-secondary);transition:all 0.2s;
+}
+.btn-outline:hover{border-color:rgba(255,255,255,0.15);color:var(--c-white)}
+
+/* ─── Recent session card ───────────────────────────────── */
+.session-hero{display:flex;align-items:baseline;gap:4px;margin:8px 0 4px}
+.session-hero .big-num{
+  font-family:var(--font-display);font-size:56px;font-weight:900;color:var(--c-white);
+  line-height:1;
+}
+.session-hero .pct{
+  font-family:var(--font-display);font-size:24px;font-weight:700;
+  color:var(--c-text-secondary);font-style:italic;
+}
+.session-delta{
+  font-family:var(--font-display);font-size:13px;font-weight:600;
+  color:var(--c-green);letter-spacing:1px;margin-bottom:12px;
+}
+.mini-court{
+  width:100%;height:120px;border-radius:var(--r-sm);
+  background:linear-gradient(135deg,rgba(86,211,100,0.08),rgba(232,64,64,0.08));
+  border:1px solid var(--c-border);margin-bottom:12px;
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:12px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--c-text-tertiary);
+}
+
+/* ─── Coach nudge ───────────────────────────────────────── */
+.coach-nudge{border-color:rgba(188,140,255,0.2)}
+.nudge-verdict{
+  font-family:var(--font-display);font-size:18px;font-weight:700;
+  font-style:italic;color:var(--c-white);margin:8px 0 12px;line-height:1.3;
+}
+.nudge-link{
+  font-family:var(--font-display);font-size:12px;font-weight:600;
+  letter-spacing:2px;text-transform:uppercase;color:var(--c-coach);
+  cursor:pointer;display:flex;align-items:center;gap:4px;
+}
+
+/* ─── Log session form ──────────────────────────────────── */
+.form-group{margin-bottom:16px}
+.form-label{
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  letter-spacing:2px;text-transform:uppercase;color:var(--c-text-tertiary);
+  margin-bottom:8px;display:block;
+}
+.form-input{
+  width:100%;padding:14px 16px;border-radius:var(--r-sm);
+  background:rgba(255,255,255,0.04);border:1px solid var(--glass-border);
+  color:var(--c-white);font-family:var(--font-body);font-size:15px;
+  outline:none;transition:border-color 0.2s;
+}
+.form-input:focus{border-color:var(--c-home)}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+
+/* ─── History list ──────────────────────────────────────── */
+.history-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 16px;border-radius:var(--r-sm);
+  background:transparent;border:1px solid var(--c-border);
+  margin-bottom:8px;cursor:pointer;transition:all 0.2s;
+}
+.history-row:hover{background:rgba(255,255,255,0.02);border-color:rgba(255,255,255,0.1)}
+.history-row .row-left{display:flex;flex-direction:column;gap:2px}
+.history-row .row-date{
+  font-family:var(--font-display);font-size:14px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--c-white);
+}
+.history-row .row-meta{
+  font-family:var(--font-body);font-size:12px;color:var(--c-text-tertiary);
+}
+.history-row .row-fg{
+  font-family:var(--font-display);font-size:22px;font-weight:800;color:var(--c-track);
+}
+.history-row .row-source{
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;
+  padding:3px 8px;border-radius:8px;
+  margin-top:2px;
+}
+.source-ai{background:rgba(86,211,100,0.1);color:var(--c-track)}
+.source-manual{background:rgba(245,166,35,0.1);color:var(--c-home)}
+
+/* ─── Calendar ──────────────────────────────────────────── */
+.cal-header{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-bottom:16px;
+}
+.cal-month{
+  font-family:var(--font-display);font-size:20px;font-weight:700;
+  letter-spacing:1px;text-transform:uppercase;color:var(--c-white);
+}
+.cal-nav{display:flex;gap:8px}
+.cal-nav button{
+  width:32px;height:32px;border-radius:50%;border:1px solid var(--glass-border);
+  background:transparent;color:var(--c-text-secondary);cursor:pointer;
+  font-size:16px;display:flex;align-items:center;justify-content:center;
+}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-day-label{
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;color:var(--c-text-tertiary);
+  padding:4px 0;
+}
+.cal-day{
+  aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:8px;font-family:var(--font-body);font-size:14px;
+  color:var(--c-text-secondary);position:relative;cursor:pointer;
+}
+.cal-day:hover{background:rgba(255,255,255,0.04)}
+.cal-day.today{color:var(--c-home);font-weight:700}
+.cal-day.has-session::after{
+  content:'';position:absolute;bottom:4px;width:5px;height:5px;
+  border-radius:50%;background:var(--c-home);
+}
+.cal-day.empty{color:transparent;pointer-events:none}
+
+/* ─── Alerts ────────────────────────────────────────────── */
+.alert-item{
+  display:flex;gap:12px;align-items:flex-start;
+  padding:14px 0;border-bottom:1px solid var(--c-border);
+}
+.alert-item:last-child{border-bottom:none}
+.alert-icon{
+  width:36px;height:36px;min-width:36px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+}
+.alert-icon.badge-earned{background:rgba(45,212,191,0.12)}
+.alert-icon.coach-ready{background:rgba(188,140,255,0.12)}
+.alert-icon.streak-hit{background:rgba(245,166,35,0.12)}
+.alert-body{flex:1}
+.alert-text{font-family:var(--font-body);font-size:14px;color:var(--c-text-primary);font-weight:400;line-height:1.4}
+.alert-time{font-family:var(--font-body);font-size:12px;color:var(--c-text-tertiary);margin-top:2px}
+.alert-unread{width:8px;height:8px;border-radius:50%;background:var(--c-home);margin-top:6px;min-width:8px}
+
+/* ─── Section label ─────────────────────────────────────── */
+.section-label{
+  font-family:var(--font-display);font-size:12px;font-weight:700;
+  letter-spacing:2.5px;text-transform:uppercase;color:var(--c-text-tertiary);
+  margin:20px 0 12px;
+}
+
+/* ─── Bottom Nav ────────────────────────────────────────── */
+.bottom-nav{
+  position:absolute;bottom:0;left:0;right:0;height:83px;
+  background:rgba(14,16,20,0.85);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  border-top:1px solid var(--c-border);
+  display:flex;justify-content:space-around;align-items:flex-start;padding-top:8px;
+}
+.nav-item{
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  font-family:var(--font-display);font-size:10px;font-weight:600;
+  letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--c-text-tertiary);cursor:pointer;padding:4px 8px;transition:color 0.2s;
+}
+.nav-item.active{color:var(--c-home)}
+.nav-item svg{width:24px;height:24px;fill:currentColor}
+.nav-item:active{transform:scale(0.92)}
+</style>
+</head>
+<body>
+
+<div class="phone-frame">
+  <div class="status-bar">
+    <span class="time">9:41</span>
+    <div class="notch"></div>
+    <span class="icons">
+      <svg viewBox="0 0 24 24"><path d="M2 17h2v5H2zm4-4h2v9H6zm4-4h2v13h-2zm4-3h2v16h-2zm4-4h2v20h-2z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/></svg>
+      <svg viewBox="0 0 24 24"><path d="M17 5v16c0 .55-.45 1-1 1H8c-.55 0-1-.45-1-1V5c0-.55.45-1 1-1h8c.55 0 1 .45 1 1zm5 2v10h-1.5V7H22zM3.5 7v10H2V7h1.5z"/></svg>
+    </span>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="greeting">Good morning, <span class="name">Tamir</span>.</div>
+    <div class="hero-row">
+      <div class="streak" title="Tap for streak history">
+        <span class="flame">🔥</span>
+        <span>12</span>
+      </div>
+      <div class="xp-bar-wrap">
+        <div class="xp-label">
+          <span class="tier">All-Star</span>
+          <span>2,450 / 3,000 XP</span>
+        </div>
+        <div class="xp-bar"><div class="xp-fill"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sub-nav -->
+  <div class="sub-nav">
+    <div class="chip active" data-surface="today">Today</div>
+    <div class="chip" data-surface="log">Log</div>
+    <div class="chip" data-surface="history">History</div>
+    <div class="chip" data-surface="calendar">Calendar</div>
+    <div class="chip" data-surface="alerts">Alerts</div>
+  </div>
+
+  <div class="content">
+    <!-- ═══ TODAY ═══ -->
+    <div class="surface active" id="surface-today">
+      <!-- Daily Challenge -->
+      <div class="glass-card challenge-card">
+        <div class="challenge-eyebrow"><span class="dot"></span> Daily Challenge</div>
+        <div class="challenge-title">Corner 3 Drill</div>
+        <div class="challenge-desc">Hit 7 out of 10 corner threes. Your corner 3 is at 29% — time to fix that.</div>
+        <div class="challenge-meta">
+          <div class="meta-item">Duration <strong>12 min</strong></div>
+          <div class="meta-item">XP <strong>+150</strong></div>
+          <div class="meta-item">Rank <strong>#01</strong></div>
+        </div>
+        <button class="btn-amber">Accept Challenge</button>
+      </div>
+
+      <!-- Today's Workout -->
+      <div class="glass-card workout-card">
+        <div class="card-header">
+          <div class="card-label">Today's Workout</div>
+          <div class="card-badge badge-train">Scheduled</div>
+        </div>
+        <div class="workout-stats">
+          <div class="workout-stat">
+            <div class="stat-num">4</div>
+            <div class="stat-label">Drills</div>
+          </div>
+          <div class="workout-stat">
+            <div class="stat-num">38</div>
+            <div class="stat-label">Min</div>
+          </div>
+          <div class="workout-stat">
+            <div class="stat-num">+200</div>
+            <div class="stat-label">XP</div>
+          </div>
+        </div>
+        <button class="btn-amber" style="margin-top:14px">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+          Start Workout
+        </button>
+      </div>
+
+      <!-- Recent Session -->
+      <div class="glass-card">
+        <div class="card-header">
+          <div class="card-label">Last Session</div>
+          <div class="card-badge badge-track">AI Tracked</div>
+        </div>
+        <div class="session-hero">
+          <span class="big-num">67</span>
+          <span class="pct">%</span>
+        </div>
+        <div class="session-delta">▲ +9 pts vs prior</div>
+        <div class="mini-court">Shot chart preview</div>
+        <button class="btn-outline">View Details →</button>
+      </div>
+
+      <!-- Coach Nudge -->
+      <div class="glass-card coach-nudge">
+        <div class="card-header">
+          <div class="card-label">Coach Insight</div>
+          <div class="card-badge badge-coach">New</div>
+        </div>
+        <div class="nudge-verdict">Your mid-range is carrying you, but the handles are holding you back.</div>
+        <div class="nudge-link">Read Full Insight → Coach</div>
+      </div>
+    </div>
+
+    <!-- ═══ LOG SESSION ═══ -->
+    <div class="surface" id="surface-log">
+      <div class="section-label">Manual Session Log</div>
+      <div class="glass-card">
+        <div class="form-group">
+          <label class="form-label">Date</label>
+          <input type="date" class="form-input" value="2026-04-30">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Shots Taken</label>
+            <input type="number" class="form-input" placeholder="33" value="33">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Shots Made</label>
+            <input type="number" class="form-input" placeholder="22" value="22">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Notes (optional)</label>
+          <textarea class="form-input" rows="3" placeholder="How did it feel?"></textarea>
+        </div>
+        <button class="btn-amber">Log Session</button>
+      </div>
+    </div>
+
+    <!-- ═══ HISTORY ═══ -->
+    <div class="surface" id="surface-history">
+      <div class="section-label">Sessions · Last 7D</div>
+
+      <div class="history-row">
+        <div class="row-left">
+          <div class="row-date">Tue · Apr 29</div>
+          <div class="row-meta">33 shots · 24 min</div>
+          <div class="row-source source-ai">AI</div>
+        </div>
+        <div class="row-fg">67%</div>
+      </div>
+
+      <div class="history-row">
+        <div class="row-left">
+          <div class="row-date">Sun · Apr 27</div>
+          <div class="row-meta">45 shots · 31 min</div>
+          <div class="row-source source-ai">AI</div>
+        </div>
+        <div class="row-fg">58%</div>
+      </div>
+
+      <div class="history-row">
+        <div class="row-left">
+          <div class="row-date">Fri · Apr 25</div>
+          <div class="row-meta">28 shots · 18 min</div>
+          <div class="row-source source-manual">Manual</div>
+        </div>
+        <div class="row-fg">43%</div>
+      </div>
+
+      <div class="history-row">
+        <div class="row-left">
+          <div class="row-date">Wed · Apr 23</div>
+          <div class="row-meta">51 shots · 38 min</div>
+          <div class="row-source source-ai">AI</div>
+        </div>
+        <div class="row-fg">47%</div>
+      </div>
+
+      <div class="history-row">
+        <div class="row-left">
+          <div class="row-date">Mon · Apr 21</div>
+          <div class="row-meta">32 shots · 20 min</div>
+          <div class="row-source source-ai">AI</div>
+        </div>
+        <div class="row-fg">41%</div>
+      </div>
+    </div>
+
+    <!-- ═══ CALENDAR ═══ -->
+    <div class="surface" id="surface-calendar">
+      <div class="glass-card">
+        <div class="cal-header">
+          <div class="cal-month">April 2026</div>
+          <div class="cal-nav">
+            <button>‹</button>
+            <button>›</button>
+          </div>
+        </div>
+        <div class="cal-grid">
+          <div class="cal-day-label">S</div><div class="cal-day-label">M</div>
+          <div class="cal-day-label">T</div><div class="cal-day-label">W</div>
+          <div class="cal-day-label">T</div><div class="cal-day-label">F</div>
+          <div class="cal-day-label">S</div>
+          <!-- Week 1 -->
+          <div class="cal-day empty">.</div><div class="cal-day empty">.</div>
+          <div class="cal-day empty">.</div><div class="cal-day">1</div>
+          <div class="cal-day">2</div><div class="cal-day has-session">3</div>
+          <div class="cal-day">4</div>
+          <!-- Week 2 -->
+          <div class="cal-day has-session">5</div><div class="cal-day">6</div>
+          <div class="cal-day has-session">7</div><div class="cal-day">8</div>
+          <div class="cal-day has-session">9</div><div class="cal-day">10</div>
+          <div class="cal-day">11</div>
+          <!-- Week 3 -->
+          <div class="cal-day">12</div><div class="cal-day has-session">13</div>
+          <div class="cal-day has-session">14</div><div class="cal-day">15</div>
+          <div class="cal-day">16</div><div class="cal-day has-session">17</div>
+          <div class="cal-day">18</div>
+          <!-- Week 4 -->
+          <div class="cal-day">19</div><div class="cal-day">20</div>
+          <div class="cal-day has-session">21</div><div class="cal-day">22</div>
+          <div class="cal-day has-session">23</div><div class="cal-day">24</div>
+          <div class="cal-day has-session">25</div>
+          <!-- Week 5 -->
+          <div class="cal-day">26</div><div class="cal-day has-session">27</div>
+          <div class="cal-day">28</div><div class="cal-day has-session">29</div>
+          <div class="cal-day today has-session">30</div>
+          <div class="cal-day empty">.</div><div class="cal-day empty">.</div>
+        </div>
+      </div>
+      <button class="btn-amber" onclick="showSurface('log')">
+        + Schedule Session
+      </button>
+    </div>
+
+    <!-- ═══ ALERTS ═══ -->
+    <div class="surface" id="surface-alerts">
+      <div class="glass-card">
+        <div class="alert-item">
+          <div class="alert-icon streak-hit">🔥</div>
+          <div class="alert-body">
+            <div class="alert-text"><strong>12-day streak!</strong> You're on a roll. Don't break the chain.</div>
+            <div class="alert-time">2 hours ago</div>
+          </div>
+          <div class="alert-unread"></div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon coach-ready">🧠</div>
+          <div class="alert-body">
+            <div class="alert-text"><strong>Coach insight ready.</strong> Your weekly analysis has been updated.</div>
+            <div class="alert-time">4 hours ago</div>
+          </div>
+          <div class="alert-unread"></div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon badge-earned">🏆</div>
+          <div class="alert-body">
+            <div class="alert-text"><strong>Badge earned:</strong> "Mid-Range Master" — 50% from mid-range over 10 sessions.</div>
+            <div class="alert-time">Yesterday</div>
+          </div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon streak-hit">⚡</div>
+          <div class="alert-body">
+            <div class="alert-text"><strong>Level up!</strong> You reached All-Star tier. +500 bonus XP.</div>
+            <div class="alert-time">3 days ago</div>
+          </div>
+        </div>
+
+        <div class="alert-item">
+          <div class="alert-icon badge-earned">🎯</div>
+          <div class="alert-body">
+            <div class="alert-text"><strong>New PB:</strong> 67% FG in a single session. Your best yet.</div>
+            <div class="alert-time">3 days ago</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <div class="nav-item active">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      Home
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5z"/></svg>
+      Track
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M13.49 5.48c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 13.9l1-4.4 2.1 2v6h2v-7.5l-2.1-2 .6-3c1.3 1.5 3.3 2.5 5.5 2.5v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1l-5.2 2.2v4.7h2v-3.4l1.8-.7-1.6 8.1-4.9-1-.4 2 7 1.4z"/></svg>
+      Train
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9v7c0 1.1.9 2 2 2h4v-8H5v-1c0-3.87 3.13-7 7-7s7 3.13 7 7v1h-4v8h4c1.1 0 2-.9 2-2v-7c0-4.97-4.03-9-9-9z"/></svg>
+      Coach
+    </div>
+    <div class="nav-item">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      Me
+    </div>
+  </div>
+</div>
+
+<script>
+function showSurface(id) {
+  document.querySelectorAll('.surface').forEach(s => s.classList.remove('active'));
+  document.getElementById('surface-' + id).classList.add('active');
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.surface === id);
+  });
+}
+
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => showSurface(chip.dataset.surface));
+});
+
+// Time-aware greeting
+const hour = new Date().getHours();
+const greetEl = document.querySelector('.greeting');
+if (hour < 12) greetEl.innerHTML = 'Good morning, <span class="name">Tamir</span>.';
+else if (hour < 18) greetEl.innerHTML = 'Good afternoon, <span class="name">Tamir</span>.';
+else greetEl.innerHTML = 'Good evening, <span class="name">Tamir</span>.';
+</script>
+</body>
+</html>

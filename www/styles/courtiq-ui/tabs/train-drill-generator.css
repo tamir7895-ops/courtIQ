@@ -1,0 +1,278 @@
+/* CourtIQ UI v2 — Drill Generator (8.4) — Phase 9 polish (blue accent)
+ * Mirrors Screens.jsx TrainScreen card density: italic numbered drill rows,
+ * tight typographic hierarchy, glass card with radial halo.
+ */
+
+#ciq-train-screen .ciq-drill-gen { display: none; }
+body.ciq-active.ciq-v2-train.ciq-tab-train.ciq-train-sub-generator #ciq-train-screen .ciq-drill-gen { display: block; }
+body.ciq-active.ciq-v2-train.ciq-tab-train.ciq-train-sub-generator #ciq-train-screen > .ciq-train-challenge,
+body.ciq-active.ciq-v2-train.ciq-tab-train.ciq-train-sub-generator #ciq-train-screen > .ciq-train-goals-head,
+body.ciq-active.ciq-v2-train.ciq-tab-train.ciq-train-sub-generator #ciq-train-screen > .ciq-train-goals { display: none; }
+
+/* Header — eyebrow + count chip */
+.ciq-drill-gen-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+.ciq-drill-gen-head .eb {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-train);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ciq-drill-gen-head .eb::before {
+  content: '';
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--c-train);
+  box-shadow: 0 0 8px var(--c-train);
+}
+.ciq-drill-gen-head .count {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.45);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 4px 10px;
+  border-radius: 100px;
+}
+.ciq-drill-gen-head .count b {
+  font-style: italic;
+  font-size: 14px;
+  color: var(--c-white);
+  margin-right: 4px;
+  letter-spacing: -0.01em;
+}
+
+/* Filter rows — same chip system, slightly tighter */
+.ciq-drill-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.ciq-drill-filter-row {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 4px;
+}
+.ciq-drill-filter-row::-webkit-scrollbar { display: none; }
+.ciq-drill-chip {
+  flex: 0 0 auto;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(240,237,230,0.5);
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.ciq-drill-chip:hover { color: var(--c-white); }
+.ciq-drill-chip.active {
+  background: var(--c-train-dim);
+  border-color: color-mix(in srgb, var(--c-train) 40%, transparent);
+  color: var(--c-train);
+  transform: translateY(-1px);
+}
+
+/* Drill list — italic-numbered rows like TrainScreen "this week's drills" */
+.ciq-drill-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ciq-drill-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: border-color 0.18s, background 0.18s, transform 0.1s;
+}
+.ciq-drill-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 100% 0%, rgba(76,163,255,0.10) 0%, transparent 60%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+.ciq-drill-card:hover { border-color: rgba(76,163,255,0.3); background: rgba(76,163,255,0.04); }
+.ciq-drill-card:hover::before { opacity: 1; }
+.ciq-drill-card:active { transform: scale(0.995); }
+
+/* Card icon — basketball-native SVG icon in tinted glass tile */
+.ciq-drill-card-icon {
+  width: 44px; height: 44px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  background: rgba(76,163,255,0.10);
+  border: 1px solid rgba(76,163,255,0.22);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-train);
+}
+.ciq-drill-card-icon .ciq-ic { width: 22px; height: 22px; }
+
+.ciq-drill-card-body { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.ciq-drill-card-name {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-white);
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ciq-drill-card-meta {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgba(240,237,230,0.5);
+  margin-top: 4px;
+  text-transform: uppercase;
+}
+.ciq-drill-card-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+.ciq-drill-card-tag {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 100px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(240,237,230,0.55);
+}
+.ciq-drill-card-tag.diff-Beginner     { color: var(--c-track); border-color: rgba(86,211,100,0.35);  background: rgba(86,211,100,0.08); }
+.ciq-drill-card-tag.diff-Intermediate { color: var(--c-amber); border-color: rgba(245,166,35,0.35); background: rgba(245,166,35,0.08); }
+.ciq-drill-card-tag.diff-Advanced     { color: var(--c-red);   border-color: rgba(232,64,64,0.4);   background: rgba(232,64,64,0.08); }
+
+/* CTA — Add button */
+.ciq-drill-card-cta {
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-train);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--c-train) 45%, transparent);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+  position: relative;
+  z-index: 1;
+}
+.ciq-drill-card-cta:hover { background: var(--c-train); color: #0c0d0f; }
+.ciq-drill-card-cta:active { transform: scale(0.95); }
+.ciq-drill-card-cta.added {
+  background: var(--c-train);
+  color: #0c0d0f;
+  border-color: var(--c-train);
+}
+.ciq-drill-card-cta.added::before {
+  content: '✓ ';
+  letter-spacing: 0;
+  margin-right: 2px;
+}
+
+/* Empty state — themed instead of generic */
+.ciq-drill-empty {
+  padding: 24px 18px;
+  text-align: center;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 16px;
+  position: relative;
+  overflow: hidden;
+}
+.ciq-drill-empty::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, rgba(76,163,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ciq-drill-empty .icon { font-size: 28px; margin-bottom: 8px; position: relative; }
+.ciq-drill-empty .title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  color: var(--c-white);
+  letter-spacing: -0.01em;
+  position: relative;
+}
+.ciq-drill-empty .sub {
+  font-size: 12px;
+  color: rgba(240,237,230,0.5);
+  margin-top: 4px;
+  position: relative;
+}
+
+/* Toast (used by Generator + Player) */
+.ciq-drill-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(110px + var(--safe-bottom, 0px));
+  transform: translate(-50%, 30px);
+  background: var(--c-train);
+  color: #0c0d0f;
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 11px 18px;
+  border-radius: 999px;
+  z-index: 9050;
+  opacity: 0;
+  pointer-events: none;
+  box-shadow: 0 12px 36px rgba(76,163,255,0.5);
+  transition: opacity 0.2s, transform 0.2s;
+}
+.ciq-drill-toast.show {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}

@@ -26,6 +26,18 @@ header.ks-header,
   display: none !important;
 }
 
+/* Defensive guard: silence the legacy 3D avatar canvas in db-panel-archetype
+ * (Three.js can hang the renderer even when its container is hidden). */
+#db-panel-archetype canvas,
+#db-panel-archetype .ks-profile-avatar-3d,
+#db-panel-archetype .avatar-3d-container,
+#db-panel-shop canvas {
+  display: none !important;
+  visibility: hidden !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 /* ─── Screen container ───────────────────────────────────── */
 .ciq-screen {
   background: var(--c-bg);

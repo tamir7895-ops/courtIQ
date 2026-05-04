@@ -1,0 +1,288 @@
+/* CourtIQ UI v2 — Design hierarchy rules (Phase 10.0.C)
+ *
+ * Three CTA levels, three heading levels, three density modes,
+ * one accent-saturation rule, one empty-state template, one
+ * loading-state template. Used everywhere — every page picks from
+ * these primitives instead of redefining its own visual rules.
+ */
+
+/* ═══════════════════════════════════════════════════════════════
+   CTA HIERARCHY — primary, secondary, tertiary
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: filter 0.15s, transform 0.1s, background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  font-size: 12px;
+  padding: 11px 22px;
+  -webkit-tap-highlight-color: transparent;
+}
+.ciq-cta:active { transform: scale(0.98); }
+
+/* Primary — accent fill, shadow, the page's most important action */
+.ciq-cta--primary {
+  background: var(--accent, var(--c-amber));
+  color: #0c0d0f;
+  font-size: 13px;
+  padding: 12px 24px;
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent, var(--c-amber)) 35%, transparent);
+}
+.ciq-cta--primary:hover { filter: brightness(1.06); }
+
+/* Secondary — glass background, supporting action */
+.ciq-cta--secondary {
+  background: rgba(255,255,255,0.05);
+  color: var(--c-white);
+  border-color: rgba(255,255,255,0.1);
+}
+.ciq-cta--secondary:hover { background: rgba(255,255,255,0.09); }
+
+/* Tertiary — text only, low-priority action */
+.ciq-cta--tertiary {
+  background: transparent;
+  color: var(--accent, var(--c-amber));
+  padding: 8px 12px;
+  letter-spacing: 0.14em;
+  font-size: 11px;
+}
+.ciq-cta--tertiary:hover { color: color-mix(in srgb, var(--accent, var(--c-amber)) 80%, var(--c-white)); }
+
+/* Danger variant — for destructive actions (sign out, delete) */
+.ciq-cta--danger {
+  background: rgba(232,64,64,0.12);
+  color: var(--c-red);
+  border-color: rgba(232,64,64,0.3);
+}
+.ciq-cta--danger:hover { background: rgba(232,64,64,0.18); }
+
+/* Icon button — square, used for top-bar actions */
+.ciq-icon-button {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--c-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s, transform 0.1s;
+}
+.ciq-icon-button:hover { background: rgba(255,255,255,0.08); color: var(--c-white); }
+.ciq-icon-button:active { transform: scale(0.94); }
+.ciq-icon-button--sm { width: 32px; height: 32px; border-radius: 10px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADING HIERARCHY — h1 / h2 / h3
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-h1 {
+  font-family: var(--font-display);
+  font-size: 48px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+.ciq-h2 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+.ciq-h3 {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+/* Eyebrow — section context, with optional dot indicator */
+.ciq-eyebrow-v2 {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--accent, var(--c-amber));
+}
+.ciq-eyebrow-v2.muted { color: rgba(240,237,230,0.5); }
+
+/* Body / meta typography */
+.ciq-body  { font-size: 14px; color: var(--c-text-secondary); line-height: 1.55; }
+.ciq-meta  {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.5);
+}
+.ciq-kpi   {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--c-white);
+}
+.ciq-kpi--accent { color: var(--accent, var(--c-amber)); }
+.ciq-kpi--lg { font-size: 44px; }
+.ciq-kpi--sm { font-size: 22px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   DENSITY MODES — comfy / normal / compact
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-stack-comfy   > * + * { margin-top: 24px; }
+.ciq-stack-normal  > * + * { margin-top: 16px; }
+.ciq-stack-compact > * + * { margin-top: 10px; }
+
+.ciq-row-gap-comfy   { gap: 18px; }
+.ciq-row-gap-normal  { gap: 12px; }
+.ciq-row-gap-compact { gap: 8px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   ACCENT SATURATION RULE — only the active tab is at full saturation
+   ═══════════════════════════════════════════════════════════════ */
+
+/* When an inactive accent appears in a UI element (e.g. a Coach pill
+ * referenced in the Train tab), the .accent-faded modifier dims it.
+ * This is opt-in to avoid breaking deliberate cross-tab references. */
+.ciq-accent-faded { opacity: 0.6; }
+
+/* ═══════════════════════════════════════════════════════════════
+   EMPTY STATE — single template
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-empty {
+  padding: 28px 22px 30px;
+  text-align: center;
+  background: var(--glass-bg);
+  border: 1px dashed rgba(255,255,255,0.08);
+  border-radius: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.ciq-empty::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 0%, color-mix(in srgb, var(--accent, var(--c-amber)) 12%, transparent) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ciq-empty .ciq-empty-icon {
+  width: 44px;
+  height: 44px;
+  margin: 0 auto 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent, var(--c-amber));
+  position: relative;
+}
+.ciq-empty .ciq-empty-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+  margin-bottom: 6px;
+  position: relative;
+}
+.ciq-empty .ciq-empty-sub {
+  font-size: 13px;
+  color: rgba(240,237,230,0.55);
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto;
+  position: relative;
+}
+.ciq-empty .ciq-empty-cta {
+  margin-top: 16px;
+  position: relative;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LOADING STATE — single template
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 18px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.5);
+}
+.ciq-loading .ciq-ic { animation: ciq-spin 0.9s linear infinite; }
+.ciq-loading--block {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 24px;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   GENERIC CARD + GLASS — used in templates
+   ═══════════════════════════════════════════════════════════════ */
+
+.ciq-card {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  padding: 18px 20px;
+  position: relative;
+  overflow: hidden;
+}
+.ciq-card--halo::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 100% 0%, color-mix(in srgb, var(--accent, var(--c-amber)) 14%, transparent) 0%, transparent 60%);
+  pointer-events: none;
+}
+.ciq-card > * { position: relative; }
+.ciq-card--compact { padding: 14px 16px; border-radius: 16px; }
+.ciq-card--list-row { padding: 12px 14px; border-radius: 14px; }
+
+/* Section header — eyebrow on the left, optional meta on the right */
+.ciq-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}

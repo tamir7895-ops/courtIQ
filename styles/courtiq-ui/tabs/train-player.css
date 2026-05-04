@@ -1,0 +1,311 @@
+/* CourtIQ UI v2 — Daily Workout Player (8.5) — Phase 9 polish (blue accent)
+ * Mirrors Screens.jsx ShotTrackerCam HUD: live-pill, italic Barlow KPIs,
+ * glass HUD bar, color-coded states.
+ */
+
+#ciq-player-backdrop {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(76,163,255,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, rgba(76,163,255,0.05) 0%, transparent 60%),
+    rgba(8,10,14,0.95);
+  z-index: 9100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+}
+body.ciq-player-open #ciq-player-backdrop { opacity: 1; pointer-events: auto; }
+
+#ciq-player-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9101;
+  display: none;
+  flex-direction: column;
+  padding: calc(28px + var(--safe-top, 0px)) 18px calc(32px + var(--safe-bottom, 0px));
+  color: var(--c-white);
+  font-family: var(--font-body);
+}
+body.ciq-player-open #ciq-player-overlay { display: flex; }
+
+/* Header — close button + LIVE pill style status */
+.ciq-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 22px;
+}
+.ciq-player-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--c-train);
+  background: rgba(76,163,255,0.12);
+  border: 1px solid rgba(76,163,255,0.3);
+  padding: 6px 12px;
+  border-radius: 100px;
+}
+.ciq-player-eyebrow::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c-train);
+  box-shadow: 0 0 8px var(--c-train);
+  animation: ciq-pulse-dot 1.6s ease-in-out infinite;
+}
+
+.ciq-player-close {
+  width: 40px; height: 40px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--c-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 20px;
+  font-family: inherit;
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
+}
+.ciq-player-close:hover { background: rgba(255,255,255,0.08); }
+.ciq-player-close:active { transform: scale(0.94); }
+
+/* Drill name + meta block — italic Barlow display */
+.ciq-player-name {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  color: var(--c-white);
+  margin-bottom: 6px;
+}
+.ciq-player-meta {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.5);
+  margin-bottom: 28px;
+}
+
+/* Center: huge italic timer + progress bar + sets row */
+.ciq-player-timer-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+}
+.ciq-player-timer {
+  font-family: var(--font-display);
+  font-size: clamp(82px, 24vw, 148px);
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.03em;
+  color: var(--c-white);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-shadow: 0 0 40px rgba(76,163,255,0.18);
+}
+.ciq-player-target {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.45);
+}
+.ciq-player-target span {
+  color: var(--c-train);
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.ciq-player-progress {
+  width: 100%;
+  height: 4px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.ciq-player-progress > span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--c-train), color-mix(in srgb, var(--c-train) 60%, var(--c-white)));
+  transition: width 0.3s ease;
+  box-shadow: 0 0 8px rgba(76,163,255,0.4);
+}
+
+.ciq-player-sets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 22px;
+}
+.ciq-player-set {
+  width: 40px; height: 40px;
+  border-radius: 11px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: rgba(240,237,230,0.45);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  font-style: italic;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.1s;
+}
+.ciq-player-set.active {
+  background: rgba(76,163,255,0.15);
+  border-color: rgba(76,163,255,0.5);
+  color: var(--c-train);
+  transform: scale(1.1);
+  box-shadow: 0 0 12px rgba(76,163,255,0.3);
+}
+.ciq-player-set.done {
+  background: var(--c-train);
+  border-color: var(--c-train);
+  color: #0c0d0f;
+  font-style: normal;
+}
+.ciq-player-set:active { transform: scale(0.95); }
+
+/* Bottom controls — 3-button row (skip / pause / complete) */
+.ciq-player-controls {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr;
+  gap: 10px;
+  margin-top: 28px;
+}
+.ciq-player-btn {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.03);
+  color: var(--c-white);
+  padding: 16px 0;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s, color 0.15s;
+}
+.ciq-player-btn:hover { background: rgba(255,255,255,0.06); }
+.ciq-player-btn:active { transform: scale(0.98); }
+.ciq-player-btn.primary {
+  background: var(--c-train);
+  border-color: var(--c-train);
+  color: #0c0d0f;
+  font-size: 13px;
+  box-shadow: 0 8px 28px rgba(76,163,255,0.4);
+}
+.ciq-player-btn.primary:hover { filter: brightness(1.08); background: var(--c-train); }
+.ciq-player-btn.success {
+  background: var(--c-green);
+  border-color: var(--c-green);
+  color: #0c0d0f;
+  box-shadow: 0 8px 28px rgba(86,211,100,0.4);
+}
+
+/* Done state — overlays everything */
+.ciq-player-done {
+  position: absolute;
+  inset: 0;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(86,211,100,0.18) 0%, transparent 65%),
+    linear-gradient(180deg, rgba(8,10,14,0.92) 0%, rgba(8,10,14,1) 60%);
+  z-index: 1;
+}
+body.ciq-player-finished .ciq-player-done { display: flex; }
+.ciq-player-done-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-track);
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: rgba(86,211,100,0.12);
+  border: 1px solid rgba(86,211,100,0.35);
+}
+.ciq-player-done-pill::before {
+  content: '';
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--c-track);
+  box-shadow: 0 0 8px var(--c-track);
+}
+.ciq-player-done-title {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 900;
+  font-style: italic;
+  text-transform: uppercase;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  text-align: center;
+  margin-top: 6px;
+  text-shadow: 0 0 40px rgba(86,211,100,0.15);
+}
+.ciq-player-done-stats {
+  display: flex;
+  gap: 24px;
+  margin-top: 16px;
+}
+.ciq-player-done-stat {
+  text-align: center;
+  min-width: 80px;
+}
+.ciq-player-done-stat .v {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  font-style: italic;
+  color: var(--c-train);
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+.ciq-player-done-stat:nth-child(3) .v { color: var(--c-amber); }
+.ciq-player-done-stat .l {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(240,237,230,0.4);
+  margin-top: 6px;
+}

@@ -55,8 +55,8 @@
       +     '</div>'
       +   '</div>'
       +   '<div class="ciq-track-actions">'
-      +     '<button class="ciq-track-btn primary" data-ciq-action="launch-camera">' + ICON_CAMERA() + ' Launch Camera</button>'
-      +     '<button class="ciq-track-btn secondary" data-ciq-action="upload-video">' + ICON_UPLOAD() + ' Upload Video</button>'
+      +     '<button class="ciq-track-btn primary" data-ciq-action="launch-camera"><span data-ciq-icon="camera"></span><span class="lbl">Launch Camera</span></button>'
+      +     '<button class="ciq-track-btn secondary" data-ciq-action="upload-video"><span data-ciq-icon="upload"></span><span class="lbl">Upload Video</span></button>'
       +   '</div>'
       + '</section>'
 
@@ -119,6 +119,18 @@
     });
   }
 
+  /* Replace data-ciq-icon placeholders with proper icon SVGs from ICONS. */
+  function hydrateIcons(host) {
+    if (!window.ICONS) return;
+    host.querySelectorAll('[data-ciq-icon]').forEach(function (slot) {
+      var name = slot.getAttribute('data-ciq-icon');
+      if (window.ICONS[name]) {
+        while (slot.firstChild) slot.removeChild(slot.firstChild);
+        slot.appendChild(window.ICONS[name]({ size: 14 }));
+      }
+    });
+  }
+
   function init() {
     var main = document.querySelector('.db-main-inner, #db-main-inner, .db-main, main');
     if (!main) {
@@ -128,6 +140,7 @@
 
     var host = buildScreen();
     main.appendChild(host);
+    hydrateIcons(host);
     wireActions(host);
 
     syncFromLegacy(host);

@@ -1,0 +1,73 @@
+<svg viewBox="0 0 500 470" xmlns="http://www.w3.org/2000/svg" fill="none" preserveAspectRatio="xMidYMid meet">
+  <!--
+    CourtIQ — NBA Half-Court Reference SVG
+    Orientation: Rim at TOP, half-court at BOTTOM
+    Scale: 10 units = 1 foot
+    Court: 50ft wide × 47ft deep
+
+    USE THIS SVG FOR ALL COURT ILLUSTRATIONS.
+    Do NOT draw a new court — always reuse this file.
+  -->
+  <defs>
+    <style>
+      .court-bg { fill: #151922; }
+      .cl { stroke: rgba(255,255,255,0.22); stroke-width: 1.5; fill: none; }
+      .cld { stroke: rgba(255,255,255,0.22); stroke-width: 1.5; fill: none; stroke-dasharray: 8 6; }
+      .backboard { stroke: rgba(255,255,255,0.4); stroke-width: 3; stroke-linecap: round; }
+      .rim { stroke: #ff3a14; stroke-width: 2.5; fill: none; }
+      .paint-fill { fill: rgba(255,255,255,0.02); }
+    </style>
+    <!-- 3PT arc: only show below y=142 (corner break) -->
+    <clipPath id="c3"><rect x="0" y="142" width="500" height="328"/></clipPath>
+    <!-- FT circle bottom half (toward half-court) -->
+    <clipPath id="ftb"><rect x="0" y="190" width="500" height="280"/></clipPath>
+    <!-- FT circle top half (toward basket) -->
+    <clipPath id="ftt"><rect x="0" y="0" width="500" height="190"/></clipPath>
+    <!-- Restricted area: below backboard -->
+    <clipPath id="ra"><rect x="0" y="40" width="500" height="430"/></clipPath>
+    <!-- Center circle: above half-court line -->
+    <clipPath id="cc"><rect x="0" y="410" width="500" height="60"/></clipPath>
+  </defs>
+
+  <!-- Court surface -->
+  <rect width="500" height="470" rx="4" class="court-bg"/>
+  <rect x="1" y="1" width="498" height="468" rx="3" class="cl"/>
+
+  <!-- Paint: 16ft wide × 19ft deep from baseline -->
+  <rect x="170" y="0" width="160" height="190" class="paint-fill"/>
+  <rect x="170" y="0" width="160" height="190" class="cl"/>
+
+  <!-- Free-throw circle — bottom half solid -->
+  <circle cx="250" cy="190" r="60" class="cl" clip-path="url(#ftb)"/>
+  <!-- Free-throw circle — top half dashed -->
+  <circle cx="250" cy="190" r="60" class="cld" clip-path="url(#ftt)"/>
+
+  <!-- Lane hash marks -->
+  <line x1="162" y1="70" x2="170" y2="70" class="cl"/>
+  <line x1="162" y1="80" x2="170" y2="80" class="cl"/>
+  <line x1="162" y1="110" x2="170" y2="110" class="cl"/>
+  <line x1="162" y1="140" x2="170" y2="140" class="cl"/>
+  <line x1="330" y1="70" x2="338" y2="70" class="cl"/>
+  <line x1="330" y1="80" x2="338" y2="80" class="cl"/>
+  <line x1="330" y1="110" x2="338" y2="110" class="cl"/>
+  <line x1="330" y1="140" x2="338" y2="140" class="cl"/>
+
+  <!-- 3PT corners: baseline to arc break -->
+  <line x1="30" y1="0" x2="30" y2="142" class="cl"/>
+  <line x1="470" y1="0" x2="470" y2="142" class="cl"/>
+
+  <!-- 3PT ARC: full circle clipped -->
+  <circle cx="250" cy="52.5" r="237.5" class="cl" clip-path="url(#c3)"/>
+
+  <!-- Restricted area arc -->
+  <circle cx="250" cy="52.5" r="40" class="cl" clip-path="url(#ra)"/>
+
+  <!-- Backboard -->
+  <line x1="220" y1="40" x2="280" y2="40" class="backboard"/>
+
+  <!-- Rim -->
+  <circle cx="250" cy="52.5" r="7.5" class="rim"/>
+
+  <!-- Center circle — dashed top half -->
+  <circle cx="250" cy="470" r="60" class="cld" clip-path="url(#cc)"/>
+</svg>
