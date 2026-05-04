@@ -19,7 +19,9 @@
       var v = attrs[k];
       if (v === false || v == null) return;
       if (k === 'class' || k === 'className') {
-        el.className = v;
+        // SVGElement.className is read-only (SVGAnimatedString); use setAttribute
+        // which works correctly for both HTML and SVG nodes.
+        el.setAttribute('class', v);
       } else if (k === 'text') {
         el.textContent = v;
       } else if (k === 'html') {

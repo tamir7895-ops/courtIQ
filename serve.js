@@ -76,7 +76,10 @@ const LIVE_SCRIPT = `
 })();
 </script>`;
 
+const LIVE_RELOAD_ENABLED = process.env.NO_RELOAD !== '1' && !process.argv.includes('--no-reload');
+
 function injectLiveScript(html) {
+  if (!LIVE_RELOAD_ENABLED) return html;
   const tag = html.lastIndexOf('</body>');
   if (tag !== -1) return html.slice(0, tag) + LIVE_SCRIPT + html.slice(tag);
   return html + LIVE_SCRIPT;
