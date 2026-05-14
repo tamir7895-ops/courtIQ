@@ -7,14 +7,52 @@
    design system on the dashboard.
    ═══════════════════════════════════════════════════════════════ */
 
-/* ─── Hide any lingering legacy chrome ───────────────────── */
+/* ─── Hide ALL legacy chrome when v2 shell is active ─────── */
+body.ciq-active #navbar,
+body.ciq-active .db-sidebar,
+body.ciq-active #db-sidebar,
+body.ciq-active #db-sidebar-overlay,
+body.ciq-active .ks-bottom-nav,
+body.ciq-active #ke-bottom-nav,
+body.ciq-active .ks-header,
+body.ciq-active header.ks-header,
+body.ciq-active #db-topbar,
+body.ciq-active .db-welcome-hero,
+body.ciq-active .db-stats-row,
+body.ciq-active .db-top-widgets,
+body.ciq-active #dc-card,
+body.ciq-active #db-quick-actions,
+body.ciq-active #db-skill-stats,
+body.ciq-active .glass-sub-nav,
+body.ciq-active #page-loader,
+body.ciq-active #cursor,
+body.ciq-active #cursor-ring,
+body.ciq-active #scroll-progress,
+body.ciq-active #back-to-top {
+  display: none !important;
+}
+
+/* Hide ALL legacy db-panels — v2 renderers own the content area */
+body.ciq-active .db-panel {
+  display: none !important;
+}
+
+/* The db-main-inner container stays visible — v2 renderers mount into it */
+body.ciq-active .db-main {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+body.ciq-active .db-main-inner {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Fallback for non-v2 (should not happen but keep safe) */
 .ks-bottom-nav,
 #ke-bottom-nav,
 .db-sidebar,
 .ks-header,
 header.ks-header,
-/* Legacy dashboard "always visible" top-content that used to live above the
-   panel switcher — replaced by per-tab ciq-*-screen sections. */
 #db-topbar,
 .db-welcome-hero,
 .db-stats-row,
