@@ -13,10 +13,18 @@
 
   /* ══════════════════════════════════════════════════════════════
      AUTH GUARD — redirect if not logged in
+     ?preview=1 escape hatch: skip the redirect so the dashboard
+     paints unauthenticated for design previews. The auth modal
+     already lives inside dashboard.html and will show normally.
   ══════════════════════════════════════════════════════════════ */
   (async function authGuard() {
     const { data: { session } } = await sb.auth.getSession();
+    const previewMode = (function () {
+      try { return new URL(location.href).searchParams.get('preview') === '1'; }
+      catch (e) { return false; }
+    })();
     if (!session) {
+      if (previewMode) { console.info('[authGuard] preview=1 — skipping redirect'); return; }
       window.location.href = 'index.html';
       return;
     }
