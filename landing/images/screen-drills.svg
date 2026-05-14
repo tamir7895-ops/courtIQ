@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 780" width="360" height="780" font-family="-apple-system, 'Helvetica Neue', sans-serif">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0e1014"/>
+      <stop offset="1" stop-color="#0a0c10"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="780" rx="44" fill="url(#bg3)"/>
+  <rect x="6" y="6" width="348" height="768" rx="38" fill="none" stroke="#23262e" stroke-width="1"/>
+
+  <!-- Status bar -->
+  <text x="28" y="36" fill="#f4ede4" font-size="13" font-weight="600">9:41</text>
+  <g transform="translate(298,28)" fill="#f4ede4">
+    <rect x="0" y="2" width="14" height="9" rx="1"/>
+    <rect x="18" y="2" width="14" height="9" rx="2" fill="none" stroke="#f4ede4" stroke-width="1"/>
+    <rect x="20" y="4" width="9" height="5" rx="1"/>
+  </g>
+  <rect x="120" y="14" width="120" height="30" rx="15" fill="#0a0c10"/>
+
+  <!-- Header -->
+  <text x="24" y="80" fill="#e85d04" font-size="9" letter-spacing="2.2" font-family="ui-monospace, monospace">— LIBRARY / 81 DRILLS</text>
+  <text x="24" y="116" fill="#f4ede4" font-size="30" font-weight="800" letter-spacing="-0.5" font-family="'Barlow Condensed', sans-serif">DRILLS</text>
+
+  <!-- Search bar -->
+  <g transform="translate(24 132)">
+    <rect width="312" height="38" rx="19" fill="#f4ede4" fill-opacity="0.04" stroke="#f4ede4" stroke-opacity="0.08"/>
+    <circle cx="22" cy="19" r="6" fill="none" stroke="#f4ede4" stroke-opacity="0.4" stroke-width="1.4"/>
+    <line x1="27" y1="24" x2="32" y2="29" stroke="#f4ede4" stroke-opacity="0.4" stroke-width="1.4"/>
+    <text x="42" y="24" fill="#f4ede4" fill-opacity="0.4" font-size="12">Form, spot-up, pull-up…</text>
+  </g>
+
+  <!-- Filter chips -->
+  <g transform="translate(24 184)" font-size="9" letter-spacing="1.8" font-family="ui-monospace, monospace">
+    <g><rect width="60" height="22" rx="11" fill="#e85d04"/><text x="30" y="15" text-anchor="middle" fill="#0e1014" font-weight="700">ALL · 81</text></g>
+    <g transform="translate(70 0)"><rect width="68" height="22" rx="11" fill="none" stroke="#f4ede4" stroke-opacity="0.18"/><text x="34" y="15" text-anchor="middle" fill="#f4ede4" fill-opacity="0.65">FORM · 14</text></g>
+    <g transform="translate(148 0)"><rect width="74" height="22" rx="11" fill="none" stroke="#f4ede4" stroke-opacity="0.18"/><text x="37" y="15" text-anchor="middle" fill="#f4ede4" fill-opacity="0.65">SPOT-UP · 19</text></g>
+    <g transform="translate(232 0)"><rect width="74" height="22" rx="11" fill="none" stroke="#f4ede4" stroke-opacity="0.18"/><text x="37" y="15" text-anchor="middle" fill="#f4ede4" fill-opacity="0.65">PULL-UP · 12</text></g>
+  </g>
+
+  <!-- Featured drill card -->
+  <g transform="translate(24 224)">
+    <rect width="312" height="100" rx="14" fill="#e85d04"/>
+    <text x="20" y="24" fill="#0e1014" font-size="9" letter-spacing="2" font-family="ui-monospace, monospace" font-weight="700">— FEATURED · CONTINUE</text>
+    <text x="20" y="56" fill="#0e1014" font-size="22" font-weight="800" letter-spacing="-0.5" font-family="'Barlow Condensed', sans-serif">FORM SHOOTING · 5 SPOTS</text>
+    <text x="20" y="78" fill="#0e1014" fill-opacity="0.7" font-size="10" letter-spacing="1.5" font-family="ui-monospace, monospace">12 MIN · 25 ATTEMPTS · LAST RUN 2D AGO</text>
+    <g transform="translate(264 50)">
+      <circle r="22" fill="#0e1014"/>
+      <text y="6" text-anchor="middle" fill="#e85d04" font-size="20" font-weight="800">▶</text>
+    </g>
+  </g>
+
+  <!-- Drill list -->
+  <g transform="translate(24 344)" font-family="-apple-system, sans-serif">
+    <!-- Row 1 -->
+    <g><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Curl Catch &amp; Shoot</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">SPOT-UP · 10 MIN · 15 ATTEMPTS</text>
+      <text x="312" y="22" text-anchor="end" fill="#e85d04" font-size="14" font-weight="700">62%</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">LAST 14D</text>
+    </g>
+    <g transform="translate(0 64)"><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Pull-Up Off Screen</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">PULL-UP · 15 MIN · 30 ATTEMPTS</text>
+      <text x="312" y="22" text-anchor="end" fill="#7be37b" font-size="14" font-weight="700">71%</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">↗ +6</text>
+    </g>
+    <g transform="translate(0 128)"><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Finish Through Contact</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">FINISHING · 8 MIN · 20 REPS</text>
+      <text x="312" y="22" text-anchor="end" fill="#f4ede4" font-size="14" font-weight="700">58%</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">NEW</text>
+    </g>
+    <g transform="translate(0 192)"><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Three-Point Rotation</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">SPOT-UP · 20 MIN · 50 ATTEMPTS</text>
+      <text x="312" y="22" text-anchor="end" fill="#e85d04" font-size="14" font-weight="700">38%</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">↘ -3</text>
+    </g>
+    <g transform="translate(0 256)"><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Free Throw — Fatigued</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">CLUTCH · 6 MIN · 25 FTs</text>
+      <text x="312" y="22" text-anchor="end" fill="#7be37b" font-size="14" font-weight="700">82%</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">↗ PR</text>
+    </g>
+    <g transform="translate(0 320)"><line x1="0" y1="0" x2="312" y2="0" stroke="#f4ede4" stroke-opacity="0.08"/>
+      <text x="0" y="22" fill="#f4ede4" font-size="14" font-weight="600">Hostage Dribble Series</text>
+      <text x="0" y="40" fill="#f4ede4" fill-opacity="0.5" font-size="9.5" letter-spacing="1.5" font-family="ui-monospace, monospace">HANDLE · 9 MIN · 4 SETS</text>
+      <text x="312" y="22" text-anchor="end" fill="#f4ede4" font-size="14" font-weight="700">—</text>
+      <text x="312" y="40" text-anchor="end" fill="#f4ede4" fill-opacity="0.4" font-size="9" letter-spacing="1.5" font-family="ui-monospace, monospace">NEVER RUN</text>
+    </g>
+    <line x1="0" y1="384" x2="312" y2="384" stroke="#f4ede4" stroke-opacity="0.08"/>
+  </g>
+
+  <!-- Tab bar -->
+  <g transform="translate(24 736)" font-size="9" letter-spacing="2" font-family="ui-monospace, monospace">
+    <text x="20" y="0" fill="#f4ede4" fill-opacity="0.5">HOME</text>
+    <text x="76" y="0" fill="#f4ede4" fill-opacity="0.5">TRACK</text>
+    <text x="138" y="0" fill="#e85d04" font-weight="700">DRILLS</text>
+    <text x="208" y="0" fill="#f4ede4" fill-opacity="0.5">STATS</text>
+    <text x="270" y="0" fill="#f4ede4" fill-opacity="0.5">COACH</text>
+  </g>
+</svg>

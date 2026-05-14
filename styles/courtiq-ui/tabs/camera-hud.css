@@ -71,6 +71,34 @@
 }
 
 /* ────────────────────────────────────────────────────────────────
+   FULLSCREEN HOST — hides bottom nav, locks viewport
+   ──────────────────────────────────────────────────────────────── */
+#ciq-v2-camera-hud {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  background: #000;
+  overflow: hidden;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   VIDEO & DETECTION CANVAS
+   ──────────────────────────────────────────────────────────────── */
+.hud-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #0a0604;
+}
+.hud-detect-canvas {
+  position: absolute;
+  top: 0; left: 0;
+  pointer-events: none;
+}
+
+/* ────────────────────────────────────────────────────────────────
    HUD CONTAINER
    ──────────────────────────────────────────────────────────────── */
 .hud {
@@ -346,7 +374,7 @@
   position: absolute;
   left: 14px;
   right: 14px;
-  bottom: 96px;
+  bottom: 40px;
   display: grid;
   grid-template-columns: 1fr auto;
   align-items: end;
@@ -501,6 +529,86 @@
   height: 100%;
 }
 
+/* ────────────────────────────────────────────────────────────────
+   CALIBRATION / PHASE SCREENS (Phase 0–2)
+   ──────────────────────────────────────────────────────────────── */
+.hud-cal {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  padding: 32px;
+}
+.hud-cal__icon {
+  font-size: 48px;
+  margin-bottom: 8px;
+  animation: hud-cal-breathe 2s ease-in-out infinite;
+}
+.hud-cal__icon--ok {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(86, 211, 100, 0.18);
+  border: 2px solid var(--hud-make);
+  font-size: 28px;
+  color: var(--hud-make);
+  animation: hud-cal-pop 400ms cubic-bezier(.18,.89,.32,1.28) forwards;
+}
+.hud-cal__title {
+  font-family: var(--hud-display);
+  font-size: 28px;
+  letter-spacing: 0.08em;
+  color: var(--hud-white);
+  font-weight: 400;
+}
+.hud-cal__title--ok {
+  color: var(--hud-make);
+}
+.hud-cal__instruction {
+  font-size: 14px;
+  letter-spacing: 0.06em;
+  color: var(--hud-white);
+  margin-top: 4px;
+}
+.hud-cal__sub {
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--hud-white-2);
+  max-width: 260px;
+}
+.hud-cal__spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--hud-white-3);
+  border-top-color: var(--hud-court);
+  border-radius: 50%;
+  margin-top: 12px;
+  animation: hud-spin 0.8s linear infinite;
+}
+@keyframes hud-spin {
+  to { transform: rotate(360deg); }
+}
+@keyframes hud-cal-breathe {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.08); opacity: 0.8; }
+}
+@keyframes hud-cal-pop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* phase variant tints */
+.hud--phase-cal  { background: rgba(10, 6, 4, 0.4); }
+.hud--phase-lock { background: rgba(10, 6, 4, 0.35); }
+.hud--phase-3pt  { background: rgba(10, 6, 4, 0.4); }
+
 /* hide right rail in compact / streamer mode */
 .hud[data-mode="minimal"] .hud-rail,
 .hud[data-mode="minimal"] .hud-focus__rail {
@@ -509,32 +617,12 @@
 .hud[data-mode="minimal"] .hud-hero { padding: 8px 12px; }
 .hud[data-mode="minimal"] .hud-hero__int { font-size: 56px; }
 
-/* ────────────────────────────────────────────────────────────────
-   PAGE FRAME (around the iPhone)
-   ──────────────────────────────────────────────────────────────── */
-body {
-  margin: 0;
-  background: #0a0907;
-  color: #f0ece4;
-  font-family: var(--hud-mono);
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 32px;
-  background-image:
-    radial-gradient(ellipse at 20% 0%, rgba(255, 90, 60, 0.06), transparent 50%),
-    radial-gradient(ellipse at 80% 100%, rgba(245, 166, 35, 0.04), transparent 50%);
-}
-.stage {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-}
-.stage__caption {
-  font-size: 10px;
-  letter-spacing: 0.32em;
-  color: rgba(240, 236, 228, 0.45);
-  text-transform: uppercase;
+/* safe area padding on notched devices */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .hud-bottom {
+    bottom: calc(24px + env(safe-area-inset-bottom));
+  }
+  .hud-top {
+    top: calc(12px + env(safe-area-inset-top));
+  }
 }

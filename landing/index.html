@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0" />
+<title>COURTIQ — AI Basketball Training. Train Like the Pros Track.</title>
+<meta name="description" content="AI shot tracking. 81 drills. An on-device model. Built by hoopers. iOS, Android, Web." />
+<meta property="og:title" content="COURTIQ — AI Basketball Training" />
+<meta property="og:description" content="Train like the pros track. Shot tracking that runs on-device." />
+<meta name="theme-color" content="#0e1014" />
+<link rel="icon" type="image/svg+xml" href="images/favicon.svg" />
+<link rel="apple-touch-icon" href="images/favicon.svg" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800;900&family=Lexend:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+
+<style>
+  /* ================================================================
+     RESET + TOKENS
+     ================================================================ */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  ::selection { background: #e85d04; color: #0e1014; }
+
+  :root {
+    --bg: #0e1014;
+    --bg-2: #14171d;
+    --fg: #f4ede4;
+    --fg-dim: rgba(244, 237, 228, 0.6);
+    --accent: #e85d04;
+    --amber: #f5a623;
+    --court-line: rgba(244, 237, 228, 0.08);
+    --hairline: rgba(244, 237, 228, 0.12);
+
+    --display: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+    --body: 'Lexend', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+
+    --side: clamp(20px, 4vw, 56px);
+    --tight: -0.04em;
+  }
+
+  html { scroll-behavior: auto; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--body);
+    font-weight: 400;
+    font-size: clamp(15px, 0.95vw, 17px);
+    line-height: 1.55;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: inherit; text-decoration: none; }
+  ul { list-style: none; }
+  img { display: block; max-width: 100%; }
+
+  /* Subtle film grain — adds atmosphere */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 200;
+    opacity: 0.035;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 1 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>");
+  }
+
+  /* ================================================================
+     TYPE HELPERS
+     ================================================================ */
+  .mono {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .display {
+    font-family: var(--display);
+    font-weight: 800;
+    line-height: 0.85;
+    letter-spacing: var(--tight);
+    text-transform: uppercase;
+  }
+  .accent { color: var(--accent); }
+
+  /* Hairline divider */
+  .rule { display: block; height: 1px; background: var(--hairline); width: 100%; }
+
+  /* ================================================================
+     NAV
+     ================================================================ */
+  .nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    padding: 20px var(--side);
+    mix-blend-mode: difference;
+    color: var(--fg);
+  }
+  .nav-inner {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 40px;
+    align-items: center;
+  }
+  .nav-logo {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 22px;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .nav-logo .dot { color: var(--accent); }
+  .nav-logo svg {
+    width: 26px; height: 26px;
+    flex: none;
+  }
+  .nav-caption {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    opacity: 0.5;
+    text-transform: uppercase;
+    justify-self: start;
+  }
+  .nav-links {
+    display: flex; gap: 28px; align-items: center;
+  }
+  .nav-links a {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    position: relative;
+    transition: opacity 0.2s;
+  }
+  .nav-links a::before {
+    content: '';
+    position: absolute; bottom: -6px; left: 0;
+    width: 0; height: 1px; background: var(--fg);
+    transition: width 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .nav-links a:hover::before { width: 100%; }
+
+  /* ================================================================
+     HERO
+     ================================================================ */
+  .hero {
+    position: relative;
+    height: 100vh; min-height: 640px;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  /* Court-line texture grid */
+  .court-grid {
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'><g fill='none' stroke='%23f4ede4' stroke-width='1.5'><circle cx='300' cy='300' r='90'/><circle cx='300' cy='300' r='30' stroke-dasharray='4 6'/><rect x='180' y='220' width='240' height='180'/><path d='M0 220 A 300 300 0 0 1 600 220'/><path d='M180 400 L420 400'/></g></svg>");
+    background-size: 600px 600px;
+    background-position: center;
+    opacity: 0.28;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .hero-bg-text {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: 30vw;
+    line-height: 0.78;
+    letter-spacing: -0.05em;
+    color: var(--fg);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 1;
+    user-select: none;
+  }
+
+  #hero-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .hero-grid {
+    position: relative;
+    z-index: 3;
+    height: 100%;
+    display: grid;
+    grid-template-columns: minmax(280px, 30%) 1fr;
+    align-items: end;
+    padding: 0 var(--side) clamp(40px, 8vh, 96px);
+    gap: 40px;
+  }
+  .hero-left {
+    display: flex; flex-direction: column;
+    gap: 28px;
+    max-width: 460px;
+  }
+  .hero-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--accent);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .hero-tag::before {
+    content: '';
+    width: 8px; height: 8px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .hero-body {
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.5;
+    color: var(--fg);
+    opacity: 0.88;
+    font-weight: 400;
+  }
+  .hero-body strong { color: var(--accent); font-weight: 500; }
+
+  .hero-ctas { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    padding: 16px 22px;
+    transition: background 0.25s, color 0.25s;
+    cursor: pointer;
+    border: 1px solid transparent;
+    will-change: transform;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: var(--bg);
+  }
+  .btn-primary:hover { background: var(--fg); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--fg);
+    border-color: var(--hairline);
+  }
+  .btn-ghost:hover { border-color: var(--fg); }
+  .btn .arrow {
+    display: inline-block;
+    transform: translateX(0);
+    transition: transform 0.25s;
+  }
+  .btn:hover .arrow { transform: translateX(4px); }
+
+  /* Hero corner stamps */
+  .hero-stamp {
+    position: absolute;
+    z-index: 3;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: 0.55;
+    line-height: 1.5;
+  }
+  .hero-stamp.tl { top: 96px; right: var(--side); text-align: right; }
+  .hero-stamp.br { bottom: clamp(40px, 8vh, 96px); right: var(--side); text-align: right; }
+  .hero-stamp .num { color: var(--accent); }
+
+  .scroll-cue {
+    position: absolute;
+    bottom: 26px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 3;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.32em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    display: flex; flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .scroll-cue::after {
+    content: '';
+    width: 1px; height: 28px;
+    background: linear-gradient(var(--fg), transparent);
+    animation: scrollLine 2.2s ease-in-out infinite;
+  }
+  @keyframes scrollLine {
+    0%, 100% { transform: scaleY(0.4); transform-origin: top; opacity: 0.5; }
+    50% { transform: scaleY(1); opacity: 1; }
+  }
+
+  /* ================================================================
+     MARQUEE
+     ================================================================ */
+  .marquee {
+    overflow: hidden;
+    white-space: nowrap;
+    border-top: 1px solid var(--bg);
+    border-bottom: 1px solid var(--bg);
+  }
+  .marquee.orange { background: var(--accent); color: var(--bg); }
+  .marquee.dark { background: var(--bg); color: var(--fg); border-top: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+  .marquee-track {
+    display: inline-flex;
+    align-items: center;
+    padding: 18px 0;
+    animation: marquee 36s linear infinite;
+    will-change: transform;
+  }
+  .marquee.reverse .marquee-track { animation-direction: reverse; }
+  .marquee-track > span {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(18px, 2.2vw, 28px);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0 28px;
+    display: inline-flex;
+    align-items: center;
+    gap: 28px;
+  }
+  .marquee-track .glyph {
+    display: inline-block;
+    width: 14px; height: 14px;
+    background: currentColor;
+    border-radius: 50%;
+    transform: translateY(-1px);
+    opacity: 0.85;
+  }
+  @keyframes marquee {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+  }
+
+  /* ================================================================
+     HOOK SECTION
+     ================================================================ */
+  .hook {
+    padding: clamp(96px, 14vh, 180px) var(--side) clamp(80px, 12vh, 140px);
+    position: relative;
+  }
+  .hook-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    margin-bottom: 64px;
+    display: inline-flex;
+    gap: 12px;
+    align-items: center;
+  }
+  .hook-tag::before {
+    content: '02';
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .hook-quote {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(40px, 6.4vw, 110px);
+    line-height: 0.96;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    max-width: 1200px;
+  }
+  .hook-quote .line2 { color: var(--accent); }
+  .hook-stats {
+    margin-top: clamp(80px, 14vh, 160px);
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    border-top: 1px solid var(--hairline);
+  }
+  .hook-stat {
+    padding: 36px 28px 36px 0;
+    border-right: 1px solid var(--hairline);
+  }
+  .hook-stat:last-child { border-right: none; }
+  .hook-stat:not(:first-child) { padding-left: 28px; }
+  .hook-stat-num {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(56px, 7vw, 112px);
+    line-height: 1;
+    display: block;
+    letter-spacing: -0.03em;
+  }
+  .hook-stat-label {
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.65;
+    line-height: 1.6;
+    max-width: 240px;
+  }
+  .hook-stat-meta {
+    display: block;
+    margin-top: 4px;
+    color: var(--accent);
+    font-size: 9px;
+  }
+
+  /* ================================================================
+     STICKY FEATURES
+     ================================================================ */
+  .features {
+    position: relative;
+    border-top: 1px solid var(--hairline);
+    background: var(--bg);
+  }
+  .features-section {
+    /* total height = 4 viewports + initial */
+    height: 420vh;
+    position: relative;
+  }
+  .features-pin {
+    height: 100vh;
+    position: sticky; top: 0;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: minmax(280px, 36%) 1fr;
+    align-items: center;
+    padding: 0 var(--side);
+    gap: 40px;
+  }
+  .features-head {
+    position: absolute;
+    top: 36px; left: var(--side);
+    display: flex; gap: 18px; align-items: center;
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+  .features-head .num { color: var(--accent); }
+  .features-progress {
+    flex: 1;
+    height: 1px;
+    background: var(--hairline);
+    max-width: 240px;
+    position: relative;
+    overflow: hidden;
+  }
+  .features-progress::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: var(--accent);
+    transform: scaleX(var(--p, 0));
+    transform-origin: left center;
+    transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .features-list {
+    display: flex; flex-direction: column;
+    gap: 14px;
+    position: relative;
+  }
+  .features-list li {
+    font-family: var(--display);
+    font-weight: 700;
+    font-size: clamp(20px, 2vw, 28px);
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    opacity: 0.28;
+    transition: opacity 0.45s, color 0.45s, transform 0.45s;
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    align-items: baseline;
+    gap: 4px;
+    line-height: 1.05;
+  }
+  .features-list li.active {
+    opacity: 1;
+    color: var(--fg);
+    transform: translateX(8px);
+  }
+  .features-list li.active .num { color: var(--accent); }
+  .features-list .num {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--fg-dim);
+  }
+
+  .features-stage {
+    position: relative;
+    height: 100%;
+    display: flex; align-items: center;
+    justify-content: center;
+  }
+
+  .feature-panel {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: 1fr clamp(260px, 28vw, 360px);
+    gap: clamp(20px, 4vw, 60px);
+    align-items: center;
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    pointer-events: none;
+  }
+  .feature-panel.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+
+  .feature-text { max-width: 540px; align-self: center; }
+  .feature-eyebrow {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 22px;
+  }
+  .feature-text h3 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(34px, 4.4vw, 72px);
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+  }
+  .feature-text p {
+    margin-top: 22px;
+    font-size: clamp(15px, 1.05vw, 17px);
+    color: var(--fg);
+    opacity: 0.85;
+    line-height: 1.55;
+    max-width: 480px;
+  }
+  .feature-text .meta {
+    margin-top: 22px;
+    display: inline-flex; gap: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--hairline);
+    flex-wrap: wrap;
+  }
+  .feature-text .meta span {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+
+  /* iPhone mockup */
+  .phone {
+    width: 100%;
+    aspect-ratio: 9 / 19.5;
+    background: linear-gradient(145deg, #1a1d24, #0a0c10);
+    border-radius: clamp(28px, 3vw, 42px);
+    border: 1px solid rgba(244, 237, 228, 0.06);
+    box-shadow:
+      inset 0 0 0 6px #0a0c10,
+      0 30px 60px -20px rgba(0,0,0,0.6),
+      0 0 80px -20px rgba(232, 93, 4, 0.25);
+    position: relative;
+    overflow: hidden;
+    justify-self: center;
+    max-width: 360px;
+  }
+  .phone::before {
+    content: '';
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    width: 96px; height: 28px;
+    background: #0a0c10;
+    border-radius: 16px;
+    z-index: 3;
+  }
+  .phone-screen {
+    position: absolute;
+    inset: 14px;
+    background: var(--bg);
+    border-radius: clamp(20px, 2.4vw, 32px);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    padding: 56px 16px 16px;
+  }
+  .phone-screen .ph-tag {
+    font-family: var(--mono);
+    font-size: 8px;
+    letter-spacing: 0.22em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .phone-screen .ph-title {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 18px;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+  .ph-stat-row {
+    display: flex; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .ph-stat-row .k { font-family: var(--mono); font-size: 8.5px; letter-spacing: 0.18em; color: var(--fg-dim); text-transform: uppercase; }
+  .ph-stat-row .v { font-family: var(--display); font-weight: 700; font-size: 14px; color: var(--accent); }
+  .ph-bar { display: flex; align-items: flex-end; gap: 4px; height: 60px; margin-top: 12px; }
+  .ph-bar div { flex: 1; background: var(--accent); opacity: 0.85; border-radius: 2px 2px 0 0; }
+  .ph-bar div:nth-child(odd) { opacity: 0.45; background: var(--fg); }
+
+  .phone-screen .ph-pov {
+    flex: 1; min-height: 110px;
+    background:
+      radial-gradient(ellipse at center, rgba(232,93,4,0.22), transparent 65%),
+      linear-gradient(180deg, #16191f 0%, #0a0c10 100%);
+    border-radius: 8px;
+    margin-top: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+  .ph-pov::before {
+    /* hoop */
+    content: '';
+    position: absolute;
+    top: 22%; left: 50%;
+    transform: translateX(-50%);
+    width: 56px; height: 30px;
+    border: 1.5px solid var(--accent);
+    border-radius: 50%;
+  }
+  .ph-pov::after {
+    /* ball detection box */
+    content: '';
+    position: absolute;
+    bottom: 30%; left: 28%;
+    width: 18px; height: 18px;
+    border: 1.5px solid var(--accent);
+    border-radius: 2px;
+  }
+  .phone-screen .ph-msg {
+    background: rgba(244, 237, 228, 0.04);
+    border: 1px solid var(--hairline);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 8px;
+  }
+  .phone-screen .ph-msg.coach {
+    background: var(--accent);
+    color: var(--bg);
+    border-color: var(--accent);
+    align-self: flex-start;
+  }
+  .phone-screen .ph-msg .who {
+    font-family: var(--mono);
+    font-size: 7.5px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    margin-bottom: 3px;
+  }
+  .phone-screen .ph-msg .txt {
+    font-family: var(--body);
+    font-size: 9.5px;
+    line-height: 1.4;
+  }
+  .ph-rings { display: flex; gap: 8px; margin-top: 12px; }
+  .ph-ring {
+    flex: 1;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    background: conic-gradient(var(--accent) calc(var(--pct, 0.6) * 360deg), rgba(244,237,228,0.08) 0);
+    position: relative;
+    display: grid; place-items: center;
+  }
+  .ph-ring::after {
+    content: '';
+    position: absolute; inset: 5px;
+    background: var(--bg);
+    border-radius: 50%;
+  }
+  .ph-ring span {
+    position: relative; z-index: 1;
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: 14px;
+  }
+
+  .phone .placeholder-note {
+    position: absolute;
+    bottom: -22px; left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--fg-dim);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Image-based phone mockups (SVG) */
+  .phone-img-wrap {
+    width: 100%;
+    max-width: 360px;
+    justify-self: center;
+    filter:
+      drop-shadow(0 26px 50px rgba(0,0,0,0.55))
+      drop-shadow(0 0 80px rgba(232, 93, 4, 0.18));
+    transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .phone-img {
+    width: 100%;
+    display: block;
+    border-radius: 42px;
+  }
+  .feature-panel.active .phone-img-wrap {
+    transform: translateY(-4px);
+  }
+
+  /* ================================================================
+     NUMBERS
+     ================================================================ */
+  .numbers {
+    padding: clamp(96px, 14vh, 160px) var(--side);
+    border-top: 1px solid var(--hairline);
+  }
+  .numbers-head {
+    display: flex; justify-content: space-between;
+    margin-bottom: 60px;
+    flex-wrap: wrap;
+    gap: 20px;
+  }
+  .numbers-head h2 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(36px, 4.4vw, 64px);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    max-width: 720px;
+  }
+  .numbers-head .meta { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.22em; opacity: 0.6; text-transform: uppercase; align-self: end; text-align: right; }
+  .number-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: baseline;
+    padding: clamp(28px, 4vh, 56px) 0;
+    border-top: 1px solid var(--hairline);
+    gap: 20px;
+  }
+  .number-row:last-child { border-bottom: 1px solid var(--hairline); }
+  .num-big {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: clamp(64px, 13vw, 220px);
+    letter-spacing: -0.06em;
+    line-height: 0.92;
+    color: var(--fg);
+  }
+  .num-big .accent { color: var(--accent); }
+  .num-label {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    max-width: 280px;
+    text-align: right;
+    line-height: 1.6;
+  }
+
+  /* ================================================================
+     CTA SECTION
+     ================================================================ */
+  .cta {
+    background-color: var(--accent);
+    color: var(--bg);
+    padding: clamp(80px, 12vh, 160px) var(--side) clamp(60px, 10vh, 120px);
+    position: relative;
+    overflow: hidden;
+  }
+  .cta::before {
+    /* court-line texture in CTA */
+    content: '';
+    position: absolute; inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='600' height='600' viewBox='0 0 600 600'><g fill='none' stroke='%230e1014' stroke-width='1.5'><circle cx='300' cy='300' r='90'/><rect x='180' y='220' width='240' height='180'/><path d='M0 220 A 300 300 0 0 1 600 220'/></g></svg>");
+    background-size: 600px 600px;
+    opacity: 0.16;
+    pointer-events: none;
+  }
+  .cta-tag {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    opacity: 0.7;
+    position: relative;
+    margin-bottom: 30px;
+    display: flex; gap: 14px;
+  }
+  .cta-headline {
+    font-family: var(--display);
+    font-weight: 900;
+    font-size: clamp(80px, 18vw, 320px);
+    line-height: 0.85;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+    position: relative;
+    color: var(--bg);
+  }
+  .cta-headline .slash { color: var(--bg); opacity: 0.35; padding: 0 0.06em; }
+  .cta-sub {
+    margin-top: 30px;
+    max-width: 540px;
+    font-size: clamp(15px, 1.1vw, 18px);
+    line-height: 1.5;
+    color: var(--bg);
+    opacity: 0.85;
+    position: relative;
+  }
+  .cta-buttons {
+    margin-top: 50px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+    position: relative;
+  }
+  .cta .btn-primary {
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .cta .btn-primary:hover { background: #000; }
+  .cta .btn-ghost {
+    border: 1px solid rgba(14, 16, 20, 0.4);
+    color: var(--bg);
+  }
+  .cta .btn-ghost:hover { border-color: var(--bg); background: rgba(14,16,20,0.05); }
+
+  .cta-footer-row {
+    margin-top: clamp(60px, 10vh, 120px);
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    border-top: 1px solid rgba(14, 16, 20, 0.25);
+    padding-top: 30px;
+    gap: 20px;
+    position: relative;
+  }
+  .cta-meta {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--bg);
+    opacity: 0.7;
+  }
+  .cta-meta strong { display: block; font-weight: 600; opacity: 1; margin-bottom: 6px; font-size: 12px; }
+
+  /* ================================================================
+     FOOTER
+     ================================================================ */
+  .footer {
+    padding: 36px var(--side);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 28px;
+    border-top: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--fg);
+    opacity: 0.7;
+  }
+  .footer .footer-mid { text-align: center; }
+  .footer-links { display: flex; gap: 18px; align-items: center; }
+  .footer-links a { transition: color 0.2s; }
+  .footer-links a:hover { color: var(--accent); }
+
+  /* ================================================================
+     WAITLIST MODAL
+     ================================================================ */
+  .modal-backdrop {
+    position: fixed; inset: 0;
+    background: rgba(14, 16, 20, 0.78);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .modal-backdrop.is-open { opacity: 1; pointer-events: auto; }
+
+  .modal {
+    position: fixed;
+    left: 50%; top: 50%;
+    transform: translate(-50%, -48%) scale(0.96);
+    z-index: 1000;
+    width: min(540px, calc(100vw - 32px));
+    background: var(--bg);
+    border: 1px solid var(--hairline);
+    padding: clamp(28px, 4vw, 44px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .modal.is-open { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%) scale(1); }
+  .modal::before {
+    /* hairline accent strip */
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: var(--accent);
+  }
+  .modal-tag {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 14px;
+    display: flex; gap: 12px;
+  }
+  .modal h3 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(34px, 4vw, 52px);
+    line-height: 0.95;
+    letter-spacing: -0.025em;
+    text-transform: uppercase;
+  }
+  .modal-sub {
+    margin-top: 14px;
+    color: var(--fg);
+    opacity: 0.8;
+    font-size: 14px;
+    line-height: 1.55;
+    max-width: 440px;
+  }
+  .modal-form {
+    margin-top: 26px;
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .modal-input {
+    flex: 1 1 240px;
+    background: rgba(244, 237, 228, 0.04);
+    border: 1px solid var(--hairline);
+    color: var(--fg);
+    padding: 14px 16px;
+    font-family: var(--body);
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .modal-input:focus { border-color: var(--accent); }
+  .modal-input::placeholder { color: var(--fg-dim); }
+  .modal-submit {
+    background: var(--accent);
+    color: var(--bg);
+    border: none;
+    padding: 14px 22px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .modal-submit:hover { background: var(--fg); }
+  .modal-submit:disabled { opacity: 0.5; cursor: not-allowed; }
+  .modal-meta {
+    margin-top: 18px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+  }
+  .modal-success {
+    display: none;
+    margin-top: 18px;
+    padding: 14px;
+    background: rgba(123, 227, 123, 0.08);
+    border: 1px solid rgba(123, 227, 123, 0.3);
+    color: #7be37b;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+  .modal-success.show { display: block; }
+  .modal-close {
+    position: absolute;
+    top: 14px; right: 14px;
+    width: 32px; height: 32px;
+    background: transparent;
+    border: 1px solid var(--hairline);
+    color: var(--fg);
+    cursor: pointer;
+    display: grid; place-items: center;
+    font-family: var(--mono);
+    font-size: 14px;
+    transition: border-color 0.2s, color 0.2s;
+  }
+  .modal-close:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ================================================================
+     ENTRANCE ANIMATIONS
+     ================================================================ */
+  .reveal {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 1s cubic-bezier(0.2, 0.8, 0.2, 1), transform 1s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .reveal.is-in { opacity: 1; transform: translateY(0); }
+  .reveal.delay-1 { transition-delay: 0.08s; }
+  .reveal.delay-2 { transition-delay: 0.16s; }
+  .reveal.delay-3 { transition-delay: 0.24s; }
+  .reveal.delay-4 { transition-delay: 0.32s; }
+  .reveal.delay-5 { transition-delay: 0.40s; }
+
+  /* Page-load hero stagger */
+  .hero-left > * { opacity: 0; transform: translateY(16px); animation: fadeUp 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  .hero-left > *:nth-child(1) { animation-delay: 0.30s; }
+  .hero-left > *:nth-child(2) { animation-delay: 0.42s; }
+  .hero-left > *:nth-child(3) { animation-delay: 0.54s; }
+  .hero-stamp { opacity: 0; animation: fadeUp 0.9s 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  .scroll-cue { opacity: 0; animation: fadeUp 0.9s 1s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ================================================================
+     RESPONSIVE
+     ================================================================ */
+  @media (max-width: 900px) {
+    .nav-caption { display: none; }
+    .hero-grid { grid-template-columns: 1fr; }
+    .hero-stamp.tl { display: none; }
+    .hero-bg-text { font-size: 42vw; }
+    .features-pin { grid-template-columns: 1fr; padding-top: 110px; align-items: start; }
+    .features-list { gap: 6px; }
+    .feature-panel { grid-template-columns: 1fr; gap: 24px; }
+    .feature-panel .phone { display: none; }
+    .hook-stats { grid-template-columns: 1fr; }
+    .hook-stat { border-right: none; border-bottom: 1px solid var(--hairline); padding: 28px 0; }
+    .hook-stat:not(:first-child) { padding-left: 0; }
+    .number-row { grid-template-columns: 1fr; gap: 8px; }
+    .num-label { text-align: left; }
+    .cta-footer-row { grid-template-columns: 1fr 1fr; }
+    .footer { grid-template-columns: 1fr; text-align: left; gap: 14px; }
+    .footer .footer-mid { text-align: left; }
+  }
+
+  @media (max-width: 480px) {
+    .scroll-cue { display: none; }
+    .hero-bg-text { font-size: 56vw; letter-spacing: -0.06em; }
+    .hero-grid { padding-bottom: 30px; }
+    .nav { padding: 16px var(--side); }
+    .nav-links { gap: 16px; }
+    .nav-links a { font-size: 10px; letter-spacing: 0.18em; }
+    .cta-footer-row { grid-template-columns: 1fr; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .marquee-track { animation: none; transform: translateX(0); }
+    .scroll-cue::after { animation: none; }
+    .hero-left > *, .hero-stamp, .scroll-cue { animation: none; opacity: 1; transform: none; }
+    .reveal { opacity: 1; transform: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     NAV
+     ============================================================ -->
+<nav class="nav">
+  <div class="nav-inner">
+    <a class="nav-logo" href="#top" aria-label="CourtIQ home">
+      <svg viewBox="0 0 200 200" aria-hidden="true">
+        <circle cx="100" cy="100" r="86" fill="none" stroke="#e85d04" stroke-width="10"/>
+        <path d="M100 14 Q78 58, 100 100 Q122 58, 100 14 Z" fill="#e85d04"/>
+        <path d="M186 100 Q142 78, 100 100 Q142 122, 186 100 Z" fill="#e85d04"/>
+        <path d="M100 186 Q122 142, 100 100 Q78 142, 100 186 Z" fill="#e85d04"/>
+        <path d="M14 100 Q58 122, 100 100 Q58 78, 14 100 Z" fill="#e85d04"/>
+      </svg>
+      <span>COURTIQ</span>
+    </a>
+    <span class="nav-caption">v1.0 — TRACKING REIMAGINED ／ TLV</span>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#numbers">Drills</a></li>
+      <li><a href="#download">Download</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- ============================================================
+     HERO
+     ============================================================ -->
+<section class="hero" id="top">
+  <div class="court-grid"></div>
+  <div class="hero-bg-text" aria-hidden="true">COURTIQ</div>
+  <canvas id="hero-canvas"></canvas>
+
+  <div class="hero-stamp tl">
+    <span class="num">N° 001</span><br />
+    LIVE FROM TEL AVIV<br />
+    UPDATED 05·2026
+  </div>
+
+  <div class="hero-grid">
+    <div class="hero-left">
+      <span class="hero-tag">Basketball training — reimagined</span>
+      <h1 style="font-family: var(--display); font-weight: 800; font-size: clamp(36px, 4.4vw, 68px); line-height: 0.95; letter-spacing: -0.025em; text-transform: uppercase;">
+        Train like<br />the pros<br /><span class="accent">track.</span>
+      </h1>
+      <p class="hero-body">
+        Camera-based shot tracking that runs <strong>on-device</strong>. 81 drills, an AI coach, and the analytics the league uses to move careers — all from your phone. No cloud lag. No subscription.
+      </p>
+      <div class="hero-ctas">
+        <a class="btn btn-primary magnetic" href="#" data-action="waitlist" data-source="hero-ios">Get early access <span class="arrow">→</span></a>
+        <a class="btn btn-ghost magnetic" href="#features">See it work</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="hero-stamp br">
+    <span class="num">↓ SCROLL</span><br />
+    REAL-TIME · ON-DEVICE<br />
+    YOLOX · 99.4% PRECISION
+  </div>
+
+  <div class="scroll-cue">SCROLL</div>
+</section>
+
+<!-- ============================================================
+     MARQUEES
+     ============================================================ -->
+<div class="marquee orange" aria-hidden="true">
+  <div class="marquee-track">
+    <span>81+ Drills <span class="glyph"></span></span>
+    <span>AI Shot Tracking <span class="glyph"></span></span>
+    <span>NBA-Grade Analytics <span class="glyph"></span></span>
+    <span>Built by Hoopers <span class="glyph"></span></span>
+    <span>iOS · Android · Web <span class="glyph"></span></span>
+    <span>Zero Cloud Latency <span class="glyph"></span></span>
+    <span>81+ Drills <span class="glyph"></span></span>
+    <span>AI Shot Tracking <span class="glyph"></span></span>
+    <span>NBA-Grade Analytics <span class="glyph"></span></span>
+    <span>Built by Hoopers <span class="glyph"></span></span>
+    <span>iOS · Android · Web <span class="glyph"></span></span>
+    <span>Zero Cloud Latency <span class="glyph"></span></span>
+  </div>
+</div>
+<div class="marquee dark reverse" aria-hidden="true">
+  <div class="marquee-track">
+    <span>Train Like The Pros Track <span class="glyph"></span></span>
+    <span>YOLOX-Tiny / In-Browser <span class="glyph"></span></span>
+    <span>$0 To Start <span class="glyph"></span></span>
+    <span>One Model · Zero Excuses <span class="glyph"></span></span>
+    <span>Form Shooting / Spot Up / Pull-Up <span class="glyph"></span></span>
+    <span>Train Like The Pros Track <span class="glyph"></span></span>
+    <span>YOLOX-Tiny / In-Browser <span class="glyph"></span></span>
+    <span>$0 To Start <span class="glyph"></span></span>
+    <span>One Model · Zero Excuses <span class="glyph"></span></span>
+    <span>Form Shooting / Spot Up / Pull-Up <span class="glyph"></span></span>
+  </div>
+</div>
+
+<!-- ============================================================
+     HOOK
+     ============================================================ -->
+<section class="hook">
+  <div class="hook-tag reveal">— THE THESIS</div>
+  <h2 class="hook-quote reveal delay-1">
+    You don't get better<br />
+    by playing.<br />
+    <span class="line2">You get better by tracking what works.</span>
+  </h2>
+
+  <div class="hook-stats">
+    <div class="hook-stat reveal delay-2">
+      <span class="hook-stat-num">+27<span class="accent">%</span></span>
+      <span class="hook-stat-label">Shooting accuracy after 30 days of tracked sessions<span class="hook-stat-meta">↗ vs. untracked baseline</span></span>
+    </div>
+    <div class="hook-stat reveal delay-3">
+      <span class="hook-stat-num">100<span class="accent">%</span></span>
+      <span class="hook-stat-label">On-device. Zero cloud roundtrip. Your reps, your data.<span class="hook-stat-meta">↗ YOLOX-tiny / browser</span></span>
+    </div>
+    <div class="hook-stat reveal delay-4">
+      <span class="hook-stat-num">3<span class="accent">×</span></span>
+      <span class="hook-stat-label">Faster session log than tapping it in by hand<span class="hook-stat-meta">↗ vs. manual entry</span></span>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     STICKY FEATURES
+     ============================================================ -->
+<section class="features" id="features">
+  <div class="features-section" id="features-section">
+    <div class="features-pin">
+
+      <div class="features-head">
+        <span class="num">— 03 / FEATURES</span>
+        <span class="features-progress" style="--p: 0;"></span>
+        <span><span id="feat-current">01</span> / 04</span>
+      </div>
+
+      <ul class="features-list" id="features-list">
+        <li class="active" data-i="0"><span class="num">01</span><span>AI Shot Tracking</span></li>
+        <li data-i="1"><span class="num">02</span><span>Personal AI Coach</span></li>
+        <li data-i="2"><span class="num">03</span><span>81+ Drills</span></li>
+        <li data-i="3"><span class="num">04</span><span>Stats That Matter</span></li>
+      </ul>
+
+      <div class="features-stage">
+        <!-- PANEL 1: AI SHOT TRACKING -->
+        <article class="feature-panel active" data-i="0">
+          <div class="feature-text">
+            <div class="feature-eyebrow">Chapter 01 — Shot Tracking</div>
+            <h3>Point your phone at the rim. We do the rest.</h3>
+            <p>YOLOX-tiny runs in your browser. Counts every make, every miss, every fadeaway. Detection boxes around ball, hoop, and player — drawn 30 times a second on the frame, with zero round-trip to a server.</p>
+            <div class="meta">
+              <span>· On-device</span>
+              <span>· 99.4% precision</span>
+              <span>· iOS / Android / Web</span>
+            </div>
+          </div>
+          <div class="phone-img-wrap">
+            <img class="phone-img" src="images/screen-shot-tracker.svg" alt="CourtIQ shot tracker screen showing detection boxes and live stats" loading="lazy" />
+          </div>
+        </article>
+
+        <!-- PANEL 2: AI COACH -->
+        <article class="feature-panel" data-i="1">
+          <div class="feature-text">
+            <div class="feature-eyebrow">Chapter 02 — AI Coach</div>
+            <h3>A coach who watched every shot you've ever taken.</h3>
+            <p>Trained on the way actual coaches think. Ask anything — form, rotation, conditioning, the mental game. It knows your last session, your last week, your last 1,000 reps. And it answers like it's seen them.</p>
+            <div class="meta">
+              <span>· Always on</span>
+              <span>· Knows your history</span>
+              <span>· Sounds like a hooper</span>
+            </div>
+          </div>
+          <div class="phone-img-wrap">
+            <img class="phone-img" src="images/screen-ai-coach.svg" alt="CourtIQ AI Coach chat interface with drill recommendation" loading="lazy" />
+          </div>
+        </article>
+
+        <!-- PANEL 3: 81+ DRILLS -->
+        <article class="feature-panel" data-i="2">
+          <div class="feature-text">
+            <div class="feature-eyebrow">Chapter 03 — Drill Library</div>
+            <h3>Eighty-one drills. One model. Zero excuses.</h3>
+            <p>Curated from D1 programs and NBA player development coaches. Form shooting, spot-up, pull-ups off the dribble, finishing through contact. Every drill remembers your last attempt and meets you where you left off.</p>
+            <div class="meta">
+              <span>· 81+ drills</span>
+              <span>· Curated</span>
+              <span>· Auto-scaled</span>
+            </div>
+          </div>
+          <div class="phone-img-wrap">
+            <img class="phone-img" src="images/screen-drills.svg" alt="CourtIQ drill library with 81 curated drills" loading="lazy" />
+          </div>
+        </article>
+
+        <!-- PANEL 4: STATS -->
+        <article class="feature-panel" data-i="3">
+          <div class="feature-text">
+            <div class="feature-eyebrow">Chapter 04 — Stats Dashboard</div>
+            <h3>Not screen time. Shots taken.</h3>
+            <p>Spots made. Streaks broken. Reps in the bag. The kind of numbers that move on a stat sheet — served back as the story of your week. Built for the guy who treats his shooting log like an investor reads a P&L.</p>
+            <div class="meta">
+              <span>· Weekly recap</span>
+              <span>· Spot heatmaps</span>
+              <span>· Form trends</span>
+            </div>
+          </div>
+          <div class="phone-img-wrap">
+            <img class="phone-img" src="images/screen-stats.svg" alt="CourtIQ stats dashboard with weekly volume bars and spot heatmap" loading="lazy" />
+          </div>
+        </article>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ============================================================
+     NUMBERS — BRUTALIST DATA SECTION
+     ============================================================ -->
+<section class="numbers" id="numbers">
+  <div class="numbers-head">
+    <h2 class="reveal">By the numbers — and not a soft one in the bunch.</h2>
+    <span class="meta reveal delay-1">— 04 / FACTS</span>
+  </div>
+  <div class="number-row reveal">
+    <span class="num-big">81<span class="accent">+</span></span>
+    <span class="num-label">Drills · curated from D1 + pro skills coaches</span>
+  </div>
+  <div class="number-row reveal delay-1">
+    <span class="num-big">5</span>
+    <span class="num-label">App sections — Home / Track / Drills / Stats / Coach</span>
+  </div>
+  <div class="number-row reveal delay-2">
+    <span class="num-big">1<span style="opacity:0.35"> /</span> 0<span class="accent">ms</span></span>
+    <span class="num-label">One model · zero cloud latency · all on your phone</span>
+  </div>
+  <div class="number-row reveal delay-3">
+    <span class="num-big">$0</span>
+    <span class="num-label">To start. No subscription required to track every rep.</span>
+  </div>
+</section>
+
+<!-- ============================================================
+     CTA
+     ============================================================ -->
+<section class="cta" id="download" data-bg="orange">
+  <div class="cta-tag">
+    <span>— 05 / CALL IT</span>
+    <span>· READY WHEN YOU ARE</span>
+  </div>
+  <h2 class="cta-headline">START<span class="slash">/</span>TRACKING</h2>
+  <p class="cta-sub">Camera. Court. Code. That's the stack. Download the app, point your phone at the rim, and start logging the only number that ever mattered: shots that went in.</p>
+  <div class="cta-buttons">
+    <a class="btn btn-primary magnetic" href="#" data-action="waitlist" data-source="cta-ios">Get early access <span class="arrow">→</span></a>
+    <a class="btn btn-ghost magnetic" href="mailto:tamir7895@gmail.com?subject=CourtIQ%20%E2%80%94%20press%2C%20partner%2C%20or%20feedback">Press / Partners</a>
+  </div>
+
+  <div class="cta-footer-row">
+    <div class="cta-meta"><strong>iOS · 17+</strong>iPhone 12 and up</div>
+    <div class="cta-meta"><strong>Android · 13+</strong>Coming Q3 2026</div>
+    <div class="cta-meta"><strong>Web · any browser</strong>Train at courtiq.app</div>
+    <div class="cta-meta"><strong>$0 / forever</strong>No paywall on tracking</div>
+  </div>
+</section>
+
+<!-- ============================================================
+     FOOTER
+     ============================================================ -->
+<footer class="footer">
+  <div>© COURTIQ 2026</div>
+  <div class="footer-mid">Built by Tamir Dahan · Tel Aviv ↗</div>
+  <ul class="footer-links">
+    <li><a href="#">iOS</a></li>
+    <li><a href="#">Android</a></li>
+    <li><a href="#">Web</a></li>
+    <li><a href="#">↗</a></li>
+  </ul>
+</footer>
+
+<!-- ============================================================
+     WAITLIST MODAL
+     ============================================================ -->
+<div class="modal-backdrop" id="modal-backdrop" aria-hidden="true"></div>
+<div class="modal" id="waitlist-modal" role="dialog" aria-modal="true" aria-labelledby="waitlist-title" aria-hidden="true">
+  <button class="modal-close" id="modal-close" aria-label="Close">×</button>
+  <div class="modal-tag"><span>— EARLY ACCESS</span><span>· N° 001</span></div>
+  <h3 id="waitlist-title">Skip the line.<br />Train first.</h3>
+  <p class="modal-sub">iOS TestFlight goes out in waves. Drop your email and we'll send you an invite the moment a slot opens. No spam, no marketing list — just the build.</p>
+  <form class="modal-form" id="waitlist-form" novalidate>
+    <input class="modal-input" type="email" id="waitlist-email" name="email" placeholder="you@gmail.com" required autocomplete="email" />
+    <button class="modal-submit" type="submit">Join → </button>
+  </form>
+  <div class="modal-success" id="waitlist-success">
+    ✓ You're on the list. Check your inbox in 24 hours.
+  </div>
+  <div class="modal-meta">— STORED LOCALLY · YOU CAN ALSO EMAIL TAMIR7895@GMAIL.COM DIRECTLY</div>
+</div>
+
+<!-- ============================================================
+     LIBRARIES
+     ============================================================ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+<script src="https://unpkg.com/lenis@1.1.13/dist/lenis.min.js"></script>
+
+<script>
+(function () {
+  'use strict';
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  // ============================================================
+  // 1. SMOOTH SCROLL (Lenis) — skipped on reduced motion
+  // ============================================================
+  let lenis = null;
+  if (!reduceMotion && window.Lenis) {
+    lenis = new window.Lenis({
+      duration: 1.1,
+      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+      smoothWheel: true,
+      wheelMultiplier: 1,
+      touchMultiplier: 1.4,
+    });
+    function raf(time) { lenis.raf(time); requestAnimationFrame(raf); }
+    requestAnimationFrame(raf);
+
+    if (window.ScrollTrigger) {
+      lenis.on('scroll', window.ScrollTrigger.update);
+      gsap.ticker.add((time) => lenis.raf(time * 1000));
+      gsap.ticker.lagSmoothing(0);
+    }
+  }
+
+  // ============================================================
+  // 2. THREE.JS BASKETBALL — rolls across hero on scroll
+  // ============================================================
+  const canvas = document.getElementById('hero-canvas');
+  const heroEl = document.querySelector('.hero');
+
+  function buildBasketballTexture () {
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 512;
+    const ctx = c.getContext('2d');
+
+    // Base orange
+    ctx.fillStyle = '#c14a05';
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Subtle radial highlight + shadow for depth
+    const grad = ctx.createRadialGradient(512, 200, 80, 512, 256, 700);
+    grad.addColorStop(0, 'rgba(255, 130, 40, 0.55)');
+    grad.addColorStop(0.55, 'rgba(180, 60, 0, 0.25)');
+    grad.addColorStop(1, 'rgba(40, 10, 0, 0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, 1024, 512);
+
+    // Pebble texture
+    for (let i = 0; i < 14000; i++) {
+      const x = Math.random() * 1024;
+      const y = Math.random() * 512;
+      const r = 0.6 + Math.random() * 1.4;
+      const dark = Math.random() > 0.5;
+      ctx.fillStyle = dark ? 'rgba(0,0,0,0.18)' : 'rgba(255,180,90,0.10)';
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    }
+
+    // Black seam lines
+    ctx.strokeStyle = '#0a0a0a';
+    ctx.lineWidth = 7;
+    ctx.lineCap = 'round';
+
+    // Vertical meridians (one in front, one wraps at edges)
+    ctx.beginPath(); ctx.moveTo(256, 0); ctx.lineTo(256, 512); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(768, 0); ctx.lineTo(768, 512); ctx.stroke();
+
+    // C-curves (front and back hemisphere)
+    ctx.beginPath();
+    ctx.moveTo(256, 256);
+    ctx.bezierCurveTo(380, 110, 644, 110, 768, 256);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(256, 256);
+    ctx.bezierCurveTo(380, 402, 644, 402, 768, 256);
+    ctx.stroke();
+
+    // Wrap-around curves on the side
+    ctx.beginPath();
+    ctx.moveTo(0, 256);
+    ctx.bezierCurveTo(64, 130, 192, 130, 256, 256);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, 256);
+    ctx.bezierCurveTo(64, 382, 192, 382, 256, 256);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(768, 256);
+    ctx.bezierCurveTo(832, 130, 960, 130, 1024, 256);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(768, 256);
+    ctx.bezierCurveTo(832, 382, 960, 382, 1024, 256);
+    ctx.stroke();
+
+    const tex = new THREE.CanvasTexture(c);
+    tex.anisotropy = 8;
+    if ('SRGBColorSpace' in THREE) {
+      tex.colorSpace = THREE.SRGBColorSpace;
+    } else if ('sRGBEncoding' in THREE) {
+      tex.encoding = THREE.sRGBEncoding;
+    }
+    return tex;
+  }
+
+  let renderer, scene, camera, ball, ambient, key, fill, rim;
+  const initialZ = 5.5;
+  const finalZ = 4.2;
+  const ballRadius = 1.0;
+  let isReady = false;
+
+  function initThree () {
+    if (!canvas || typeof THREE === 'undefined') return;
+
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    if ('outputColorSpace' in renderer && 'SRGBColorSpace' in THREE) {
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+    } else if ('outputEncoding' in renderer && 'sRGBEncoding' in THREE) {
+      renderer.outputEncoding = THREE.sRGBEncoding;
+    }
+
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(36, 1, 0.1, 100);
+    camera.position.set(0, 0, initialZ);
+
+    // Use procedural texture as immediate fallback; try to upgrade to the
+    // baked basketball.jpg texture once it loads (better detail, real photo grain).
+    const tex = buildBasketballTexture();
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex,
+      roughness: 0.62,
+      metalness: 0.05,
+    });
+    new THREE.TextureLoader().load(
+      'textures/basketball.jpg',
+      (loaded) => {
+        loaded.anisotropy = 8;
+        if ('SRGBColorSpace' in THREE) loaded.colorSpace = THREE.SRGBColorSpace;
+        else if ('sRGBEncoding' in THREE) loaded.encoding = THREE.sRGBEncoding;
+        mat.map = loaded;
+        mat.needsUpdate = true;
+        render();
+      },
+      undefined,
+      () => { /* keep procedural fallback on 404 */ }
+    );
+    const geo = new THREE.SphereGeometry(ballRadius, 96, 96);
+    ball = new THREE.Mesh(geo, mat);
+    ball.position.set(-3.6, -0.2, 0);
+    ball.rotation.y = Math.PI * 0.05;
+    scene.add(ball);
+
+    // Lighting — broadcast / studio feel
+    ambient = new THREE.AmbientLight(0xffffff, 0.55);
+    scene.add(ambient);
+
+    key = new THREE.DirectionalLight(0xffe4c4, 1.4);
+    key.position.set(4, 5, 6);
+    scene.add(key);
+
+    fill = new THREE.DirectionalLight(0xff7733, 0.6);
+    fill.position.set(-6, 1, 4);
+    scene.add(fill);
+
+    rim = new THREE.DirectionalLight(0xfff0e0, 0.9);
+    rim.position.set(2, -3, -5);
+    scene.add(rim);
+
+    isReady = true;
+    onResize();
+    render();
+  }
+
+  function onResize () {
+    if (!isReady || !heroEl) return;
+    const w = heroEl.clientWidth;
+    const h = heroEl.clientHeight;
+    renderer.setSize(w, h, false);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+
+  function render () {
+    if (!isReady) return;
+    renderer.render(scene, camera);
+  }
+
+  initThree();
+  window.addEventListener('resize', onResize, { passive: true });
+
+  // ============================================================
+  // 3. SCROLL-DRIVEN BALL ANIMATION
+  // ============================================================
+  if (isReady && window.ScrollTrigger && window.gsap && !reduceMotion) {
+    // Ball travels from x = -X_END to +X_END as we scroll the hero
+    // It rotates physically: rotation = -distance / radius
+    // Camera dollies from initialZ -> finalZ
+    const X_START = -4.2;
+    const X_END = 4.2;
+
+    const proxy = { p: 0 };
+
+    gsap.to(proxy, {
+      p: 1,
+      ease: 'none',
+      scrollTrigger: {
+        trigger: heroEl,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: 0.6,
+        onUpdate: (self) => {
+          const t = self.progress;
+          // Ease the arc slightly so it lingers in middle
+          const tx = X_START + (X_END - X_START) * t;
+          ball.position.x = tx;
+          // small vertical bounce — like the ball is rolling on uneven ground
+          ball.position.y = -0.2 + Math.sin(t * Math.PI * 3) * 0.06;
+          // Rotation: rolling physics
+          const distance = (X_END - X_START) * t;
+          ball.rotation.z = -distance / ballRadius;
+          // Subtle wobble around vertical
+          ball.rotation.x = Math.sin(t * Math.PI * 2) * 0.06;
+          // Camera dolly in
+          camera.position.z = initialZ + (finalZ - initialZ) * t;
+          render();
+        },
+      },
+    });
+  } else if (isReady) {
+    // Reduced motion: ball sits centered, slight fixed rotation
+    ball.position.set(0.4, -0.1, 0);
+    ball.rotation.set(0.1, 0.4, -0.6);
+    render();
+  }
+
+  // ============================================================
+  // 4. STICKY FEATURES — chapter switching
+  // ============================================================
+  const featureSection = document.getElementById('features-section');
+  const featureItems = document.querySelectorAll('#features-list li');
+  const featurePanels = document.querySelectorAll('.feature-panel');
+  const featureProgress = document.querySelector('.features-progress');
+  const featCurrent = document.getElementById('feat-current');
+
+  function setFeature (i) {
+    featureItems.forEach((el) => el.classList.toggle('active', Number(el.dataset.i) === i));
+    featurePanels.forEach((el) => el.classList.toggle('active', Number(el.dataset.i) === i));
+    if (featCurrent) featCurrent.textContent = String(i + 1).padStart(2, '0');
+  }
+
+  if (featureSection && window.ScrollTrigger) {
+    const total = featurePanels.length;
+    window.ScrollTrigger.create({
+      trigger: featureSection,
+      start: 'top top',
+      end: 'bottom bottom',
+      onUpdate: (self) => {
+        const p = self.progress;
+        const i = Math.min(total - 1, Math.floor(p * total));
+        setFeature(i);
+        if (featureProgress) featureProgress.style.setProperty('--p', p);
+      },
+    });
+  }
+
+  // ============================================================
+  // 5. MAGNETIC BUTTONS
+  // ============================================================
+  if (!reduceMotion && !matchMedia('(hover: none)').matches) {
+    document.querySelectorAll('.magnetic').forEach((btn) => {
+      const strength = 0.28;
+      let raf = null;
+      let tx = 0, ty = 0;
+      let dx = 0, dy = 0;
+
+      function loop () {
+        tx += (dx - tx) * 0.15;
+        ty += (dy - ty) * 0.15;
+        btn.style.transform = `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px)`;
+        if (Math.abs(dx - tx) > 0.05 || Math.abs(dy - ty) > 0.05) {
+          raf = requestAnimationFrame(loop);
+        } else {
+          raf = null;
+        }
+      }
+
+      btn.addEventListener('mousemove', (e) => {
+        const rect = btn.getBoundingClientRect();
+        dx = (e.clientX - rect.left - rect.width / 2) * strength;
+        dy = (e.clientY - rect.top - rect.height / 2) * strength;
+        if (!raf) raf = requestAnimationFrame(loop);
+      });
+      btn.addEventListener('mouseleave', () => {
+        dx = 0; dy = 0;
+        if (!raf) raf = requestAnimationFrame(loop);
+      });
+    });
+  }
+
+  // ============================================================
+  // 6. REVEAL ON SCROLL
+  // ============================================================
+  if ('IntersectionObserver' in window) {
+    const io = new IntersectionObserver((entries) => {
+      entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-in');
+          io.unobserve(e.target);
+        }
+      });
+    }, { threshold: 0.15, rootMargin: '0px 0px -8% 0px' });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  } else {
+    document.querySelectorAll('.reveal').forEach((el) => el.classList.add('is-in'));
+  }
+
+  // ============================================================
+  // 6.5 WAITLIST MODAL
+  // ============================================================
+  const modal = document.getElementById('waitlist-modal');
+  const backdrop = document.getElementById('modal-backdrop');
+  const modalClose = document.getElementById('modal-close');
+  const wlForm = document.getElementById('waitlist-form');
+  const wlEmail = document.getElementById('waitlist-email');
+  const wlSuccess = document.getElementById('waitlist-success');
+
+  function openWaitlist (source) {
+    modal.classList.add('is-open');
+    backdrop.classList.add('is-open');
+    modal.setAttribute('aria-hidden', 'false');
+    if (lenis) lenis.stop();
+    setTimeout(() => wlEmail && wlEmail.focus(), 200);
+    try {
+      const stash = JSON.parse(localStorage.getItem('courtiq_waitlist') || '{}');
+      stash.lastSource = source || 'unknown';
+      stash.lastOpened = new Date().toISOString();
+      localStorage.setItem('courtiq_waitlist', JSON.stringify(stash));
+    } catch (_) {}
+  }
+  function closeWaitlist () {
+    modal.classList.remove('is-open');
+    backdrop.classList.remove('is-open');
+    modal.setAttribute('aria-hidden', 'true');
+    if (lenis) lenis.start();
+  }
+
+  document.querySelectorAll('[data-action="waitlist"]').forEach((el) => {
+    el.addEventListener('click', (e) => {
+      e.preventDefault();
+      openWaitlist(el.dataset.source);
+    });
+  });
+  if (modalClose) modalClose.addEventListener('click', closeWaitlist);
+  if (backdrop) backdrop.addEventListener('click', closeWaitlist);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.classList.contains('is-open')) closeWaitlist();
+  });
+
+  if (wlForm) {
+    wlForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const email = wlEmail.value.trim();
+      // Basic email validation
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        wlEmail.focus();
+        wlEmail.style.borderColor = 'var(--accent)';
+        return;
+      }
+      // Persist to localStorage so we have a record (replace with fetch to your real endpoint when ready)
+      try {
+        const stash = JSON.parse(localStorage.getItem('courtiq_waitlist') || '{}');
+        stash.email = email;
+        stash.signedUp = new Date().toISOString();
+        localStorage.setItem('courtiq_waitlist', JSON.stringify(stash));
+      } catch (_) {}
+      // Open the user's mail client with a pre-filled mail to Tamir as a hard backup
+      const subject = encodeURIComponent('CourtIQ — Early Access Request');
+      const body = encodeURIComponent(`Email: ${email}\nSource: ${document.querySelector('[data-action="waitlist"][data-source]')?.dataset?.source || 'web'}\n\nSent from courtiq landing page.`);
+      // Fire-and-forget: open mailto in a hidden link click (won't navigate away if blocked)
+      const a = document.createElement('a');
+      a.href = `mailto:tamir7895@gmail.com?subject=${subject}&body=${body}`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      // Show success state
+      wlSuccess.classList.add('show');
+      wlForm.style.display = 'none';
+    });
+  }
+
+  // ============================================================
+  // 7. NAV LINK SMOOTH JUMP via Lenis
+  // ============================================================
+  document.querySelectorAll('a[href^="#"]').forEach((a) => {
+    a.addEventListener('click', (e) => {
+      const href = a.getAttribute('href');
+      if (!href || href === '#') return;
+      const target = document.querySelector(href);
+      if (!target) return;
+      e.preventDefault();
+      if (lenis) {
+        lenis.scrollTo(target, { offset: 0, duration: 1.4 });
+      } else {
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    });
+  });
+
+  // ============================================================
+  // 8. RESIZE — refresh ScrollTrigger
+  // ============================================================
+  if (window.ScrollTrigger) {
+    let resizeT = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => window.ScrollTrigger.refresh(), 200);
+    }, { passive: true });
+  }
+
+})();
+</script>
+
+</body>
+</html>

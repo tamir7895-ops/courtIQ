@@ -1,0 +1,76 @@
+/* ciq-court.css — styling for the shared CIQCourt SVG component.
+   Provides defaults; tones override accents per tab. */
+
+.ciq-court {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Background floor */
+.ciq-court__floor {
+  fill: #0e1218;
+}
+
+/* Paint fill (slightly brighter than floor) */
+.ciq-court__paint {
+  fill: rgba(255, 255, 255, 0.025);
+}
+
+/* Solid line stroke (lane lines, paint, 3PT arc, restricted area) */
+.ciq-court__line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1.4;
+}
+
+/* Dashed line stroke (FT circle top half, half-court arc) */
+.ciq-court__line-d {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.22);
+  stroke-width: 1.4;
+  stroke-dasharray: 4 4;
+}
+
+/* Backboard — slightly thicker, opaque */
+.ciq-court__backboard {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 2.4;
+}
+
+/* Rim — accent red, always pops */
+.ciq-court__rim {
+  fill: none;
+  stroke: #ff5a3c;
+  stroke-width: 2;
+}
+
+/* ── Variant: thumb (smaller, dimmer) ───────────────────────── */
+.ciq-court--thumb .ciq-court__line   { stroke: rgba(255, 255, 255, 0.16); stroke-width: 1.6; }
+.ciq-court--thumb .ciq-court__line-d { stroke: rgba(255, 255, 255, 0.16); stroke-width: 1.6; }
+.ciq-court--thumb .ciq-court__paint  { fill: rgba(255, 255, 255, 0.04); }
+.ciq-court--thumb .ciq-court__floor  { fill: #11151c; }
+.ciq-court--thumb .ciq-court__rim    { stroke: #ff7a55; stroke-width: 3; }
+.ciq-court--thumb .ciq-court__backboard { stroke-width: 3; }
+
+/* ── Tone: blue (Train tab) ─────────────────────────────────── */
+.ciq-court--tone-blue .ciq-court__floor {
+  fill: #0a121d;
+}
+.ciq-court--tone-blue .ciq-court__paint {
+  fill: rgba(76, 163, 255, 0.04);
+}
+.ciq-court--tone-blue .ciq-court__rim {
+  stroke: #ff5a3c;
+}
+
+/* ── Tone: amber (Track tab) ────────────────────────────────── */
+.ciq-court--tone-amber .ciq-court__floor {
+  fill: #100c08;
+}
+.ciq-court--tone-amber .ciq-court__paint {
+  fill: rgba(255, 188, 80, 0.04);
+}
+
+/* ── Tone: neutral default — already covered above ──────────── */

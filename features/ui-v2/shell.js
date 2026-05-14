@@ -29,6 +29,16 @@
     { id: 'me',    legacy: 'archetype', label: 'Me',    accent: '#2dd4bf', glow: 'rgba(45,212,191,0.40)',  rendererGlobal: 'CourtIQ_V2_Me'    }
   ];
 
+  /* Overlay registry — fullscreen screens that sit above tabs (no bottom nav).
+     Each entry: { global, method } or just a string (uses .render). */
+  var OVERLAYS = {
+    'camera-hud':        { global: 'CourtIQ_V2_CameraHUD',      method: 'render' },
+    'post-session':      { global: 'CourtIQ_V2_PostSession',     method: 'render' },
+    'workout-player':    { global: 'CIQ_PLAYER',                 method: 'start'  },
+    'avatar-customizer': { global: 'CourtIQ_V2_AvatarCustomizer', method: 'render' },
+    'onboarding':        { global: 'CourtIQ_V2_OnboardingV2',    method: 'render' }
+  };
+
   /* Refined stroke-icon path data (from _design-import/v2/components/ciq-shell.jsx). */
   var ICON_PATHS = {
     home:  [['path', { d: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z' }]],
@@ -183,9 +193,51 @@
   }
 
   var currentTab = 'home';
-  function switchTo(tabId) {
+  var activeOverlay = null;
+
+  function cleanupActiveOverlay() {
+    if (activeOverlay) {
+      var ren = window[activeOverlay];
+      if (ren) {
+        // Try cleanup first, then close (CIQ_PLAYER uses .close())
+        var fn = ren.cleanup || ren.close;
+        if (typeof fn === 'function') {
+          try { fn.call(ren); } catch (e) { console.warn('[ciq-shell] overlay cleanup', e); }
+        }
+      }
+      activeOverlay = null;
+    }
+  }
+
+  function switchTo(tabId, data) {
+    /* ── Overlay screens (fullscreen, no bottom nav) ── */
+    if (OVERLAYS[tabId]) {
+      var oDef = OVERLAYS[tabId];
+      var oGlobal = oDef.global;
+      var oMethod = oDef.method || 'render';
+      var overlay = window[oGlobal];
+      if (overlay && typeof overlay[oMethod] === 'function') {
+        cleanupActiveOverlay();
+        activeOverlay = oGlobal;
+        try {
+          overlay[oMethod](data);
+        } catch (e) {
+          console.error('[ciq-shell] overlay', tabId, 'threw', e);
+          activeOverlay = null;
+        }
+      } else {
+        console.warn('[ciq-shell] no overlay renderer for', tabId, '(' + oGlobal + '.' + oMethod + ')');
+      }
+      return;
+    }
+
+    /* ── Main tabs ── */
     var def = TABS.find(function (t) { return t.id === tabId; });
     if (!def) return;
+
+    // Close any active overlay first
+    cleanupActiveOverlay();
+
     currentTab = tabId;
     paintActive(tabId);
 

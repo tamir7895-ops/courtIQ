@@ -1,35 +1,45 @@
-/* CourtIQ UI v2 — Daily Workout Player (8.5)
+/* CourtIQ UI v2 — Workout Player (8.5 → design-matched)
  *
- * Fullscreen overlay that runs a single drill with timer, sets tracker,
- * and audio cues. Built v2-native — does NOT depend on the legacy
- * #drillWorkout view in drill-engine.js (workout-timer.js doesn't
- * exist in this codebase, contrary to the original plan).
+ * Fullscreen overlay: 3 states (active, rest, complete).
+ * SVG circular timer ring, drill info cards, rep counter,
+ * glass control buttons. Matches workout-player-states.jsx design.
  *
  * Public API: window.CIQ_PLAYER.start(drill)
- *   drill = { id, name, sets ('4 sets × 10 reps per side'), mins, focus }
+ *   drill = { id, name, sets ('4 sets × 10 reps per side'), mins, focus,
+ *             lane?, cue?, reps?, restSec? }
  *
  * Audio: uses global SFX (sound-effects.js) when present.
  * XP: hooks GamificationSystem.grantXp on completion when present.
- *
- * Replaces the legacy `drillWorkoutOpen(drillId)` call path for v2 —
- * the Drill Generator (8.4) is updated to call start(drill) instead.
  */
 (function () {
   'use strict';
 
   if (!window.COURTIQ_UI_V2 || !window.COURTIQ_UI_V2.TRAIN_PLAYER) return;
 
+  /* ── Constants ───────────────────────────────────────────── */
+  var RING_R = 130;
+  var RING_C = 2 * Math.PI * RING_R;
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  var DEFAULT_REST_SEC = 30;
+  var BURST_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
+
   /* ── State ────────────────────────────────────────────────── */
   var state = {
+    phase: 'active',     // 'active' | 'rest' | 'complete'
     drill: null,
+    workoutName: '',
     setCount: 1,
-    setsDone: 0,
-    elapsed: 0,
-    targetSec: 0,
+    currentSet: 1,
+    repCount: 10,
+    currentRep: 1,
+    timeLeft: 0,
+    setLen: 0,
+    restLen: DEFAULT_REST_SEC,
     intervalId: null,
     paused: true,
-    finished: false,
-    startedAt: 0
+    startedAt: 0,
+    totalElapsed: 0,
+    nextDrill: null
   };
 
   /* ── DOM helpers ─────────────────────────────────────────── */
@@ -39,268 +49,610 @@
     if (text != null) n.textContent = text;
     return n;
   }
+  function svgEl(tag, attrs) {
+    var n = document.createElementNS(SVG_NS, tag);
+    if (attrs) {
+      for (var k in attrs) {
+        if (attrs.hasOwnProperty(k)) n.setAttribute(k, attrs[k]);
+      }
+    }
+    return n;
+  }
 
-  /* ── Parse "4 sets × 10 reps" → { sets: 4, reps: '10 reps' } ── */
+  /* ── Parse "4 sets × 10 reps" → { sets, repsNum, repsText } ── */
   function parseSets(s) {
-    if (!s) return { sets: 1, reps: '' };
+    if (!s) return { sets: 1, repsNum: 10, repsText: '' };
     var m = String(s).match(/(\d+)\s*sets?/i);
     var sets = m ? parseInt(m[1], 10) : 1;
     if (!sets || isNaN(sets)) sets = 1;
     var afterX = String(s).split(/[×x]/);
-    var reps = (afterX[1] || '').trim();
-    return { sets: sets, reps: reps };
+    var repsText = (afterX[1] || '').trim();
+    var rm = repsText.match(/(\d+)/);
+    var repsNum = rm ? parseInt(rm[1], 10) : 10;
+    return { sets: sets, repsNum: repsNum, repsText: repsText };
+  }
+
+  function fmt(sec) {
+    sec = Math.max(0, Math.ceil(sec));
+    var m = Math.floor(sec / 60);
+    var s = sec % 60;
+    return m + ':' + (s < 10 ? '0' : '') + s;
+  }
+
+  /* ── SVG Icon builders ──────────────────────────────────── */
+  function iconExit() {
+    var s = svgEl('svg', { viewBox: '0 0 14 14', fill: 'none', width: '14', height: '14' });
+    var p = svgEl('path', { d: 'M11 3L3 11M3 3l8 8', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round' });
+    s.appendChild(p);
+    return s;
+  }
+  function iconPause() {
+    var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
+    s.appendChild(svgEl('rect', { x: '5', y: '4', width: '4', height: '14', rx: '1.2', fill: 'currentColor' }));
+    s.appendChild(svgEl('rect', { x: '13', y: '4', width: '4', height: '14', rx: '1.2', fill: 'currentColor' }));
+    return s;
+  }
+  function iconPlay() {
+    var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
+    s.appendChild(svgEl('path', { d: 'M6 4l13 7-13 7V4Z', fill: 'currentColor' }));
+    return s;
+  }
+  function iconSkipRep() {
+    var s = svgEl('svg', { viewBox: '0 0 16 16', fill: 'none', width: '16', height: '16' });
+    s.appendChild(svgEl('path', { d: 'M3 4l6 4-6 4V4Z', fill: 'currentColor' }));
+    s.appendChild(svgEl('rect', { x: '11', y: '3.5', width: '2.2', height: '9', rx: '0.8', fill: 'currentColor' }));
+    return s;
+  }
+  function iconSkipDrill() {
+    var s = svgEl('svg', { viewBox: '0 0 16 16', fill: 'none', width: '16', height: '16' });
+    s.appendChild(svgEl('path', { d: 'M2 4l5 4-5 4V4Z', fill: 'currentColor' }));
+    s.appendChild(svgEl('path', { d: 'M8 4l5 4-5 4V4Z', fill: 'currentColor' }));
+    return s;
+  }
+  function iconArrowFwd() {
+    var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
+    s.appendChild(svgEl('path', { d: 'M4 11h14M12 5l6 6-6 6', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    return s;
+  }
+  function iconSave() {
+    var s = svgEl('svg', { viewBox: '0 0 18 18', fill: 'none', width: '18', height: '18' });
+    s.appendChild(svgEl('path', { d: 'M3.5 3.5h9.5l2 2v9a1 1 0 0 1-1 1h-11.5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M5 3.5v3.5h6V3.5', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('circle', { cx: '9', cy: '11.5', r: '2', stroke: 'currentColor', 'stroke-width': '1.7' }));
+    return s;
+  }
+  function iconCoffee() {
+    var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
+    s.appendChild(svgEl('path', { d: 'M4 8h11v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M15 10h1.5a2.5 2.5 0 0 1 0 5H15', stroke: 'currentColor', 'stroke-width': '1.7' }));
+    s.appendChild(svgEl('path', { d: 'M7 3v2M10 3v2M13 3v2', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round' }));
+    return s;
+  }
+  function iconNext() {
+    var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
+    s.appendChild(svgEl('path', { d: 'M5 6l6 5-6 5V6Z', fill: 'currentColor' }));
+    s.appendChild(svgEl('path', { d: 'M13 6l6 5-6 5V6Z', fill: 'currentColor' }));
+    return s;
   }
 
   /* ── Build overlay (one-time) ─────────────────────────────── */
-  var overlay = null, backdrop = null;
+  var overlay = null;
   var ui = {};
+
   function ensureOverlay() {
     if (overlay) return;
-
-    backdrop = el('div');
-    backdrop.id = 'ciq-player-backdrop';
-    backdrop.addEventListener('click', close);
 
     overlay = el('div');
     overlay.id = 'ciq-player-overlay';
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-
-    var header = el('div', 'ciq-player-header');
-    ui.eyebrow = el('div', 'ciq-player-eyebrow', 'Now playing');
-    var closeBtn = el('button', 'ciq-player-close');
-    closeBtn.type = 'button';
-    closeBtn.textContent = '×';
-    closeBtn.setAttribute('aria-label', 'Close player');
-    closeBtn.addEventListener('click', close);
-    header.appendChild(ui.eyebrow);
-    header.appendChild(closeBtn);
-    overlay.appendChild(header);
-
-    ui.name = el('div', 'ciq-player-name', 'Drill');
-    overlay.appendChild(ui.name);
-    ui.meta = el('div', 'ciq-player-meta', '');
-    overlay.appendChild(ui.meta);
-
-    var timerWrap = el('div', 'ciq-player-timer-wrap');
-    ui.timer = el('div', 'ciq-player-timer', '00:00');
-    ui.target = el('div', 'ciq-player-target');
-    var progress = el('div', 'ciq-player-progress');
-    ui.progressFill = el('span');
-    progress.appendChild(ui.progressFill);
-    ui.sets = el('div', 'ciq-player-sets');
-    timerWrap.appendChild(ui.timer);
-    timerWrap.appendChild(ui.target);
-    timerWrap.appendChild(progress);
-    timerWrap.appendChild(ui.sets);
-    overlay.appendChild(timerWrap);
-
-    var controls = el('div', 'ciq-player-controls');
-    ui.skipBtn = el('button', 'ciq-player-btn', 'Skip Set');
-    ui.skipBtn.type = 'button';
-    ui.skipBtn.addEventListener('click', skipSet);
-    ui.toggleBtn = el('button', 'ciq-player-btn primary', 'Start');
-    ui.toggleBtn.type = 'button';
-    ui.toggleBtn.addEventListener('click', toggle);
-    ui.completeBtn = el('button', 'ciq-player-btn', 'Complete');
-    ui.completeBtn.type = 'button';
-    ui.completeBtn.addEventListener('click', complete);
-    controls.appendChild(ui.skipBtn);
-    controls.appendChild(ui.toggleBtn);
-    controls.appendChild(ui.completeBtn);
-    overlay.appendChild(controls);
-
-    var done = el('div', 'ciq-player-done');
-    var donePill = el('div', 'ciq-player-done-pill', '✓ Drill Complete');
-    var doneTitle = el('div', 'ciq-player-done-title', 'Nice work.');
-    var doneStats = el('div', 'ciq-player-done-stats');
-    var s1 = el('div', 'ciq-player-done-stat');
-    ui.doneTime = el('div', 'v', '0:00');
-    s1.appendChild(ui.doneTime);
-    s1.appendChild(el('div', 'l', 'Time'));
-    var s2 = el('div', 'ciq-player-done-stat');
-    ui.doneSets = el('div', 'v', '0');
-    s2.appendChild(ui.doneSets);
-    s2.appendChild(el('div', 'l', 'Sets'));
-    var s3 = el('div', 'ciq-player-done-stat');
-    ui.doneXp = el('div', 'v', '+15');
-    s3.appendChild(ui.doneXp);
-    s3.appendChild(el('div', 'l', 'XP'));
-    doneStats.appendChild(s1);
-    doneStats.appendChild(s2);
-    doneStats.appendChild(s3);
-    var doneCloseBtn = el('button', 'ciq-player-btn primary', 'Done');
-    doneCloseBtn.type = 'button';
-    doneCloseBtn.style.marginTop = '24px';
-    doneCloseBtn.addEventListener('click', close);
-    done.appendChild(donePill);
-    done.appendChild(doneTitle);
-    done.appendChild(doneStats);
-    done.appendChild(doneCloseBtn);
-    overlay.appendChild(done);
-
-    document.body.appendChild(backdrop);
     document.body.appendChild(overlay);
   }
 
-  /* ── Render helpers ──────────────────────────────────────── */
-  function fmt(sec) {
-    sec = Math.max(0, Math.floor(sec));
-    var m = Math.floor(sec / 60);
-    var s = sec % 60;
-    return (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
+  /* ── Build progress ring SVG ──────────────────────────────── */
+  function buildRing(progress) {
+    var offset = RING_C * (1 - Math.max(0, Math.min(1, progress)));
+    var s = svgEl('svg', { viewBox: '0 0 286 286', class: 'wp-timer__ring' });
+    s.appendChild(svgEl('circle', { cx: '143', cy: '143', r: String(RING_R), class: 'wp-timer__ring-bg' }));
+    var fg = svgEl('circle', {
+      cx: '143', cy: '143', r: String(RING_R), class: 'wp-timer__ring-fg',
+      'stroke-dasharray': String(RING_C),
+      'stroke-dashoffset': String(offset)
+    });
+    s.appendChild(fg);
+    return s;
   }
 
-  function renderSets() {
-    while (ui.sets.firstChild) ui.sets.removeChild(ui.sets.firstChild);
+  /* ── Build checkmark animation SVG ────────────────────────── */
+  function buildCheckmark() {
+    var wrap = el('div', 'wp-check wp-fade d-1');
+
+    var ringSvg = svgEl('svg', { viewBox: '0 0 168 168', class: 'wp-check__ring' });
+    ringSvg.appendChild(svgEl('circle', { cx: '84', cy: '84', r: '74', class: 'wp-check__ring-bg' }));
+    ringSvg.appendChild(svgEl('circle', { cx: '84', cy: '84', r: '74', class: 'wp-check__ring-fg' }));
+    wrap.appendChild(ringSvg);
+
+    var checkSvg = svgEl('svg', { viewBox: '0 0 90 90', class: 'wp-check__svg' });
+    checkSvg.appendChild(svgEl('path', { d: 'M22 47 L40 64 L70 30' }));
+    wrap.appendChild(checkSvg);
+
+    var burst = el('div', 'wp-check__burst');
+    BURST_ANGLES.forEach(function (a, i) {
+      var rad = (a * Math.PI) / 180;
+      var span = el('span');
+      span.style.setProperty('--bx', Math.cos(rad) * 78 + 'px');
+      span.style.setProperty('--by', Math.sin(rad) * 78 + 'px');
+      span.style.animationDelay = (700 + i * 30) + 'ms';
+      burst.appendChild(span);
+    });
+    wrap.appendChild(burst);
+    return wrap;
+  }
+
+  /* ── Render ACTIVE state ──────────────────────────────────── */
+  function renderActive() {
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+    overlay.className = 'wp is-active';
+
+    var ringPct = state.setLen > 0 ? state.timeLeft / state.setLen : 0;
+    var repPct = state.repCount > 0 ? state.currentRep / state.repCount : 0;
+
+    // Stamp header
+    var stamp = el('div', 'wp-stamp');
+    var stampL = el('div', 'wp-stamp__l');
+    var exitBtn = el('button', 'wp-stamp__exit');
+    exitBtn.setAttribute('aria-label', 'Exit');
+    exitBtn.appendChild(iconExit());
+    exitBtn.addEventListener('click', closePlayer);
+    stampL.appendChild(exitBtn);
+    var stampText = el('div');
+    stampText.appendChild(el('div', 'wp-stamp__eyebrow', 'TRAIN · WORKOUT'));
+    stampText.appendChild(el('div', 'wp-stamp__meta', state.workoutName || state.drill.name || 'Workout'));
+    stampL.appendChild(stampText);
+    stamp.appendChild(stampL);
+    var pill = el('div', 'wp-stamp__pill');
+    pill.appendChild(el('span', 'wp-stamp__pill-dot'));
+    pill.appendChild(document.createTextNode(state.paused ? 'Paused' : 'Live'));
+    stamp.appendChild(pill);
+    ui.pill = pill;
+    overlay.appendChild(stamp);
+
+    // Body
+    var body = el('div', 'wp-body');
+
+    // Top card — drill info
+    var top = el('div', 'wp-top wp-glass wp-fade d-1');
+    var topRow = el('div', 'wp-top__row');
+    var eyebrow = el('div', 'wp-top__eyebrow');
+    eyebrow.innerHTML = 'Drill <em>1</em> · ' + (state.drill.lane || state.drill.focus || 'DRILL').toUpperCase();
+    topRow.appendChild(eyebrow);
+    var counter = el('div', 'wp-top__counter');
+    counter.innerHTML = 'Set <em>' + state.currentSet + '</em> of ' + state.setCount;
+    topRow.appendChild(counter);
+    top.appendChild(topRow);
+    var title = el('h2', 'wp-top__title', (state.drill.name || 'DRILL').toUpperCase());
+    top.appendChild(title);
+
+    // Set progress dots
+    var dots = el('div', 'wp-top__dots');
     for (var i = 0; i < state.setCount; i++) {
-      var dot = el('button', 'ciq-player-set');
-      dot.type = 'button';
-      dot.dataset.setIndex = String(i);
-      dot.textContent = String(i + 1);
-      if (i < state.setsDone) dot.classList.add('done');
-      else if (i === state.setsDone) dot.classList.add('active');
-      dot.addEventListener('click', (function (idx) {
-        return function () { toggleSet(idx); };
-      })(i));
-      ui.sets.appendChild(dot);
+      var dot = el('span', 'wp-top__dot');
+      if (i + 1 < state.currentSet) dot.classList.add('is-done');
+      else if (i + 1 === state.currentSet) {
+        dot.classList.add('is-current');
+        dot.style.setProperty('--dot-pct', Math.round((1 - ringPct) * 100) + '%');
+      }
+      dots.appendChild(dot);
+    }
+    top.appendChild(dots);
+
+    var cue = el('p', 'wp-top__sub', state.drill.cue || 'Square shoulders to rim · follow through · hold.');
+    top.appendChild(cue);
+    body.appendChild(top);
+
+    // Center — Timer
+    var timerStage = el('div', 'wp-timer-stage wp-fade d-2');
+    var timerBox = el('div', 'wp-timer');
+    timerBox.appendChild(buildRing(ringPct));
+    var inner = el('div', 'wp-timer__inner');
+    inner.appendChild(el('div', 'wp-timer__phase-lbl', 'Working'));
+    ui.timerNum = el('div', 'wp-timer__num', fmt(state.timeLeft));
+    inner.appendChild(ui.timerNum);
+    inner.appendChild(el('div', 'wp-timer__unit', 'remaining'));
+    timerBox.appendChild(inner);
+    timerStage.appendChild(timerBox);
+    ui.ringFg = timerBox.querySelector('.wp-timer__ring-fg');
+
+    // Rep counter
+    var rep = el('div', 'wp-rep');
+    rep.appendChild(el('span', 'wp-rep__lbl', 'Rep'));
+    var repVal = el('span', 'wp-rep__val');
+    repVal.innerHTML = '<em>' + state.currentRep + '</em> / ' + state.repCount;
+    rep.appendChild(repVal);
+    var repBar = el('span', 'wp-rep__bar');
+    var repFill = el('span', 'wp-rep__fill');
+    repFill.style.width = Math.round(repPct * 100) + '%';
+    repBar.appendChild(repFill);
+    rep.appendChild(repBar);
+    timerStage.appendChild(rep);
+    ui.repVal = repVal;
+    ui.repFill = repFill;
+    body.appendChild(timerStage);
+
+    // Bottom controls
+    var controls = el('div', 'wp-controls wp-glass wp-fade d-3');
+    var primary = el('div', 'wp-controls__primary');
+    var mainBtn = el('button', 'wp-btn-primary' + (state.paused ? ' is-resume' : ''));
+    mainBtn.type = 'button';
+    mainBtn.appendChild(state.paused ? iconPlay() : iconPause());
+    mainBtn.appendChild(document.createTextNode(state.paused ? 'Resume' : 'Pause'));
+    mainBtn.addEventListener('click', togglePause);
+    primary.appendChild(mainBtn);
+    ui.mainBtn = mainBtn;
+    controls.appendChild(primary);
+
+    var secondary = el('div', 'wp-controls__secondary');
+    var skipRepBtn = el('button', 'wp-btn-ghost');
+    skipRepBtn.type = 'button';
+    skipRepBtn.appendChild(iconSkipRep());
+    skipRepBtn.appendChild(document.createTextNode('Skip Rep'));
+    skipRepBtn.addEventListener('click', skipRep);
+    secondary.appendChild(skipRepBtn);
+    var skipDrillBtn = el('button', 'wp-btn-ghost is-warn');
+    skipDrillBtn.type = 'button';
+    skipDrillBtn.appendChild(iconSkipDrill());
+    skipDrillBtn.appendChild(document.createTextNode('Skip Drill'));
+    skipDrillBtn.addEventListener('click', completeWorkout);
+    secondary.appendChild(skipDrillBtn);
+    controls.appendChild(secondary);
+    body.appendChild(controls);
+
+    overlay.appendChild(body);
+  }
+
+  /* ── Render REST state ───────────────────────────────────── */
+  function renderRest() {
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+    overlay.className = 'wp is-rest';
+
+    var ringPct = state.restLen > 0 ? state.timeLeft / state.restLen : 0;
+
+    // Stamp
+    var stamp = el('div', 'wp-stamp');
+    var stampL = el('div', 'wp-stamp__l');
+    var exitBtn = el('button', 'wp-stamp__exit');
+    exitBtn.setAttribute('aria-label', 'Exit');
+    exitBtn.appendChild(iconExit());
+    exitBtn.addEventListener('click', closePlayer);
+    stampL.appendChild(exitBtn);
+    var stampText = el('div');
+    stampText.appendChild(el('div', 'wp-stamp__eyebrow', 'TRAIN · REST'));
+    stampText.appendChild(el('div', 'wp-stamp__meta', 'Breathe · ' + fmt(state.timeLeft)));
+    stampL.appendChild(stampText);
+    stamp.appendChild(stampL);
+    var pill = el('div', 'wp-stamp__pill');
+    pill.appendChild(el('span', 'wp-stamp__pill-dot'));
+    pill.appendChild(document.createTextNode('Resting'));
+    stamp.appendChild(pill);
+    overlay.appendChild(stamp);
+
+    // Body
+    var body = el('div', 'wp-body');
+
+    // Dimmed top recap
+    var top = el('div', 'wp-top wp-glass wp-fade d-1');
+    var topRow = el('div', 'wp-top__row');
+    var eyebrow = el('div', 'wp-top__eyebrow');
+    eyebrow.textContent = 'Just finished · ' + (state.drill.lane || state.drill.focus || 'DRILL').toUpperCase();
+    topRow.appendChild(eyebrow);
+    var counter = el('div', 'wp-top__counter');
+    counter.innerHTML = 'Set <em>' + state.currentSet + '</em> of ' + state.setCount + ' ✓';
+    topRow.appendChild(counter);
+    top.appendChild(topRow);
+    top.appendChild(el('h2', 'wp-top__title', (state.drill.name || 'DRILL').toUpperCase()));
+    body.appendChild(top);
+
+    // Center — Rest timer
+    var timerStage = el('div', 'wp-timer-stage wp-fade d-2');
+    var timerBox = el('div', 'wp-timer');
+    timerBox.appendChild(buildRing(ringPct));
+    var inner = el('div', 'wp-timer__inner');
+    inner.appendChild(el('div', 'wp-timer__phase-lbl', 'Rest'));
+    ui.timerNum = el('div', 'wp-timer__num', fmt(state.timeLeft));
+    inner.appendChild(ui.timerNum);
+    inner.appendChild(el('div', 'wp-timer__unit', 'recovery'));
+    timerBox.appendChild(inner);
+    timerStage.appendChild(timerBox);
+    ui.ringFg = timerBox.querySelector('.wp-timer__ring-fg');
+
+    // Up Next card
+    if (state.nextDrill) {
+      var upnext = el('div', 'wp-upnext wp-glass');
+      var badge = el('div', 'wp-upnext__badge');
+      badge.appendChild(iconCoffee());
+      upnext.appendChild(badge);
+      var upBody = el('div', 'wp-upnext__body');
+      upBody.appendChild(el('div', 'wp-upnext__lbl', 'Up Next'));
+      upBody.appendChild(el('div', 'wp-upnext__name', (state.nextDrill.name || 'Next Drill').toUpperCase()));
+      upBody.appendChild(el('div', 'wp-upnext__meta', (state.nextDrill.sets || '') + ' · ' + (state.nextDrill.reps || '')));
+      upnext.appendChild(upBody);
+      var upIcon = el('div', 'wp-upnext__icon');
+      upIcon.appendChild(iconNext());
+      upnext.appendChild(upIcon);
+      timerStage.appendChild(upnext);
+    }
+    body.appendChild(timerStage);
+
+    // Bottom controls — skip rest
+    var controls = el('div', 'wp-controls wp-glass wp-fade d-3');
+    var primary = el('div', 'wp-controls__primary');
+    var skipBtn = el('button', 'wp-btn-primary');
+    skipBtn.type = 'button';
+    skipBtn.appendChild(iconArrowFwd());
+    skipBtn.appendChild(document.createTextNode('Skip Rest'));
+    skipBtn.addEventListener('click', skipRestPhase);
+    primary.appendChild(skipBtn);
+    controls.appendChild(primary);
+    body.appendChild(controls);
+
+    overlay.appendChild(body);
+  }
+
+  /* ── Render COMPLETE state ───────────────────────────────── */
+  function renderComplete() {
+    while (overlay.firstChild) overlay.removeChild(overlay.firstChild);
+    overlay.className = 'wp is-complete';
+
+    var xpAmount = grantXP();
+    var totalMin = Math.max(1, Math.round(state.totalElapsed / 60));
+
+    // Stamp
+    var stamp = el('div', 'wp-stamp');
+    var stampL = el('div', 'wp-stamp__l');
+    var exitBtn = el('button', 'wp-stamp__exit');
+    exitBtn.setAttribute('aria-label', 'Exit');
+    exitBtn.appendChild(iconExit());
+    exitBtn.addEventListener('click', closePlayer);
+    stampL.appendChild(exitBtn);
+    var stampText = el('div');
+    stampText.appendChild(el('div', 'wp-stamp__eyebrow', 'TRAIN · DONE'));
+    stampText.appendChild(el('div', 'wp-stamp__meta', state.workoutName || state.drill.name || 'Workout'));
+    stampL.appendChild(stampText);
+    stamp.appendChild(stampL);
+    var pill = el('div', 'wp-stamp__pill');
+    pill.appendChild(el('span', 'wp-stamp__pill-dot'));
+    pill.appendChild(document.createTextNode('Complete'));
+    stamp.appendChild(pill);
+    overlay.appendChild(stamp);
+
+    // Complete body
+    var complete = el('div', 'wp-complete');
+
+    // Animated checkmark
+    complete.appendChild(buildCheckmark());
+
+    // Title
+    var titleEl = el('h1', 'wp-complete__title wp-fade d-2');
+    titleEl.innerHTML = 'Workout <em>Complete!</em>';
+    complete.appendChild(titleEl);
+
+    // Sub
+    var sub = el('p', 'wp-complete__sub wp-fade d-2');
+    sub.innerHTML = 'You logged <b>' + (state.repCount * state.setCount) + ' reps</b> across <b>' + state.setCount + ' sets</b>.';
+    complete.appendChild(sub);
+
+    // Stats card
+    var stats = el('div', 'wp-stats wp-glass wp-fade d-3');
+    var cells = [
+      { lbl: 'Total Time', val: totalMin, unit: 'min' },
+      { lbl: 'Sets', val: state.setCount, unit: 'done' },
+      { lbl: 'Total Reps', val: state.repCount * state.setCount, unit: '' },
+      { lbl: 'XP Earned', val: '+' + xpAmount, unit: '', cls: 'wp-stats__val--xp' }
+    ];
+    cells.forEach(function (c) {
+      var cell = el('div', 'wp-stats__cell');
+      cell.appendChild(el('span', 'wp-stats__lbl', c.lbl));
+      var valEl = el('span', 'wp-stats__val' + (c.cls ? ' ' + c.cls : ''));
+      valEl.textContent = String(c.val);
+      if (c.unit) {
+        var unitSpan = el('span');
+        unitSpan.textContent = c.unit;
+        valEl.appendChild(unitSpan);
+      }
+      cell.appendChild(valEl);
+      stats.appendChild(cell);
+    });
+    complete.appendChild(stats);
+
+    // CTAs
+    var ctas = el('div', 'wp-complete__ctas wp-fade d-4');
+    var saveBtn = el('button', 'wp-cta-green');
+    saveBtn.type = 'button';
+    saveBtn.appendChild(iconSave());
+    saveBtn.appendChild(document.createTextNode('Save & Exit'));
+    saveBtn.addEventListener('click', closePlayer);
+    ctas.appendChild(saveBtn);
+    complete.appendChild(ctas);
+
+    overlay.appendChild(complete);
+  }
+
+  /* ── Timer tick ──────────────────────────────────────────── */
+  function tick() {
+    state.totalElapsed++;
+    if (state.timeLeft > 0) {
+      state.timeLeft--;
+    }
+
+    // Update display
+    if (ui.timerNum) ui.timerNum.textContent = fmt(state.timeLeft);
+
+    // Update ring
+    if (ui.ringFg) {
+      var total = state.phase === 'rest' ? state.restLen : state.setLen;
+      var pct = total > 0 ? state.timeLeft / total : 0;
+      var offset = RING_C * (1 - Math.max(0, Math.min(1, pct)));
+      ui.ringFg.setAttribute('stroke-dashoffset', String(offset));
+    }
+
+    // Timer hit zero
+    if (state.timeLeft <= 0) {
+      if (state.phase === 'active') {
+        sfx('success');
+        // Move to rest
+        if (state.currentSet < state.setCount) {
+          enterRest();
+        } else {
+          completeWorkout();
+        }
+      } else if (state.phase === 'rest') {
+        // Rest over — next set
+        sfx('click');
+        state.currentSet++;
+        state.currentRep = 1;
+        state.timeLeft = state.setLen;
+        state.phase = 'active';
+        state.paused = false;
+        renderActive();
+        startTimer();
+      }
     }
   }
 
-  function renderTimer() {
-    ui.timer.textContent = fmt(state.elapsed);
-    if (state.targetSec > 0) {
-      var pct = Math.min(100, (state.elapsed / state.targetSec) * 100);
-      ui.progressFill.style.width = pct + '%';
-      while (ui.target.firstChild) ui.target.removeChild(ui.target.firstChild);
-      var tspan = document.createElement('span');
-      tspan.textContent = fmt(state.targetSec);
-      ui.target.appendChild(document.createTextNode('Target '));
-      ui.target.appendChild(tspan);
-    } else {
-      ui.target.textContent = '';
+  function startTimer() {
+    stopTimer();
+    state.intervalId = setInterval(tick, 1000);
+  }
+
+  function stopTimer() {
+    if (state.intervalId) {
+      clearInterval(state.intervalId);
+      state.intervalId = null;
     }
+  }
+
+  /* ── Phase transitions ──────────────────────────────────── */
+  function enterRest() {
+    stopTimer();
+    state.phase = 'rest';
+    state.timeLeft = state.restLen;
+    state.paused = false;
+    renderRest();
+    startTimer();
+  }
+
+  function skipRestPhase() {
+    stopTimer();
+    sfx('click');
+    state.currentSet++;
+    state.currentRep = 1;
+    if (state.currentSet > state.setCount) {
+      completeWorkout();
+      return;
+    }
+    state.timeLeft = state.setLen;
+    state.phase = 'active';
+    state.paused = false;
+    renderActive();
+    startTimer();
+  }
+
+  function completeWorkout() {
+    stopTimer();
+    state.phase = 'complete';
+    sfx('success');
+    sfx('xp');
+    renderComplete();
   }
 
   /* ── Controls ────────────────────────────────────────────── */
-  function start(drill) {
+  function startDrill(drill) {
     if (!drill) return;
     ensureOverlay();
     var sp = parseSets(drill.sets);
     state.drill = drill;
+    state.workoutName = drill.workoutName || '';
     state.setCount = sp.sets || 1;
-    state.setsDone = 0;
-    state.elapsed = 0;
-    state.targetSec = (drill.mins || 0) * 60;
+    state.currentSet = 1;
+    state.repCount = drill.reps || sp.repsNum || 10;
+    state.currentRep = 1;
+    state.setLen = (drill.mins || 0) * 60 || drill.setSec || 90;
+    state.restLen = drill.restSec || DEFAULT_REST_SEC;
+    state.timeLeft = state.setLen;
     state.intervalId = null;
     state.paused = true;
-    state.finished = false;
     state.startedAt = 0;
+    state.totalElapsed = 0;
+    state.phase = 'active';
+    state.nextDrill = drill.nextDrill || null;
 
-    document.body.classList.remove('ciq-player-finished');
     document.body.classList.add('ciq-player-open');
-
-    ui.eyebrow.textContent = drill.focus ? drill.focus + ' · Now Playing' : 'Now Playing';
-    ui.name.textContent = drill.name || 'Drill';
-    ui.meta.textContent = (drill.sets || '') + (drill.mins ? '  ·  ' + drill.mins + ' min' : '');
-    ui.toggleBtn.textContent = 'Start';
-    renderTimer();
-    renderSets();
+    renderActive();
     sfx('click');
   }
 
-  function tick() {
-    state.elapsed = state.elapsed + 1;
-    renderTimer();
-    if (state.targetSec && state.elapsed === state.targetSec) {
-      sfx('success');
-      pause();
-      ui.toggleBtn.textContent = 'Done';
-    }
-  }
-
-  function play() {
-    if (state.intervalId) return;
-    if (!state.startedAt) state.startedAt = Date.now();
-    state.paused = false;
-    state.intervalId = setInterval(tick, 1000);
-    ui.toggleBtn.textContent = 'Pause';
-    ui.toggleBtn.classList.remove('primary');
-    sfx('click');
-  }
-
-  function pause() {
-    if (state.intervalId) {
-      clearInterval(state.intervalId);
-      state.intervalId = null;
-    }
-    state.paused = true;
-    ui.toggleBtn.textContent = 'Resume';
-    ui.toggleBtn.classList.add('primary');
-  }
-
-  function toggle() {
-    if (state.finished) { close(); return; }
-    if (state.paused) play(); else pause();
-  }
-
-  function skipSet() {
-    if (state.setsDone < state.setCount) {
-      state.setsDone += 1;
+  function togglePause() {
+    if (state.phase === 'complete') { closePlayer(); return; }
+    if (state.paused) {
+      state.paused = false;
+      if (!state.startedAt) state.startedAt = Date.now();
+      startTimer();
       sfx('click');
-      if (state.setsDone >= state.setCount) {
-        complete();
-        return;
-      }
-      renderSets();
-    }
-  }
-
-  function toggleSet(idx) {
-    // Tap a set dot to mark/unmark — simple stepping
-    if (idx === state.setsDone) {
-      state.setsDone += 1;
-      sfx('click');
-    } else if (idx < state.setsDone) {
-      state.setsDone = idx;
     } else {
-      state.setsDone = idx;
+      stopTimer();
+      state.paused = true;
     }
-    if (state.setsDone >= state.setCount) {
-      complete();
-      return;
+    // Update button appearance
+    if (ui.mainBtn) {
+      while (ui.mainBtn.firstChild) ui.mainBtn.removeChild(ui.mainBtn.firstChild);
+      ui.mainBtn.appendChild(state.paused ? iconPlay() : iconPause());
+      ui.mainBtn.appendChild(document.createTextNode(state.paused ? 'Resume' : 'Pause'));
+      if (state.paused) {
+        ui.mainBtn.classList.add('is-resume');
+      } else {
+        ui.mainBtn.classList.remove('is-resume');
+      }
     }
-    renderSets();
+    // Update pill
+    if (ui.pill) {
+      while (ui.pill.firstChild) ui.pill.removeChild(ui.pill.firstChild);
+      ui.pill.appendChild(el('span', 'wp-stamp__pill-dot'));
+      ui.pill.appendChild(document.createTextNode(state.paused ? 'Paused' : 'Live'));
+    }
   }
 
-  function complete() {
-    pause();
-    state.finished = true;
-    sfx('success');
-    sfx('xp');
-    ui.doneTime.textContent = fmt(state.elapsed || state.targetSec || 0);
-    ui.doneSets.textContent = String(state.setsDone || state.setCount);
-    var xpAmount = grantXP();
-    if (xpAmount) ui.doneXp.textContent = '+' + xpAmount;
-    document.body.classList.add('ciq-player-finished');
+  function skipRep() {
+    if (state.currentRep < state.repCount) {
+      state.currentRep++;
+      sfx('click');
+      if (ui.repVal) ui.repVal.innerHTML = '<em>' + state.currentRep + '</em> / ' + state.repCount;
+      if (ui.repFill) {
+        var pct = state.repCount > 0 ? state.currentRep / state.repCount : 0;
+        ui.repFill.style.width = Math.round(pct * 100) + '%';
+      }
+    } else {
+      // All reps done — advance set
+      if (state.currentSet < state.setCount) {
+        enterRest();
+      } else {
+        completeWorkout();
+      }
+    }
   }
 
-  function close() {
-    if (state.intervalId) {
-      clearInterval(state.intervalId);
-      state.intervalId = null;
-    }
+  function closePlayer() {
+    stopTimer();
     document.body.classList.remove('ciq-player-open');
-    document.body.classList.remove('ciq-player-finished');
-    // Emit event for parity sync
+    // Emit event
     try {
-      var detail = {
-        drillId: state.drill && state.drill.id,
-        elapsed: state.elapsed,
-        setsDone: state.setsDone,
-        finished: state.finished
-      };
-      document.dispatchEvent(new CustomEvent('ciq:drill-finished', { detail: detail }));
+      document.dispatchEvent(new CustomEvent('ciq:drill-finished', {
+        detail: {
+          drillId: state.drill && state.drill.id,
+          elapsed: state.totalElapsed,
+          setsDone: state.currentSet,
+          finished: state.phase === 'complete'
+        }
+      }));
     } catch (e) { /* silent */ }
   }
 
@@ -310,15 +662,15 @@
       if (typeof SFX !== 'undefined' && SFX && typeof SFX[name] === 'function') SFX[name]();
     } catch (e) { /* silent */ }
   }
+
   function grantXP() {
-    var amount = 15; // matches XP_REWARDS.completeDrill in gamification.js
+    var amount = 15;
     try {
       if (window.GamificationSystem && typeof window.GamificationSystem.grantXp === 'function') {
         window.GamificationSystem.grantXp('completeDrill');
       } else if (typeof window.grantXp === 'function') {
         window.grantXp('completeDrill');
       } else {
-        // Fallback: write directly to localStorage
         var raw = localStorage.getItem('courtiq-xp');
         var data = raw ? JSON.parse(raw) : { xp: 0, history: [] };
         data.xp = (data.xp || 0) + amount;
@@ -332,11 +684,9 @@
 
   /* ── Wire entry points ───────────────────────────────────── */
   function wireGenCardClicks() {
-    // Override Drill Generator card body click → use v2 player instead of legacy
     document.addEventListener('click', function (e) {
       var card = e.target.closest('#ciq-train-screen .ciq-drill-card');
       if (!card) return;
-      // Skip if clicking the explicit CTA button (Add)
       if (e.target.closest('[data-ciq-action="add-drill"]')) return;
       var id = card.dataset.drillId;
       if (!id) return;
@@ -344,27 +694,19 @@
       var drill = catalog.find ? catalog.find(function (d) { return d.id === id; }) : null;
       if (drill) {
         e.stopImmediatePropagation();
-        start(drill);
+        startDrill(drill);
       }
     }, true);
-  }
-
-  function wireChallengeStart() {
-    // The Start Challenge button currently calls trChallengeStart().
-    // We don't displace that — but we ALSO offer a v2 player on
-    // hold/long-press? Keep simple: leave Start Challenge alone.
-    // Player is reachable via Drill Generator card taps.
   }
 
   function init() {
     ensureOverlay();
     wireGenCardClicks();
-    wireChallengeStart();
     document.addEventListener('keydown', function (e) {
-      if (e.key === 'Escape' && document.body.classList.contains('ciq-player-open')) close();
-      if (e.key === ' '   && document.body.classList.contains('ciq-player-open')) { e.preventDefault(); toggle(); }
+      if (e.key === 'Escape' && document.body.classList.contains('ciq-player-open')) closePlayer();
+      if (e.key === ' ' && document.body.classList.contains('ciq-player-open')) { e.preventDefault(); togglePause(); }
     });
-    window.CIQ_PLAYER = { start: start, close: close, complete: complete };
+    window.CIQ_PLAYER = { start: startDrill, close: closePlayer, complete: completeWorkout };
   }
 
   if (document.readyState === 'loading') {
