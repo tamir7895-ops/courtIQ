@@ -67,16 +67,16 @@
   }
 
   function readMode() {
+    // v2 is the only production mode. ?ui=core is kept for debugging only.
+    // v1 fallback removed — legacy UI is no longer supported.
     try {
       var url = new URL(location.href);
       var qp = url.searchParams.get('ui');
-      if (qp === 'v1' || qp === 'v2' || qp === 'core') {
-        sessionStorage.setItem('courtiq-ui-mode', qp);
-        return qp;
-      }
+      if (qp === 'core') return 'core';
     } catch (e) { /* some browsers choke on location in sandboxed frames */ }
-    try { return sessionStorage.getItem('courtiq-ui-mode') || 'v2'; }
-    catch (e) { return 'v2'; }
+    // Clear any stale v1 session override from previous visits
+    try { sessionStorage.removeItem('courtiq-ui-mode'); } catch (e) {}
+    return 'v2';
   }
 
   var mode = readMode();
