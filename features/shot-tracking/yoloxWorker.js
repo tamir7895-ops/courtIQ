@@ -34,10 +34,14 @@ self.onmessage = function (e) {
     pooledSize   = totalLen;
   }
 
+  // YOLOX was trained via cv2.imread which returns BGR, and YOLOX never
+  // converts to RGB. Canvas getImageData gives RGB, so we must swap channels
+  // here. Empirically swapping recovers up to 26-67x confidence on some frames
+  // (33% on average) — see training/v7/verify_channel_order.py.
   for (var i = 0; i < chSize; i++) {
-    pooledBuffer[i]              = imgData[i * 4];     // R
+    pooledBuffer[i]              = imgData[i * 4 + 2]; // B (canvas index 2)
     pooledBuffer[chSize + i]     = imgData[i * 4 + 1]; // G
-    pooledBuffer[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+    pooledBuffer[chSize * 2 + i] = imgData[i * 4];     // R (canvas index 0)
   }
 
   // Structured-clone copy (no transfer list) so pooledBuffer survives
