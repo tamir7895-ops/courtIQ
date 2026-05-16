@@ -570,7 +570,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny_v6.onnx?v=6';
+      var modelPath = 'models/basketball_yolox_tiny_v71.onnx?v=71';
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
       // with "int64 is not supported" during InferenceSession.create.
@@ -834,11 +834,14 @@
           _chwWorker.postMessage({ imageData: imgData, size: sz }, [imgData.buffer]);
         });
       } else {
+        // YOLOX trained on cv2.imread (BGR); canvas gives RGB. Must swap so
+        // channel 0 = B, channel 2 = R. See yoloxWorker.js for full rationale
+        // and training/v7/verify_channel_order.py for the empirical check.
         var chSize = sz * sz;
         for (var i = 0; i < chSize; i++) {
-          _yoloxBuf[i]              = imgData[i * 4];
-          _yoloxBuf[chSize + i]     = imgData[i * 4 + 1];
-          _yoloxBuf[chSize * 2 + i] = imgData[i * 4 + 2];
+          _yoloxBuf[i]              = imgData[i * 4 + 2]; // B
+          _yoloxBuf[chSize + i]     = imgData[i * 4 + 1]; // G
+          _yoloxBuf[chSize * 2 + i] = imgData[i * 4];     // R
         }
         chwReady = Promise.resolve(_yoloxBuf);
       }

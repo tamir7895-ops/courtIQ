@@ -46,35 +46,42 @@ export async function loadModel(modelPath) {
 export function preprocessFrame(videoElement, canvas, ctx) {
   const vw = videoElement.videoWidth;
   const vh = videoElement.videoHeight;
-  
+
   canvas.width = INPUT_SIZE;
   canvas.height = INPUT_SIZE;
-  
-  // Letterbox resize (maintain aspect ratio)
+
+  // Letterbox: match the training preprocessing EXACTLY.
+  //   - Top-left placement (NOT centered) — YOLOX preproc puts the image at
+  //     padded[:new_h, :new_w] and the decode logic assumes the same.
+  //   - Padding value 114 (NOT 128) — YOLOX's preproc fills with 114.
+  // If you center the image here you must also offset the decoded boxes.
   const scale = Math.min(INPUT_SIZE / vw, INPUT_SIZE / vh);
   const newW = Math.round(vw * scale);
   const newH = Math.round(vh * scale);
-  const padX = (INPUT_SIZE - newW) / 2;
-  const padY = (INPUT_SIZE - newH) / 2;
-  
-  ctx.fillStyle = '#808080';
+  const padX = 0;
+  const padY = 0;
+
+  ctx.fillStyle = 'rgb(114,114,114)';
   ctx.fillRect(0, 0, INPUT_SIZE, INPUT_SIZE);
-  ctx.drawImage(videoElement, padX, padY, newW, newH);
-  
+  ctx.drawImage(videoElement, 0, 0, vw, vh, padX, padY, newW, newH);
+
   const imageData = ctx.getImageData(0, 0, INPUT_SIZE, INPUT_SIZE);
   const { data } = imageData;
-  
-  // Convert to CHW float32 (no normalization for YOLOX - expects 0-255)
+
+  // YOLOX was trained via cv2.imread which returns BGR; nothing in YOLOX
+  // converts to RGB. Canvas getImageData gives RGB, so we must put B into
+  // channel 0 and R into channel 2. ~33% avg confidence improvement, up to
+  // 26-67x on some frames. See training/v7/verify_channel_order.py.
   const float32Data = new Float32Array(3 * INPUT_SIZE * INPUT_SIZE);
   const area = INPUT_SIZE * INPUT_SIZE;
-  
+
   for (let i = 0; i < area; i++) {
     const idx = i * 4;
-    float32Data[i] = data[idx];               // R
-    float32Data[i + area] = data[idx + 1];    // G
-    float32Data[i + area * 2] = data[idx + 2]; // B
+    float32Data[i]            = data[idx + 2]; // B (canvas index 2)
+    float32Data[i + area]     = data[idx + 1]; // G
+    float32Data[i + area * 2] = data[idx];     // R (canvas index 0)
   }
-  
+
   return {
     tensor: new ort.Tensor('float32', float32Data, [1, 3, INPUT_SIZE, INPUT_SIZE]),
     scale,

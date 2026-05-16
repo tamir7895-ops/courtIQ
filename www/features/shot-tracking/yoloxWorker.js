@@ -34,10 +34,13 @@ self.onmessage = function (e) {
     pooledSize   = totalLen;
   }
 
+  // YOLOX trained on BGR (cv2.imread); canvas gives RGB. Swap so model sees
+  // the channel order it expects. ~33% confidence improvement on average,
+  // up to 26-67x on some frames. See training/v7/verify_channel_order.py.
   for (var i = 0; i < chSize; i++) {
-    pooledBuffer[i]              = imgData[i * 4];     // R
+    pooledBuffer[i]              = imgData[i * 4 + 2]; // B
     pooledBuffer[chSize + i]     = imgData[i * 4 + 1]; // G
-    pooledBuffer[chSize * 2 + i] = imgData[i * 4 + 2]; // B
+    pooledBuffer[chSize * 2 + i] = imgData[i * 4];     // R
   }
 
   // Structured-clone copy (no transfer list) so pooledBuffer survives
