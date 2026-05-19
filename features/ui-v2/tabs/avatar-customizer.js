@@ -81,7 +81,7 @@
 
   function backIcon() {
     return svg('svg', { width: '14', height: '14', viewBox: '0 0 14 14', fill: 'none' },
-      [svg('path', { d: 'M9 2L4 7l5 5', stroke: 'currentColor', 'stroke-width': '1.6',
+      [svg('path', { d: 'M9 2L4 7l5 5', stroke: 'currentColor', 'stroke-width': '2',
         'stroke-linecap': 'round', 'stroke-linejoin': 'round' })]);
   }
 
@@ -96,13 +96,14 @@
   function lockIcon() {
     return svg('svg', { width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none' }, [
       svg('rect', { x: '5', y: '11', width: '14', height: '11', rx: '2', fill: 'currentColor', opacity: '0.6' }),
-      svg('path', { d: 'M8 11V7a4 4 0 118 0v4', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' })
+      svg('path', { d: 'M8 11V7a4 4 0 118 0v4', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }),
+      svg('circle', { cx: '12', cy: '16.5', r: '1', fill: 'currentColor' })
     ]);
   }
 
   function checkIcon() {
     return svg('svg', { width: '12', height: '12', viewBox: '0 0 24 24', fill: 'none' }, [
-      svg('path', { d: 'M5 13l4 4L19 7', stroke: 'currentColor', 'stroke-width': '2.5',
+      svg('path', { d: 'M4 12.5l5.5 5.5L20 6', stroke: 'currentColor', 'stroke-width': '2.2',
         'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
     ]);
   }

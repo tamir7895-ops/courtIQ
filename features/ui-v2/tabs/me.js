@@ -174,37 +174,55 @@
   var STK = { fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
 
   function settingsIcon() {
+    /* Sliders icon — 3 horizontal lines with offset circles (not generic gear) */
+    if (window.ICONS && window.ICONS.settings) return window.ICONS.settings({ size: 18 });
     return svg('svg', { viewBox: '0 0 24 24', width: '18', height: '18', fill: 'none' }, [
-      svg('circle', { cx: '12', cy: '12', r: '3', stroke: 'currentColor', 'stroke-width': '1.6' }),
-      svg('path', { d: 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z',
-        stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+      svg('line', { x1: '4', y1: '6', x2: '20', y2: '6', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' }),
+      svg('line', { x1: '4', y1: '12', x2: '20', y2: '12', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' }),
+      svg('line', { x1: '4', y1: '18', x2: '20', y2: '18', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' }),
+      svg('circle', { cx: '9', cy: '6', r: '2.2', fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor', 'stroke-width': '1.6' }),
+      svg('circle', { cx: '16', cy: '12', r: '2.2', fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor', 'stroke-width': '1.6' }),
+      svg('circle', { cx: '7', cy: '18', r: '2.2', fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor', 'stroke-width': '1.6' })
     ]);
   }
 
   function iconSessions() {
+    /* Shot clock — rectangular display, not round clock */
     return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16' }, [
-      svg('circle', Object.assign({ cx: '12', cy: '12', r: '9' }, STK)),
-      svg('path', Object.assign({ d: 'M12 7v5l3 2' }, STK))
+      svg('rect', Object.assign({ x: '4', y: '3', width: '16', height: '18', rx: '2' }, STK)),
+      svg('path', Object.assign({ d: 'M4 8h16' }, STK)),
+      svg('text', { x: '12', y: '17', 'text-anchor': 'middle', fill: 'currentColor', 'font-size': '8', 'font-weight': 'bold', 'font-family': 'monospace', text: '24' })
     ]);
   }
   function iconFlame() {
+    /* Refined fire streak — basketball streak flame with inner flicker */
+    if (window.ICONS && window.ICONS.statStreak) return window.ICONS.statStreak({ size: 16 });
     return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16' }, [
-      svg('path', Object.assign({ d: 'M12 22a7 7 0 0 0 7-7c0-3-2-5-3-7-1.4 1-4 2-4 5 0 0-2-2-2-5C7 11 5 13 5 16a7 7 0 0 0 7 6z' }, STK))
+      svg('path', Object.assign({ d: 'M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 1.5-4 .5 2 1.5 2.5 2.5 2 0-2 0-5 1-8z' }, STK)),
+      svg('path', { d: 'M11 14a2 2 0 0 0 2 2', stroke: 'currentColor', 'stroke-width': '1.5', fill: 'none', 'stroke-linecap': 'round' })
     ]);
   }
   function iconBolt() {
-    return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16' }, [
-      svg('path', Object.assign({ d: 'M13 2 4 14h7l-1 8 9-12h-7l1-8z' }, STK))
+    /* Chunky bold XP energy bolt */
+    if (window.ICONS && window.ICONS.statXp) return window.ICONS.statXp({ size: 16 });
+    return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16', fill: 'none' }, [
+      svg('path', { d: 'M13 2L4 14h6l-1 8 9-12h-6z', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
     ]);
   }
   function iconCustomize() {
-    return svg('svg', { viewBox: '0 0 24 24', width: '12', height: '12' }, [
-      svg('path', Object.assign({ d: 'M12 20h9M3 17l8-8 4 4-8 8H3v-4z' }, STK))
+    /* Cleaner pencil edit icon — angled tip with tight body */
+    return svg('svg', { viewBox: '0 0 24 24', width: '12', height: '12', fill: 'none' }, [
+      svg('path', { d: 'M15.2 4.8a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L8.4 19.6 3 21l1.4-5.4z', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
+      svg('path', { d: 'M14 6l4 4', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' })
     ]);
   }
   function iconSend() {
-    return svg('svg', { viewBox: '0 0 24 24', width: '14', height: '14' }, [
-      svg('path', Object.assign({ d: 'M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z' }, STK))
+    /* Pass trajectory — curved arc with arrowhead (basketball pass) */
+    if (window.ICONS && window.ICONS.share) return window.ICONS.share({ size: 14 });
+    return svg('svg', { viewBox: '0 0 24 24', width: '14', height: '14', fill: 'none' }, [
+      svg('circle', { cx: '5', cy: '18', r: '2.5', stroke: 'currentColor', 'stroke-width': '1.6' }),
+      svg('path', { d: 'M7.5 16.5Q12 8 19 6', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', fill: 'none' }),
+      svg('polyline', { points: '16 4 19 6 17 9', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
     ]);
   }
   function iconLink() {
@@ -213,16 +231,21 @@
     ]);
   }
   function iconLock(sz) {
+    /* Padlock with keyhole dot */
     var s = sz || 24;
-    return svg('svg', { viewBox: '0 0 24 24', width: String(s), height: String(s) }, [
-      svg('rect', Object.assign({ x: '5', y: '11', width: '14', height: '10', rx: '2' }, STK)),
-      svg('path', Object.assign({ d: 'M8 11V7a4 4 0 0 1 8 0v4' }, STK))
+    if (window.ICONS && window.ICONS.lock) return window.ICONS.lock({ size: s });
+    return svg('svg', { viewBox: '0 0 24 24', width: String(s), height: String(s), fill: 'none' }, [
+      svg('rect', Object.assign({ x: '4', y: '11', width: '16', height: '10', rx: '2' }, STK)),
+      svg('path', Object.assign({ d: 'M8 11V8a4 4 0 0 1 8 0v3' }, STK)),
+      svg('circle', { cx: '12', cy: '16', r: '1.5', fill: 'currentColor' })
     ]);
   }
   function iconCheck(sz) {
+    /* Bolder swoosh-style checkmark */
     var s = sz || 12;
+    if (window.ICONS && window.ICONS.check) return window.ICONS.check({ size: s });
     return svg('svg', { viewBox: '0 0 24 24', width: String(s), height: String(s), fill: 'none' }, [
-      svg('path', { d: 'M4 12l5 5L20 6', stroke: 'currentColor', 'stroke-width': '2.4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
+      svg('path', { d: 'M4 12.5l5.5 5.5L20 6', stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
     ]);
   }
   function iconCoin(sz) {
@@ -234,19 +257,60 @@
     ]);
   }
 
-  /* trophy icon dispatcher */
-  var TROPHY_ICON_MAP = {
-    target:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('circle', Object.assign({ cx:'12', cy:'12', r:'9' }, STK)), svg('circle', Object.assign({ cx:'12', cy:'12', r:'5' }, STK)), svg('circle', Object.assign({ cx:'12', cy:'12', r:'1.5' }, STK))]); },
-    flame:     function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M12 22a7 7 0 0 0 7-7c0-3-2-5-3-7-1.4 1-4 2-4 5 0 0-2-2-2-5C7 11 5 13 5 16a7 7 0 0 0 7 6z' }, STK))]); },
-    hundred:   function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M5 8h2v8H5zM10 12c0-2 1-4 2-4s2 2 2 4-1 4-2 4-2-2-2-4zM17 12c0-2 1-4 2-4s2 2 2 4-1 4-2 4-2-2-2-4z' }, STK))]); },
-    crosshair: function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('circle', Object.assign({ cx:'12', cy:'12', r:'9' }, STK)), svg('path', Object.assign({ d:'M12 3v4M12 17v4M3 12h4M17 12h4' }, STK))]); },
-    shield:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6l8-3z' }, STK))]); },
-    crown:     function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M3 18h18M3 6l4 5 5-7 5 7 4-5v12H3z' }, STK))]); },
-    bolt:      function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M13 2 4 14h7l-1 8 9-12h-7l1-8z' }, STK))]); },
-    trophy:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [svg('path', Object.assign({ d:'M8 4h8v6a4 4 0 0 1-8 0V4zM4 4h4v3a3 3 0 0 1-3 3 1 1 0 0 1-1-1V4zM16 4h4v5a1 1 0 0 1-1 1 3 3 0 0 1-3-3V4zM10 14h4M10 20h4M9 20h6M12 14v6' }, STK))]); }
+  /* trophy icon dispatcher — uses centralized window.ICONS with inline fallbacks */
+  var TROPHY_ICONS_MAP = {
+    target:    'badgeTarget',
+    flame:     'statStreak',
+    hundred:   null,
+    crosshair: 'badgeTarget',
+    shield:    null,
+    crown:     null,
+    bolt:      'statXp',
+    trophy:    'badgeTrophy'
+  };
+  var TROPHY_FALLBACK_MAP = {
+    target:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('circle', Object.assign({ cx:'12', cy:'12', r:'9' }, STK)),
+      svg('circle', Object.assign({ cx:'12', cy:'12', r:'5' }, STK)),
+      svg('circle', { cx:'12', cy:'12', r:'1.5', fill:'currentColor' })
+    ]); },
+    flame:     function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('path', Object.assign({ d:'M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 1.5-4 .5 2 1.5 2.5 2.5 2 0-2 0-5 1-8z' }, STK)),
+      svg('path', { d:'M11 14a2 2 0 0 0 2 2', stroke:'currentColor', 'stroke-width':'1.5', fill:'none', 'stroke-linecap':'round' })
+    ]); },
+    hundred:   function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26', fill: 'none' }, [
+      svg('text', { x:'12', y:'16', 'text-anchor':'middle', fill:'currentColor', 'font-size':'11', 'font-weight':'bold', 'font-family':'monospace', text:'100' })
+    ]); },
+    crosshair: function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('circle', Object.assign({ cx:'12', cy:'12', r:'9' }, STK)),
+      svg('circle', Object.assign({ cx:'12', cy:'12', r:'5' }, STK)),
+      svg('circle', { cx:'12', cy:'12', r:'1.5', fill:'currentColor' }),
+      svg('path', Object.assign({ d:'M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3' }, STK))
+    ]); },
+    shield:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('path', Object.assign({ d:'M12 3l8 3v6c0 5-4 8-8 9-4-1-8-4-8-9V6l8-3z' }, STK)),
+      svg('path', Object.assign({ d:'M9 12l2 2 4-4' }, STK))
+    ]); },
+    crown:     function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('path', Object.assign({ d:'M3 18h18M3 6l4 5 5-7 5 7 4-5v12H3z' }, STK)),
+      svg('circle', { cx:'12', cy:'14', r:'1', fill:'currentColor' })
+    ]); },
+    bolt:      function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26', fill: 'none' }, [
+      svg('path', { d:'M13 2L4 14h6l-1 8 9-12h-6z', stroke:'currentColor', 'stroke-width':'2', 'stroke-linecap':'round', 'stroke-linejoin':'round' })
+    ]); },
+    trophy:    function () { return svg('svg', { viewBox: '0 0 24 24', width: '26', height: '26' }, [
+      svg('path', Object.assign({ d:'M7 4h10v6a5 5 0 0 1-10 0V4z' }, STK)),
+      svg('path', Object.assign({ d:'M7 5H5a2 2 0 0 0 0 4h2M17 5h2a2 2 0 0 1 0 4h-2' }, STK)),
+      svg('path', Object.assign({ d:'M10 15v3M14 15v3M8 21h8M12 18v3' }, STK))
+    ]); }
   };
   function trophyIcon(id) {
-    var fn = TROPHY_ICON_MAP[id] || TROPHY_ICON_MAP.target;
+    /* Try centralized ICONS library first */
+    var libName = TROPHY_ICONS_MAP[id];
+    if (libName && window.ICONS && window.ICONS[libName]) {
+      return window.ICONS[libName]({ size: 26 });
+    }
+    var fn = TROPHY_FALLBACK_MAP[id] || TROPHY_FALLBACK_MAP.target;
     return fn();
   }
 

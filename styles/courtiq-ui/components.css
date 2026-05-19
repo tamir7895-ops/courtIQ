@@ -153,7 +153,7 @@ header.ks-header,
   align-items: center;
   gap: 8px;
 }
-.ciq-topbar .brand span { color: var(--c-amber); }
+.ciq-topbar .brand span { color: #FF6A00; font-weight: 800; }
 
 /* ─── Icon button ────────────────────────────────────────── */
 .ciq-icon-btn {

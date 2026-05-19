@@ -85,30 +85,93 @@
     return hr + 'h ' + (m < 10 ? '0' + m : m) + 'm';
   }
 
-  function iconStroke(d, sz) {
-    return svg('svg', { viewBox: '0 0 24 24', width: sz || 18, height: sz || 18,
+  /* Basketball-crafted icon builders. Multi-child SVG support. */
+  function ic(children, sz) {
+    var s = sz || 18;
+    var el = svg('svg', { viewBox: '0 0 24 24', width: s, height: s,
       fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
-      'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('path', { d: d })]);
+      'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+    children.forEach(function (c) { el.appendChild(c); });
+    return el;
   }
   var I = {
-    Settings: function () { return iconStroke('M12 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6zM3 12h2M19 12h2M12 3v2M12 19v2'); },
-    Flame: function () { return iconStroke('M12 3c2 4 5 6 5 10a5 5 0 0 1-10 0c0-3 2-4 3-7 0 2 1 4 2 4z'); },
-    Bolt: function () { return iconStroke('M13 2L3 14h7l-1 8 10-12h-7l1-8z'); },
-    Clock: function () { return iconStroke('M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20zM12 6v6l4 2'); },
-    Arrow: function () { return iconStroke('M5 12h14M13 5l7 7-7 7'); },
-    Up: function () { return iconStroke('M12 19V5M5 12l7-7 7 7'); },
-    Down: function () { return iconStroke('M12 5v14M5 12l7 7 7-7'); },
-    Plus: function () { return iconStroke('M12 5v14M5 12h14'); },
-    Minus: function () { return iconStroke('M5 12h14'); },
-    Check: function () { return iconStroke('M5 12l5 5L20 7'); },
-    Basketball: function () { return iconStroke('M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zM2 12h20M5 5l14 14M19 5L5 19'); },
-    Play: function () { return iconStroke('M6 4l14 8-14 8z'); },
-    Crosshair: function () { return iconStroke('M12 2v4M12 18v4M2 12h4M18 12h4M12 8a4 4 0 1 1 0 8 4 4 0 0 1 0-8z'); },
-    Message: function () { return iconStroke('M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z'); },
-    Drills: function () { return iconStroke('M12 2v6M12 16v6M2 12h6M16 12h6'); },
-    ChevL: function () { return iconStroke('M15 18l-6-6 6-6'); },
-    ChevR: function () { return iconStroke('M9 18l6-6-6-6'); }
+    /* Sliders — clean settings icon (not generic gear) */
+    Settings: function () { return ic([
+      svg('line', { x1: '4', y1: '6', x2: '20', y2: '6' }),
+      svg('line', { x1: '4', y1: '12', x2: '20', y2: '12' }),
+      svg('line', { x1: '4', y1: '18', x2: '20', y2: '18' }),
+      svg('circle', { cx: '9', cy: '6', r: '2' }), svg('circle', { cx: '16', cy: '12', r: '2' }), svg('circle', { cx: '7', cy: '18', r: '2' })
+    ]); },
+    /* Fire streak — basketball on fire */
+    Flame: function () { return ic([
+      svg('path', { d: 'M12 2c1 4 5 5.5 5 10a5 5 0 0 1-10 0c0-2 1-3 1.5-4 .5 2 1.5 2.5 2.5 2 0-2 0-5 1-8z' }),
+      svg('path', { d: 'M11 14a2 2 0 0 0 2 2', 'stroke-width': '1.4' })
+    ]); },
+    /* Lightning bolt — XP / challenge energy */
+    Bolt: function () { return ic([
+      svg('path', { d: 'M13 2L4 14h6l-1 8 9-12h-6z', 'stroke-linejoin': 'round', 'stroke-width': '2' })
+    ]); },
+    /* Shot clock — rectangular display */
+    Clock: function () { return ic([
+      svg('rect', { x: '4', y: '4', width: '16', height: '12', rx: '2' }),
+      svg('path', { d: 'M12 7v4l2.5 1.5' }),
+      svg('path', { d: 'M8 16v2M16 16v2M10 18h4' })
+    ]); },
+    /* Fast-break arrow — dynamic right arrow */
+    Arrow: function () { return ic([
+      svg('path', { d: 'M5 12h14M14 6l6 6-6 6', 'stroke-width': '2' })
+    ]); },
+    /* Ball going up — positive FG trend */
+    Up: function () { return ic([
+      svg('path', { d: 'M12 20V6M6 12l6-6 6 6' }),
+      svg('circle', { cx: '12', cy: '4', r: '2', fill: 'currentColor', stroke: 'none' })
+    ]); },
+    /* Ball falling — negative FG trend */
+    Down: function () { return ic([
+      svg('path', { d: 'M12 4v14M6 12l6 6 6-6' }),
+      svg('circle', { cx: '12', cy: '20', r: '2', fill: 'currentColor', stroke: 'none' })
+    ]); },
+    /* Plus — bold crosshair style */
+    Plus: function () { return ic([
+      svg('line', { x1: '12', y1: '5', x2: '12', y2: '19', 'stroke-width': '2' }),
+      svg('line', { x1: '5', y1: '12', x2: '19', y2: '12', 'stroke-width': '2' })
+    ]); },
+    /* Minus */
+    Minus: function () { return ic([svg('line', { x1: '5', y1: '12', x2: '19', y2: '12', 'stroke-width': '2' })]); },
+    /* Swoosh check */
+    Check: function () { return ic([svg('path', { d: 'M4 12.5l5.5 5.5L20 6', 'stroke-width': '2.2' })]); },
+    /* Basketball with proper seams */
+    Basketball: function () { return ic([
+      svg('circle', { cx: '12', cy: '12', r: '9' }),
+      svg('path', { d: 'M3 12h18' }),
+      svg('path', { d: 'M8.5 3.3Q5.5 12 8.5 20.7' }),
+      svg('path', { d: 'M15.5 3.3Q18.5 12 15.5 20.7' })
+    ]); },
+    /* Play triangle — with rounded feel */
+    Play: function () { return ic([svg('path', { d: 'M6 4.5a1 1 0 0 1 1.5-.86l12 7.5a1 1 0 0 1 0 1.72l-12 7.5A1 1 0 0 1 6 19.5z', fill: 'currentColor' })]); },
+    /* Crosshair — shot-tracking scope */
+    Crosshair: function () { return ic([
+      svg('circle', { cx: '12', cy: '12', r: '8' }),
+      svg('path', { d: 'M12 2v4M12 18v4M2 12h4M18 12h4' }),
+      svg('circle', { cx: '12', cy: '12', r: '2', fill: 'currentColor', stroke: 'none' })
+    ]); },
+    /* Clipboard — coaching (not generic chat bubble) */
+    Message: function () { return ic([
+      svg('rect', { x: '5', y: '4', width: '14', height: '17', rx: '2' }),
+      svg('path', { d: 'M9 2v3h6V2' }),
+      svg('path', { d: 'M8.5 10.5l2 2m0-2l-2 2' }),
+      svg('circle', { cx: '16', cy: '11.5', r: '1.5' }),
+      svg('path', { d: 'M11 13l3.5-2.5', 'stroke-dasharray': '2 1.5' })
+    ]); },
+    /* Dribble — basketball with motion lines */
+    Drills: function () { return ic([
+      svg('circle', { cx: '12', cy: '8', r: '5' }),
+      svg('path', { d: 'M7 8h10' }),
+      svg('path', { d: 'M12 3c-1.2 2-1.2 3.5 0 5s1.2 3.5 0 5' }),
+      svg('path', { d: 'M8 16l1-2M12 16v-2M16 16l-1-2', 'stroke-width': '1.4' })
+    ]); },
+    ChevL: function () { return ic([svg('path', { d: 'M15 18l-6-6 6-6' })]); },
+    ChevR: function () { return ic([svg('path', { d: 'M9 18l6-6-6-6' })]); }
   };
 
   function buildStamp(onSettings) {

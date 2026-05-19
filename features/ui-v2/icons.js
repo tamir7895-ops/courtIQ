@@ -144,45 +144,63 @@
       { tag: 'path',     attrs: { d: 'M8 9l1 8M12 9.5v8M16 9l-1 8', 'stroke-width': 1.2 } }
     ] },
 
-    /* ═══ GENERIC UI ICONS (Phosphor-inspired) ═══════════════ */
+    /* ═══ UI ICONS — basketball-crafted variants ═══════════════ */
 
+    /* Home — basketball with seams (matches bottom-nav) */
     home:     { style: 'stroke', nodes: [
-      { tag: 'path',     attrs: { d: 'M3 11.5L12 4l9 7.5V20a1 1 0 0 1-1 1h-4v-7h-8v7H4a1 1 0 0 1-1-1z' } }
+      { tag: 'circle',   attrs: { cx: 12, cy: 12, r: 9 } },
+      { tag: 'path',     attrs: { d: 'M3 12h18' } },
+      { tag: 'path',     attrs: { d: 'M8.5 3.3Q5.5 12 8.5 20.7' } },
+      { tag: 'path',     attrs: { d: 'M15.5 3.3Q18.5 12 15.5 20.7' } }
     ] },
+    /* Calendar — scoreboard-style with game-day marks */
     calendar: { style: 'stroke', nodes: [
       { tag: 'rect',     attrs: { x: 3, y: 5, width: 18, height: 16, rx: 2 } },
-      { tag: 'path',     attrs: { d: 'M3 10h18M8 3v4M16 3v4' } }
+      { tag: 'path',     attrs: { d: 'M3 10h18M8 3v4M16 3v4' } },
+      { tag: 'circle',   attrs: { cx: 8, cy: 15, r: 1.2, fill: 'currentColor', stroke: 'none' } },
+      { tag: 'circle',   attrs: { cx: 16, cy: 15, r: 1.2, fill: 'currentColor', stroke: 'none' } }
     ] },
+    /* Mail — unchanged, universal */
     mail:     { style: 'stroke', nodes: [
       { tag: 'rect',     attrs: { x: 2.5, y: 5, width: 19, height: 14, rx: 2 } },
       { tag: 'path',     attrs: { d: 'M3 7l9 6 9-6' } }
     ] },
+    /* Logout — exit door with arrow */
     logout:   { style: 'stroke', nodes: [
       { tag: 'path',     attrs: { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9' } }
     ] },
+    /* Settings — sliders (cleaner than generic gear) */
     settings: { style: 'stroke', nodes: [
-      { tag: 'circle',   attrs: { cx: 12, cy: 12, r: 3 } },
-      { tag: 'path',     attrs: { d: 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 0 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 0 1 0-4h.1A1.7 1.7 0 0 0 4.6 9a1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 0 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 0 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' } }
+      { tag: 'line',     attrs: { x1: 4, y1: 6, x2: 20, y2: 6 } },
+      { tag: 'line',     attrs: { x1: 4, y1: 12, x2: 20, y2: 12 } },
+      { tag: 'line',     attrs: { x1: 4, y1: 18, x2: 20, y2: 18 } },
+      { tag: 'circle',   attrs: { cx: 9, cy: 6, r: 2.2, fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor' } },
+      { tag: 'circle',   attrs: { cx: 16, cy: 12, r: 2.2, fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor' } },
+      { tag: 'circle',   attrs: { cx: 7, cy: 18, r: 2.2, fill: 'var(--ciq-bg,#1a1a2e)', stroke: 'currentColor' } }
     ] },
+    /* Share — pass icon (basketball pass trajectory) */
     share:    { style: 'stroke', nodes: [
-      { tag: 'circle',   attrs: { cx: 18, cy: 5, r: 3 } },
-      { tag: 'circle',   attrs: { cx: 6, cy: 12, r: 3 } },
-      { tag: 'circle',   attrs: { cx: 18, cy: 19, r: 3 } },
-      { tag: 'line',     attrs: { x1: 8.6, y1: 13.5, x2: 15.4, y2: 17.5 } },
-      { tag: 'line',     attrs: { x1: 15.4, y1: 6.5, x2: 8.6, y2: 10.5 } }
+      { tag: 'circle',   attrs: { cx: 5, cy: 18, r: 2.5 } },
+      { tag: 'path',     attrs: { d: 'M7.5 16.5Q12 8 19 6' } },
+      { tag: 'polyline', attrs: { points: '16 4 19 6 17 9' } }
     ] },
+    /* Upload — ball arc going up into hoop */
     upload:   { style: 'stroke', nodes: [
       { tag: 'path',     attrs: { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' } },
-      { tag: 'polyline', attrs: { points: '17 8 12 3 7 8' } },
-      { tag: 'line',     attrs: { x1: 12, y1: 3, x2: 12, y2: 15 } }
+      { tag: 'path',     attrs: { d: 'M12 16V5' } },
+      { tag: 'polyline', attrs: { points: '8 9 12 5 16 9' } }
     ] },
+    /* Camera — with crosshair (shot-tracking camera) */
     camera:   { style: 'stroke', nodes: [
       { tag: 'path',     attrs: { d: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z' } },
-      { tag: 'circle',   attrs: { cx: 12, cy: 13, r: 4 } }
+      { tag: 'circle',   attrs: { cx: 12, cy: 13, r: 4 } },
+      { tag: 'path',     attrs: { d: 'M12 10.5v1M12 14.5v1M9.5 13h1M13.5 13h1', 'stroke-width': 1.2 } }
     ] },
+    /* Play — angular, dynamic feel */
     play:     { style: 'fill',   nodes: [
-      { tag: 'polygon',  attrs: { points: '6 3 20 12 6 21 6 3' } }
+      { tag: 'path',     attrs: { d: 'M6 4.5a1 1 0 0 1 1.5-.86l12 7.5a1 1 0 0 1 0 1.72l-12 7.5A1 1 0 0 1 6 19.5z' } }
     ] },
+    /* Pause */
     pause:    { style: 'fill',   nodes: [
       { tag: 'rect',     attrs: { x: 6, y: 4, width: 4, height: 16, rx: 1 } },
       { tag: 'rect',     attrs: { x: 14, y: 4, width: 4, height: 16, rx: 1 } }
@@ -194,41 +212,54 @@
       { tag: 'line',     attrs: { x1: 18, y1: 6, x2: 6, y2: 18 } },
       { tag: 'line',     attrs: { x1: 6, y1: 6, x2: 18, y2: 18 } }
     ] },
+    /* Search — magnifying glass with basketball seam in lens */
     search:   { style: 'stroke', nodes: [
       { tag: 'circle',   attrs: { cx: 11, cy: 11, r: 7 } },
-      { tag: 'line',     attrs: { x1: 16, y1: 16, x2: 21, y2: 21 } }
+      { tag: 'path',     attrs: { d: 'M4 11h14' } },
+      { tag: 'path',     attrs: { d: 'M11 4c-1 3-1 4 0 7s1 4 0 7', 'stroke-width': 1.2 } },
+      { tag: 'line',     attrs: { x1: 16, y1: 16, x2: 21, y2: 21, 'stroke-width': 2 } }
     ] },
+    /* Filter — funnel */
     filter:   { style: 'stroke', nodes: [
       { tag: 'polygon',  attrs: { points: '3 4 21 4 14 12 14 19 10 21 10 12' } }
     ] },
+    /* Arrow up-right — fast break direction */
     arrowUpRight: { style: 'stroke', nodes: [
       { tag: 'line',     attrs: { x1: 7, y1: 17, x2: 17, y2: 7 } },
-      { tag: 'polyline', attrs: { points: '7 7 17 7 17 17' } }
+      { tag: 'polyline', attrs: { points: '10 7 17 7 17 14' } }
     ] },
+    /* Plus — crosshair-style plus */
     plus:     { style: 'stroke', nodes: [
       { tag: 'line',     attrs: { x1: 12, y1: 5, x2: 12, y2: 19 } },
       { tag: 'line',     attrs: { x1: 5, y1: 12, x2: 19, y2: 12 } }
     ] },
+    /* Check — swoosh-style checkmark */
     check:    { style: 'stroke', nodes: [
-      { tag: 'polyline', attrs: { points: '20 6 9 17 4 12' } }
+      { tag: 'path',     attrs: { d: 'M4 12.5l5.5 5.5L20 6', 'stroke-width': 2.2 } }
     ] },
+    /* Info — basketball with i */
     info:     { style: 'stroke', nodes: [
       { tag: 'circle',   attrs: { cx: 12, cy: 12, r: 9 } },
-      { tag: 'line',     attrs: { x1: 12, y1: 11, x2: 12, y2: 16 } },
-      { tag: 'circle',   attrs: { cx: 12, cy: 8, r: 0.5, fill: 'currentColor', stroke: 'none' } }
+      { tag: 'path',     attrs: { d: 'M12 11v5' } },
+      { tag: 'circle',   attrs: { cx: 12, cy: 8, r: 0.8, fill: 'currentColor', stroke: 'none' } }
     ] },
+    /* Alert — whistle alert triangle */
     alert:    { style: 'stroke', nodes: [
       { tag: 'path',     attrs: { d: 'M10.3 3.9a2 2 0 0 1 3.4 0l8 14A2 2 0 0 1 20 21H4a2 2 0 0 1-1.7-3z' } },
       { tag: 'line',     attrs: { x1: 12, y1: 9, x2: 12, y2: 14 } },
-      { tag: 'circle',   attrs: { cx: 12, cy: 17, r: 0.7, fill: 'currentColor', stroke: 'none' } }
+      { tag: 'circle',   attrs: { cx: 12, cy: 17, r: 0.8, fill: 'currentColor', stroke: 'none' } }
     ] },
+    /* Lock — padlock with keyhole */
     lock:     { style: 'stroke', nodes: [
       { tag: 'rect',     attrs: { x: 4, y: 11, width: 16, height: 10, rx: 2 } },
-      { tag: 'path',     attrs: { d: 'M8 11V8a4 4 0 0 1 8 0v3' } }
+      { tag: 'path',     attrs: { d: 'M8 11V8a4 4 0 0 1 8 0v3' } },
+      { tag: 'circle',   attrs: { cx: 12, cy: 16, r: 1.5, fill: 'currentColor', stroke: 'none' } }
     ] },
+    /* Bell — game buzzer style */
     bell:     { style: 'stroke', nodes: [
       { tag: 'path',     attrs: { d: 'M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9' } },
-      { tag: 'path',     attrs: { d: 'M13.7 21a2 2 0 0 1-3.4 0' } }
+      { tag: 'path',     attrs: { d: 'M13.7 21a2 2 0 0 1-3.4 0' } },
+      { tag: 'circle',   attrs: { cx: 12, cy: 3, r: 1, fill: 'currentColor', stroke: 'none' } }
     ] }
   };
 
