@@ -89,32 +89,40 @@
     };
   }
 
-  /* ─── SVG icon helpers ─── */
+  /* ─── Basketball-crafted SVG icon helpers ─── */
 
   function gearIcon() {
+    /* Sliders — matches the settings icon used everywhere else */
     return svg('svg', { width: '16', height: '16', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('circle', { cx: '8', cy: '8', r: '2.5', stroke: 'currentColor', 'stroke-width': '1.4' }),
-      svg('path', { d: 'M8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.2 3.2l1.4 1.4M11.4 11.4l1.4 1.4M3.2 12.8l1.4-1.4M11.4 4.6l1.4-1.4',
-        stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' })
+      svg('line', { x1: '2', y1: '4', x2: '14', y2: '4', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
+      svg('line', { x1: '2', y1: '8', x2: '14', y2: '8', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
+      svg('line', { x1: '2', y1: '12', x2: '14', y2: '12', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
+      svg('circle', { cx: '6', cy: '4', r: '1.5', fill: '#1a1a2e', stroke: 'currentColor', 'stroke-width': '1.4' }),
+      svg('circle', { cx: '11', cy: '8', r: '1.5', fill: '#1a1a2e', stroke: 'currentColor', 'stroke-width': '1.4' }),
+      svg('circle', { cx: '5', cy: '12', r: '1.5', fill: '#1a1a2e', stroke: 'currentColor', 'stroke-width': '1.4' })
     ]);
   }
 
   function clockIcon() {
+    /* Shot clock — rectangular scoreboard style */
     return svg('svg', { width: '11', height: '11', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('circle', { cx: '8', cy: '8.5', r: '5.5', stroke: 'currentColor', 'stroke-width': '1.5' }),
-      svg('path', { d: 'M8 5.5V8.5L10 10', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round' }),
-      svg('path', { d: 'M5.5 2.5h5', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round' })
+      svg('rect', { x: '2', y: '3', width: '12', height: '8.5', rx: '1.5', stroke: 'currentColor', 'stroke-width': '1.4' }),
+      svg('path', { d: 'M8 5v3l2 1', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
+      svg('path', { d: 'M5 11.5v1.5M11 11.5v1.5M7 13h2', stroke: 'currentColor', 'stroke-width': '1.3', 'stroke-linecap': 'round' })
     ]);
   }
 
   function listIcon() {
+    /* Clipboard — mini coaching clipboard */
     return svg('svg', { width: '11', height: '11', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('rect', { x: '2.5', y: '3', width: '11', height: '10', rx: '1.5', stroke: 'currentColor', 'stroke-width': '1.5' }),
-      svg('path', { d: 'M5 6.5h6M5 9h6M5 11.5h4', stroke: 'currentColor', 'stroke-width': '1.5', 'stroke-linecap': 'round' })
+      svg('rect', { x: '2.5', y: '3', width: '11', height: '11', rx: '1.5', stroke: 'currentColor', 'stroke-width': '1.4' }),
+      svg('path', { d: 'M5.5 2v2h5V2', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
+      svg('path', { d: 'M5 7h6M5 9.5h4', stroke: 'currentColor', 'stroke-width': '1.3', 'stroke-linecap': 'round' })
     ]);
   }
 
   function diffIcon() {
+    /* Bar chart — progress bars ascending */
     return svg('svg', { width: '11', height: '11', viewBox: '0 0 16 16', fill: 'none' }, [
       svg('rect', { x: '2.5', y: '9', width: '2.5', height: '4.5', rx: '0.5', fill: 'currentColor' }),
       svg('rect', { x: '6.75', y: '6', width: '2.5', height: '7.5', rx: '0.5', fill: 'currentColor' }),
@@ -123,59 +131,55 @@
   }
 
   function starIcon() {
+    /* Lightning XP — bolt instead of generic star */
     return svg('svg', { width: '11', height: '11', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('path', { d: 'M8 2.5l1.6 3.5 3.9.5-2.85 2.55.75 3.95L8 11l-3.4 2 .75-3.95L2.5 6.5l3.9-.5L8 2.5Z',
-        stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linejoin': 'round', fill: 'currentColor', 'fill-opacity': '0.18' })
+      svg('path', { d: 'M9 2L4 9h3l-.5 5L11 7H8l1-5z',
+        stroke: 'currentColor', 'stroke-width': '1.3', fill: 'currentColor', 'fill-opacity': '0.2',
+        'stroke-linejoin': 'round', 'stroke-linecap': 'round' })
     ]);
   }
 
   function playIcon() {
+    /* Play — rounded triangle */
     return svg('svg', { width: '16', height: '16', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('path', { d: 'M4.5 3v10l8-5-8-5Z', fill: 'currentColor' })
+      svg('path', { d: 'M4.5 3.5a.8.8 0 0 1 1.2-.7l7 4.5a.8.8 0 0 1 0 1.4l-7 4.5a.8.8 0 0 1-1.2-.7z', fill: 'currentColor' })
     ]);
   }
 
   function categoryIcon(type) {
+    /* Uses the centralized ICONS library for basketball-specific icons */
+    var ICONS = window.CIQ_ICONS || window.ICONS;
+    if (ICONS && ICONS.has && ICONS.has(type)) {
+      return ICONS[type]({ size: 20 });
+    }
+    /* Fallback: sport-specific per category */
     if (type === 'shooting') {
-      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-        svg('path', { d: 'M8 2.5L4.5 8', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
-        svg('path', { d: 'M4.5 8 Q 8 11 11.5 8', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round', fill: 'none' }),
-        svg('circle', { cx: '8', cy: '2.5', r: '1.4', fill: 'currentColor' }),
-        svg('path', { d: 'M3 12.5h10', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' })
-      ]);
-    }
-    if (type === 'ballhandling') {
-      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-        svg('circle', { cx: '8', cy: '8', r: '5', stroke: 'currentColor', 'stroke-width': '1.4' }),
-        svg('path', { d: 'M3 8h10M8 3v10M5 4.4 Q 8 8 5 11.6M11 4.4 Q 8 8 11 11.6',
-          stroke: 'currentColor', 'stroke-width': '1.1', fill: 'none', 'stroke-linecap': 'round' })
-      ]);
-    }
-    if (type === 'defense') {
-      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-        svg('path', { d: 'M8 2L3 4v4.5C3 11.5 5.2 13.5 8 14.2c2.8-0.7 5-2.7 5-5.7V4L8 2z',
-          stroke: 'currentColor', 'stroke-width': '1.4', fill: 'none', 'stroke-linejoin': 'round' }),
-        svg('path', { d: 'M5.8 8.2L7.4 9.8L10.4 6.5',
-          stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' })
-      ]);
-    }
-    if (type === 'athleticism' || type === 'conditioning') {
-      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-        svg('path', { d: 'M9 1.5L3.5 9.5h3L7 14.5L12.5 6.5h-3L10 1.5z',
-          stroke: 'currentColor', 'stroke-width': '1.3', fill: 'currentColor', 'fill-opacity': '0.2', 'stroke-linejoin': 'round' })
+      /* Ball arc into hoop */
+      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none',
+        stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }, [
+        svg('circle', { cx: '5', cy: '4', r: '2' }),
+        svg('path', { d: 'M5 6Q8 2 12 4' }),
+        svg('path', { d: 'M10 8h4v.5M12 8.5v4', 'stroke-width': '1.2' }),
+        svg('path', { d: 'M3 13h10' })
       ]);
     }
     if (type === 'finishing') {
-      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-        svg('path', { d: 'M8 2.5L4.5 8', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }),
-        svg('path', { d: 'M4.5 8 Q 8 11 11.5 8', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round', fill: 'none' }),
-        svg('circle', { cx: '8', cy: '2.5', r: '1.4', fill: 'currentColor' }),
-        svg('path', { d: 'M3 12.5h10', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' })
+      /* Layup — ball at rim */
+      return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none',
+        stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }, [
+        svg('circle', { cx: '8', cy: '3.5', r: '2', fill: 'currentColor', 'fill-opacity': '.2' }),
+        svg('path', { d: 'M4 8h8' }),
+        svg('path', { d: 'M5 8l.8 5M8 8v5.5M11 8l-.8 5', 'stroke-width': '1' }),
+        svg('path', { d: 'M4 14h8' })
       ]);
     }
-    // fallback
-    return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none' }, [
-      svg('circle', { cx: '8', cy: '8', r: '5', stroke: 'currentColor', 'stroke-width': '1.4' })
+    /* Default: basketball outline */
+    return svg('svg', { width: '20', height: '20', viewBox: '0 0 16 16', fill: 'none',
+      stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round' }, [
+      svg('circle', { cx: '8', cy: '8', r: '6' }),
+      svg('path', { d: 'M2 8h12' }),
+      svg('path', { d: 'M5.5 2.3Q3.5 8 5.5 13.7' }),
+      svg('path', { d: 'M10.5 2.3Q12.5 8 10.5 13.7' })
     ]);
   }
 
@@ -184,11 +188,13 @@
 
   /* ─── Logo helper ─── */
   function logoSvg() {
-    // Small inline CourtIQ logo mark
+    /* CourtIQ basketball-crosshair logo mark (mini version) */
     return svg('svg', { width: '28', height: '28', viewBox: '0 0 28 28', fill: 'none' }, [
       svg('rect', { width: '28', height: '28', rx: '8', fill: '#4ca3ff', 'fill-opacity': '0.15' }),
-      svg('circle', { cx: '14', cy: '14', r: '7', stroke: '#4ca3ff', 'stroke-width': '1.6', fill: 'none' }),
-      svg('path', { d: 'M10 14h8M14 10v8', stroke: '#4ca3ff', 'stroke-width': '1.4', 'stroke-linecap': 'round' })
+      svg('circle', { cx: '14', cy: '14', r: '7', stroke: '#4ca3ff', 'stroke-width': '1.5', fill: 'none' }),
+      svg('path', { d: 'M7 14h14', stroke: '#4ca3ff', 'stroke-width': '1.2', 'stroke-linecap': 'round' }),
+      svg('path', { d: 'M11 7.5Q9 14 11 20.5', stroke: '#4ca3ff', 'stroke-width': '1', 'stroke-linecap': 'round' }),
+      svg('path', { d: 'M17 7.5Q19 14 17 20.5', stroke: '#4ca3ff', 'stroke-width': '1', 'stroke-linecap': 'round' })
     ]);
   }
 

@@ -85,10 +85,21 @@
     panels.forEach(function (p) { p.removeAttribute('data-ciq-hidden-by-v2'); p.style.display = ''; });
   }
 
-  /* Find or create a v2 host element inside the main scroll area. */
+  /* Find or create a v2 host element inside the main scroll area.
+     Hides all sibling v2 hosts so only the active tab is visible. */
   function ensureHost(id) {
+    // Hide every other v2 host first
+    var allHosts = document.querySelectorAll('.ciq-v2-host');
+    allHosts.forEach(function (h) {
+      if (h.id !== id) h.style.display = 'none';
+    });
+
     var existing = document.getElementById(id);
-    if (existing) { clearChildren(existing); return existing; }
+    if (existing) {
+      clearChildren(existing);
+      existing.style.display = '';          // un-hide if it was hidden
+      return existing;
+    }
     var host = document.createElement('section');
     host.id = id;
     host.className = 'ciq-v2-host';

@@ -143,8 +143,8 @@
         }, [
           (function () {
             var ic = svg('svg', { viewBox: '0 0 24 24', width: '18', height: '18' });
-            ic.appendChild(svg('path', { d: 'M5 12h14', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', fill: 'none' }));
-            ic.appendChild(svg('path', { d: 'M11 6l-5 6 5 6', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
+            ic.appendChild(svg('path', { d: 'M4 12h15', stroke: 'currentColor', 'stroke-width': '2.4', 'stroke-linecap': 'round', fill: 'none' }));
+            ic.appendChild(svg('path', { d: 'M11 5.5L4 12l7 6.5', stroke: 'currentColor', 'stroke-width': '2.4', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
             return ic;
           })()
         ]),
@@ -502,34 +502,55 @@
 
   /* ── 10. ACTION BUTTONS ───────────────────────────── */
   function buildActions(s, xpData) {
-    // Save icon SVG
+    // Save icon SVG — basketball dropping into hoop/net
     function saveIcon() {
       var ic = svg('svg', { viewBox: '0 0 18 18', fill: 'none', 'aria-hidden': 'true', width: '18', height: '18' });
-      ic.appendChild(svg('path', { d: 'M3.5 3.5h9.5l2 2v9a1 1 0 0 1-1 1H3.5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round', fill: 'none' }));
-      ic.appendChild(svg('path', { d: 'M5 3.5v3.5h6V3.5', stroke: 'currentColor', 'stroke-width': '1.7', fill: 'none' }));
-      ic.appendChild(svg('circle', { cx: '9', cy: '11.5', r: '2', stroke: 'currentColor', 'stroke-width': '1.7', fill: 'none' }));
+      // Rim (horizontal line)
+      ic.appendChild(svg('line', { x1: '4', y1: '10', x2: '14', y2: '10', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+      // Net lines hanging from rim
+      ic.appendChild(svg('path', { d: 'M5.5 10l1.5 5M12.5 10l-1.5 5M9 10v5.5', stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round', fill: 'none' }));
+      // Net cross-threads
+      ic.appendChild(svg('path', { d: 'M6.2 12h5.6M7 14h4', stroke: 'currentColor', 'stroke-width': '0.8', 'stroke-linecap': 'round', fill: 'none', opacity: '0.6' }));
+      // Basketball (small circle dropping in, above rim)
+      ic.appendChild(svg('circle', { cx: '9', cy: '5.5', r: '3', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
+      // Ball seam lines
+      ic.appendChild(svg('line', { x1: '6', y1: '5.5', x2: '12', y2: '5.5', stroke: 'currentColor', 'stroke-width': '0.9', 'stroke-linecap': 'round' }));
+      ic.appendChild(svg('path', { d: 'M9 2.5c-1 1-1 2-0 3s1 2 0 3', stroke: 'currentColor', 'stroke-width': '0.9', fill: 'none', 'stroke-linecap': 'round' }));
+      // Down arrow hint (motion)
+      ic.appendChild(svg('path', { d: 'M3 4l1 2M15 4l-1 2', stroke: 'currentColor', 'stroke-width': '1', 'stroke-linecap': 'round', fill: 'none', opacity: '0.45' }));
       return ic;
     }
-    // Share icon SVG
+    // Share icon SVG — basketball pass trajectory (ball + arc + arrowhead)
     function shareIcon() {
       var ic = svg('svg', { viewBox: '0 0 18 18', fill: 'none', 'aria-hidden': 'true', width: '16', height: '16' });
-      ic.appendChild(svg('circle', { cx: '13.5', cy: '3.5', r: '2', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
-      ic.appendChild(svg('circle', { cx: '4.5', cy: '9', r: '2', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
-      ic.appendChild(svg('circle', { cx: '13.5', cy: '14.5', r: '2', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
-      ic.appendChild(svg('path', { d: 'M6.4 8L11.6 4.5M6.4 10L11.6 13.5', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', fill: 'none' }));
+      // Ball at origin (bottom-left)
+      ic.appendChild(svg('circle', { cx: '3.5', cy: '13', r: '2.4', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
+      // Ball seam
+      ic.appendChild(svg('line', { x1: '1.5', y1: '13', x2: '5.5', y2: '13', stroke: 'currentColor', 'stroke-width': '0.7', 'stroke-linecap': 'round' }));
+      // Pass arc trajectory
+      ic.appendChild(svg('path', { d: 'M5.5 11.5Q9 1 14 5', stroke: 'currentColor', 'stroke-width': '1.8', fill: 'none', 'stroke-linecap': 'round', 'stroke-dasharray': '2.5 2' }));
+      // Arrowhead at end of arc
+      ic.appendChild(svg('path', { d: 'M12 3l2.2 2.2M12 7l2.2-2.2', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
       return ic;
     }
-    // New session icon
+    // New session icon — crosshair-style plus (bolder, basketball feel)
     function newIcon() {
       var ic = svg('svg', { viewBox: '0 0 14 14', fill: 'none', 'aria-hidden': 'true', width: '12', height: '12' });
-      ic.appendChild(svg('circle', { cx: '7', cy: '7', r: '5.2', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
-      ic.appendChild(svg('path', { d: 'M7 4.5v5M4.5 7h5', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', fill: 'none' }));
+      // Outer circle (basketball outline)
+      ic.appendChild(svg('circle', { cx: '7', cy: '7', r: '5.5', stroke: 'currentColor', 'stroke-width': '2', fill: 'none' }));
+      // Crosshair lines — bold plus with gaps in the center
+      ic.appendChild(svg('line', { x1: '7', y1: '1.5', x2: '7', y2: '4.5', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+      ic.appendChild(svg('line', { x1: '7', y1: '9.5', x2: '7', y2: '12.5', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+      ic.appendChild(svg('line', { x1: '1.5', y1: '7', x2: '4.5', y2: '7', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+      ic.appendChild(svg('line', { x1: '9.5', y1: '7', x2: '12.5', y2: '7', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+      // Center dot
+      ic.appendChild(svg('circle', { cx: '7', cy: '7', r: '1', fill: 'currentColor' }));
       return ic;
     }
-    // Back icon
+    // Back icon — bolder chevron
     function backIcon() {
       var ic = svg('svg', { viewBox: '0 0 14 14', fill: 'none', 'aria-hidden': 'true', width: '12', height: '12' });
-      ic.appendChild(svg('path', { d: 'M9 2.5L4 7l5 4.5', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
+      ic.appendChild(svg('path', { d: 'M9 2L3.5 7 9 12', stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round', fill: 'none' }));
       return ic;
     }
 

@@ -76,26 +76,57 @@
      SVG ICONS
      ══════════════════════════════════════════════════════ */
   function arrowIcon(dir) {
-    var d = dir === 'up'   ? 'M12 19V5M5 12l7-7 7 7'
-          : dir === 'down' ? 'M12 5v14M5 12l7 7 7-7'
-          : 'M5 12h14';
+    // Basketball-tipped trend arrows: arrow shaft + filled ball at the endpoint
+    var children;
+    if (dir === 'up') {
+      children = [
+        svg('path', { d: 'M12 19V7M5 12l7-7 7 7' }),
+        svg('circle', { cx: '12', cy: '5', r: '1.8', fill: 'currentColor', stroke: 'none' })
+      ];
+    } else if (dir === 'down') {
+      children = [
+        svg('path', { d: 'M12 5v12M5 12l7 7 7-7' }),
+        svg('circle', { cx: '12', cy: '19', r: '1.8', fill: 'currentColor', stroke: 'none' })
+      ];
+    } else {
+      children = [
+        svg('path', { d: 'M5 12h14' }),
+        svg('circle', { cx: '19', cy: '12', r: '1.5', fill: 'currentColor', stroke: 'none' })
+      ];
+    }
     return svg('svg', { viewBox: '0 0 24 24', width: '14', height: '14',
       fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('path', { d: d })]);
+      children);
   }
   function smallArrow(dir) {
-    var d = dir === 'up'   ? 'M12 19V5M5 12l7-7 7 7'
-          : dir === 'down' ? 'M12 5v14M5 12l7 7 7-7'
-          : 'M5 12h14';
+    // Compact basketball-tipped trend arrows
+    var children;
+    if (dir === 'up') {
+      children = [
+        svg('path', { d: 'M12 19V7M5 12l7-7 7 7' }),
+        svg('circle', { cx: '12', cy: '5', r: '2', fill: 'currentColor', stroke: 'none' })
+      ];
+    } else if (dir === 'down') {
+      children = [
+        svg('path', { d: 'M12 5v12M5 12l7 7 7-7' }),
+        svg('circle', { cx: '12', cy: '19', r: '2', fill: 'currentColor', stroke: 'none' })
+      ];
+    } else {
+      children = [
+        svg('path', { d: 'M5 12h14' }),
+        svg('circle', { cx: '19', cy: '12', r: '1.5', fill: 'currentColor', stroke: 'none' })
+      ];
+    }
     return svg('svg', { viewBox: '0 0 24 24', width: '9', height: '9',
       fill: 'none', stroke: 'currentColor', 'stroke-width': '2.4',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('path', { d: d })]);
+      children);
   }
   function rightArrow() {
+    // Fast-break arrow: bolder stroke for action CTAs
     return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16',
-      fill: 'none', stroke: 'currentColor', 'stroke-width': '2',
+      fill: 'none', stroke: 'currentColor', 'stroke-width': '2.5',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
       [svg('path', { d: 'M5 12h14M13 5l7 7-7 7' })]);
   }
@@ -106,24 +137,38 @@
       [svg('path', { d: 'M9 18l6-6-6-6' })]);
   }
   function clockIcon() {
+    // Shot clock: rectangular display instead of round clock face
     return svg('svg', { viewBox: '0 0 24 24', width: '10', height: '10',
       fill: 'none', stroke: 'currentColor', 'stroke-width': '1.8',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('circle', { cx: '12', cy: '12', r: '10' }),
-       svg('path', { d: 'M12 6v6l4 2' })]);
+      [svg('rect', { x: '4', y: '3', width: '16', height: '14', rx: '2' }),
+       svg('path', { d: 'M12 7v4l2.5 1.5' }),
+       svg('path', { d: 'M10 17v4M14 17v4M8 21h8' })]);
   }
   function sparkIcon() {
+    // Basketball with sparkle accent: ball circle + seam lines + 4-point sparkle
     return svg('svg', { viewBox: '0 0 24 24', width: '16', height: '16',
-      fill: 'none', stroke: 'currentColor', 'stroke-width': '2.2',
+      fill: 'none', stroke: 'currentColor', 'stroke-width': '2',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('path', { d: 'M12 2L9 12l-7 0 5.5 5L5 22l7-4.5L19 22l-2.5-5L22 12h-7L12 2z' })]);
+      [svg('circle', { cx: '11', cy: '13', r: '8' }),
+       svg('path', { d: 'M3 13h16' }),
+       svg('path', { d: 'M11 5v16' }),
+       svg('path', { d: 'M5.5 7.5c3 2 7.5 2 11 0' }),
+       svg('path', { d: 'M5.5 18.5c3-2 7.5-2 11 0' }),
+       svg('path', { d: 'M20 4l-1 2 1 2 1-2z', 'stroke-width': '1.2' }),
+       svg('path', { d: 'M18 5h4', 'stroke-width': '1.2' })]);
   }
   function settingsIcon() {
+    // Sliders icon: 3 horizontal lines with offset circles (mixer/equalizer)
     return svg('svg', { viewBox: '0 0 24 24', width: '18', height: '18',
       fill: 'none', stroke: 'currentColor', 'stroke-width': '1.6',
       'stroke-linecap': 'round', 'stroke-linejoin': 'round' },
-      [svg('circle', { cx: '12', cy: '12', r: '3' }),
-       svg('path', { d: 'M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z' })]);
+      [svg('path', { d: 'M4 7h16' }),
+       svg('path', { d: 'M4 12h16' }),
+       svg('path', { d: 'M4 17h16' }),
+       svg('circle', { cx: '8', cy: '7', r: '2.5', fill: 'currentColor', stroke: 'currentColor' }),
+       svg('circle', { cx: '16', cy: '12', r: '2.5', fill: 'currentColor', stroke: 'currentColor' }),
+       svg('circle', { cx: '10', cy: '17', r: '2.5', fill: 'currentColor', stroke: 'currentColor' })]);
   }
   function whistleIcon() {
     return svg('svg', { viewBox: '0 0 24 24', width: '30', height: '30',

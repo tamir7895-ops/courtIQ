@@ -39,21 +39,41 @@
     'onboarding':        { global: 'CourtIQ_V2_OnboardingV2',    method: 'render' }
   };
 
-  /* Refined stroke-icon path data (from _design-import/v2/components/ciq-shell.jsx). */
+  /* Basketball-crafted icon paths — every icon feels sport-specific. */
   var ICON_PATHS = {
-    home:  [['path', { d: 'M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-7h-6v7H4a1 1 0 0 1-1-1z' }]],
+    /* Basketball — circle with seams (the sport's universal symbol) */
+    home: [
+      ['circle', { cx: '12', cy: '12', r: '9' }],
+      ['path',   { d: 'M3 12h18' }],
+      ['path',   { d: 'M8.5 3.3Q5.5 12 8.5 20.7' }],
+      ['path',   { d: 'M15.5 3.3Q18.5 12 15.5 20.7' }]
+    ],
+    /* Whistle — coach's training whistle with sound waves */
     train: [
-      ['path', { d: 'M6 6L4 4M18 6l2-2M6 18l-2 2M18 18l2 2' }],
-      ['path', { d: 'M9 9l-3 0 0 6 3 0M15 9l3 0 0 6-3 0M9 12h6' }]
+      ['path',   { d: 'M2 10v4h3l1.5 2h6a4 4 0 0 0 0-8H6.5L5 10z' }],
+      ['circle', { cx: '14.5', cy: '12', r: '1', fill: 'currentColor', stroke: 'none' }],
+      ['path',   { d: 'M19 9l2-1.5M19 15l2 1.5M20 12h2' }]
     ],
+    /* Hoop front view — backboard, rim support, rim, net threads */
     track: [
-      ['path', { d: 'M3 17l5-5 4 4 8-8' }],
-      ['path', { d: 'M16 8h4v4' }]
+      ['path',   { d: 'M3 5h18' }],
+      ['line',   { x1: '12', y1: '5', x2: '12', y2: '8' }],
+      ['rect',   { x: '6', y: '8', width: '12', height: '1.5', rx: '.75' }],
+      ['path',   { d: 'M7.5 9.5l1.5 7M12 9.5v7.5M16.5 9.5l-1.5 7' }]
     ],
-    coach: [['path', { d: 'M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z' }]],
-    me:    [
+    /* Clipboard with X-O play diagram */
+    coach: [
+      ['rect',   { x: '5', y: '4', width: '14', height: '17', rx: '2' }],
+      ['path',   { d: 'M9 2v3h6V2' }],
+      ['path',   { d: 'M8.5 10.5l2 2m0-2l-2 2' }],
+      ['circle', { cx: '16', cy: '11.5', r: '1.5' }],
+      ['path',   { d: 'M11 13l3.5-2.5', 'stroke-dasharray': '2 1.5' }]
+    ],
+    /* Player silhouette with headband */
+    me: [
       ['circle', { cx: '12', cy: '8', r: '4' }],
-      ['path',   { d: 'M4 21a8 8 0 0 1 16 0' }]
+      ['path',   { d: 'M4 21a8 8 0 0 1 16 0' }],
+      ['path',   { d: 'M8 7h8' }]
     ]
   };
 
@@ -93,15 +113,39 @@
   }
 
   function buildBrandMark() {
-    var svg = svgEl('svg', { width: '26', height: '26', viewBox: '0 0 200 200', style: 'flex-shrink:0' });
-    svg.appendChild(svgEl('circle', { cx: '100', cy: '100', r: '86', fill: 'none', stroke: '#F5A623', 'stroke-width': '7' }));
-    var paths = [
-      'M100 14 Q78 58, 100 100 Q122 58, 100 14 Z',
-      'M186 100 Q142 78, 100 100 Q142 122, 186 100 Z',
-      'M100 186 Q122 142, 100 100 Q78 142, 100 186 Z',
-      'M14 100 Q58 122, 100 100 Q58 78, 14 100 Z'
-    ];
-    paths.forEach(function (d) { svg.appendChild(svgEl('path', { d: d, fill: '#F5A623' })); });
+    var svg = svgEl('svg', { width: '28', height: '28', viewBox: '0 0 200 200', style: 'flex-shrink:0' });
+    var g = svgEl('g', { fill: 'none', stroke: '#FF6A00', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
+
+    /* Basketball circle */
+    g.appendChild(svgEl('circle', { cx: '100', cy: '100', r: '58', 'stroke-width': '5' }));
+
+    /* Basketball seam — single horizontal arc */
+    g.appendChild(svgEl('path', { d: 'M42 100 Q100 60, 158 100', 'stroke-width': '3' }));
+
+    /* Basketball seam — single vertical arc */
+    g.appendChild(svgEl('path', { d: 'M100 42 Q140 100, 100 158', 'stroke-width': '3' }));
+
+    /* Crosshair lines extending beyond circle */
+    g.appendChild(svgEl('line', { x1: '100', y1: '30', x2: '100', y2: '14', 'stroke-width': '4' }));
+    g.appendChild(svgEl('line', { x1: '100', y1: '170', x2: '100', y2: '186', 'stroke-width': '4' }));
+    g.appendChild(svgEl('line', { x1: '30', y1: '100', x2: '14', y2: '100', 'stroke-width': '4' }));
+    g.appendChild(svgEl('line', { x1: '170', y1: '100', x2: '186', y2: '100', 'stroke-width': '4' }));
+
+    /* Crosshair tick marks (T-ends) */
+    g.appendChild(svgEl('line', { x1: '93', y1: '14', x2: '107', y2: '14', 'stroke-width': '3.5' }));
+    g.appendChild(svgEl('line', { x1: '93', y1: '186', x2: '107', y2: '186', 'stroke-width': '3.5' }));
+    g.appendChild(svgEl('line', { x1: '14', y1: '93', x2: '14', y2: '107', 'stroke-width': '3.5' }));
+    g.appendChild(svgEl('line', { x1: '186', y1: '93', x2: '186', y2: '107', 'stroke-width': '3.5' }));
+
+    /* Signal waves — left */
+    g.appendChild(svgEl('path', { d: 'M24 74 Q6 87, 6 100 Q6 113, 24 126', 'stroke-width': '4' }));
+    g.appendChild(svgEl('path', { d: 'M14 60 Q-8 80, -8 100 Q-8 120, 14 140', 'stroke-width': '3.5', opacity: '0.65' }));
+
+    /* Signal waves — right */
+    g.appendChild(svgEl('path', { d: 'M176 74 Q194 87, 194 100 Q194 113, 176 126', 'stroke-width': '4' }));
+    g.appendChild(svgEl('path', { d: 'M186 60 Q208 80, 208 100 Q208 120, 186 140', 'stroke-width': '3.5', opacity: '0.65' }));
+
+    svg.appendChild(g);
     return svg;
   }
 
@@ -128,8 +172,8 @@
 
   function renderTopbar(container) {
     var brandMark = buildBrandMark();
-    var brandLabelCourt = document.createTextNode('COURT');
-    var iqSpan = el('span', { text: 'IQ' });
+    var brandLabelCourt = document.createTextNode('Court');
+    var iqSpan = el('span', { text: 'IQ', style: 'color:#FF6A00;font-weight:800' });
     var brand = el('div', { className: 'brand' });
     brand.appendChild(brandMark);
     brand.appendChild(brandLabelCourt);

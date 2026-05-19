@@ -1,14 +1,33 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200">
-  <!-- CourtIQ Compass-Basketball Icon -->
-  <!-- Outer circle -->
-  <circle cx="100" cy="100" r="86" fill="none" stroke="#F5A623" stroke-width="7"/>
-  <!-- Four compass petals with basketball-seam curves -->
-  <!-- Top petal -->
-  <path d="M100 14 Q78 58, 100 100 Q122 58, 100 14 Z" fill="#F5A623"/>
-  <!-- Right petal -->
-  <path d="M186 100 Q142 78, 100 100 Q142 122, 186 100 Z" fill="#F5A623"/>
-  <!-- Bottom petal -->
-  <path d="M100 186 Q122 142, 100 100 Q78 142, 100 186 Z" fill="#F5A623"/>
-  <!-- Left petal -->
-  <path d="M14 100 Q58 122, 100 100 Q58 78, 14 100 Z" fill="#F5A623"/>
+  <!-- CourtIQ Brand Logo — Basketball + Crosshair + Signal Waves -->
+  <g fill="none" stroke="#FF6A00" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Basketball circle -->
+    <circle cx="100" cy="100" r="58" stroke-width="5"/>
+
+    <!-- Basketball seam — single horizontal arc -->
+    <path d="M42 100 Q100 60, 158 100" stroke-width="3"/>
+
+    <!-- Basketball seam — single vertical arc -->
+    <path d="M100 42 Q140 100, 100 158" stroke-width="3"/>
+
+    <!-- Crosshair lines extending beyond circle -->
+    <line x1="100" y1="30" x2="100" y2="14" stroke-width="4"/>
+    <line x1="100" y1="170" x2="100" y2="186" stroke-width="4"/>
+    <line x1="30" y1="100" x2="14" y2="100" stroke-width="4"/>
+    <line x1="170" y1="100" x2="186" y2="100" stroke-width="4"/>
+
+    <!-- Crosshair tick marks (T-ends) -->
+    <line x1="93" y1="14" x2="107" y2="14" stroke-width="3.5"/>
+    <line x1="93" y1="186" x2="107" y2="186" stroke-width="3.5"/>
+    <line x1="14" y1="93" x2="14" y2="107" stroke-width="3.5"/>
+    <line x1="186" y1="93" x2="186" y2="107" stroke-width="3.5"/>
+
+    <!-- Signal waves — left side (2 arcs) -->
+    <path d="M24 74 Q6 87, 6 100 Q6 113, 24 126" stroke-width="4"/>
+    <path d="M14 60 Q-8 80, -8 100 Q-8 120, 14 140" stroke-width="3.5" opacity="0.65"/>
+
+    <!-- Signal waves — right side (2 arcs) -->
+    <path d="M176 74 Q194 87, 194 100 Q194 113, 176 126" stroke-width="4"/>
+    <path d="M186 60 Q208 80, 208 100 Q208 120, 186 140" stroke-width="3.5" opacity="0.65"/>
+  </g>
 </svg>

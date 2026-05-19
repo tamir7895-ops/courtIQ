@@ -51,7 +51,7 @@
 
   function backIcon() {
     return svg('svg', { width: '14', height: '14', viewBox: '0 0 14 14', fill: 'none' },
-      [svg('path', { d: 'M9 2L4 7l5 5', stroke: 'currentColor', 'stroke-width': '1.6',
+      [svg('path', { d: 'M9.5 1.5L4 7l5.5 5.5', stroke: 'currentColor', 'stroke-width': '2',
         'stroke-linecap': 'round', 'stroke-linejoin': 'round' })]);
   }
 
@@ -63,6 +63,8 @@
       fill: 'none', stroke: 'rgba(245,166,35,0.18)', 'stroke-width': '1' }));
     s.appendChild(svg('path', { d: 'M 4 280 Q 179 90 354 280', fill: 'none',
       stroke: 'rgba(245,166,35,0.18)', 'stroke-width': '1' }));
+    s.appendChild(svg('circle', { cx: '179', cy: '122', r: '4',
+      fill: 'rgba(245,166,35,0.22)', stroke: 'rgba(245,166,35,0.30)', 'stroke-width': '0.8' }));
     s.appendChild(svg('rect', { x: '139', y: '230', width: '80', height: '90',
       fill: 'none', stroke: 'rgba(245,166,35,0.18)', 'stroke-width': '1' }));
     s.appendChild(svg('circle', { cx: '179', cy: '290', r: '10',
@@ -88,24 +90,30 @@
   var hostRef = null;
   var fileInputRef = null;
 
-  /* ── camera icon (viewfinder) ─────────────────────── */
+  /* ── camera icon (viewfinder with crosshair) ────────── */
   function cameraIcon() {
     return svg('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none' },
       [svg('path', { d: 'M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z',
         stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
        svg('circle', { cx: '12', cy: '13', r: '4',
-        stroke: 'currentColor', 'stroke-width': '2' })]);
+        stroke: 'currentColor', 'stroke-width': '2' }),
+       svg('line', { x1: '10', y1: '13', x2: '14', y2: '13',
+        stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round' }),
+       svg('line', { x1: '12', y1: '11', x2: '12', y2: '15',
+        stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round' })]);
   }
 
-  /* ── upload icon (arrow-up into tray) ─────────────── */
+  /* ── upload icon (arrow-up with ball at tip) ─────────── */
   function uploadIcon() {
     return svg('svg', { width: '16', height: '16', viewBox: '0 0 24 24', fill: 'none' },
       [svg('path', { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', stroke: 'currentColor',
         'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
        svg('polyline', { points: '17 8 12 3 7 8', stroke: 'currentColor',
         'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-       svg('line', { x1: '12', y1: '3', x2: '12', y2: '15', stroke: 'currentColor',
-        'stroke-width': '2', 'stroke-linecap': 'round' })]);
+       svg('line', { x1: '12', y1: '5', x2: '12', y2: '15', stroke: 'currentColor',
+        'stroke-width': '2', 'stroke-linecap': 'round' }),
+       svg('circle', { cx: '12', cy: '2.2', r: '1.8',
+        fill: 'currentColor', stroke: 'none' })]);
   }
 
   /* ── hidden file input for Upload Video ───────────── */
@@ -177,7 +185,11 @@
           svg('svg', { viewBox: '0 0 20 20', fill: 'none' }, [
             svg('path', { d: 'M3 6.5a1.5 1.5 0 0 1 1.5-1.5h2l1-1.5h5l1 1.5h2A1.5 1.5 0 0 1 17 6.5v8A1.5 1.5 0 0 1 15.5 16h-11A1.5 1.5 0 0 1 3 14.5v-8Z',
               stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linejoin': 'round' }),
-            svg('circle', { cx: '10', cy: '10.5', r: '3.2', stroke: 'currentColor', 'stroke-width': '1.6' })
+            svg('circle', { cx: '10', cy: '10.5', r: '3.2', stroke: 'currentColor', 'stroke-width': '1.6' }),
+            svg('line', { x1: '8.5', y1: '10.5', x2: '11.5', y2: '10.5',
+              stroke: 'currentColor', 'stroke-width': '1', 'stroke-linecap': 'round' }),
+            svg('line', { x1: '10', y1: '9', x2: '10', y2: '12',
+              stroke: 'currentColor', 'stroke-width': '1', 'stroke-linecap': 'round' })
           ]),
           h('span', { text: 'Launch Camera' })
         ]),
@@ -185,10 +197,12 @@
           onclick: function () { ensureFileInput().click(); }
         }, [
           svg('svg', { viewBox: '0 0 20 20', fill: 'none' }, [
-            svg('path', { d: 'M10 13V3M10 3l-3.5 3.5M10 3l3.5 3.5',
+            svg('path', { d: 'M10 13V4.5M10 4.5l-3.5 3.5M10 4.5l3.5 3.5',
               stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
             svg('path', { d: 'M3.5 12.5v2A2.5 2.5 0 0 0 6 17h8a2.5 2.5 0 0 0 2.5-2.5v-2',
-              stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' })
+              stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' }),
+            svg('circle', { cx: '10', cy: '2.5', r: '1.5',
+              fill: 'currentColor', stroke: 'none' })
           ]),
           h('span', { text: 'Upload Video' })
         ])
@@ -314,7 +328,11 @@
         onclick: function () { /* TODO: sessions sub-screen */ } }, [
         h('span', { class: 'tl-xref__icon' }, [
           svg('svg', { width: '14', height: '14', viewBox: '0 0 14 14', fill: 'none' },
-            [svg('path', { d: 'M2 3h10M2 7h10M2 11h6', stroke: 'currentColor', 'stroke-width': '1.6', 'stroke-linecap': 'round' })])
+            [svg('rect', { x: '2', y: '2.5', width: '10', height: '10.5', rx: '1.2',
+              stroke: 'currentColor', 'stroke-width': '1.4', fill: 'none' }),
+             svg('path', { d: 'M5 1.2h4a1 1 0 0 1 1 1v1H4v-1a1 1 0 0 1 1-1Z',
+              stroke: 'currentColor', 'stroke-width': '1.2', fill: 'none' }),
+             svg('path', { d: 'M4.5 6h5M4.5 8.5h5M4.5 11h3', stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round' })])
         ]),
         h('span', { class: 'tl-xref__body' }, [
           h('span', { class: 'tl-xref__lbl', text: 'SESSIONS · LAST 7D' }),

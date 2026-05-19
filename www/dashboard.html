@@ -80,6 +80,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"></script>
 </head>
 <body class="is-dashboard">
+<script>
+// Immediately activate v2 class to prevent flash of legacy UI.
+// The full config.js runs later (deferred), but this ensures CSS hides
+// legacy panels before first paint. ?ui=core is the only non-v2 mode.
+(function(){try{var q=new URL(location.href).searchParams.get('ui');
+if(q!=='core')document.body.classList.add('ciq-active');}catch(e){
+document.body.classList.add('ciq-active');}})();
+</script>
 
 <!-- PAGE LOADER -->
 <div id="page-loader" role="status" aria-label="Loading CourtIQ">
@@ -261,7 +269,7 @@
 
   <!-- MAIN CONTENT AREA -->
   <main class="db-main" id="db-main">
-    <div class="db-main-inner">
+    <div class="db-main-inner" id="db-main-inner">
 
     <!-- Breadcrumb topbar -->
     <div class="db-topbar" id="db-topbar">

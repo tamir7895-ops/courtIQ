@@ -82,7 +82,7 @@
   /* ── SVG Icon builders ──────────────────────────────────── */
   function iconExit() {
     var s = svgEl('svg', { viewBox: '0 0 14 14', fill: 'none', width: '14', height: '14' });
-    var p = svgEl('path', { d: 'M11 3L3 11M3 3l8 8', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round' });
+    var p = svgEl('path', { d: 'M11 3L3 11M3 3l8 8', stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round' });
     s.appendChild(p);
     return s;
   }
@@ -94,7 +94,7 @@
   }
   function iconPlay() {
     var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
-    s.appendChild(svgEl('path', { d: 'M6 4l13 7-13 7V4Z', fill: 'currentColor' }));
+    s.appendChild(svgEl('path', { d: 'M7.25 4.84a1 1 0 0 1 1.5-.86l9.5 5.88a1 1 0 0 1 0 1.72l-9.5 5.88a1 1 0 0 1-1.5-.86V4.84Z', fill: 'currentColor' }));
     return s;
   }
   function iconSkipRep() {
@@ -115,17 +115,32 @@
     return s;
   }
   function iconSave() {
+    // Basketball-into-hoop: rim + net threads + ball above
     var s = svgEl('svg', { viewBox: '0 0 18 18', fill: 'none', width: '18', height: '18' });
-    s.appendChild(svgEl('path', { d: 'M3.5 3.5h9.5l2 2v9a1 1 0 0 1-1 1h-11.5a1 1 0 0 1-1-1V4.5a1 1 0 0 1 1-1Z', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
-    s.appendChild(svgEl('path', { d: 'M5 3.5v3.5h6V3.5', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
-    s.appendChild(svgEl('circle', { cx: '9', cy: '11.5', r: '2', stroke: 'currentColor', 'stroke-width': '1.7' }));
+    // Rim (horizontal line)
+    s.appendChild(svgEl('line', { x1: '4', y1: '9', x2: '14', y2: '9', stroke: 'currentColor', 'stroke-width': '1.8', 'stroke-linecap': 'round' }));
+    // Net threads
+    s.appendChild(svgEl('path', { d: 'M5 9l2 6M9 9v6M13 9l-2 6', stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round', opacity: '0.7' }));
+    // Net cross threads
+    s.appendChild(svgEl('path', { d: 'M5.8 11.5h6.4M6.5 13.5h5', stroke: 'currentColor', 'stroke-width': '0.8', 'stroke-linecap': 'round', opacity: '0.5' }));
+    // Ball above rim
+    s.appendChild(svgEl('circle', { cx: '9', cy: '5', r: '3', stroke: 'currentColor', 'stroke-width': '1.6', fill: 'none' }));
+    // Ball seam
+    s.appendChild(svgEl('path', { d: 'M6.2 5h5.6', stroke: 'currentColor', 'stroke-width': '0.8' }));
     return s;
   }
   function iconCoffee() {
+    // Whistle icon: mouthpiece + barrel + sound waves (basketball "take a break")
     var s = svgEl('svg', { viewBox: '0 0 22 22', fill: 'none', width: '22', height: '22' });
-    s.appendChild(svgEl('path', { d: 'M4 8h11v6a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linejoin': 'round' }));
-    s.appendChild(svgEl('path', { d: 'M15 10h1.5a2.5 2.5 0 0 1 0 5H15', stroke: 'currentColor', 'stroke-width': '1.7' }));
-    s.appendChild(svgEl('path', { d: 'M7 3v2M10 3v2M13 3v2', stroke: 'currentColor', 'stroke-width': '1.7', 'stroke-linecap': 'round' }));
+    // Mouthpiece (narrow rectangle on left)
+    s.appendChild(svgEl('path', { d: 'M3 10h4v2H3z', fill: 'currentColor', opacity: '0.8' }));
+    // Barrel body (rounded rectangle)
+    s.appendChild(svgEl('rect', { x: '7', y: '8', width: '8', height: '6', rx: '3', stroke: 'currentColor', 'stroke-width': '1.8' }));
+    // Sound hole
+    s.appendChild(svgEl('circle', { cx: '12', cy: '11', r: '1.2', fill: 'currentColor' }));
+    // Sound waves
+    s.appendChild(svgEl('path', { d: 'M17 8.5c1.2 0.8 1.2 4.2 0 5', stroke: 'currentColor', 'stroke-width': '1.4', 'stroke-linecap': 'round', fill: 'none' }));
+    s.appendChild(svgEl('path', { d: 'M19 7c2 1.5 2 7 0 8.5', stroke: 'currentColor', 'stroke-width': '1.2', 'stroke-linecap': 'round', fill: 'none', opacity: '0.6' }));
     return s;
   }
   function iconNext() {

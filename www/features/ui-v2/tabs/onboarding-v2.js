@@ -109,27 +109,27 @@
   }
   function iconChevL() {
     var s = svgEl('svg', { viewBox: '0 0 18 18', fill: 'none', width: '18', height: '18' });
-    s.appendChild(svgEl('path', { d: 'M11 4L6 9l5 5', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M11 4L6 9l5 5', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     return s;
   }
   function iconCheck() {
     var s = svgEl('svg', { viewBox: '0 0 14 14', fill: 'none', width: '14', height: '14' });
-    s.appendChild(svgEl('path', { d: 'M3 7l3 3 5-6', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M2.5 7.5l3.5 3.5L11.5 4', stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     return s;
   }
   function iconArrow() {
     var s = svgEl('svg', { viewBox: '0 0 16 16', fill: 'none', width: '16', height: '16' });
-    s.appendChild(svgEl('path', { d: 'M3 8h10M9 4l4 4-4 4', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M2 8h12M9 3l5 5-5 5', stroke: 'currentColor', 'stroke-width': '2.2', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }));
     return s;
   }
   function iconMinus() {
     var s = svgEl('svg', { viewBox: '0 0 20 20', fill: 'none', width: '20', height: '20' });
-    s.appendChild(svgEl('path', { d: 'M5 10h10', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M5 10h10', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' }));
     return s;
   }
   function iconPlus() {
     var s = svgEl('svg', { viewBox: '0 0 20 20', fill: 'none', width: '20', height: '20' });
-    s.appendChild(svgEl('path', { d: 'M10 5v10M5 10h10', stroke: 'currentColor', 'stroke-width': '2', 'stroke-linecap': 'round' }));
+    s.appendChild(svgEl('path', { d: 'M10 5v10M5 10h10', stroke: 'currentColor', 'stroke-width': '2.5', 'stroke-linecap': 'round' }));
     return s;
   }
 

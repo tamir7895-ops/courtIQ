@@ -835,7 +835,8 @@
         });
       } else {
         // YOLOX trained on cv2.imread (BGR); canvas gives RGB. Must swap so
-        // channel 0 = B, channel 2 = R. See yoloxWorker.js for rationale.
+        // channel 0 = B, channel 2 = R. See yoloxWorker.js for full rationale
+        // and training/v7/verify_channel_order.py for the empirical check.
         var chSize = sz * sz;
         for (var i = 0; i < chSize; i++) {
           _yoloxBuf[i]              = imgData[i * 4 + 2]; // B
