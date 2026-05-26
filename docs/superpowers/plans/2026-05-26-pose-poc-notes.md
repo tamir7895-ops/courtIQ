@@ -141,3 +141,75 @@ historyMs:         1500
 
 - `features/shot-tracking/poseDetector.js` — `detectShootingMotion()`, `tune()`, `resetMotion()`, `_extractFeatures()`
 - `debug-pose-shot-bench.html` — benchmark harness with tunable inputs (gitignored)
+
+---
+
+# Chunk 3: State-Machine Integration
+
+Two integration paths:
+1. The pose trigger at the top of `_detectFrame` (now decoupled — see Chunk 4)
+2. The legacy ball-trajectory state machine in `_analyzeShotState`
+
+Both share `_shotTriggerSrc` so downstream `_countShot()` can record provenance.
+
+### Key state additions
+- `_shotTriggerSrc`: `'pose'` | `'ball'` | `null` — what fired this shot
+- `_releaseConfidence`: 0–1 (pose-only)
+- `_shooterFeetX/Y`: normalised hip centroid (pose-only) → preferred `launchPoint` for zone classification
+- `_lastBallDetMs`: wall-clock of most recent YOLOX ball detection (used by Chunk 5 promotion)
+
+### Pose-vs-ball semantics in `near_hoop`
+The `arcHeight ≥ minMotion` gate was tuned for ball-trajectory data (ball rises from court). When pose triggers, `_shotStartY` is the wrist at peak — arcHeight ≈ 0 — so the gate would always fail. Solution: `motionOk = isPoseShot || (legacy ball check)`.
+
+### End-to-end verification (in-engine, with throttled preview)
+First successful pose-driven shot logged at vidT=20.3, src='pose', zone='paint'. Throughput limited by browser scheduler throttling (see Chunk 4).
+
+# Chunk 4: Pose Scheduler Decoupled from YOLOX Cycle
+
+### Problem
+The engine's `setInterval(_detectFrame, 33ms)` drifts to ~6 Hz under YOLOX inference load. Pose-call rate inside `_detectFrame` was 0.6 Hz vs 30 Hz in standalone POC.
+
+### Fix
+`_poseLoop()` runs on TWO independent schedulers (whichever fires first wins):
+- `requestAnimationFrame` — 30–60 Hz when foreground
+- `setInterval(33ms)` — backup when foreground rAF is throttled
+
+`_pollPoseShot()` is the per-tick handler. `PoseDetector.detect()` caches per `currentTime`, so duplicate fires are no-ops.
+
+### Headless-preview caveat
+The Chromium-based preview tab throttles BOTH primitives to ~0.3 Hz when no human is actively viewing the tab. Real-world cadence will match the standalone POC at 30 Hz — but cannot be measured automatically in this environment. **Manual browser verification required** for the real recall number.
+
+# Chunk 5: Polish
+
+### Pose-skeleton debug overlay (Task 5.1)
+The 🐛 debug toggle in the dashboard's shot tracker now also draws the 33-point pose skeleton:
+- Cyan bones (arms + torso + legs + feet)
+- Pink dots for all joints with visibility ≥ 0.3
+- Yellow larger dots for both wrists (shooting-hand candidates)
+
+### Made/miss promotion (Task 5.2)
+Made vs miss classification was systematically biased toward MISS because the 800 ms pose fallback fired before a real ball arc had time to complete (typical ball flight is 800–1200 ms from release to rim).
+
+New behaviour:
+- `_processBallDetection` stamps `_lastBallDetMs` on every YOLOX ball detection
+- Pose fallback timer DEFERS when `now - _lastBallDetMs < 500 ms` (the "ball is hot" window)
+- Hard cap of 2500 ms regardless of ball activity prevents indefinite waiting
+
+This means: when YOLOX successfully tracks the ball after a pose-triggered shot_started, the legacy state machine has full opportunity to drive `shot_started → near_hoop → made/miss` based on real ball trajectory. When YOLOX fails (red ball, etc.), the pose fallback still fires after 800 ms and records the attempt as missed.
+
+## Files modified across Chunks 3-5
+
+- `features/shot-tracking/shotDetection.js` — state-machine integration, dual-scheduler pose loop, ball-hot deferral
+- `features/shot-tracking/ShotTrackingScreen.js` — pose-skeleton debug overlay
+
+## Production readiness checklist
+
+- ✅ MediaPipe loads via CDN with graceful degradation
+- ✅ PoseDetector exposes `init/detect/detectShootingMotion/tune/reset/resetMotion/isReady/hasFailed`
+- ✅ Engine integrates pose without breaking ball-only fallback
+- ✅ Shot data carries `triggerSrc` + `releaseConfidence` for analytics
+- ✅ Pose loop independent of YOLOX cadence
+- ✅ Ball trajectory can upgrade pose-triggered shot to MADE
+- ✅ Debug overlay shows pose skeleton for visual verification
+- ⏸ Mobile performance (Capacitor Android WebView) — needs real device test
+- ⏸ End-to-end recall measurement — needs foreground browser test

@@ -1225,6 +1225,61 @@
           canvasCtx.restore();
         }
 
+        // ── Pose skeleton overlay ──────────────────────────────
+        // Visualises the 33-point pose landmarks the shooting-motion
+        // detector is consuming. Pose coords are normalised to the
+        // FULL video frame (same space as the rim line), so we use
+        // the cw/ch mapping — no crop transform needed.
+        if (window.PoseDetector && window.PoseDetector.isReady() && videoEl) {
+          var poseFrame = window.PoseDetector.detect(videoEl, videoEl.currentTime);
+          if (poseFrame && poseFrame.landmarks) {
+            var lms = poseFrame.landmarks;
+            var pdx = function (i) { return lms[i] ? lms[i].x * cw : 0; };
+            var pdy = function (i) { return lms[i] ? lms[i].y * ch : 0; };
+            var pvis = function (i) { return lms[i] ? (lms[i].visibility || 0) : 0; };
+
+            // MediaPipe Pose connection pairs (upper body + legs)
+            var bones = [
+              [11,12],[11,13],[13,15],[12,14],[14,16],     // arms + shoulders
+              [11,23],[12,24],[23,24],                      // torso
+              [23,25],[24,26],[25,27],[26,28],              // legs
+              [27,29],[27,31],[28,30],[28,32]              // feet
+            ];
+
+            canvasCtx.save();
+            canvasCtx.strokeStyle = 'rgba(0,229,255,0.8)';
+            canvasCtx.lineWidth   = 2;
+            for (var biSke = 0; biSke < bones.length; biSke++) {
+              var a = bones[biSke][0], b = bones[biSke][1];
+              if (pvis(a) > 0.3 && pvis(b) > 0.3) {
+                canvasCtx.beginPath();
+                canvasCtx.moveTo(pdx(a), pdy(a));
+                canvasCtx.lineTo(pdx(b), pdy(b));
+                canvasCtx.stroke();
+              }
+            }
+            // All visible joints as pink dots
+            canvasCtx.fillStyle = '#ec4899';
+            for (var ki = 0; ki < lms.length; ki++) {
+              if (pvis(ki) > 0.3) {
+                canvasCtx.beginPath();
+                canvasCtx.arc(pdx(ki), pdy(ki), 3, 0, Math.PI * 2);
+                canvasCtx.fill();
+              }
+            }
+            // Highlight WRISTS (shooting-hand detector inputs) larger
+            canvasCtx.fillStyle = '#fbbf24';
+            [15, 16].forEach(function (idx) {
+              if (pvis(idx) > 0.3) {
+                canvasCtx.beginPath();
+                canvasCtx.arc(pdx(idx), pdy(idx), 6, 0, Math.PI * 2);
+                canvasCtx.fill();
+              }
+            });
+            canvasCtx.restore();
+          }
+        }
+
         // Draw ball detections (green boxes)
         if (dd.balls) {
           for (var bi = 0; bi < dd.balls.length; bi++) {
