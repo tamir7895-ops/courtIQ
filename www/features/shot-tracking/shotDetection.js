@@ -666,6 +666,12 @@
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
+      // Pose loop kicks itself off via requestVideoFrameCallback (or
+      // a setInterval fallback). It self-schedules from inside, so we
+      // just call it once here.
+      if (this._poseInterval) { clearInterval(this._poseInterval); this._poseInterval = null; }
+      if (this._poseRafId)    { cancelAnimationFrame(this._poseRafId); this._poseRafId = null; }
+      this._poseLoop();
     },
 
     stop: function () {
@@ -674,6 +680,8 @@
         clearTimeout(this.detectionTimer);
         this.detectionTimer = null;
       }
+      if (this._poseInterval) { clearInterval(this._poseInterval); this._poseInterval = null; }
+      if (this._poseRafId)    { cancelAnimationFrame(this._poseRafId); this._poseRafId = null; }
       this.ballPosition = null;
       this._setStatus('stopped');
     },
@@ -782,6 +790,89 @@
       return { x: 0, y: cropTop, w: vw, h: vh - cropTop - cropBot };
     },
 
+    /* ── Pose detection loop (independent of _detectFrame cadence)
+       The YOLOX inference path inside _detectFrame can backlog the
+       main setInterval, dragging _detectFrame's effective cadence
+       from 30 Hz down to ~5 Hz — too slow for pose to catch a
+       release peak (~200 ms window).
+
+       We use BOTH primitives:
+         - requestAnimationFrame fires on foreground frames (30-60 Hz)
+         - setInterval is the fallback when the page is backgrounded
+       Whichever ticks first calls _pollPoseShot. _pollPoseShot itself
+       has a small dedupe (per-currentTime caching inside the
+       PoseDetector) so double-fires are cheap no-ops.
+     ──────────────────────────────────────────────────────────── */
+    _poseLoop: function () {
+      var self = this;
+      if (!self.isRunning || !self.videoEl) return;
+
+      var doPoll = function () {
+        if (!self.isRunning) return;
+        if (self.videoEl && self.videoEl.readyState >= 2 && self.rimZone &&
+            window.PoseDetector && window.PoseDetector.isReady()) {
+          self._pollPoseShot();
+        }
+      };
+
+      // setInterval fallback — guaranteed to fire (just throttled when
+      // backgrounded). 33 ms = 30 Hz when foreground.
+      self._poseInterval = setInterval(doPoll, 33);
+
+      // rAF loop — also calls doPoll. Higher cadence when foreground.
+      var rafTick = function () {
+        if (!self.isRunning) return;
+        doPoll();
+        self._poseRafId = requestAnimationFrame(rafTick);
+      };
+      self._poseRafId = requestAnimationFrame(rafTick);
+    },
+
+    _pollPoseShot: function () {
+      var self = this;
+      var pose = window.PoseDetector.detect(self.videoEl, self.videoEl.currentTime);
+      if (!pose || !pose.landmarks) return;
+
+      var vw = self.videoEl.videoWidth  || 1;
+      var vh = self.videoEl.videoHeight || 1;
+
+      // Trigger: only fire shot_started when idle.
+      if (self._shotState === 'idle') {
+        var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
+        if (motion.isShot) {
+          var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
+          self._shotState         = 'shot_started';
+          self._shotStateTime     = Date.now();
+          self._ballMinY          = sx.y;
+          self._shotStartY        = sx.y;
+          self._sawBallAboveRim   = (sx.y < self.rimZone.centerY);
+          self._shotTriggerSrc    = 'pose';
+          self._releaseConfidence = motion.releaseConfidence;
+          self._shooterFeetX      = motion.shooterCenterX;
+          self._shooterFeetY      = motion.shooterCenterY;
+          dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
+        }
+      }
+
+      // Pose-triggered shot fallback:
+      // When the shot was triggered by pose and YOLOX never picks up
+      // the ball (red ball, off-camera arc, etc.), wrist position is
+      // not a valid proxy once the ball leaves the shooter's hand.
+      // After POSE_SHOT_FALLBACK_MS we conservatively count it as a
+      // miss so the attempt isn't silently dropped. If a real ball
+      // trajectory comes in meanwhile, _processBallDetection drives
+      // the state machine to MADE/MISS via the normal path and
+      // _countShot clears _shotTriggerSrc so this no-ops.
+      var POSE_SHOT_FALLBACK_MS = 800;
+      if (self._shotState === 'shot_started' &&
+          self._shotTriggerSrc === 'pose' &&
+          (Date.now() - self._shotStateTime) > POSE_SHOT_FALLBACK_MS) {
+        var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
+        var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
+        self._countShot('missed', vw, vh, feetX, feetY, Date.now());
+      }
+    },
+
     _detectFrame: function () {
       var self = this;
       if (!self.isRunning || !self.videoEl) return;
@@ -789,70 +880,6 @@
 
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
-
-      /* ── Pose poll (unconditional, runs every frame) ────────────
-         The legacy state-machine paths (_processBallDetection /
-         _processNoBall) only fire _analyzeShotState at 2-3 Hz when
-         YOLOX inference is in flight. That's too slow for pose-based
-         shot detection to ever catch a release peak (~200 ms window).
-         Polling pose here ensures we see EVERY video frame.
-
-         When pose says "shot" and we are in idle with a rim locked,
-         transition straight to shot_started — bypassing the legacy
-         idle branch entirely. The rest of the state machine
-         (near_hoop, made/miss, cooldown) is unchanged.
-       ────────────────────────────────────────────────────────── */
-      if (self.rimZone && window.PoseDetector && window.PoseDetector.isReady()) {
-        var pose = window.PoseDetector.detect(self.videoEl, self.videoEl.currentTime);
-        if (pose && pose.landmarks) {
-          // Trigger: only fire shot_started when idle
-          if (self._shotState === 'idle') {
-            var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
-            if (motion.isShot) {
-              var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
-              var poseNormX = sx.x;
-              var poseNormY = sx.y;
-              self._shotState         = 'shot_started';
-              self._shotStateTime     = Date.now();
-              self._ballMinY          = poseNormY;
-              self._shotStartY        = poseNormY;
-              self._sawBallAboveRim   = (poseNormY < self.rimZone.centerY);
-              self._shotTriggerSrc    = 'pose';
-              self._releaseConfidence = motion.releaseConfidence;
-              self._shooterFeetX      = motion.shooterCenterX;
-              self._shooterFeetY      = motion.shooterCenterY;
-              dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
-            }
-          }
-          // Pose-triggered shot fallback timer:
-          // When the shot was triggered by pose and YOLOX never picks up
-          // the ball (red ball, off-camera arc, etc.), the legacy state
-          // machine has no way to advance — wrist position isn't a valid
-          // proxy for ball position once the shot is in flight (the wrist
-          // returns to the shooter's chest, not the rim). After
-          // POSE_SHOT_FALLBACK_MS we conservatively count the shot as a
-          // miss so the attempt isn't silently dropped. If a real ball
-          // trajectory DOES come in meanwhile, _processBallDetection
-          // drives the state machine to MADE/MISS the normal way and
-          // _countShot resets _shotTriggerSrc so this fallback no-ops.
-          // 800 ms is short enough to clear inside the 2.24 s/shot cadence
-          // we see in the 25-shot bench, while still long enough that a
-          // real ball trajectory has a chance to take over the state
-          // machine if YOLOX picks it up.
-          var POSE_SHOT_FALLBACK_MS = 800;
-          if (self._shotState === 'shot_started' &&
-              self._shotTriggerSrc === 'pose' &&
-              (Date.now() - self._shotStateTime) > POSE_SHOT_FALLBACK_MS) {
-            // Use the shooter's feet centroid for the launchPoint — wrist
-            // position is no longer meaningful here.
-            var vwSc = vw;
-            var vhSc = vh;
-            var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
-            var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
-            self._countShot('missed', vwSc, vhSc, feetX, feetY, Date.now());
-          }
-        }
-      }
 
       /* ── Draw to processing canvas ──────────────────────────── */
       var canvasReady = self._drawToCanvas();
