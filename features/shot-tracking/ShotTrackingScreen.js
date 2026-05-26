@@ -62,6 +62,7 @@
   var rimCenter = null;       // { x, y } normalized (0-1)
   var rimSize   = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
   var rimLocked = false;
+  var rimLockedAt = 0;        // Date.now() when rim first locked — drives the pulse animation
 
   // Auto rim-tracking state (reset each session in openScreen)
   var rimAutoMode         = true;   // false once user manually taps
@@ -69,7 +70,10 @@
   var lastHoopDetectAt    = 0;      // timestamp of last accepted hoop detection
   var lastHoopConfidence  = 0;
   var hoopLost            = false;
-  var manualFallbackShown = false;
+  var manualFallbackShown = false;  // legacy: only true if we promoted saved calibration to locked
+  var hasSavedCalibration = false;  // true when openScreen warm-started from localStorage
+  var savedFallbackUsed   = false;  // true when watchdog auto-promoted saved calibration to locked
+  var lockToastT          = null;   // setTimeout for "Hoop locked!" toast → "Tracking" transition
 
   // 3PT calibration state
   var threePtPoint = null;    // { x, y } normalized — user-tapped 3PT line point
@@ -291,6 +295,7 @@
     // Reset rim/3PT state
     rimCenter = null;
     rimLocked = false;
+    rimLockedAt = 0;
     rimSize = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
     threePtPoint = null;
     threePtDistance = 0;
@@ -298,10 +303,30 @@
     // Reset auto rim-tracking state
     rimAutoMode = true;
     if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
+    if (lockToastT) { clearTimeout(lockToastT); lockToastT = null; }
     lastHoopDetectAt = 0;
     lastHoopConfidence = 0;
     hoopLost = false;
     manualFallbackShown = false;
+    hasSavedCalibration = false;
+    savedFallbackUsed   = false;
+
+    // ── Warm-start from saved calibration ───────────────────────
+    // If the user has shot here before, we have a localStorage record of
+    // where the rim was. Pre-populate rimCenter/rimSize so we have an
+    // initial guess to draw the rim ring with. We DON'T set rimLocked
+    // yet — YOLOX still gets to confirm or correct the position over
+    // the next few seconds. If YOLOX fails (lighting / different angle),
+    // the watchdog promotes the saved values to "locked" after the
+    // fallback window so the user never has to tap anything.
+    var saved = loadCalibration();
+    if (saved && saved.rimCenter && saved.rimSize) {
+      rimCenter = { x: saved.rimCenter.x, y: saved.rimCenter.y };
+      rimSize   = { w: saved.rimSize.w,   h: saved.rimSize.h   };
+      threePtPoint    = saved.threePtPoint || null;
+      threePtDistance = saved.threePtDistance || 0;
+      hasSavedCalibration = true;
+    }
 
     // Skip rimlock — go straight to tracking with auto-detection
     els.rimlock.classList.remove('active');
@@ -500,6 +525,7 @@
     if (phase === 'tracking') {
       rimCenter = { x: normX, y: normY };
       rimLocked = true;
+      rimLockedAt = Date.now();
       rimAutoMode = false;
       hoopLost = false;
       if (rimStabilizationT) { clearTimeout(rimStabilizationT); rimStabilizationT = null; }
@@ -668,7 +694,13 @@
 
     // Auto-tracking initial state — the watchdog and onHoopDetected
     // path will move us through 'found' → 'tracking' as detections arrive.
-    setAutoStatus('Looking for hoop...', 'searching');
+    // If we warm-started from localStorage, show a subtly different message
+    // so the user knows the rim ring on screen is a guess pending verification.
+    if (hasSavedCalibration) {
+      setAutoStatus('Verifying rim position...', 'searching');
+    } else {
+      setAutoStatus('Looking for hoop...', 'searching');
+    }
 
     // Start timer
     timerInterval = setInterval(function () {
@@ -785,9 +817,13 @@
           h: Math.min(Math.max(avgBH, 0.03), 0.15)
         };
         rimLocked = true;
+        rimLockedAt = Date.now();
+        // If watchdog already used a saved-calibration fallback, cancel the
+        // status text and use the YOLOX-locked one instead.
+        savedFallbackUsed = true;
         engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
         onDetectionStatus('detecting');
-        setAutoStatus('Hoop found - calibrating...', 'found');
+        setAutoStatus('Hoop locked!', 'found');
         // Don't count shots until the EMA has had time to settle.
         if (rimStabilizationT) clearTimeout(rimStabilizationT);
         rimStabilizationT = setTimeout(function () {
@@ -796,6 +832,11 @@
             setAutoStatus('Tracking', 'tracking');
           }
         }, RIM_STABILIZATION_MS);
+
+        // Persist for warm-start on the next session. We save just the
+        // rim — 3PT is set separately by enterThreePtCalibration (skipped
+        // in auto-detect flow) so we leave any existing 3PT entry alone.
+        saveCalibration();
 
         console.log('[ShotTracker] Auto-lock at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
           ') [bbox cy=' + avgCY.toFixed(3) + ', +' + (avgBH * BBOX_RIM_OFFSET_FRAC).toFixed(3) +
@@ -1041,11 +1082,31 @@
         if (engRef) engRef.setRimStabilized(false);
         setAutoStatus('Searching for hoop...', 'lost');
       }
-      // Manual fallback reveal — auto-detect hasn't found the hoop yet.
-      if (!rimLocked && !manualFallbackShown && sessionStart > 0 &&
+      // Auto-fallback — YOLOX hasn't locked the rim within the window.
+      // Two paths:
+      //   A. We have a saved calibration → promote it to "locked" silently.
+      //      The dashed rim ring is already on screen from the warm-start.
+      //   B. No saved calibration → nudge the status text only. The user
+      //      never sees a "tap the rim" UI; the tracker keeps searching.
+      if (!rimLocked && !savedFallbackUsed && sessionStart > 0 &&
           (nowTs - sessionStart > MANUAL_FALLBACK_MS)) {
-        manualFallbackShown = true;
-        showManualRimFallback();
+        savedFallbackUsed = true;
+        if (hasSavedCalibration && rimCenter && engRef) {
+          rimLocked = true;
+          rimLockedAt = Date.now();
+          engRef.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+          setAutoStatus('Using saved rim position', 'found');
+          if (rimStabilizationT) clearTimeout(rimStabilizationT);
+          rimStabilizationT = setTimeout(function () {
+            if (rimLocked && rimAutoMode && !hoopLost) {
+              engRef.setRimStabilized(true);
+              setAutoStatus('Tracking', 'tracking');
+            }
+          }, RIM_STABILIZATION_MS);
+          console.log('[ShotTracker] Auto-fallback to saved calibration');
+        } else {
+          setAutoStatus('Point camera at the hoop', 'searching');
+        }
       }
 
       var cw = canvasEl.width;
@@ -1054,23 +1115,66 @@
 
       canvasCtx.clearRect(0, 0, cw, ch);
 
-      // Draw rim zone indicator (dashed orange circle)
+      // Draw rim zone indicator (dashed ring)
+      // States:
+      //   - rimLocked false: dashed grey ring (warm-start / searching)
+      //   - just locked (< 1.5s ago): green ring with expanding pulse halo
+      //   - locked steady: dashed orange ring
       if (rimCenter) {
         var rx = rimSize.w * cw / 2;
         var ry = rimSize.h * ch / 2;
+        var rcx = rimCenter.x * cw;
+        var rcy = rimCenter.y * ch;
         canvasCtx.save();
-        canvasCtx.strokeStyle = 'rgba(245,166,35,0.5)';
-        canvasCtx.lineWidth = 2;
-        canvasCtx.setLineDash([8, 6]);
+
+        // Determine ring color/state
+        var sinceLock = rimLocked ? (nowTs - rimLockedAt) : -1;
+        var inPulse = rimLocked && sinceLock < 1500;
+
+        if (!rimLocked) {
+          // Warm-start preview — faded grey ring
+          canvasCtx.strokeStyle = 'rgba(160,160,160,0.45)';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([6, 8]);
+        } else if (inPulse) {
+          // Lock-on flash — bright green ring
+          canvasCtx.strokeStyle = 'rgba(0,255,136,0.9)';
+          canvasCtx.lineWidth = 3;
+          canvasCtx.setLineDash([]);
+        } else {
+          // Steady tracking — orange dashed
+          canvasCtx.strokeStyle = 'rgba(245,166,35,0.5)';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([8, 6]);
+        }
+
         canvasCtx.beginPath();
-        canvasCtx.ellipse(
-          rimCenter.x * cw, rimCenter.y * ch,
-          rx, ry, 0, 0, Math.PI * 2
-        );
+        canvasCtx.ellipse(rcx, rcy, rx, ry, 0, 0, Math.PI * 2);
         canvasCtx.stroke();
-        // Light fill
-        canvasCtx.fillStyle = 'rgba(245,166,35,0.06)';
-        canvasCtx.fill();
+
+        // Light fill (skip when in pulse — the halo provides the wash)
+        if (!inPulse) {
+          canvasCtx.fillStyle = rimLocked
+            ? 'rgba(245,166,35,0.06)'
+            : 'rgba(160,160,160,0.04)';
+          canvasCtx.fill();
+        }
+
+        // Expanding halo for the first 1.5s after lock — gives the user
+        // a clear visual confirmation that auto-detect committed.
+        if (inPulse) {
+          var t = sinceLock / 1500;            // 0 → 1
+          var ease = 1 - Math.pow(1 - t, 3);   // ease-out cubic
+          var haloRx = rx * (1 + ease * 0.8);
+          var haloRy = ry * (1 + ease * 0.8);
+          canvasCtx.strokeStyle = 'rgba(0,255,136,' + (0.6 * (1 - t)).toFixed(3) + ')';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([]);
+          canvasCtx.beginPath();
+          canvasCtx.ellipse(rcx, rcy, haloRx, haloRy, 0, 0, Math.PI * 2);
+          canvasCtx.stroke();
+        }
+
         canvasCtx.restore();
       }
 
