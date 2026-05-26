@@ -859,17 +859,28 @@
       // the ball (red ball, off-camera arc, etc.), wrist position is
       // not a valid proxy once the ball leaves the shooter's hand.
       // After POSE_SHOT_FALLBACK_MS we conservatively count it as a
-      // miss so the attempt isn't silently dropped. If a real ball
-      // trajectory comes in meanwhile, _processBallDetection drives
-      // the state machine to MADE/MISS via the normal path and
-      // _countShot clears _shotTriggerSrc so this no-ops.
+      // miss so the attempt isn't silently dropped.
+      //
+      // IMPORTANT: defer the fallback while ball detection is still
+      // hot. _processBallDetection stamps _lastBallDetMs every time
+      // YOLOX detects the ball. If the ball was seen within the last
+      // BALL_HOT_WINDOW_MS, we give the legacy state machine more time
+      // to drive shot_started→near_hoop→made. This is what allows a
+      // pose-triggered shot to be UPGRADED from "missed by fallback"
+      // to "made via ball-trajectory" when both signals are present.
       var POSE_SHOT_FALLBACK_MS = 800;
-      if (self._shotState === 'shot_started' &&
-          self._shotTriggerSrc === 'pose' &&
-          (Date.now() - self._shotStateTime) > POSE_SHOT_FALLBACK_MS) {
-        var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
-        var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
-        self._countShot('missed', vw, vh, feetX, feetY, Date.now());
+      var BALL_HOT_WINDOW_MS    = 500;
+      var POSE_HARD_TIMEOUT_MS  = 2500;  // hard cap regardless of ball activity
+      if (self._shotState === 'shot_started' && self._shotTriggerSrc === 'pose') {
+        var elapsed = Date.now() - self._shotStateTime;
+        var ballHot = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_HOT_WINDOW_MS;
+        var fireFallback = (elapsed > POSE_SHOT_FALLBACK_MS && !ballHot) ||
+                            elapsed > POSE_HARD_TIMEOUT_MS;
+        if (fireFallback) {
+          var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
+          var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
+          self._countShot('missed', vw, vh, feetX, feetY, Date.now());
+        }
       }
     },
 
@@ -1315,6 +1326,11 @@
     _prevBallNorm: null,       // previous ball normalized position {x, y}
 
     _processBallDetection: function (cx, cy, vw, vh) {
+      // Stamp the time of the most recent legitimate ball detection.
+      // The pose-shot fallback uses this to defer counting a missed
+      // attempt while a real ball trajectory is still in flight —
+      // gives YOLOX a chance to drive shot_started→near_hoop→made.
+      this._lastBallDetMs = Date.now();
       var normX = cx / vw;
       var normY = cy / vh;
 
