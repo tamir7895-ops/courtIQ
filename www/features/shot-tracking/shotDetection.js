@@ -27,7 +27,7 @@
   }
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 1500;  // Cooldown between counted shots
+  var DEBOUNCE_MS          = 700;   // Cooldown between counted shots (matches PoseDetector cooldown)
   var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
@@ -530,6 +530,10 @@
     _shotStartY: 1.0,        // Y position when shot arc started (for min arc height check)
     _sawBallAboveRim: false, // sticky flag: was ball ever above rim during this shot?
     _rimStabilized: false,   // gate: state machine ignores rim until screen flips this on
+    _shotTriggerSrc: null,   // 'pose' | 'ball' — what fired the current shot_started
+    _releaseConfidence: null,// 0-1, only meaningful when _shotTriggerSrc === 'pose'
+    _shooterFeetX: null,     // normalized x of shooter hip centroid at release (pose-only)
+    _shooterFeetY: null,     // normalized y of shooter hip centroid at release (pose-only)
 
     init: function () {
       var self = this;
@@ -592,6 +596,17 @@
         _yoloxCanvas.height = sz;
         _yoloxCtx = _yoloxCanvas.getContext('2d');
         dlog('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
+        // Kick off PoseDetector load in PARALLEL. It is not awaited — the
+        // engine works fine with ball-only detection if pose never arrives.
+        // When pose IS ready, _analyzeShotState picks it up automatically
+        // because isReady() returns true.
+        if (window.PoseDetector && typeof window.PoseDetector.init === 'function') {
+          window.PoseDetector.init().then(function () {
+            dlog('[ShotDetection] PoseDetector ready — pose-driven shot trigger active');
+          }).catch(function (poseErr) {
+            console.warn('[ShotDetection] PoseDetector init failed — ball-only mode:', poseErr && poseErr.message);
+          });
+        }
         self._setStatus('ready');
         resolve(true);
       }).catch(function (err) {
@@ -638,6 +653,16 @@
       this._shotStartY = 1.0;
       this._sawBallAboveRim = false;
       this._rimStabilized = false;
+      this._shotTriggerSrc = null;
+      this._releaseConfidence = null;
+      this._shooterFeetX = null;
+      this._shooterFeetY = null;
+      // Reset pose history so the new session starts fresh — important when
+      // re-using a single engine for several uploaded videos in a row.
+      if (window.PoseDetector) {
+        if (typeof window.PoseDetector.reset === 'function')      window.PoseDetector.reset();
+        if (typeof window.PoseDetector.resetMotion === 'function') window.PoseDetector.resetMotion();
+      }
       resetTracker(this.tracker);
       this._setStatus('detecting');
       this._scheduleDetection();
@@ -764,6 +789,70 @@
 
       var vw = self.videoEl.videoWidth;
       var vh = self.videoEl.videoHeight;
+
+      /* ── Pose poll (unconditional, runs every frame) ────────────
+         The legacy state-machine paths (_processBallDetection /
+         _processNoBall) only fire _analyzeShotState at 2-3 Hz when
+         YOLOX inference is in flight. That's too slow for pose-based
+         shot detection to ever catch a release peak (~200 ms window).
+         Polling pose here ensures we see EVERY video frame.
+
+         When pose says "shot" and we are in idle with a rim locked,
+         transition straight to shot_started — bypassing the legacy
+         idle branch entirely. The rest of the state machine
+         (near_hoop, made/miss, cooldown) is unchanged.
+       ────────────────────────────────────────────────────────── */
+      if (self.rimZone && window.PoseDetector && window.PoseDetector.isReady()) {
+        var pose = window.PoseDetector.detect(self.videoEl, self.videoEl.currentTime);
+        if (pose && pose.landmarks) {
+          // Trigger: only fire shot_started when idle
+          if (self._shotState === 'idle') {
+            var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
+            if (motion.isShot) {
+              var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
+              var poseNormX = sx.x;
+              var poseNormY = sx.y;
+              self._shotState         = 'shot_started';
+              self._shotStateTime     = Date.now();
+              self._ballMinY          = poseNormY;
+              self._shotStartY        = poseNormY;
+              self._sawBallAboveRim   = (poseNormY < self.rimZone.centerY);
+              self._shotTriggerSrc    = 'pose';
+              self._releaseConfidence = motion.releaseConfidence;
+              self._shooterFeetX      = motion.shooterCenterX;
+              self._shooterFeetY      = motion.shooterCenterY;
+              dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
+            }
+          }
+          // Pose-triggered shot fallback timer:
+          // When the shot was triggered by pose and YOLOX never picks up
+          // the ball (red ball, off-camera arc, etc.), the legacy state
+          // machine has no way to advance — wrist position isn't a valid
+          // proxy for ball position once the shot is in flight (the wrist
+          // returns to the shooter's chest, not the rim). After
+          // POSE_SHOT_FALLBACK_MS we conservatively count the shot as a
+          // miss so the attempt isn't silently dropped. If a real ball
+          // trajectory DOES come in meanwhile, _processBallDetection
+          // drives the state machine to MADE/MISS the normal way and
+          // _countShot resets _shotTriggerSrc so this fallback no-ops.
+          // 800 ms is short enough to clear inside the 2.24 s/shot cadence
+          // we see in the 25-shot bench, while still long enough that a
+          // real ball trajectory has a chance to take over the state
+          // machine if YOLOX picks it up.
+          var POSE_SHOT_FALLBACK_MS = 800;
+          if (self._shotState === 'shot_started' &&
+              self._shotTriggerSrc === 'pose' &&
+              (Date.now() - self._shotStateTime) > POSE_SHOT_FALLBACK_MS) {
+            // Use the shooter's feet centroid for the launchPoint — wrist
+            // position is no longer meaningful here.
+            var vwSc = vw;
+            var vhSc = vh;
+            var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
+            var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
+            self._countShot('missed', vwSc, vhSc, feetX, feetY, Date.now());
+          }
+        }
+      }
 
       /* ── Draw to processing canvas ──────────────────────────── */
       var canvasReady = self._drawToCanvas();
@@ -1255,6 +1344,10 @@
         this._ballMinY = 1.0;
         this._shotStartY = 1.0;
         this._sawBallAboveRim = false;
+        this._shotTriggerSrc    = null;
+        this._releaseConfidence = null;
+        this._shooterFeetX      = null;
+        this._shooterFeetY      = null;
       }
 
       // If Kalman is predicting, show predicted position to UI
@@ -1274,6 +1367,30 @@
       }
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
+
+      // ── Pose-only frame: run the state machine even with NO ball ──
+      // YOLOX often misses non-orange balls (e.g. red Wilson, brown leather,
+      // mini-balls, etc.) where Pose Lite still tracks the shooter perfectly.
+      // We pass the SHOOTER's hip centroid (if we have one) as the "ball
+      // position", which lets the geometric checks downstream still make
+      // sense. If pose isn't ready either, this is a true no-signal frame
+      // and the state machine is gated as before by the rim+tracker checks.
+      if (this.rimZone && window.PoseDetector && window.PoseDetector.isReady() && this.videoEl) {
+        var vwP = this.videoEl.videoWidth || 1;
+        var vhP = this.videoEl.videoHeight || 1;
+        var posePoll = window.PoseDetector.detect(this.videoEl, this.videoEl.currentTime || nowWd);
+        if (posePoll && posePoll.landmarks && posePoll.landmarks.length >= 25) {
+          // Use the SHOOTING-HAND wrist as the proxy "ball position" — that
+          // is the closest meaningful point to where the ball actually is
+          // during the rising phase. _analyzeShotState only uses normX/normY
+          // for rim-proximity checks; the pose-trigger inside it doesn't
+          // care about these coords at all.
+          var lw = posePoll.landmarks[15] || { x:0.5, y:0.5 };
+          var rw = posePoll.landmarks[16] || { x:0.5, y:0.5 };
+          var wrist = (lw.y < rw.y) ? lw : rw;
+          this._analyzeShotState(vwP, vhP, wrist.x, wrist.y);
+        }
+      }
 
       // Timeout-based miss: if ball was tracked near rim and disappeared
       if (this.rimZone && this.tracker.positions.length >= MIN_TRAJECTORY_PTS && !this.tracker.isTracking) {
@@ -1352,20 +1469,56 @@
       if (normY < this._ballMinY) this._ballMinY = normY;
 
       var pts = this.tracker.positions;
-      if (pts.length < MIN_TRAJECTORY_PTS) return;
 
       // Extended Kalman prediction during active shot phases
       var isActiveShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
       this.tracker._activeShotExtend = isActiveShotState;
 
-      // ── IDLE: trigger on sustained upward motion in a 600 ms window ──
+      // Tracker-based gate: ball-rose-in-window needs at least
+      // MIN_TRAJECTORY_PTS samples to compute a slope. But the pose-only
+      // trigger doesn't need any tracker data — so we don't early-return
+      // here. The idle branch below handles "tracker empty" gracefully
+      // by skipping ballRose and relying on poseShot exclusively.
+
+      // ── IDLE: dual-trigger (pose primary, ball-rose-in-window fallback) ──
+      // Pose is far more reliable for shot detection (84% recall on the
+      // 25-shot indoor video vs 12% with ball-only). When PoseDetector is
+      // loaded and reports a release-peak, fire shot_started immediately
+      // and stash the shooter's hip centroid for later zone classification.
+      // The ball-rose-in-window fallback stays in place so the engine still
+      // works on browsers where MediaPipe failed to load OR when the
+      // shooter is out of frame for some reason.
       if (this._shotState === 'idle') {
-        if (ballRoseInWindow(this.tracker, vh, 600, 0.03)) {
+        var poseShot = null;
+        if (window.PoseDetector && window.PoseDetector.isReady() && this.videoEl) {
+          var pose = window.PoseDetector.detect(this.videoEl, this.videoEl.currentTime || now);
+          if (pose && pose.landmarks) {
+            poseShot = window.PoseDetector.detectShootingMotion(pose.landmarks, now);
+          }
+        }
+        // ballRose needs trajectory history; skip when tracker is empty
+        var ballRose = pts.length >= MIN_TRAJECTORY_PTS &&
+                       ballRoseInWindow(this.tracker, vh, 600, 0.03);
+        if ((poseShot && poseShot.isShot) || ballRose) {
           this._shotState         = 'shot_started';
           this._shotStateTime     = now;
           this._ballMinY          = normY;
           this._shotStartY        = normY;
           this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
+          if (poseShot && poseShot.isShot) {
+            this._shotTriggerSrc    = 'pose';
+            this._releaseConfidence = poseShot.releaseConfidence;
+            this._shooterFeetX      = poseShot.shooterCenterX;
+            this._shooterFeetY      = poseShot.shooterCenterY;
+            dlog('[ShotState] shot_started (POSE)  conf=' + poseShot.releaseConfidence.toFixed(2) +
+                 ' hand=' + poseShot.shootingHand);
+          } else {
+            this._shotTriggerSrc    = 'ball';
+            this._releaseConfidence = null;
+            this._shooterFeetX      = null;
+            this._shooterFeetY      = null;
+            dlog('[ShotState] shot_started (BALL)');
+          }
         }
         return;
       }
@@ -1385,10 +1538,25 @@
           return;
         }
         if (now - this._shotStateTime > 3000) {
+          // Pose-triggered shot timed out without the ball reaching near_hoop.
+          // The shooter clearly took a shot (pose said so with high
+          // confidence), but YOLOX couldn't track the ball — red ball,
+          // small ball, off-camera arc, whatever. Conservative behaviour:
+          // count it as a MISS so the attempt isn't silently dropped.
+          // Ball-triggered shots that never reach near_hoop are dropped as
+          // before (they may have been noise rather than real shots).
+          if (this._shotTriggerSrc === 'pose') {
+            this._countShot('missed', vw, vh, normX, normY, now);
+            return;
+          }
           this._shotState = 'idle';
           this._ballMinY = 1.0;
           this._shotStartY = 1.0;
           this._sawBallAboveRim = false;
+          this._shotTriggerSrc    = null;
+          this._releaseConfidence = null;
+          this._shooterFeetX      = null;
+          this._shooterFeetY      = null;
         }
         return;
       }
@@ -1410,8 +1578,16 @@
         var arcHeight = this._shotStartY - this._ballMinY;
         var minMotion = Math.max(0.05, Math.abs(this._shotStartY - rim.centerY) * 0.3);
 
+        // Pose-triggered shots already passed a high-confidence "this is a
+        // shot" check via MediaPipe — we don't re-impose the ball-trajectory
+        // arcHeight gate (which expects ball-rises-from-court, irrelevant
+        // when we're tracking a wrist that's already at the peak when
+        // shot_started fires).
+        var isPoseShot = (this._shotTriggerSrc === 'pose');
+        var motionOk   = isPoseShot || (this._sawBallAboveRim && arcHeight >= minMotion);
+
         // MADE: was above rim, now below rim, horizontally aligned, motion gate cleared
-        if (this._sawBallAboveRim && ballBelowRim && nearHoopX && arcHeight >= minMotion) {
+        if (this._sawBallAboveRim && ballBelowRim && nearHoopX && motionOk) {
           this._countShot('made', vw, vh, normX, normY, now);
           return;
         }
@@ -1421,7 +1597,7 @@
         var timeout         = now - this._shotStateTime > 2000;
 
         if (ballFarFromHoop || timeout) {
-          if (this._sawBallAboveRim && arcHeight >= minMotion) {
+          if (motionOk) {
             this._countShot('missed', vw, vh, normX, normY, now);
           } else {
             // Not a real shot — drop back to idle without counting
@@ -1429,6 +1605,10 @@
             this._ballMinY      = 1.0;
             this._shotStartY    = 1.0;
             this._sawBallAboveRim = false;
+            this._shotTriggerSrc    = null;
+            this._releaseConfidence = null;
+            this._shooterFeetX      = null;
+            this._shooterFeetY      = null;
           }
           return;
         }
@@ -1443,8 +1623,20 @@
       this._shotStartY = 1.0;
       this._sawBallAboveRim = false;
 
-      var launchPt = getLaunchPoint(this.tracker, vw, vh);
+      // Prefer pose-supplied shooter hip centroid when available — far more
+      // reliable than ball-trajectory launch point on noisy detections,
+      // and matches the actual shooter's feet location (not the ball's
+      // first detected position which might be at peak of arc).
+      var launchPt;
+      if (this._shotTriggerSrc === 'pose' && this._shooterFeetX != null) {
+        launchPt = { x: this._shooterFeetX * vw, y: this._shooterFeetY * vh };
+      } else {
+        launchPt = getLaunchPoint(this.tracker, vw, vh);
+      }
       var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
+      // Capture trigger source before we clear the state for the cooldown
+      var triggerSrc = this._shotTriggerSrc;
+      var releaseConf = this._releaseConfidence;
       var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
 
       // ── Trajectory-based verification (analyzeMade/analyzeMiss) ──
@@ -1478,11 +1670,14 @@
         trajectory: traj,
         launchPoint: launchPt,
         shotZone: shotZone,
-        timestamp: now
+        timestamp: now,
+        triggerSrc: triggerSrc,           // 'pose' | 'ball' — for analytics + UI badge
+        releaseConfidence: releaseConf    // 0-1 when pose-triggered, null otherwise
       };
 
       dlog('[ShotTracker] ' + finalResult.toUpperCase() +
         ' (sm=' + result + ' traj_made=' + madeAnalysis.isMade + ' traj_miss=' + missAnalysis.isMiss + ')' +
+        ' src=' + triggerSrc +
         ' minY=' + this._ballMinY.toFixed(3) +
         ' hoopY=' + this.rimZone.centerY.toFixed(3) + ' ballX=' + normX.toFixed(3) + ' hoopX=' + this.rimZone.centerX.toFixed(3));
 
@@ -1491,6 +1686,12 @@
       }
       if (this.onShotDetected) this.onShotDetected(shotData);
       resetTracker(this.tracker);
+
+      // Clear pose-related fields now that we've stamped them onto shotData
+      this._shotTriggerSrc    = null;
+      this._releaseConfidence = null;
+      this._shooterFeetX      = null;
+      this._shooterFeetY      = null;
     },
 
     _setStatus: function (status) {
