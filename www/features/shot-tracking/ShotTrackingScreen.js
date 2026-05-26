@@ -254,6 +254,15 @@
       els.debugToggle.classList.toggle('active', debugMode);
       els.debugPanel.classList.toggle('active', debugMode);
     });
+    // Keep canvas aligned with the displayed video on browser resize,
+    // device rotation, or app entering/leaving fullscreen. resizeCanvas
+    // is cheap (a few math ops + a couple style writes) so debouncing
+    // is unnecessary at typical resize cadence.
+    window.addEventListener('resize', function () {
+      if (phase === 'tracking' || phase === 'rimlock' || phase === 'threept') {
+        resizeCanvas();
+      }
+    });
   }
 
   /* ══════════════════════════════════════════════════════════════
@@ -500,14 +509,26 @@
         offsetX = (containerW - displayW) / 2;
         offsetY = 0;
       }
-      canvasEl.width = Math.round(displayW);
-      canvasEl.height = Math.round(displayH);
+      // Internal drawing buffer == displayed video area (1:1 pixel
+      // mapping, no scaling distortion). Inline width/height/left/top
+      // ALSO set the CSS display size so the overlay sits exactly on
+      // the visible video. Without inline width/height the canvas would
+      // either fall back to 300×150 default or get stretched by a CSS
+      // 100% rule, shifting every pose / ball / hoop draw.
+      var dW = Math.round(displayW);
+      var dH = Math.round(displayH);
+      canvasEl.width  = dW;
+      canvasEl.height = dH;
       canvasEl.style.position = 'absolute';
-      canvasEl.style.left = Math.round(offsetX) + 'px';
-      canvasEl.style.top = Math.round(offsetY) + 'px';
+      canvasEl.style.left   = Math.round(offsetX) + 'px';
+      canvasEl.style.top    = Math.round(offsetY) + 'px';
+      canvasEl.style.width  = dW + 'px';
+      canvasEl.style.height = dH + 'px';
     } else {
       canvasEl.width = containerW || vidW;
       canvasEl.height = containerH || vidH;
+      canvasEl.style.width  = canvasEl.width + 'px';
+      canvasEl.style.height = canvasEl.height + 'px';
     }
   }
 
