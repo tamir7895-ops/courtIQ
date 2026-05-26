@@ -1361,6 +1361,16 @@
         // detector is consuming. Pose coords are normalised to the
         // FULL video frame (same space as the rim line), so we use
         // the cw/ch mapping — no crop transform needed.
+        //
+        // QUALITY GATE: MediaPipe Pose Lite returns 33 landmarks even
+        // when no real person is in the frame — it "hallucinates" a
+        // person-shaped skeleton on whatever structural pattern looks
+        // most human-like (metal beams, ball cart, etc.). The user saw
+        // this on the dashboard: skeleton drawn on empty warehouse, far
+        // from the actual shooter. We require a minimum number of
+        // upper-body landmarks (shoulders/hips/elbows/wrists/nose) with
+        // visibility ≥ 0.5 before drawing OR feeding the heuristic.
+        // Low-quality frames get a small "[low pose]" indicator instead.
         if (window.PoseDetector && window.PoseDetector.isReady() && videoEl) {
           var poseFrame = window.PoseDetector.detect(videoEl, videoEl.currentTime);
           if (poseFrame && poseFrame.landmarks) {
@@ -1369,45 +1379,95 @@
             var pdy = function (i) { return lms[i] ? lms[i].y * ch : 0; };
             var pvis = function (i) { return lms[i] ? (lms[i].visibility || 0) : 0; };
 
-            // MediaPipe Pose connection pairs (upper body + legs)
-            var bones = [
-              [11,12],[11,13],[13,15],[12,14],[14,16],     // arms + shoulders
-              [11,23],[12,24],[23,24],                      // torso
-              [23,25],[24,26],[25,27],[26,28],              // legs
-              [27,29],[27,31],[28,30],[28,32]              // feet
-            ];
+            // Pose quality score = fraction of key upper-body landmarks
+            // that pass a confident-visible threshold (≥0.5). Real shooters
+            // hit 0.7–1.0; hallucinated detections on the gym structure
+            // typically score 0.1–0.3. We draw when ≥ 5/11 of the key
+            // joints are confident (~45% — covers partial occlusion).
+            // NOSE=0, L/R-SHOULDER=11/12, L/R-ELBOW=13/14, L/R-WRIST=15/16,
+            // L/R-HIP=23/24, L/R-KNEE=25/26.
+            var KEY_JOINTS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26];
+            var POSE_QUALITY_MIN = 5; // need this many confident-visible joints
+            var goodJoints = 0;
+            var avgVis = 0;
+            for (var qi = 0; qi < KEY_JOINTS.length; qi++) {
+              var v = pvis(KEY_JOINTS[qi]);
+              avgVis += v;
+              if (v >= 0.5) goodJoints++;
+            }
+            avgVis = avgVis / KEY_JOINTS.length;
 
-            canvasCtx.save();
-            canvasCtx.strokeStyle = 'rgba(0,229,255,0.8)';
-            canvasCtx.lineWidth   = 2;
-            for (var biSke = 0; biSke < bones.length; biSke++) {
-              var a = bones[biSke][0], b = bones[biSke][1];
-              if (pvis(a) > 0.3 && pvis(b) > 0.3) {
-                canvasCtx.beginPath();
-                canvasCtx.moveTo(pdx(a), pdy(a));
-                canvasCtx.lineTo(pdx(b), pdy(b));
-                canvasCtx.stroke();
+            if (goodJoints >= POSE_QUALITY_MIN) {
+              // MediaPipe Pose connection pairs (upper body + legs)
+              var bones = [
+                [11,12],[11,13],[13,15],[12,14],[14,16],     // arms + shoulders
+                [11,23],[12,24],[23,24],                      // torso
+                [23,25],[24,26],[25,27],[26,28],              // legs
+                [27,29],[27,31],[28,30],[28,32]              // feet
+              ];
+
+              canvasCtx.save();
+              canvasCtx.strokeStyle = 'rgba(0,229,255,0.8)';
+              canvasCtx.lineWidth   = 2;
+              for (var biSke = 0; biSke < bones.length; biSke++) {
+                var a = bones[biSke][0], b = bones[biSke][1];
+                if (pvis(a) > 0.3 && pvis(b) > 0.3) {
+                  canvasCtx.beginPath();
+                  canvasCtx.moveTo(pdx(a), pdy(a));
+                  canvasCtx.lineTo(pdx(b), pdy(b));
+                  canvasCtx.stroke();
+                }
               }
+              // All visible joints as pink dots
+              canvasCtx.fillStyle = '#ec4899';
+              for (var ki = 0; ki < lms.length; ki++) {
+                if (pvis(ki) > 0.3) {
+                  canvasCtx.beginPath();
+                  canvasCtx.arc(pdx(ki), pdy(ki), 3, 0, Math.PI * 2);
+                  canvasCtx.fill();
+                }
+              }
+              // Highlight WRISTS (shooting-hand detector inputs) larger
+              canvasCtx.fillStyle = '#fbbf24';
+              [15, 16].forEach(function (idx) {
+                if (pvis(idx) > 0.3) {
+                  canvasCtx.beginPath();
+                  canvasCtx.arc(pdx(idx), pdy(idx), 6, 0, Math.PI * 2);
+                  canvasCtx.fill();
+                }
+              });
+              // Pose quality label near nose (or upper-center if nose hidden)
+              var labelX, labelY;
+              if (pvis(0) > 0.3) {
+                labelX = pdx(0);
+                labelY = pdy(0) - 14;
+              } else {
+                // Fall back to midpoint of shoulders
+                labelX = (pdx(11) + pdx(12)) / 2;
+                labelY = (pdy(11) + pdy(12)) / 2 - 30;
+              }
+              var poseLbl = 'POSE ' + goodJoints + '/' + KEY_JOINTS.length +
+                ' avgVis=' + (avgVis * 100).toFixed(0) + '%';
+              canvasCtx.font = 'bold 11px monospace';
+              var plW = canvasCtx.measureText(poseLbl).width + 8;
+              canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+              canvasCtx.fillRect(labelX - plW / 2, labelY - 14, plW, 16);
+              canvasCtx.fillStyle = '#00e5ff';
+              canvasCtx.fillText(poseLbl, labelX - plW / 2 + 4, labelY - 2);
+              canvasCtx.restore();
+            } else {
+              // Low-quality pose — draw a small indicator at top-left of canvas
+              // so the user knows the detector is rejecting hallucinated poses.
+              canvasCtx.save();
+              canvasCtx.font = 'bold 11px monospace';
+              var lqLbl = 'pose: ' + goodJoints + '/' + KEY_JOINTS.length + ' good (rejected)';
+              var lqW = canvasCtx.measureText(lqLbl).width + 8;
+              canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+              canvasCtx.fillRect(8, 38, lqW, 16);
+              canvasCtx.fillStyle = '#9ca3af';
+              canvasCtx.fillText(lqLbl, 12, 50);
+              canvasCtx.restore();
             }
-            // All visible joints as pink dots
-            canvasCtx.fillStyle = '#ec4899';
-            for (var ki = 0; ki < lms.length; ki++) {
-              if (pvis(ki) > 0.3) {
-                canvasCtx.beginPath();
-                canvasCtx.arc(pdx(ki), pdy(ki), 3, 0, Math.PI * 2);
-                canvasCtx.fill();
-              }
-            }
-            // Highlight WRISTS (shooting-hand detector inputs) larger
-            canvasCtx.fillStyle = '#fbbf24';
-            [15, 16].forEach(function (idx) {
-              if (pvis(idx) > 0.3) {
-                canvasCtx.beginPath();
-                canvasCtx.arc(pdx(idx), pdy(idx), 6, 0, Math.PI * 2);
-                canvasCtx.fill();
-              }
-            });
-            canvasCtx.restore();
           }
         }
 

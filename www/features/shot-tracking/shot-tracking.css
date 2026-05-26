@@ -5,10 +5,17 @@
    ══════════════════════════════════════════════════════════════ */
 
 /* ── Fullscreen container ─────────────────────────────────────── */
+/* z-index 200002 puts us above the dashboard's bottom nav
+   (z-index 99999), top header (100001), and any modal overlays
+   (200000/200001). Without this the dashboard chrome shows
+   through the top + bottom of the shot tracker — the user can
+   see the nav bars covering parts of the video, and overlay
+   draws done at the very top/bottom of the canvas appear hidden
+   from view even though they're mathematically positioned right. */
 #shot-tracking-screen {
   position: fixed;
   inset: 0;
-  z-index: 5000;
+  z-index: 200002;
   background: #0a0a0a;
   display: none;
   flex-direction: column;

@@ -833,6 +833,23 @@
       var pose = window.PoseDetector.detect(self.videoEl, self.videoEl.currentTime);
       if (!pose || !pose.landmarks) return;
 
+      // Quality gate — reject hallucinated poses BEFORE running the
+      // shooting-motion heuristic. MediaPipe Pose Lite happily returns
+      // 33 "best-guess" landmarks even when no person is in the frame,
+      // detecting person-shaped patterns on metal beams, ball carts, etc.
+      // We require at least 5 of 11 key upper-body joints (nose, shoulders,
+      // elbows, wrists, hips, knees) to have visibility ≥ 0.5. Real
+      // shooters score 0.7-1.0 on these; hallucinations score 0.1-0.3.
+      // Without this gate, "shots" can fire on noise — that's what was
+      // making the dashboard miscount during empty-frame moments.
+      var lms = pose.landmarks;
+      var KEY_J = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26];
+      var goodJ = 0;
+      for (var qi = 0; qi < KEY_J.length; qi++) {
+        if (lms[KEY_J[qi]] && (lms[KEY_J[qi]].visibility || 0) >= 0.5) goodJ++;
+      }
+      if (goodJ < 5) return;
+
       var vw = self.videoEl.videoWidth  || 1;
       var vh = self.videoEl.videoHeight || 1;
 
