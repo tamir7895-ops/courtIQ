@@ -1235,10 +1235,16 @@
         var toDispW = function (bw) { return bw * cropSX * displaySX; };
         var toDispH = function (bh) { return bh * cropSY * displaySY; };
 
-        // Draw hoop detections — BLUE bbox = what the model returned
-        if (dd.hoops) {
-          for (var hi = 0; hi < dd.hoops.length; hi++) {
-            var h = dd.hoops[hi];
+        // Draw hoop detections — BLUE bbox = what the model returned.
+        // The engine emits ALL post-NMS hoop candidates above the 10%
+        // confidence floor, which can be 20+ overlapping boxes on a noisy
+        // frame. The state machine only ever uses hoops[0] (highest score),
+        // so the overlay only renders the TOP-3 — anything else is visual
+        // noise that obscures the actual best candidate.
+        if (dd.hoops && dd.hoops.length) {
+          var hoopsTop = dd.hoops.slice().sort(function(a,b){ return b.score - a.score; }).slice(0, 3);
+          for (var hi = 0; hi < hoopsTop.length; hi++) {
+            var h = hoopsTop[hi];
             var hx = toDispX(h.cx);
             var hy = toDispY(h.cy);
             var hw = toDispW(h.bw);
@@ -1384,19 +1390,33 @@
           }
         }
 
-        // Draw ball detections (green boxes)
-        if (dd.balls) {
-          for (var bi = 0; bi < dd.balls.length; bi++) {
-            var b = dd.balls[bi];
+        // Draw ball detections (green boxes).
+        // The engine uses a 5% confidence floor (BALL_CONFIDENCE=0.05) and
+        // post-NMS still emits dozens-to-hundreds of low-score candidates
+        // per frame. Drawing all of them floods the display with overlapping
+        // 25-29% noise boxes and obscures the actual signal. The state machine
+        // only uses balls[0] (best after NMS), so the overlay renders just
+        // the TOP-5 and only those with score ≥ 30% — enough to see what the
+        // model is considering without burying the frame.
+        if (dd.balls && dd.balls.length) {
+          var BALL_OVERLAY_MIN = 0.30;
+          var BALL_OVERLAY_TOPN = 5;
+          var ballsTop = dd.balls
+            .filter(function(b){ return b.score >= BALL_OVERLAY_MIN; })
+            .sort(function(a,b){ return b.score - a.score; })
+            .slice(0, BALL_OVERLAY_TOPN);
+          for (var bi = 0; bi < ballsTop.length; bi++) {
+            var b = ballsTop[bi];
             var bx2 = toDispX(b.cx);
             var by2 = toDispY(b.cy);
             var bw2 = toDispW(b.bw);
             var bh2 = toDispH(b.bh);
             canvasCtx.save();
+            // Highlight the best candidate (#0) with thicker stroke
             canvasCtx.strokeStyle = '#00ff88';
-            canvasCtx.lineWidth = 2;
+            canvasCtx.lineWidth = bi === 0 ? 3 : 2;
             canvasCtx.strokeRect(bx2 - bw2/2, by2 - bh2/2, bw2, bh2);
-            canvasCtx.fillStyle = 'rgba(0,255,136,0.12)';
+            canvasCtx.fillStyle = bi === 0 ? 'rgba(0,255,136,0.18)' : 'rgba(0,255,136,0.08)';
             canvasCtx.fillRect(bx2 - bw2/2, by2 - bh2/2, bw2, bh2);
             // Label
             var bLabel = 'BALL ' + (b.score * 100).toFixed(0) + '%';
