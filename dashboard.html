@@ -28,6 +28,11 @@
   <link rel="stylesheet" href="styles/shop.css?v=3" />
   <link rel="stylesheet" href="styles/avatar-customizer.css?v=3" />
   <link rel="stylesheet" href="styles/shot-tracker.css?v=3" />
+  <!-- v1 live shot-tracker screen (camera + canvas overlay). Without this
+       sheet #shot-tracking-screen has no positioning at all — the element
+       grows to content size, dashboard chrome bleeds through, and overlay
+       coordinates land far off the visible content. -->
+  <link rel="stylesheet" href="features/shot-tracking/shot-tracking.css?v=3" />
   <!--
     Shot Tracker v2 stylesheets — DORMANT.
     All SHOT_TRACKER_V2 feature flags in features/shot-tracking/v2/config.js

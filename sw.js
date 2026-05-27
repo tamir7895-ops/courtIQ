@@ -5,7 +5,7 @@
    IMPORTANT: All paths are relative (no leading /) so this works
    on both localhost AND GitHub Pages (which serves from /courtIQ/).
    ============================================================ */
-const CACHE_VERSION = '7098033';
+const CACHE_VERSION = 'db3f0d7';
 const CACHE_NAME = 'courtiq-v' + CACHE_VERSION;  // bump this number on each deploy
 const STATIC_ASSETS = [
   './',
@@ -18,6 +18,7 @@ const STATIC_ASSETS = [
   './styles/drills.css',
   './styles/workouts.css',
   './styles/shot-tracker.css',
+  './features/shot-tracking/shot-tracking.css',
   './styles/charts.css',
   './styles/move-library.css',
   './styles/profile.css',
