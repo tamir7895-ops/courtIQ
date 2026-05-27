@@ -803,32 +803,74 @@
       if (!rimAutoMode) return;
 
       // Accumulate detections for the INITIAL lock only — once locked,
-      // we EMA on every accepted detection for smooth tracking.
+      // we EMA on every accepted detection for smooth tracking. Buffer
+      // is enlarged so the clustering pass has more data to work with.
       if (!rimLocked) {
         hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score });
         if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
         if (hoopBuffer.length < 3) return;
 
-        // Average over buffer
-        var avgCX = 0, avgCY = 0, avgBW = 0, avgBH = 0;
-        for (var hi = 0; hi < hoopBuffer.length; hi++) {
-          avgCX += hoopBuffer[hi].cx;
-          avgCY += hoopBuffer[hi].cy;
-          avgBW += hoopBuffer[hi].bw;
-          avgBH += hoopBuffer[hi].bh;
+        // ── Cluster detections ────────────────────────────────────
+        // v2 (and many real courts) have TWO hoops in the frame; YOLOX
+        // detects both. Averaging straight across the buffer lands the
+        // lock between them, on a position where no hoop actually is.
+        // Instead we group detections by spatial proximity (cluster
+        // radius 0.08 — same magnitude as the legacy spread tolerance)
+        // and lock on the LARGEST cluster's centroid. Ties are broken
+        // by preferring the HIGHER hoop (smaller cy = closer to the
+        // top of the frame), since shooting hoops are mounted high.
+        var CLUSTER_RADIUS = 0.08;
+        var clusters = [];
+        for (var bi = 0; bi < hoopBuffer.length; bi++) {
+          var det = hoopBuffer[bi];
+          var assigned = false;
+          for (var ci = 0; ci < clusters.length; ci++) {
+            var cMean = clusters[ci].mean;
+            if (Math.abs(det.cx - cMean.cx) + Math.abs(det.cy - cMean.cy) <= CLUSTER_RADIUS) {
+              clusters[ci].items.push(det);
+              // Recompute running mean for this cluster
+              var sCX = 0, sCY = 0;
+              for (var mi = 0; mi < clusters[ci].items.length; mi++) {
+                sCX += clusters[ci].items[mi].cx;
+                sCY += clusters[ci].items[mi].cy;
+              }
+              clusters[ci].mean = { cx: sCX / clusters[ci].items.length, cy: sCY / clusters[ci].items.length };
+              assigned = true;
+              break;
+            }
+          }
+          if (!assigned) {
+            clusters.push({ mean: { cx: det.cx, cy: det.cy }, items: [det] });
+          }
         }
-        avgCX /= hoopBuffer.length;
-        avgCY /= hoopBuffer.length;
-        avgBW /= hoopBuffer.length;
-        avgBH /= hoopBuffer.length;
+        // Pick the largest cluster; on ties, prefer the higher hoop.
+        clusters.sort(function (a, b) {
+          if (b.items.length !== a.items.length) return b.items.length - a.items.length;
+          return a.mean.cy - b.mean.cy; // smaller cy wins
+        });
+        var winner = clusters[0];
+        if (winner.items.length < 3) return;  // need at least 3 detections of THIS hoop
 
-        // Reject if buffer is too spread out — wait for a calmer window
+        var avgCX = 0, avgCY = 0, avgBW = 0, avgBH = 0;
+        for (var wi = 0; wi < winner.items.length; wi++) {
+          avgCX += winner.items[wi].cx;
+          avgCY += winner.items[wi].cy;
+          avgBW += winner.items[wi].bw;
+          avgBH += winner.items[wi].bh;
+        }
+        avgCX /= winner.items.length;
+        avgCY /= winner.items.length;
+        avgBW /= winner.items.length;
+        avgBH /= winner.items.length;
+
+        // Tight spread check within the winning cluster — if the cluster
+        // itself is wobbly (low confidence detections drifting), wait.
         var maxSpread = 0;
-        for (var hj = 0; hj < hoopBuffer.length; hj++) {
-          var spread = Math.abs(hoopBuffer[hj].cx - avgCX) + Math.abs(hoopBuffer[hj].cy - avgCY);
+        for (var hj = 0; hj < winner.items.length; hj++) {
+          var spread = Math.abs(winner.items[hj].cx - avgCX) + Math.abs(winner.items[hj].cy - avgCY);
           if (spread > maxSpread) maxSpread = spread;
         }
-        if (maxSpread > 0.08) return;
+        if (maxSpread > 0.06) return;
 
         // First lock — commit and arm the stabilization timer
         var anchoredCY = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
@@ -1379,15 +1421,14 @@
             var pdy = function (i) { return lms[i] ? lms[i].y * ch : 0; };
             var pvis = function (i) { return lms[i] ? (lms[i].visibility || 0) : 0; };
 
-            // Pose quality score = fraction of key upper-body landmarks
-            // that pass a confident-visible threshold (≥0.5). Real shooters
-            // hit 0.7–1.0; hallucinated detections on the gym structure
-            // typically score 0.1–0.3. We draw when ≥ 5/11 of the key
-            // joints are confident (~45% — covers partial occlusion).
-            // NOSE=0, L/R-SHOULDER=11/12, L/R-ELBOW=13/14, L/R-WRIST=15/16,
-            // L/R-HIP=23/24, L/R-KNEE=25/26.
+            // Pose quality — mirrors the engine's narrow gate in
+            // _pollPoseShot: require nose + at least one complete arm
+            // chain (shoulder→elbow→wrist) at vis ≥ 0.5. This catches
+            // partially-framed shooters (e.g. lower body cropped) while
+            // still rejecting hallucinated skeletons on empty frames.
+            // The full 11-joint count is still computed for the label so
+            // the user can see roughly how confident the model is.
             var KEY_JOINTS = [0, 11, 12, 13, 14, 15, 16, 23, 24, 25, 26];
-            var POSE_QUALITY_MIN = 5; // need this many confident-visible joints
             var goodJoints = 0;
             var avgVis = 0;
             for (var qi = 0; qi < KEY_JOINTS.length; qi++) {
@@ -1396,8 +1437,12 @@
               if (v >= 0.5) goodJoints++;
             }
             avgVis = avgVis / KEY_JOINTS.length;
+            var noseOk = pvis(0) >= 0.5;
+            var leftArmOk  = pvis(11) >= 0.5 && pvis(13) >= 0.5 && pvis(15) >= 0.5;
+            var rightArmOk = pvis(12) >= 0.5 && pvis(14) >= 0.5 && pvis(16) >= 0.5;
+            var poseGood = noseOk && (leftArmOk || rightArmOk);
 
-            if (goodJoints >= POSE_QUALITY_MIN) {
+            if (poseGood) {
               // MediaPipe Pose connection pairs (upper body + legs)
               var bones = [
                 [11,12],[11,13],[13,15],[12,14],[14,16],     // arms + shoulders
