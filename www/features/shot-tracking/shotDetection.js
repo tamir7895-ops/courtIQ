@@ -965,6 +965,7 @@
           self._shooterFeetY      = motion.shooterCenterY;
           self._shotTrajectory    = [];   // Phase L2: reset trajectory for this shot
           self._ballYHistory      = [];   // L4c: reset velocity buffer; next shot rebuilds it
+          self._postCrossing      = null; // L6: reset post-crossing watch
           dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
         }
       }
@@ -1508,66 +1509,106 @@
         window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, canvasX, canvasY);
       }
 
-      // ── Phase L2: Ball-through-rim made/miss detector ──
+      // ── Phase L2 + L6: Ball-through-rim made/miss detector ──
       // While a shot is in flight, track the ball's normalized position
-      // and check for a downward crossing of the rim's Y line. The classic
-      // "near_hoop" state machine waited for the ball to enter a fixed
-      // ±1.5×rimW / ±2.5×rimH zone — but if the rim auto-lock was off by
-      // even 5% of frame height, the zone missed the actual rim entirely
-      // and every shot timed out as MISS. The trajectory-crossing approach
-      // is more robust: it asks "where did the ball cross the rim Y line",
-      // which works correctly even if the rim Y estimate is slightly off.
+      // and check for a downward crossing of the rim's Y line.
+      //
+      // L6 evolution: the first crossing alone is unreliable — outdoor
+      // hoops with no net often have the ball touch the inner rim on
+      // entry (first crossing fires THERE, near the rim edge, may be
+      // outside the made threshold), then bounce around inside the
+      // rim, then fall through. The first-crossing X reported MISS for
+      // shots that clearly went in.
+      //
+      // Fix: when the first crossing fires, DON'T finalize. Open a
+      // POST_CROSSING_WATCH_MS window and keep recording ball positions.
+      // When the window expires (or the ball is clearly far below the
+      // rim), judge the shot based on the LOWEST point reached in that
+      // window — that's where the ball actually settled. A real made
+      // shot reaches a point well below the rim AND within the rim X
+      // bounds; a brick-off-the-rim that didn't go in has its lowest
+      // point either above the rim or far outside the rim X.
       if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
           this.rimZone && this._rimStabilized) {
         if (!this._shotTrajectory) this._shotTrajectory = [];
         this._shotTrajectory.push({ x: normX, y: normY, t: Date.now() });
         if (this._shotTrajectory.length > 60) this._shotTrajectory.shift();  // cap ~2s @ 30fps
 
-        // Find the most recent downward crossing of the rim Y line.
-        if (this._shotTrajectory.length >= 2) {
-          var rimY = this.rimZone.centerY;
-          var rimX = this.rimZone.centerX;
-          var rimHalfW = (this.rimZone.width || 0.08) / 2;
+        var rimY = this.rimZone.centerY;
+        var rimX = this.rimZone.centerX;
+        var rimHalfW = (this.rimZone.width || 0.08) / 2;
+        var madeThresh = rimHalfW * 1.6;
+        var POST_CROSSING_WATCH_MS = 350;
+        var POST_CROSSING_DEEP_BELOW = rimY + 0.06;  // ball clearly past rim
+
+        // ── Phase 1: detect first crossing, enter watch mode ──
+        if (!this._postCrossing && this._shotTrajectory.length >= 2) {
           var prev = this._shotTrajectory[this._shotTrajectory.length - 2];
           var curr = this._shotTrajectory[this._shotTrajectory.length - 1];
-
-          // Ball was above rim AND now is at/below rim → crossing event
           if (prev.y < rimY && curr.y >= rimY) {
-            // Linear interpolation to find the X-coord at the crossing point
+            // Compute the X at the crossing point (still useful as one data point)
             var dyTotal = curr.y - prev.y;
             var ratio = dyTotal > 1e-6 ? (rimY - prev.y) / dyTotal : 0;
             var crossingX = prev.x + ratio * (curr.x - prev.x);
-            var distFromRim = Math.abs(crossingX - rimX);
-            // MADE = ball passed within 1.6× rim half-width.
-            // Earlier 1.2× was too strict: a real outdoor test showed
-            // a clear made shot scored MISS because the rim auto-lock
-            // landed ~5% off the true center and pushed the crossing
-            // distance just over the threshold. The actual hoop has
-            // rim ring + net, and the YOLOX rim bbox often covers the
-            // full backboard-rim assembly — so the true rim X has
-            // measurable slop even when detection is "correct".
-            // 1.6× gives the heuristic room to forgive that slop.
-            var madeThresh = rimHalfW * 1.6;
-            var result = distFromRim <= madeThresh ? 'made' : 'missed';
-            var conf = Math.max(0, 1 - distFromRim / madeThresh);
+            this._postCrossing = {
+              t0: Date.now(),
+              initialCrossX: crossingX,
+              // Track the LOWEST point (max Y) reached during the watch window
+              lowestY: curr.y,
+              lowestX: curr.x,
+              samples: 1
+            };
+            dlog('[ShotState] ball entered rim level at x=' + crossingX.toFixed(3) +
+                 ' — opening post-crossing watch');
+          }
+        }
 
-            // Stash the crossing info for visual debug
+        // ── Phase 2: watch window active — update lowest point ──
+        if (this._postCrossing) {
+          if (normY > this._postCrossing.lowestY) {
+            this._postCrossing.lowestY = normY;
+            this._postCrossing.lowestX = normX;
+          }
+          this._postCrossing.samples++;
+
+          // Resolve when window expires OR ball is clearly past the rim
+          var elapsedPC = Date.now() - this._postCrossing.t0;
+          var ballClearlyPast = normY >= POST_CROSSING_DEEP_BELOW;
+          if (elapsedPC >= POST_CROSSING_WATCH_MS || ballClearlyPast) {
+            // Judge on the LOWEST point reached during the watch.
+            var pcLowX = this._postCrossing.lowestX;
+            var pcLowY = this._postCrossing.lowestY;
+            var distFromRim = Math.abs(pcLowX - rimX);
+
+            // Result requires BOTH: lowest X near rim center AND lowest Y
+            // clearly below the rim (ball fell through, not just glanced
+            // off the top). A ball that hit the rim and bounced back UP
+            // would have lowestY barely past rim Y — that's a miss.
+            var deepEnough = pcLowY >= rimY + 0.025;  // 2.5% past rim
+            var insideRim  = distFromRim <= madeThresh;
+            var result = (deepEnough && insideRim) ? 'made' : 'missed';
+            var conf = deepEnough ? Math.max(0, 1 - distFromRim / madeThresh) : 0;
+
             this._lastCrossing = {
-              x: crossingX, y: rimY, t: Date.now(),
+              x: pcLowX, y: pcLowY, t: Date.now(),
               distFromRim: distFromRim, madeThresh: madeThresh,
-              result: result, confidence: conf
+              result: result, confidence: conf,
+              deepEnough: deepEnough, samples: this._postCrossing.samples
             };
 
-            dlog('[ShotState] ball crossed rimY at x=' + crossingX.toFixed(3) +
-                 ' (rim cx=' + rimX.toFixed(3) + ', dist=' + distFromRim.toFixed(3) +
-                 ', thresh=' + madeThresh.toFixed(3) + ') → ' + result);
+            dlog('[ShotState] post-crossing resolved: lowest=(' +
+                 pcLowX.toFixed(3) + ',' + pcLowY.toFixed(3) +
+                 ') rim cx=' + rimX.toFixed(3) +
+                 ' dist=' + distFromRim.toFixed(3) +
+                 ' thresh=' + madeThresh.toFixed(3) +
+                 ' deepEnough=' + deepEnough +
+                 ' → ' + result);
 
             var feetX = this._shooterFeetX != null ? this._shooterFeetX : 0.5;
             var feetY = this._shooterFeetY != null ? this._shooterFeetY : 0.8;
             this._countShot(result, vw, vh, feetX, feetY, Date.now());
-            this._shotTrajectory = [];  // ready for next shot
-            // After _countShot the state moves to cooldown — skip the legacy
-            // analyzeShotState below since we already resolved this shot.
+            this._shotTrajectory = [];
+            this._postCrossing = null;
             return;
           }
         }
