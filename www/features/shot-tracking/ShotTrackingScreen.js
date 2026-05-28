@@ -779,12 +779,18 @@
     var hoopBuffer = [];
     var HOOP_BUFFER_SIZE = 5;
 
-    // The detected hoop bbox often covers backboard-and-rim or just the
-    // rim itself — we can't tell which from confidence alone. Pulling the
-    // rim estimate down to 75% of the bbox height (bottom quarter) lands
-    // close to the real rim either way, and never above it. Manual taps
-    // in onRimTap write the user's exact (x,y) — this offset is auto-only.
-    var BBOX_RIM_OFFSET_FRAC = 0.25;  // shift down by 25% of bbox-h → rim ≈ 75% of bbox
+    // The detected hoop bbox: with the v71 2-class model the hoop
+    // annotations frequently covered the full backboard, so a 0.25
+    // offset was needed to pull the estimated rim Y down to the
+    // bottom quarter. The v6_polished 3-class model was trained on
+    // cleaned annotations where huge "hoop"-tagged backboards were
+    // dropped (Phase G), so the bbox is much closer to the actual rim
+    // ring. A real-device test (outdoor screen recording) showed the
+    // 0.25 offset pushed the rim Y noticeably below the visible ring,
+    // and a clear made shot scored MISS because the trajectory
+    // crossing fired below the actual rim. 0.10 keeps a small downward
+    // bias (so we never lock ABOVE the rim) without overshooting.
+    var BBOX_RIM_OFFSET_FRAC = 0.10;  // shift down by 10% of bbox-h → rim ≈ 60% of bbox
 
     engine.onHoopDetected = function (hoop) {
       // Reject garbage detections near edges or with impossible size
