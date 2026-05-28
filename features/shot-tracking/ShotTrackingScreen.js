@@ -88,8 +88,13 @@
   var streak        = 0;
   var maxStreak     = 0;
 
-  // Debug overlay state
-  var debugMode = false;
+  // Debug overlay state.
+  // Currently ALWAYS-ON during development — the user wants to see the
+  // pose skeleton, ball/hoop/player boxes, trajectory + crossing point
+  // while tuning the model. Once accuracy is dialed in we flip this
+  // back to `false` so end users get a clean view. The 🐛 toggle still
+  // works as an override mid-session.
+  var debugMode = true;
   var debugData = { balls: [], hoops: [], shotState: 'idle', frameCount: 0 };
 
   // DOM refs (populated in buildHTML)
@@ -254,6 +259,10 @@
       els.debugToggle.classList.toggle('active', debugMode);
       els.debugPanel.classList.toggle('active', debugMode);
     });
+    // Reflect the initial debugMode in the toggle UI (always-on by default
+    // during the tuning phase — see debugMode declaration).
+    els.debugToggle.classList.toggle('active', debugMode);
+    els.debugPanel.classList.toggle('active', debugMode);
     // Keep canvas aligned with the displayed video on browser resize,
     // device rotation, or app entering/leaving fullscreen. resizeCanvas
     // is cheap (a few math ops + a couple style writes) so debouncing

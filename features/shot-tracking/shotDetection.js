@@ -872,10 +872,6 @@
       // referees signaling, celebration) but is lenient enough to fire
       // through dribbling — when the ball is at hip-to-floor height the
       // wrist is at waist; their distance is up to ~25% of frame.
-      //
-      // Earlier 0.18 threshold + wrist-only was too tight: during
-      // dribbling the ball never registered "in hand" and shots never
-      // triggered. v2 had 0 attempts logged with that gate.
       var BALL_UPPER_BODY_DIST_MAX = 0.30; // ~30% of frame — covers dribbling
       var BALL_IN_HAND_WINDOW_MS   = 2000; // ball was in hand within last 2s
       var BALL_DET_RECENCY_MS      = 1500; // ball detection within last 1.5s
@@ -899,6 +895,24 @@
         }
       }
 
+      // ── Phase L4c: Track recent ball Y history for velocity check ──
+      // Maintains the last ~6 ball positions so the shot trigger can
+      // verify that the ball is actually moving UP (decreasing Y) when
+      // the pose heuristic fires. Without this, the trigger fires on
+      // arm-raise + ball-in-hand even if the player is just bouncing,
+      // passing, or holding — which inflated false-positive attempts
+      // in the outdoor test (2 of 3 attempts were not real shots).
+      if (ballRecent && self._prevBallNorm) {
+        if (!self._ballYHistory) self._ballYHistory = [];
+        var nowTs = Date.now();
+        // Only push when the y actually changed (or after some time)
+        var last = self._ballYHistory[self._ballYHistory.length - 1];
+        if (!last || nowTs - last.t > 30) {
+          self._ballYHistory.push({ y: self._prevBallNorm.y, t: nowTs });
+          if (self._ballYHistory.length > 8) self._ballYHistory.shift();
+        }
+      }
+
       // Trigger: only fire shot_started when idle AND ball was recently in hand.
       if (self._shotState === 'idle') {
         var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
@@ -916,6 +930,29 @@
             return;
           }
 
+          // L4c: Ball-velocity-up gate.
+          // A real shot has the ball MOVING UP at release time. Players
+          // dribbling, passing across the body, or just holding the ball
+          // raised won't satisfy this. We compare the most recent ball Y
+          // to the oldest in the small history buffer (~200ms window) and
+          // require a net decrease of at least 2% of frame height. A
+          // small threshold so quick low arcs still pass.
+          //
+          // Without this gate, the outdoor test showed 2 of 3 attempts
+          // came from arm-raise motions that weren't actually shots.
+          if (self._ballYHistory && self._ballYHistory.length >= 3) {
+            var newestY = self._ballYHistory[self._ballYHistory.length - 1].y;
+            var oldestY = self._ballYHistory[0].y;
+            var ballDeltaY = newestY - oldestY;  // negative = moved up
+            if (ballDeltaY > -0.02) {
+              dlog('[ShotState] pose-triggered but ball not moving up (ΔY=' +
+                   ballDeltaY.toFixed(3) + ') — rejecting');
+              return;
+            }
+          }
+          // If we have fewer than 3 history points we can't judge velocity;
+          // err on the side of accepting (consistent with original behavior).
+
           var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
           self._shotState         = 'shot_started';
           self._shotStateTime     = Date.now();
@@ -927,6 +964,7 @@
           self._shooterFeetX      = motion.shooterCenterX;
           self._shooterFeetY      = motion.shooterCenterY;
           self._shotTrajectory    = [];   // Phase L2: reset trajectory for this shot
+          self._ballYHistory      = [];   // L4c: reset velocity buffer; next shot rebuilds it
           dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
         }
       }
@@ -1500,12 +1538,16 @@
             var ratio = dyTotal > 1e-6 ? (rimY - prev.y) / dyTotal : 0;
             var crossingX = prev.x + ratio * (curr.x - prev.x);
             var distFromRim = Math.abs(crossingX - rimX);
-            // MADE = ball passed within 1.2× rim half-width (slight slack
-            // for cases where the rim auto-lock was a bit off-center).
-            // 1.2× because the actual basketball hoop has rim+net, and
-            // the model's rim bbox sometimes covers just the rim ring
-            // not the full backboard-rim assembly.
-            var madeThresh = rimHalfW * 1.2;
+            // MADE = ball passed within 1.6× rim half-width.
+            // Earlier 1.2× was too strict: a real outdoor test showed
+            // a clear made shot scored MISS because the rim auto-lock
+            // landed ~5% off the true center and pushed the crossing
+            // distance just over the threshold. The actual hoop has
+            // rim ring + net, and the YOLOX rim bbox often covers the
+            // full backboard-rim assembly — so the true rim X has
+            // measurable slop even when detection is "correct".
+            // 1.6× gives the heuristic room to forgive that slop.
+            var madeThresh = rimHalfW * 1.6;
             var result = distFromRim <= madeThresh ? 'made' : 'missed';
             var conf = Math.max(0, 1 - distFromRim / madeThresh);
 
