@@ -40,12 +40,20 @@
   // we have headroom for every-3rd or every-4th frame; consider auto-tuning the
   // divisor based on observed inference latency once we see real-device numbers.
 
-  /* ── YOLOX-tiny constants (custom 2-class model) ─────────── */
+  /* ── YOLOX-tiny constants (custom 3-class model: v6_polished) ──
+     Output shape is [1, 8400, 8] — every detection row carries:
+       [0..3]  box (cx, cy, w, h) in 640x640 pixel space
+       [4]     objectness score
+       [5]     ball score
+       [6]     hoop score
+       [7]     player score
+     The 2-class v71 model had stride=7; v6_polished is 8. */
   var YOLOX_INPUT_SIZE     = 640;
-  var YOLOX_NUM_CLASSES    = 2;
+  var YOLOX_NUM_CLASSES    = 3;
   var YOLOX_BALL_CLASS     = 0;    // Basketball
   var YOLOX_HOOP_CLASS     = 1;    // Basketball Hoop
-  var YOLOX_STRIDE         = 7;    // 4 (box) + 1 (objectness) + 2 (classes)
+  var YOLOX_PLAYER_CLASS   = 2;    // Player (NEW in v6_polished)
+  var YOLOX_STRIDE         = 8;    // 4 (box) + 1 (objectness) + 3 (classes)
 
   // Pre-allocated buffers for ONNX inference (avoid GC)
   var _yoloxBuf    = null;
@@ -574,7 +582,7 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny_v71.onnx?v=71';
+      var modelPath = 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished';
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
       // with "int64 is not supported" during InferenceSession.create.
@@ -855,10 +863,59 @@
       var vw = self.videoEl.videoWidth  || 1;
       var vh = self.videoEl.videoHeight || 1;
 
-      // Trigger: only fire shot_started when idle.
+      // ── Phase L1: Track ball-near-upper-body proximity ──
+      // We update _ballNearWristMs whenever the latest ball detection is
+      // within BALL_UPPER_BODY_DIST_MAX of any upper-body landmark
+      // (wrists, elbows, shoulders). The shot trigger requires this to
+      // have been true within the last BALL_IN_HAND_WINDOW_MS. This
+      // rejects "person raises arms without ball" (warmup stretches,
+      // referees signaling, celebration) but is lenient enough to fire
+      // through dribbling — when the ball is at hip-to-floor height the
+      // wrist is at waist; their distance is up to ~25% of frame.
+      //
+      // Earlier 0.18 threshold + wrist-only was too tight: during
+      // dribbling the ball never registered "in hand" and shots never
+      // triggered. v2 had 0 attempts logged with that gate.
+      var BALL_UPPER_BODY_DIST_MAX = 0.30; // ~30% of frame — covers dribbling
+      var BALL_IN_HAND_WINDOW_MS   = 2000; // ball was in hand within last 2s
+      var BALL_DET_RECENCY_MS      = 1500; // ball detection within last 1.5s
+      var ballRecent = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_DET_RECENCY_MS;
+      if (ballRecent && self._prevBallNorm) {
+        var bx = self._prevBallNorm.x;
+        var by = self._prevBallNorm.y;
+        // Check distance to all upper-body anchors — wrists are best but
+        // shoulders/elbows catch the dribble case. Minimum distance wins.
+        var minDist = Infinity;
+        var anchors = [15, 16, 13, 14, 11, 12]; // L/R wrist, elbow, shoulder
+        for (var ai = 0; ai < anchors.length; ai++) {
+          var lm = lms[anchors[ai]];
+          if (lm && (lm.visibility || 0) > 0.3) {
+            var d = Math.sqrt((lm.x - bx) * (lm.x - bx) + (lm.y - by) * (lm.y - by));
+            if (d < minDist) minDist = d;
+          }
+        }
+        if (minDist <= BALL_UPPER_BODY_DIST_MAX) {
+          self._ballNearWristMs = Date.now();
+        }
+      }
+
+      // Trigger: only fire shot_started when idle AND ball was recently in hand.
       if (self._shotState === 'idle') {
         var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
         if (motion.isShot) {
+          // Ball-in-hand gate: was the ball near a wrist within the last second?
+          // Without this, the pose heuristic fires on any "arms-up" motion —
+          // referees signaling, players celebrating, warmup stretches. The
+          // standalone bench measured 84% recall on v2 with this gate OFF;
+          // we accept slightly lower recall in exchange for much fewer
+          // false positives in live use.
+          var ballWasInHand = self._ballNearWristMs &&
+                              (Date.now() - self._ballNearWristMs) < BALL_IN_HAND_WINDOW_MS;
+          if (!ballWasInHand) {
+            dlog('[ShotState] pose-triggered but no ball-in-hand recently — rejecting');
+            return;
+          }
+
           var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
           self._shotState         = 'shot_started';
           self._shotStateTime     = Date.now();
@@ -869,6 +926,7 @@
           self._releaseConfidence = motion.releaseConfidence;
           self._shooterFeetX      = motion.shooterCenterX;
           self._shooterFeetY      = motion.shooterCenterY;
+          self._shotTrajectory    = [];   // Phase L2: reset trajectory for this shot
           dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
         }
       }
@@ -1208,13 +1266,15 @@
       var numDets = output.length / YOLOX_STRIDE;
       var ballCandidates = [];
       var hoopCandidates = [];
+      var playerCandidates = [];
       var frameArea = pw * ph;
 
       // Auto-detect: if any obj/cls value is negative, output is raw logits (needs sigmoid)
-      // ORT-Web may skip fused sigmoid depending on version/backend
+      // ORT-Web may skip fused sigmoid depending on version/backend.
+      // Probe all 4 score slots (obj + 3 classes) on the first ~100 rows.
       var needsSigmoid = false;
-      for (var si = 0; si < Math.min(output.length, 700); si += YOLOX_STRIDE) {
-        if (output[si + 4] < 0 || output[si + 5] < 0 || output[si + 6] < 0) {
+      for (var si = 0; si < Math.min(output.length, 800); si += YOLOX_STRIDE) {
+        if (output[si + 4] < 0 || output[si + 5] < 0 || output[si + 6] < 0 || output[si + 7] < 0) {
           needsSigmoid = true;
           break;
         }
@@ -1236,13 +1296,14 @@
         var bw = output[off + 2] / ratio;
         var bh = output[off + 3] / ratio;
 
-        var rawBall = needsSigmoid ? sigmoid(output[off + 5]) : output[off + 5];
-        var rawHoop = needsSigmoid ? sigmoid(output[off + 6]) : output[off + 6];
-        var ballScore = obj * rawBall;  // class 0 = Basketball
-        var hoopScore = obj * rawHoop;  // class 1 = Hoop
+        var rawBall   = needsSigmoid ? sigmoid(output[off + 5]) : output[off + 5];
+        var rawHoop   = needsSigmoid ? sigmoid(output[off + 6]) : output[off + 6];
+        var rawPlayer = needsSigmoid ? sigmoid(output[off + 7]) : output[off + 7];
+        var ballScore   = obj * rawBall;    // class 0 = Basketball
+        var hoopScore   = obj * rawHoop;    // class 1 = Hoop
+        var playerScore = obj * rawPlayer;  // class 2 = Player
 
         var area = bw * bh;
-        var det = { cx: cx, cy: cy, bw: bw, bh: bh };
 
         // Hoop candidates — threshold 0.10 balances precision vs recall
         // Area filter: hoop should be 0.1%-8% of frame (not 40%)
@@ -1250,8 +1311,18 @@
         if (hoopScore > 0.10 && area > frameArea * 0.001 && area < frameArea * 0.08) {
           var hoopAspect = bw / (bh || 1);
           if (hoopAspect >= 1.5 && hoopAspect <= 5.0) {
-            det.score = hoopScore;
             hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
+          }
+        }
+
+        // Player candidates — taller-than-wide bias, larger min area than ball.
+        // Players don't have the strict aspect filter that hoops do, but we
+        // reject ridiculously squat blobs (likely partial occlusions) and
+        // anything bigger than half the frame (likely a misclassified close-up).
+        if (playerScore > 0.20 && area > frameArea * 0.005 && area < frameArea * 0.50) {
+          var playerAspectVert = bh / (bw || 1);  // height/width
+          if (playerAspectVert >= 0.7) {           // approximately upright
+            playerCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: playerScore });
           }
         }
 
@@ -1271,18 +1342,25 @@
         if (++this._dbgFrame % 30 === 0) {
           var bestHoop = hoopCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
           var bestBall = ballCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
-          dlog('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length +
-            ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3));
+          var bestPlayer = playerCandidates.reduce(function(b,c){ return c.score > b ? c.score : b; }, 0);
+          dlog('[YOLOX] balls=' + ballCandidates.length + ' hoops=' + hoopCandidates.length + ' players=' + playerCandidates.length +
+            ' bestBall=' + bestBall.toFixed(3) + ' bestHoop=' + bestHoop.toFixed(3) + ' bestPlayer=' + bestPlayer.toFixed(3));
         }
       }
 
       // Apply NMS (IoU threshold 0.45)
       var NMS_THRESH = 0.45;
-      var ballKeep = this._greedyNMS(ballCandidates, NMS_THRESH);
-      var hoopKeep = this._greedyNMS(hoopCandidates, NMS_THRESH);
+      var ballKeep   = this._greedyNMS(ballCandidates,   NMS_THRESH);
+      var hoopKeep   = this._greedyNMS(hoopCandidates,   NMS_THRESH);
+      var playerKeep = this._greedyNMS(playerCandidates, NMS_THRESH);
 
       // Store latest hoop detection for auto rim-lock
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
+
+      // Store latest player detections — top 3 by score, used to localize the
+      // shooter for pose-driven shot zone classification (and to dedupe pose
+      // hallucinations on empty frames against a real "is there a person?" signal).
+      this._lastPlayerDetections = playerKeep.slice(0, 3);
 
       // Debug overlay: fire all raw detections in PROCESSING-CANVAS space.
       // The display canvas matches the visible (full) video, so the overlay
@@ -1295,8 +1373,13 @@
         this.onDebugFrame({
           balls:        ballKeep,
           hoops:        hoopKeep,
+          players:      playerKeep,           // 3-class model adds player detections
           shotState:    this._shotState,
           frameCount:   this._frameCount,
+          // Phase L3: trajectory + crossing for visual debug
+          // trajectory is in NORMALIZED video coords (0..1), same space as rim
+          trajectory:   this._shotTrajectory || [],
+          lastCrossing: this._lastCrossing || null,
           procW:        pw,
           procH:        ph,
           videoW:       fullVw,
@@ -1385,6 +1468,67 @@
         var canvasX = (vw > 0 && cvW > 0) ? cx * cvW / vw : cx;
         var canvasY = (vh > 0 && cvH > 0) ? cy * cvH / vh : cy;
         window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, canvasX, canvasY);
+      }
+
+      // ── Phase L2: Ball-through-rim made/miss detector ──
+      // While a shot is in flight, track the ball's normalized position
+      // and check for a downward crossing of the rim's Y line. The classic
+      // "near_hoop" state machine waited for the ball to enter a fixed
+      // ±1.5×rimW / ±2.5×rimH zone — but if the rim auto-lock was off by
+      // even 5% of frame height, the zone missed the actual rim entirely
+      // and every shot timed out as MISS. The trajectory-crossing approach
+      // is more robust: it asks "where did the ball cross the rim Y line",
+      // which works correctly even if the rim Y estimate is slightly off.
+      if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
+          this.rimZone && this._rimStabilized) {
+        if (!this._shotTrajectory) this._shotTrajectory = [];
+        this._shotTrajectory.push({ x: normX, y: normY, t: Date.now() });
+        if (this._shotTrajectory.length > 60) this._shotTrajectory.shift();  // cap ~2s @ 30fps
+
+        // Find the most recent downward crossing of the rim Y line.
+        if (this._shotTrajectory.length >= 2) {
+          var rimY = this.rimZone.centerY;
+          var rimX = this.rimZone.centerX;
+          var rimHalfW = (this.rimZone.width || 0.08) / 2;
+          var prev = this._shotTrajectory[this._shotTrajectory.length - 2];
+          var curr = this._shotTrajectory[this._shotTrajectory.length - 1];
+
+          // Ball was above rim AND now is at/below rim → crossing event
+          if (prev.y < rimY && curr.y >= rimY) {
+            // Linear interpolation to find the X-coord at the crossing point
+            var dyTotal = curr.y - prev.y;
+            var ratio = dyTotal > 1e-6 ? (rimY - prev.y) / dyTotal : 0;
+            var crossingX = prev.x + ratio * (curr.x - prev.x);
+            var distFromRim = Math.abs(crossingX - rimX);
+            // MADE = ball passed within 1.2× rim half-width (slight slack
+            // for cases where the rim auto-lock was a bit off-center).
+            // 1.2× because the actual basketball hoop has rim+net, and
+            // the model's rim bbox sometimes covers just the rim ring
+            // not the full backboard-rim assembly.
+            var madeThresh = rimHalfW * 1.2;
+            var result = distFromRim <= madeThresh ? 'made' : 'missed';
+            var conf = Math.max(0, 1 - distFromRim / madeThresh);
+
+            // Stash the crossing info for visual debug
+            this._lastCrossing = {
+              x: crossingX, y: rimY, t: Date.now(),
+              distFromRim: distFromRim, madeThresh: madeThresh,
+              result: result, confidence: conf
+            };
+
+            dlog('[ShotState] ball crossed rimY at x=' + crossingX.toFixed(3) +
+                 ' (rim cx=' + rimX.toFixed(3) + ', dist=' + distFromRim.toFixed(3) +
+                 ', thresh=' + madeThresh.toFixed(3) + ') → ' + result);
+
+            var feetX = this._shooterFeetX != null ? this._shooterFeetX : 0.5;
+            var feetY = this._shooterFeetY != null ? this._shooterFeetY : 0.8;
+            this._countShot(result, vw, vh, feetX, feetY, Date.now());
+            this._shotTrajectory = [];  // ready for next shot
+            // After _countShot the state moves to cooldown — skip the legacy
+            // analyzeShotState below since we already resolved this shot.
+            return;
+          }
+        }
       }
 
       this._analyzeShotState(vw, vh, normX, normY);

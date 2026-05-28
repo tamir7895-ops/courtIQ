@@ -1555,6 +1555,93 @@
           }
         }
 
+        // Draw player detections (cyan boxes) — only added for the 3-class
+        // v6_polished model. Cap to top-3 so even crowded NBA-style frames
+        // don't get cluttered.
+        if (dd.players && dd.players.length) {
+          var PLAYER_OVERLAY_MIN = 0.35;
+          var PLAYER_OVERLAY_TOPN = 3;
+          var playersTop = dd.players
+            .filter(function(p){ return p.score >= PLAYER_OVERLAY_MIN; })
+            .sort(function(a,b){ return b.score - a.score; })
+            .slice(0, PLAYER_OVERLAY_TOPN);
+          for (var pi = 0; pi < playersTop.length; pi++) {
+            var pp = playersTop[pi];
+            var ppx = toDispX(pp.cx);
+            var ppy = toDispY(pp.cy);
+            var ppw = toDispW(pp.bw);
+            var pph = toDispH(pp.bh);
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#00e5ff';
+            canvasCtx.lineWidth = pi === 0 ? 3 : 2;
+            canvasCtx.strokeRect(ppx - ppw/2, ppy - pph/2, ppw, pph);
+            canvasCtx.fillStyle = pi === 0 ? 'rgba(0,229,255,0.12)' : 'rgba(0,229,255,0.06)';
+            canvasCtx.fillRect(ppx - ppw/2, ppy - pph/2, ppw, pph);
+            var pLabel = 'PLAYER ' + (pp.score * 100).toFixed(0) + '%';
+            canvasCtx.font = 'bold 12px monospace';
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.fillRect(ppx - ppw/2, ppy - pph/2 - 18, canvasCtx.measureText(pLabel).width + 8, 18);
+            canvasCtx.fillStyle = '#00e5ff';
+            canvasCtx.fillText(pLabel, ppx - ppw/2 + 4, ppy - pph/2 - 4);
+            canvasCtx.restore();
+          }
+        }
+
+        // ── Phase L3: Ball trajectory + crossing-point overlay ──
+        // Trajectory points are in normalized video coords (0..1) — same
+        // space as rim. Map straight to canvas via cw/ch (the canvas is
+        // already sized to the displayed video area, no crop step needed).
+        if (dd.trajectory && dd.trajectory.length >= 2) {
+          canvasCtx.save();
+          // Draw the path as a fading polyline (newest segments brighter).
+          for (var ti = 1; ti < dd.trajectory.length; ti++) {
+            var a = dd.trajectory[ti - 1];
+            var b = dd.trajectory[ti];
+            var alpha = 0.25 + 0.75 * (ti / dd.trajectory.length); // fade tail
+            canvasCtx.strokeStyle = 'rgba(255,255,255,' + alpha.toFixed(2) + ')';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(a.x * cw, a.y * ch);
+            canvasCtx.lineTo(b.x * cw, b.y * ch);
+            canvasCtx.stroke();
+          }
+          // Mark the head of the trajectory (most recent ball position).
+          var head = dd.trajectory[dd.trajectory.length - 1];
+          canvasCtx.fillStyle = '#fff';
+          canvasCtx.beginPath();
+          canvasCtx.arc(head.x * cw, head.y * ch, 5, 0, Math.PI * 2);
+          canvasCtx.fill();
+          canvasCtx.restore();
+        }
+
+        // Draw the last crossing point as a big circle, color-coded by
+        // result, so we can see WHERE the ball passed the rim line.
+        // Fades out after 2 seconds — no point staring at old crossings.
+        if (dd.lastCrossing) {
+          var since = Date.now() - dd.lastCrossing.t;
+          if (since < 2000) {
+            var fade = 1 - since / 2000;
+            var color = dd.lastCrossing.result === 'made' ? '0,255,136' : '255,68,68';
+            canvasCtx.save();
+            canvasCtx.strokeStyle = 'rgba(' + color + ',' + fade.toFixed(2) + ')';
+            canvasCtx.fillStyle   = 'rgba(' + color + ',' + (fade * 0.25).toFixed(2) + ')';
+            canvasCtx.lineWidth = 4;
+            var cxPx = dd.lastCrossing.x * cw;
+            var cyPx = dd.lastCrossing.y * ch;
+            var rPx  = 22 + (1 - fade) * 30;  // pulse outward as it fades
+            canvasCtx.beginPath();
+            canvasCtx.arc(cxPx, cyPx, rPx, 0, Math.PI * 2);
+            canvasCtx.stroke();
+            canvasCtx.fill();
+            canvasCtx.font = 'bold 14px monospace';
+            canvasCtx.fillStyle = 'rgba(' + color + ',' + fade.toFixed(2) + ')';
+            var crossLbl = dd.lastCrossing.result.toUpperCase() +
+              ' (Δ=' + (dd.lastCrossing.distFromRim * 100).toFixed(1) + '%)';
+            canvasCtx.fillText(crossLbl, cxPx + rPx + 6, cyPx + 5);
+            canvasCtx.restore();
+          }
+        }
+
         // Update debug info panel
         if (els.debugInfo && dd.frameCount % 5 === 0) {
           var stateColor = dd.shotState === 'idle' ? '#888' :
@@ -1565,8 +1652,12 @@
             ' &nbsp; <b>State:</b> <span style="color:' + stateColor + '">' + (dd.shotState || 'idle') + '</span>' +
             '<br><b>Balls:</b> ' + (dd.balls ? dd.balls.length : 0) +
             ' &nbsp; <b>Hoops:</b> ' + (dd.hoops ? dd.hoops.length : 0) +
+            ' &nbsp; <b>Players:</b> ' + (dd.players ? dd.players.length : 0) +
             (dd.balls && dd.balls[0] ? '<br><b>Best ball:</b> ' + (dd.balls[0].score * 100).toFixed(1) + '%' : '') +
             (dd.hoops && dd.hoops[0] ? ' &nbsp; <b>Best hoop:</b> ' + (dd.hoops[0].score * 100).toFixed(1) + '%' : '') +
+            (dd.players && dd.players[0] ? ' &nbsp; <b>Best player:</b> ' + (dd.players[0].score * 100).toFixed(1) + '%' : '') +
+            '<br><b>Trajectory:</b> ' + (dd.trajectory ? dd.trajectory.length : 0) + ' points' +
+            (dd.lastCrossing ? ' &nbsp; <b>Last crossing:</b> <span style="color:' + (dd.lastCrossing.result === 'made' ? '#00ff88' : '#ff4444') + '">' + dd.lastCrossing.result + ' (Δ=' + (dd.lastCrossing.distFromRim * 100).toFixed(1) + '%)</span>' : '') +
             (currentBall ? '<br><b>Track:</b> ' + currentBall.source + ' (' + currentBall.normX.toFixed(2) + ', ' + currentBall.normY.toFixed(2) + ')' : '');
         }
       }
