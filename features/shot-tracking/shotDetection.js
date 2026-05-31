@@ -2031,19 +2031,44 @@
             dlog('[ShotDetection] timeout miss: ball disappeared near rim');
             this.lastShotTime = now;
             this.stats.attempts++;
+            // L18: apply the same L16/L17 upgrade-to-made rules that
+            // _countShot uses. Previously this fallback emitted MISSED
+            // directly without consulting ballSeenAtRim or pose source,
+            // which short-circuited L17 entirely on every timeout-miss.
+            var resolved = 'missed';
+            if (this._ballSeenAtRim) {
+              resolved = 'made';
+              this._logShotEvent('miss-upgraded-to-made', {
+                via: 'ballSeenAtRim', from: 'timeout-miss',
+                ballNearRimHits: this._ballNearRimHits || 0
+              });
+            } else if (this._shotTriggerSrc === 'pose') {
+              resolved = 'made';
+              this._logShotEvent('miss-upgraded-to-made', {
+                via: 'pose-default', from: 'timeout-miss',
+                releaseConfidence: this._releaseConfidence
+              });
+            }
+            if (resolved === 'made') this.stats.made++;
             var launchPt = getLaunchPoint(this.tracker, vw, vh);
             var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
             var missData = {
-              result: 'missed',
+              result: resolved,
               shotX: normX,
               shotY: normY,
               trajectory: getTrajectoryNormalized(this.tracker, vw, vh, 20),
               launchPoint: launchPt,
               shotZone: shotZone,
-              timestamp: now
+              timestamp: now,
+              triggerSrc: this._shotTriggerSrc,
+              releaseConfidence: this._releaseConfidence
             };
+            this._logShotEvent('shot-counted', {
+              result: resolved, triggerSrc: this._shotTriggerSrc, from: 'timeout-miss',
+              ballSeenAtRim: !!this._ballSeenAtRim
+            });
             if (window.AdaptiveLearning) {
-              window.AdaptiveLearning.onShotCompleted(missData.trajectory, 'missed', this.rimZone);
+              window.AdaptiveLearning.onShotCompleted(missData.trajectory, resolved, this.rimZone);
             }
             if (this.onShotDetected) this.onShotDetected(missData);
             resetTracker(this.tracker);
