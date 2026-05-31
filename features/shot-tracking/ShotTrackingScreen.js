@@ -806,8 +806,13 @@
     var BBOX_RIM_OFFSET_FRAC = 0.10;
 
     engine.onHoopDetected = function (hoop) {
-      // Reject garbage detections near edges or with impossible size
-      if (hoop.cx < 0.05 || hoop.cx > 0.95 || hoop.cy < 0.03 || hoop.cy > 0.95) return;
+      // L21: Tighter accept bounds. The previous bounds (X 0.05-0.95,
+      // Y 0.03-0.95) accepted obviously-wrong detections in corners of
+      // the frame — scoreboards, ceiling beams, court markings. Basketball
+      // hoops live in the upper-central portion of any sensible framing.
+      // X 0.15-0.85: rejects far-corner detections. Y 0.05-0.55: rejects
+      // floor / ceiling-extreme misclassifications.
+      if (hoop.cx < 0.15 || hoop.cx > 0.85 || hoop.cy < 0.05 || hoop.cy > 0.55) return;
       if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
       if (hoop.score < 0.10) return;
