@@ -74,6 +74,7 @@
   var hasSavedCalibration = false;  // true when openScreen warm-started from localStorage
   var savedFallbackUsed   = false;  // true when watchdog auto-promoted saved calibration to locked
   var lockToastT          = null;   // setTimeout for "Hoop locked!" toast → "Tracking" transition
+  var firstColorRefinedAt = 0;      // L19: timestamp of first color-refined hoop lock → freeze threshold
 
   // 3PT calibration state
   var threePtPoint = null;    // { x, y } normalized — user-tapped 3PT line point
@@ -956,6 +957,23 @@
       var st = engine._shotState;
       if (st === 'shot_started' || st === 'near_hoop') return;
 
+      // L19: FREEZE the rim entirely once we've had a stable color-refined
+      // lock. The rim doesn't move physically — every EMA update from a
+      // non-color-refined detection (e.g. YOLOX bbox on the backboard top
+      // instead of the orange ring) drifts the rim away from its true
+      // position. User-visible: starts perfectly locked, slides off the
+      // rim over the course of the session, misclassifies real makes.
+      if (!firstColorRefinedAt && hoop.colorRefined) {
+        firstColorRefinedAt = Date.now();
+      }
+      // If we've had at least 2s of color-refined locking, freeze updates
+      // entirely. Otherwise allow a very SLOW drift toward color-refined
+      // detections only.
+      if (firstColorRefinedAt && (Date.now() - firstColorRefinedAt) > 2000) {
+        return;
+      }
+      if (!hoop.colorRefined) return;
+
       // L11: live EMA also uses aspect-aware offset, so per-frame bbox
       // shape changes (e.g. ball briefly inside the rim) tighten/loosen
       // the anchor toward the real ring. L11.2: skip offset when the
@@ -964,7 +982,8 @@
       var anchoredCYNew = hoop.cy + hoop.bh * emaOffsetFrac;
       var newW = Math.min(Math.max(hoop.bw, 0.08), 0.25);
       var newH = Math.min(Math.max(hoop.bh, 0.03), 0.15);
-      var a = RIM_EMA_ALPHA;
+      // L19: slower alpha for pre-freeze drift correction
+      var a = Math.min(RIM_EMA_ALPHA, 0.05);
       rimCenter.x = (1 - a) * rimCenter.x + a * hoop.cx;
       rimCenter.y = (1 - a) * rimCenter.y + a * anchoredCYNew;
       rimSize.w   = (1 - a) * rimSize.w   + a * newW;
