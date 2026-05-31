@@ -741,29 +741,18 @@
       els.timer.textContent = formatTime(elapsedSec);
     }, 1000);
 
-    // For file upload mode — seek to start, then play
+    // L13: For file upload mode — HOLD the video paused until the model
+    // is loaded. Previously the video began playing immediately while the
+    // YOLOX ONNX model was still loading (1-3 seconds). Any shots in those
+    // opening seconds were silently dropped because the engine wasn't yet
+    // detecting. We now pause + rewind here, then the Promise.all callback
+    // below calls play() once both the model and the video buffer are
+    // ready.
     if (videoFileUrl && videoEl) {
       resizeCanvas();
-
-      function startPlayback() {
-        videoEl.play().then(function () {
-          resizeCanvas();
-        }).catch(function (err) {
-          console.warn('[ShotTracker] Video play failed:', err.message);
-        });
-      }
-
-      if (videoEl.readyState >= 2) {
-        videoEl.currentTime = 0;
-        startPlayback();
-      } else {
-        // Video lost buffered data — wait for canplay before playing
-        videoEl.addEventListener('canplay', function onReady() {
-          videoEl.removeEventListener('canplay', onReady);
-          videoEl.currentTime = 0;
-          startPlayback();
-        });
-      }
+      try { videoEl.pause(); } catch (e) {}
+      try { videoEl.currentTime = 0; } catch (e) {}
+      setAutoStatus('Loading detection model…', 'searching');
     }
 
     // Configure detection engine
@@ -994,6 +983,29 @@
       if (ok && phase === 'tracking') {
         engine.start(videoEl);
         startOverlayLoop();
+
+        // L13: Now that the model is loaded, start the video playback.
+        // For file uploads we held the element paused above so no frame is
+        // wasted before detection is ready. For live camera there is no
+        // play() needed — the MediaStream is already live.
+        if (videoFileUrl && videoEl) {
+          var doFilePlay = function () {
+            try { videoEl.currentTime = 0; } catch (e) {}
+            videoEl.play().then(function () {
+              resizeCanvas();
+            }).catch(function (err) {
+              console.warn('[ShotTracker] Video play failed:', err.message);
+            });
+          };
+          if (videoEl.readyState >= 2) {
+            doFilePlay();
+          } else {
+            videoEl.addEventListener('canplay', function onReady() {
+              videoEl.removeEventListener('canplay', onReady);
+              doFilePlay();
+            });
+          }
+        }
 
         // Start video recording for replay
         if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
