@@ -2246,25 +2246,22 @@
     },
 
     _countShot: function (result, vw, vh, normX, normY, now) {
-      // L12: preflight gate — refuse to count shots until calibration check
-      // is satisfied. Anything that would have been counted before preflight
-      // ready is dropped silently. The shot state still resets to cooldown
-      // so the state machine doesn't get stuck.
-      if (!this._preflightReady) {
-        this._logShotEvent('shot-dropped', {
-          requestedResult: result,
-          reason: 'preflight-not-ready',
-          ballSeenAtRim: !!this._ballSeenAtRim
+      // L16: preflight is now ADVISORY ONLY. Earlier versions dropped shots
+      // before preflight passed which caused the first 15-20s of any session
+      // to be silently lost. The visual "CALIBRATING…" panel still shows but
+      // doesn't block counting.
+      //
+      // L16: If the requested result is 'missed' but the ball was seen near
+      // the rim center at any point during this shot, upgrade to 'made'.
+      // The user's test footage was 10 pull-up makes counted as 0/10 because
+      // the strict trajectory checks reject any shot where YOLOX lost the
+      // ball mid-arc.
+      if (result === 'missed' && this._ballSeenAtRim) {
+        this._logShotEvent('miss-upgraded-to-made', {
+          ballNearRimHits: this._ballNearRimHits || 0,
+          triggerSrc:      this._shotTriggerSrc
         });
-        this._shotState = 'idle';
-        this._ballMinY = 1.0;
-        this._shotStartY = 1.0;
-        this._sawBallAboveRim = false;
-        this._shotTriggerSrc    = null;
-        this._releaseConfidence = null;
-        this._shooterFeetX      = null;
-        this._shooterFeetY      = null;
-        return;
+        result = 'made';
       }
       this._logShotEvent('shot-counted', {
         result:         result,
