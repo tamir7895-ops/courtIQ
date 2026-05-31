@@ -61,7 +61,10 @@
     belowLookbackMs:   200,    // wrist must have been below shoulder this long ago
     peakWindowMs:      200,    // window for local-minimum detection
     peakToleranceNorm: 0.025,  // |y_current - y_min| ≤ this means "at peak"
-    cooldownMs:        700,    // min spacing between two consecutive shot events
+    cooldownMs:        400,    // L14.A: was 700 — drops back-to-back triggers
+                               // when shots come every 2-3s (pull-up workouts,
+                               // form shooting drills). 400ms still rejects
+                               // wrist-bounce false peaks within a single shot.
     historyMs:         1500,   // how much pose history to retain
     // L8 tuning knob (default 0 = original strict behavior):
     //   wristAboveNose normally requires wrist.y < nose.y. At distance, Pose

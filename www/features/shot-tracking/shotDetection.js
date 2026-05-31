@@ -27,7 +27,7 @@
   }
 
   /* ── Constants ──────────────────────────────────────────────── */
-  var DEBOUNCE_MS          = 700;   // Cooldown between counted shots (matches PoseDetector cooldown)
+  var DEBOUNCE_MS          = 400;   // L14.A: was 700 — matches looser pose cooldown
   var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
@@ -681,6 +681,11 @@
       this._preflightThresholds = { ball: 3, hoop: 5, player: 3 };
       this._preflightReady = false;
       this._preflightStartedAt = Date.now();
+      // L14.B / L14.C: ball-near-rim tracker + per-shot event log
+      this._ballSeenAtRim = false;
+      this._ballNearRimHits = 0;
+      this._shotEventLog = [];
+      this._sessionStartedAt = Date.now();
       // Reset pose history so the new session starts fresh — important when
       // re-using a single engine for several uploaded videos in a row.
       if (window.PoseDetector) {
@@ -717,7 +722,36 @@
       this.ballPosition = null;
     },
 
+    /* ── L14.C: per-shot event log (public API) ──────────────────
+       Returns the in-memory event log as JSON so the user can paste it
+       back for diagnosis. Each entry has: tElapsed (ms since session
+       start), type (pose-trigger, pose-rejected, shot-counted, …), and
+       a payload object. Capped at 200 events (oldest dropped). */
+    dumpShotLog: function () {
+      var log = this._shotEventLog || [];
+      var summary = {
+        sessionMs: this._sessionStartedAt ? Date.now() - this._sessionStartedAt : 0,
+        events:    log.length,
+        stats:     this.stats,
+        log:       log
+      };
+      return JSON.stringify(summary, null, 2);
+    },
+
     /* ── Internal ──────────────────────────────────────────────── */
+
+    _logShotEvent: function (type, payload) {
+      if (!this._shotEventLog) this._shotEventLog = [];
+      this._shotEventLog.push({
+        tElapsed: Date.now() - (this._sessionStartedAt || Date.now()),
+        type:     type,
+        state:    this._shotState,
+        payload:  payload || {}
+      });
+      // Cap log size — 200 events covers a long session without
+      // ballooning memory.
+      if (this._shotEventLog.length > 200) this._shotEventLog.shift();
+    },
 
     _scheduleDetection: function () {
       var self = this;
@@ -894,6 +928,17 @@
         if (!self._poseStats) self._poseStats = { checks: 0, triggers: 0, lastConfidence: 0 };
         self._poseStats.checks++;
         var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
+        if (!motion.isShot && motion.reason && motion.reason !== 'cooldown') {
+          // Log non-cooldown rejections only; cooldown spams too much.
+          // Throttle to one rejection log per unique reason per 500ms.
+          var nowR = Date.now();
+          if (!self._lastPoseRejectAt) self._lastPoseRejectAt = {};
+          if (!self._lastPoseRejectAt[motion.reason] ||
+              (nowR - self._lastPoseRejectAt[motion.reason]) > 500) {
+            self._lastPoseRejectAt[motion.reason] = nowR;
+            self._logShotEvent('pose-rejected', { reason: motion.reason });
+          }
+        }
         if (motion.isShot) {
           self._poseStats.triggers++;
           self._poseStats.lastConfidence = motion.releaseConfidence;
@@ -910,8 +955,14 @@
           self._shooterFeetY      = motion.shooterCenterY;
           self._shotTrajectory    = [];   // Phase L2: reset trajectory for this shot
           self._postCrossingWatch = null; // L9.2: clear any stale watch state
+          self._ballSeenAtRim     = false;// L14.B: reset rim-proximity flag
+          self._ballNearRimHits   = 0;
           self._lastShotReason    = 'TRIGGER conf=' + motion.releaseConfidence.toFixed(2) +
                                     ' hand=' + (motion.shootingHand || '?');
+          self._logShotEvent('pose-trigger', {
+            confidence:  motion.releaseConfidence,
+            shootingHand: motion.shootingHand
+          });
           dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
         }
       }
@@ -939,9 +990,22 @@
         var fireFallback = (elapsed > POSE_SHOT_FALLBACK_MS && !ballHot) ||
                             elapsed > POSE_HARD_TIMEOUT_MS;
         if (fireFallback) {
+          // L14.B: if the ball was seen near the rim at ANY point during
+          // this shot, the shooter probably scored — even if YOLOX never
+          // produced a full crossing trajectory. This recovers makes on
+          // compressed / low-res footage where the ball blinks in and
+          // out of detection.
+          var fallbackResult = self._ballSeenAtRim ? 'made' : 'missed';
+          self._logShotEvent('pose-fallback', {
+            elapsedMs:      elapsed,
+            ballSeenAtRim:  !!self._ballSeenAtRim,
+            ballSeenCount:  self._ballNearRimHits || 0,
+            ballHot:        !!ballHot,
+            resolvedAs:     fallbackResult
+          });
           var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
           var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
-          self._countShot('missed', vw, vh, feetX, feetY, Date.now());
+          self._countShot(fallbackResult, vw, vh, feetX, feetY, Date.now());
         }
       }
     },
@@ -1731,10 +1795,31 @@
       updateTracker(this.tracker, cx, cy);
       this.ballPosition = {
         normX: normX, normY: normY,
-        source: this._lastDetSource || 'color',
+        source: this._lastDetSource || 'core',
         confidence: this._lastDetConf || 0
       };
       if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
+
+      // L14.B: track "ball was seen near rim" during an active shot.
+      // Used by the pose-fallback timeout to upgrade MISS → MADE when the
+      // ball never produced a full crossing trajectory but was clearly in
+      // the rim's vicinity at some point. The bar is intentionally low —
+      // we just need ANY frame of "ball near rim" during the shot window.
+      if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
+          this.rimZone && this._rimStabilized) {
+        var rimCX = this.rimZone.centerX;
+        var rimCY = this.rimZone.centerY;
+        var rimHW = (this.rimZone.width  || 0.10) * 0.5;
+        var rimHH = (this.rimZone.height || 0.04) * 0.5;
+        var nearMaxX = rimHW * 2.0;   // 2× half-width of rim — same scale as madeThresh
+        var nearMaxY = rimHH * 5.0;   // generous vertical band centered on rim
+        var dxN = Math.abs(normX - rimCX);
+        var dyN = Math.abs(normY - rimCY);
+        if (dxN <= nearMaxX && dyN <= nearMaxY) {
+          this._ballSeenAtRim = true;
+          this._ballNearRimHits = (this._ballNearRimHits || 0) + 1;
+        }
+      }
 
       /* Feed to adaptive learning (Level 1 + 3) */
       /* cx/cy are in video coords — convert to processing canvas space for pixel sampling */
@@ -2039,6 +2124,12 @@
           this._ballMinY          = normY;
           this._shotStartY        = normY;
           this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
+          this._ballSeenAtRim     = false;  // L14.B: reset rim-proximity flag
+          this._ballNearRimHits   = 0;
+          this._logShotEvent(poseShot && poseShot.isShot ? 'pose-trigger' : 'ball-rise-trigger', {
+            normY: normY,
+            rimCenterY: rim.centerY
+          });
           if (poseShot && poseShot.isShot) {
             this._shotTriggerSrc    = 'pose';
             this._releaseConfidence = poseShot.releaseConfidence;
@@ -2155,6 +2246,11 @@
       // ready is dropped silently. The shot state still resets to cooldown
       // so the state machine doesn't get stuck.
       if (!this._preflightReady) {
+        this._logShotEvent('shot-dropped', {
+          requestedResult: result,
+          reason: 'preflight-not-ready',
+          ballSeenAtRim: !!this._ballSeenAtRim
+        });
         this._shotState = 'idle';
         this._ballMinY = 1.0;
         this._shotStartY = 1.0;
@@ -2165,6 +2261,14 @@
         this._shooterFeetY      = null;
         return;
       }
+      this._logShotEvent('shot-counted', {
+        result:         result,
+        triggerSrc:     this._shotTriggerSrc,
+        ballSeenAtRim:  !!this._ballSeenAtRim,
+        ballNearRimHits: this._ballNearRimHits || 0,
+        normX:          normX,
+        normY:          normY
+      });
 
       this.lastShotTime = now;
       this._shotState = 'cooldown';
