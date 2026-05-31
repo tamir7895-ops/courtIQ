@@ -677,8 +677,13 @@
       // all three thresholds are met, so we never spam false misses while
       // the model is still warming up or the scene hasn't fully revealed
       // its contents.
+      // L15: drop ball from preflight requirement. The strict ball verifier
+      // (orange + round + small) blocks for 15-20s on TikTok-style compressed
+      // footage where YOLOX's "ball" detections are mostly on logos and the
+      // rim. Hoop + player are sufficient as a calibration gate. Keep ball
+      // counter in the struct so the overlay still shows it as "seen N".
       this._preflightChecks = { ball: 0, hoop: 0, player: 0 };
-      this._preflightThresholds = { ball: 3, hoop: 5, player: 3 };
+      this._preflightThresholds = { ball: 0, hoop: 5, player: 3 };
       this._preflightReady = false;
       this._preflightStartedAt = Date.now();
       // L14.B / L14.C: ball-near-rim tracker + per-shot event log
