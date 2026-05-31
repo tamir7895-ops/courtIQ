@@ -36,7 +36,12 @@
   /* ── Config ────────────────────────────────────────────────── */
   var MP_VERSION   = '0.10.14';
   var WASM_BASE    = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + MP_VERSION + '/wasm';
-  var MODEL_URL    = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+  // L8.7: Lite returns candidateCount=1 even with numPoses=3 — strong single-
+  // person bias. FULL (~6MB vs Lite ~3MB) is more willing to find multiple
+  // people, important for outdoor courts with 2-3 visible players. Cost: ~2×
+  // inference latency on WebGPU but still well under the 33ms budget.
+  // Switch back to *_lite.task if perf becomes an issue.
+  var MODEL_URL    = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task';
   var MP_BRIDGE_WAIT_MS = 10000;  // how long to wait for the ESM bridge in dashboard.html
 
   /* ── Heuristic tunables ───────────────────────────────────────
@@ -57,7 +62,14 @@
     peakWindowMs:      200,    // window for local-minimum detection
     peakToleranceNorm: 0.025,  // |y_current - y_min| ≤ this means "at peak"
     cooldownMs:        700,    // min spacing between two consecutive shot events
-    historyMs:         1500    // how much pose history to retain
+    historyMs:         1500,   // how much pose history to retain
+    // L8 tuning knob (default 0 = original strict behavior):
+    //   wristAboveNose normally requires wrist.y < nose.y. At distance, Pose
+    //   Lite is jittery and shooters with a "set shot" form may peak with
+    //   wrist at forehead/eye level rather than fully above the nose. Adding
+    //   slack relaxes the gate to wrist.y < nose.y + noseSlackNorm.
+    //   noseSlackNorm: 0.05 ≈ 5% of frame height (~54px on 1080p).
+    noseSlackNorm:     0.0
   };
 
   function tune(patch) {
@@ -110,7 +122,7 @@
       shoulderY:          sh.y,
       hipX:               hip.x,
       hipY:               hip.y,
-      wristAboveNose:     wrist.y < nose.y,
+      wristAboveNose:     wrist.y < nose.y + TUNE.noseSlackNorm,
       wristAboveShoulder: wrist.y < sh.y,
       armExtension:       _dist(wrist, shoulder) / bodyHeight,
       visibility:         (wrist.visibility    || 0)
@@ -231,7 +243,12 @@
             delegate: 'GPU'
           },
           runningMode: 'VIDEO',
-          numPoses: 1
+          // L8.6: track up to 3 people. Pose Lite single-person mode picks
+          // whoever has highest detection score, which in multi-player frames
+          // is often NOT the shooter (e.g. defender standing in the open vs
+          // shooter partially occluded mid-release). detect() picks the most
+          // shooter-like candidate from the returned set.
+          numPoses: 3
         });
         dlog('[PoseDetector] model loaded in ' + ((performance.now() - t0) | 0) + ' ms');
       } catch (err) {
@@ -270,7 +287,35 @@
     try {
       var raw = _landmarker.detectForVideo(videoEl, nowTs);
       if (raw && raw.landmarks && raw.landmarks.length) {
-        _lastResult = { landmarks: raw.landmarks[0], ts: videoFrameKey };
+        // L8.6: pick the most shooter-like person from the multi-pose result.
+        // Heuristic: the shooter is the person whose HIGHEST wrist is
+        // smallest-Y (closest to the top of the frame) — i.e. arm raised
+        // highest. Falls back to first pose if all candidates have wrists
+        // below shoulders (no one's shooting).
+        var picked = raw.landmarks[0];
+        if (raw.landmarks.length > 1) {
+          var bestScore = -Infinity;
+          for (var pi = 0; pi < raw.landmarks.length; pi++) {
+            var lm = raw.landmarks[pi];
+            if (!lm || lm.length < 25) continue;
+            // Highest wrist Y (smallest value, closest to top)
+            var lwy = (lm[15] && lm[15].y) || 1;
+            var rwy = (lm[16] && lm[16].y) || 1;
+            var topWrist = Math.min(lwy, rwy);
+            // Weighted by visibility so phantom poses don't win on noise alone
+            var lwv = (lm[15] && lm[15].visibility) || 0;
+            var rwv = (lm[16] && lm[16].visibility) || 0;
+            var topWristVis = lwy < rwy ? lwv : rwv;
+            // Score: smaller wristY = better. add small visibility bonus.
+            // Negate wristY so larger score wins.
+            var score = -topWrist + 0.1 * topWristVis;
+            if (score > bestScore) {
+              bestScore = score;
+              picked = lm;
+            }
+          }
+        }
+        _lastResult = { landmarks: picked, ts: videoFrameKey, candidateCount: raw.landmarks.length };
       } else {
         _lastResult = null;
       }

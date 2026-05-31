@@ -96,6 +96,9 @@
   // works as an override mid-session.
   var debugMode = true;
   var debugData = { balls: [], hoops: [], shotState: 'idle', frameCount: 0 };
+  // L9.3: latest shot banner — fades out after 3s. Holds the actual dist/thresh
+  // values so the user can see WHY a shot was classified made/missed.
+  var lastShotBanner = null;
 
   // DOM refs (populated in buildHTML)
   var els = {};
@@ -1043,6 +1046,22 @@
   function onShotDetected(data) {
     if (window.TrailRenderer) TrailRenderer.snapshotArc(data.result);
     var isMade = data.result === 'made';
+    // L9.3: capture the made/miss decision for the on-screen banner. Reads
+    // _lastCrossing off the engine — it has the actual dist/thresh values
+    // that drove the decision.
+    var engRefBanner = window.ShotDetectionEngine;
+    var lc = engRefBanner && engRefBanner._lastCrossing ? engRefBanner._lastCrossing : null;
+    if (lc) {
+      lastShotBanner = {
+        result:   data.result,
+        dist:     lc.distFromRim,
+        thresh:   lc.madeThresh,
+        ratio:    lc.distFromRim / (lc.madeThresh || 1),
+        t:        Date.now()
+      };
+    } else {
+      lastShotBanner = { result: data.result, dist: null, thresh: null, ratio: null, t: Date.now() };
+    }
 
     // Record shot with launch point and zone
     var userId = window.currentUser ? window.currentUser.id : 'anonymous';
@@ -1397,6 +1416,37 @@
           canvasCtx.fillStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
           canvasCtx.fillText(rimLbl, 6, rimDY - 4);
 
+          // L9.3: BIG rim-center X marker + made-threshold bracket so the user
+          // can see exactly where the algorithm thinks the rim center is and
+          // how wide the "made" zone is. Without this, off-center rim auto-
+          // lock looks identical to a real miss.
+          var madeThresh = rimDW * 1.0; // displayed as 2.0×rimHalfW = 1.0×rimDW
+          canvasCtx.save();
+          canvasCtx.strokeStyle = '#00ff88';
+          canvasCtx.lineWidth = 3;
+          // Crosshair at rim center
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(rimDX - 14, rimDY - 14);
+          canvasCtx.lineTo(rimDX + 14, rimDY + 14);
+          canvasCtx.moveTo(rimDX + 14, rimDY - 14);
+          canvasCtx.lineTo(rimDX - 14, rimDY + 14);
+          canvasCtx.stroke();
+          // Made-threshold bracket — vertical lines at ±madeThresh
+          canvasCtx.strokeStyle = 'rgba(0,255,136,0.6)';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([3, 3]);
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(rimDX - madeThresh, rimDY - 30);
+          canvasCtx.lineTo(rimDX - madeThresh, rimDY + 30);
+          canvasCtx.moveTo(rimDX + madeThresh, rimDY - 30);
+          canvasCtx.lineTo(rimDX + madeThresh, rimDY + 30);
+          canvasCtx.stroke();
+          canvasCtx.setLineDash([]);
+          canvasCtx.fillStyle = '#00ff88';
+          canvasCtx.font = 'bold 10px monospace';
+          canvasCtx.fillText('MADE ZONE', rimDX - madeThresh, rimDY - 34);
+          canvasCtx.restore();
+
           // near_hoop zone — dashed yellow rectangle centred on rim
           // (matches the state-machine geometry: ±1.5 rim widths
           // horizontally, ±2.5 rim heights vertically)
@@ -1629,6 +1679,37 @@
           canvasCtx.restore();
         }
 
+        // L9.3: BIG made/missed banner across the top of the canvas for 3s
+        // after each shot. Shows the actual dist/thresh values so the user
+        // can immediately see WHY the algorithm decided MADE or MISSED.
+        if (lastShotBanner) {
+          var bSince = Date.now() - lastShotBanner.t;
+          if (bSince < 3000) {
+            var bFade = bSince < 2700 ? 1 : (1 - (bSince - 2700) / 300);
+            var bMade = lastShotBanner.result === 'made';
+            canvasCtx.save();
+            // Background bar — green for made, red for miss
+            canvasCtx.fillStyle = (bMade ? 'rgba(0,200,100,' : 'rgba(220,40,40,') + (bFade * 0.85).toFixed(2) + ')';
+            canvasCtx.fillRect(0, 0, cw, 64);
+            // Big main label
+            canvasCtx.fillStyle = 'rgba(255,255,255,' + bFade.toFixed(2) + ')';
+            canvasCtx.font = 'bold 32px monospace';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText(bMade ? '✓ MADE' : '✗ MISSED', cw / 2, 38);
+            // Sub-line with dist/thresh — only if we have the numbers
+            if (lastShotBanner.dist != null && lastShotBanner.thresh != null) {
+              canvasCtx.font = 'bold 14px monospace';
+              var pct = (lastShotBanner.ratio * 100).toFixed(0);
+              var sub = 'dist=' + (lastShotBanner.dist * 100).toFixed(1) + '% ' +
+                        'thresh=' + (lastShotBanner.thresh * 100).toFixed(1) + '% ' +
+                        '(' + pct + '% of thresh)';
+              canvasCtx.fillText(sub, cw / 2, 58);
+            }
+            canvasCtx.textAlign = 'left';
+            canvasCtx.restore();
+          }
+        }
+
         // Draw the last crossing point as a big circle, color-coded by
         // result, so we can see WHERE the ball passed the rim line.
         // Fades out after 2 seconds — no point staring at old crossings.
@@ -1662,6 +1743,18 @@
           var stateColor = dd.shotState === 'idle' ? '#888' :
                            dd.shotState === 'shot_started' ? '#ffaa00' :
                            dd.shotState === 'near_hoop' ? '#00ff88' : '#ff4444';
+          // L7 diagnostic: pose-trigger counters + last decision reason
+          var psHtml = '';
+          if (dd.poseStats) {
+            var ps = dd.poseStats;
+            var trigPct = ps.checks > 0 ? ((ps.triggers / ps.checks) * 100).toFixed(1) : '0.0';
+            psHtml = '<br><b>Pose:</b> ' + ps.checks + ' checks, ' +
+                     '<span style="color:#00ff88">' + ps.triggers + ' triggers</span> (' + trigPct + '%)' +
+                     ' &nbsp; <b>last conf:</b> ' + (ps.lastConfidence || 0).toFixed(2);
+          }
+          var reasonHtml = dd.lastShotReason
+            ? '<br><b>Last decision:</b> <span style="color:#facc15">' + dd.lastShotReason + '</span>'
+            : '';
           els.debugInfo.innerHTML =
             '<b>Frame:</b> ' + dd.frameCount +
             ' &nbsp; <b>State:</b> <span style="color:' + stateColor + '">' + (dd.shotState || 'idle') + '</span>' +
@@ -1673,6 +1766,8 @@
             (dd.players && dd.players[0] ? ' &nbsp; <b>Best player:</b> ' + (dd.players[0].score * 100).toFixed(1) + '%' : '') +
             '<br><b>Trajectory:</b> ' + (dd.trajectory ? dd.trajectory.length : 0) + ' points' +
             (dd.lastCrossing ? ' &nbsp; <b>Last crossing:</b> <span style="color:' + (dd.lastCrossing.result === 'made' ? '#00ff88' : '#ff4444') + '">' + dd.lastCrossing.result + ' (Δ=' + (dd.lastCrossing.distFromRim * 100).toFixed(1) + '%)</span>' : '') +
+            psHtml +
+            reasonHtml +
             (currentBall ? '<br><b>Track:</b> ' + currentBall.source + ' (' + currentBall.normX.toFixed(2) + ', ' + currentBall.normY.toFixed(2) + ')' : '');
         }
       }

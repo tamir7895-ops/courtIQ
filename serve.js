@@ -412,12 +412,45 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  /* ── Static file ── */
-  let filePath = path.join(ROOT, urlPath === '/' ? '/index.html' : urlPath);
+  /* ── L8 eval status pipe ──
+     Headless eval harnesses (e.g. www/debug-l7-eval.html) POST progress + final
+     report here so a polling Bash loop can wait for completion without burning
+     conversation turns on javascript_tool round-trips. Stored in memory only. */
+  if (urlPath === '/__eval_status' && req.method === 'POST') {
+    let body = '';
+    req.on('data', c => { body += c; if (body.length > 6 * 1024 * 1024) req.destroy(); });
+    req.on('end', () => {
+      try { global.__evalStatus = JSON.parse(body); }
+      catch (_) { global.__evalStatus = { error: 'bad-json', raw: body.slice(0, 200) }; }
+      res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+      res.end('{"ok":true}');
+    });
+    return;
+  }
+  if (urlPath === '/__eval_status' && req.method === 'GET') {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' });
+    res.end(JSON.stringify(global.__evalStatus || { state: 'idle' }));
+    return;
+  }
 
-  // Security: block path traversal
-  if (!filePath.startsWith(ROOT)) {
-    res.writeHead(403); res.end('Forbidden'); return;
+  /* ── Static file ── */
+  // Special routes under project root (outside www/):
+  //   /_eval/* → __dirname/_eval/*   — test videos for headless eval harnesses
+  // These bypass the normal www/ resolution. The harnesses live in www/ but
+  // need access to the source videos at project root.
+  let filePath;
+  if (urlPath.startsWith('/_eval/')) {
+    const evalRoot = path.join(__dirname, '_eval');
+    filePath = path.join(__dirname, urlPath);
+    if (!filePath.startsWith(evalRoot)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
+  } else {
+    filePath = path.join(ROOT, urlPath === '/' ? '/index.html' : urlPath);
+    // Security: block path traversal
+    if (!filePath.startsWith(ROOT)) {
+      res.writeHead(403); res.end('Forbidden'); return;
+    }
   }
 
   fs.readFile(filePath, (err, data) => {

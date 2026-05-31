@@ -35,6 +35,10 @@ debug-*.html
 Download.mp4
 auto-sync.js
 
+# ── Eval workspace (local-only test videos + extracted frames) ──
+_eval/
+www/_audit/
+
 # ── Capacitor generated ──
 android/app/build/
 android/.gradle/

@@ -665,6 +665,13 @@
       this._releaseConfidence = null;
       this._shooterFeetX = null;
       this._shooterFeetY = null;
+      // L7 diagnostic state — fresh per session so counters reflect this run only
+      this._lastShotReason = null;
+      this._poseStats = { checks: 0, triggers: 0, lastConfidence: 0 };
+      this._shotTrajectory = [];
+      this._lastCrossing = null;
+      // L9.2: post-crossing watch state
+      this._postCrossingWatch = null;
       // Reset pose history so the new session starts fresh — important when
       // re-using a single engine for several uploaded videos in a row.
       if (window.PoseDetector) {
@@ -863,95 +870,24 @@
       var vw = self.videoEl.videoWidth  || 1;
       var vh = self.videoEl.videoHeight || 1;
 
-      // ── Phase L1: Track ball-near-upper-body proximity ──
-      // We update _ballNearWristMs whenever the latest ball detection is
-      // within BALL_UPPER_BODY_DIST_MAX of any upper-body landmark
-      // (wrists, elbows, shoulders). The shot trigger requires this to
-      // have been true within the last BALL_IN_HAND_WINDOW_MS. This
-      // rejects "person raises arms without ball" (warmup stretches,
-      // referees signaling, celebration) but is lenient enough to fire
-      // through dribbling — when the ball is at hip-to-floor height the
-      // wrist is at waist; their distance is up to ~25% of frame.
-      var BALL_UPPER_BODY_DIST_MAX = 0.30; // ~30% of frame — covers dribbling
-      var BALL_IN_HAND_WINDOW_MS   = 2000; // ball was in hand within last 2s
-      var BALL_DET_RECENCY_MS      = 1500; // ball detection within last 1.5s
-      var ballRecent = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_DET_RECENCY_MS;
-      if (ballRecent && self._prevBallNorm) {
-        var bx = self._prevBallNorm.x;
-        var by = self._prevBallNorm.y;
-        // Check distance to all upper-body anchors — wrists are best but
-        // shoulders/elbows catch the dribble case. Minimum distance wins.
-        var minDist = Infinity;
-        var anchors = [15, 16, 13, 14, 11, 12]; // L/R wrist, elbow, shoulder
-        for (var ai = 0; ai < anchors.length; ai++) {
-          var lm = lms[anchors[ai]];
-          if (lm && (lm.visibility || 0) > 0.3) {
-            var d = Math.sqrt((lm.x - bx) * (lm.x - bx) + (lm.y - by) * (lm.y - by));
-            if (d < minDist) minDist = d;
-          }
-        }
-        if (minDist <= BALL_UPPER_BODY_DIST_MAX) {
-          self._ballNearWristMs = Date.now();
-        }
-      }
-
-      // ── Phase L4c: Track recent ball Y history for velocity check ──
-      // Maintains the last ~6 ball positions so the shot trigger can
-      // verify that the ball is actually moving UP (decreasing Y) when
-      // the pose heuristic fires. Without this, the trigger fires on
-      // arm-raise + ball-in-hand even if the player is just bouncing,
-      // passing, or holding — which inflated false-positive attempts
-      // in the outdoor test (2 of 3 attempts were not real shots).
-      if (ballRecent && self._prevBallNorm) {
-        if (!self._ballYHistory) self._ballYHistory = [];
-        var nowTs = Date.now();
-        // Only push when the y actually changed (or after some time)
-        var last = self._ballYHistory[self._ballYHistory.length - 1];
-        if (!last || nowTs - last.t > 30) {
-          self._ballYHistory.push({ y: self._prevBallNorm.y, t: nowTs });
-          if (self._ballYHistory.length > 8) self._ballYHistory.shift();
-        }
-      }
-
-      // Trigger: only fire shot_started when idle AND ball was recently in hand.
+      // ── L7 REVERT: Pose-shot trigger (baseline — no L1/L4c gates) ──
+      // L1 (ball-in-hand) and L4c (ball-velocity-up) gates were removed because
+      // they hurt recall more than they helped — real shots were being rejected.
+      // We now accept any pose-detected shooting motion directly. False positives
+      // are visible in the debug overlay so gates can be re-introduced one-by-one
+      // with measured impact (Step 3 of L7 plan).
+      //
+      // _poseStats tracks every pose check so the debug overlay can show how
+      // often PoseDetector is even seeing a shooting motion — that helps
+      // distinguish "trigger didn't fire" from "trigger fired but state machine
+      // dropped it later".
       if (self._shotState === 'idle') {
+        if (!self._poseStats) self._poseStats = { checks: 0, triggers: 0, lastConfidence: 0 };
+        self._poseStats.checks++;
         var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
         if (motion.isShot) {
-          // Ball-in-hand gate: was the ball near a wrist within the last second?
-          // Without this, the pose heuristic fires on any "arms-up" motion —
-          // referees signaling, players celebrating, warmup stretches. The
-          // standalone bench measured 84% recall on v2 with this gate OFF;
-          // we accept slightly lower recall in exchange for much fewer
-          // false positives in live use.
-          var ballWasInHand = self._ballNearWristMs &&
-                              (Date.now() - self._ballNearWristMs) < BALL_IN_HAND_WINDOW_MS;
-          if (!ballWasInHand) {
-            dlog('[ShotState] pose-triggered but no ball-in-hand recently — rejecting');
-            return;
-          }
-
-          // L4c: Ball-velocity-up gate.
-          // A real shot has the ball MOVING UP at release time. Players
-          // dribbling, passing across the body, or just holding the ball
-          // raised won't satisfy this. We compare the most recent ball Y
-          // to the oldest in the small history buffer (~200ms window) and
-          // require a net decrease of at least 2% of frame height. A
-          // small threshold so quick low arcs still pass.
-          //
-          // Without this gate, the outdoor test showed 2 of 3 attempts
-          // came from arm-raise motions that weren't actually shots.
-          if (self._ballYHistory && self._ballYHistory.length >= 3) {
-            var newestY = self._ballYHistory[self._ballYHistory.length - 1].y;
-            var oldestY = self._ballYHistory[0].y;
-            var ballDeltaY = newestY - oldestY;  // negative = moved up
-            if (ballDeltaY > -0.02) {
-              dlog('[ShotState] pose-triggered but ball not moving up (ΔY=' +
-                   ballDeltaY.toFixed(3) + ') — rejecting');
-              return;
-            }
-          }
-          // If we have fewer than 3 history points we can't judge velocity;
-          // err on the side of accepting (consistent with original behavior).
+          self._poseStats.triggers++;
+          self._poseStats.lastConfidence = motion.releaseConfidence;
 
           var sx = (pose.landmarks[15].y < pose.landmarks[16].y ? pose.landmarks[15] : pose.landmarks[16]);
           self._shotState         = 'shot_started';
@@ -964,8 +900,9 @@
           self._shooterFeetX      = motion.shooterCenterX;
           self._shooterFeetY      = motion.shooterCenterY;
           self._shotTrajectory    = [];   // Phase L2: reset trajectory for this shot
-          self._ballYHistory      = [];   // L4c: reset velocity buffer; next shot rebuilds it
-          self._postCrossing      = null; // L6: reset post-crossing watch
+          self._postCrossingWatch = null; // L9.2: clear any stale watch state
+          self._lastShotReason    = 'TRIGGER conf=' + motion.releaseConfidence.toFixed(2) +
+                                    ' hand=' + (motion.shootingHand || '?');
           dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
         }
       }
@@ -1393,8 +1330,60 @@
       var hoopKeep   = this._greedyNMS(hoopCandidates,   NMS_THRESH);
       var playerKeep = this._greedyNMS(playerCandidates, NMS_THRESH);
 
-      // Store latest hoop detection for auto rim-lock
+      // Store latest hoop detection for auto rim-lock (use UNFILTERED hoopKeep
+      // here — the auto-lock needs the strongest raw signal). We rebuild a
+      // filtered list separately below for the overlay.
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
+
+      // ── L10.4: Rim-zone-aware false-ball filter ──
+      // The v6_polished model produces 30-50% ball scores on the basketball
+      // rim itself, on logos painted on the wall, and on other round-orange
+      // objects. These pass BALL_CONFIDENCE=0.05 easily and pollute the
+      // tracker. The classic fix is to retrain — but until then we can
+      // suppress most false positives at runtime: any ball detection inside
+      // the locked rim zone (and adjacent areas) is rejected unless a shot
+      // is actively in progress (shot_started / near_hoop), since that's
+      // the only legitimate moment for the ball to be at rim level.
+      var rim = this.rimZone;
+      if (rim && this._rimStabilized) {
+        var inShotState = (this._shotState === 'shot_started' || this._shotState === 'near_hoop');
+        if (!inShotState) {
+          // Expanded rim zone — catches balls "on the rim" plus a small
+          // halo around it. Tuned to also catch logos painted just below
+          // the rim (e.g. the Oregon "O" in the user's test video).
+          var rimNX = rim.centerX, rimNY = rim.centerY;
+          var rimNW = rim.width  || 0.10;
+          var rimNH = rim.height || 0.04;
+          var expL = rimNX - rimNW * 1.5;
+          var expR = rimNX + rimNW * 1.5;
+          var expT = rimNY - rimNH * 4.0;
+          var expB = rimNY + rimNH * 6.0;  // extends DOWN to cover wall logos
+          ballKeep = ballKeep.filter(function (b) {
+            var bxN = b.cx / pw;
+            var byN = b.cy / ph;
+            var insideExpRim = (bxN >= expL && bxN <= expR && byN >= expT && byN <= expB);
+            return !insideExpRim;
+          });
+        }
+      }
+
+      // ── L10.5: Hide stale HOOP detections far from the locked rim ──
+      // After auto-rim-lock, per-frame YOLOX hoop detections that appear far
+      // from the locked position (e.g. scoreboard area, ceiling beams) are
+      // hallucinations. They don't affect logic (state machine uses the
+      // locked rimZone), but they confuse the user visually. Filter for the
+      // overlay only — the auto-lock above already grabbed _lastHoopDetection
+      // from the unfiltered list before this point.
+      var hoopKeepDisplay = hoopKeep;
+      if (rim && this._rimStabilized) {
+        var rimNXh = rim.centerX, rimNYh = rim.centerY;
+        var MAX_HOOP_DRIFT = 0.20; // 20% of normalized frame distance
+        hoopKeepDisplay = hoopKeep.filter(function (h) {
+          var hxN = h.cx / pw, hyN = h.cy / ph;
+          var dx = hxN - rimNXh, dy = hyN - rimNYh;
+          return Math.sqrt(dx * dx + dy * dy) <= MAX_HOOP_DRIFT;
+        });
+      }
 
       // Store latest player detections — top 3 by score, used to localize the
       // shooter for pose-driven shot zone classification (and to dedupe pose
@@ -1411,7 +1400,7 @@
         var fullVh = (this.videoEl && this.videoEl.videoHeight) || ph;
         this.onDebugFrame({
           balls:        ballKeep,
-          hoops:        hoopKeep,
+          hoops:        hoopKeepDisplay,      // L10.5: filtered for visual clarity
           players:      playerKeep,           // 3-class model adds player detections
           shotState:    this._shotState,
           frameCount:   this._frameCount,
@@ -1419,6 +1408,11 @@
           // trajectory is in NORMALIZED video coords (0..1), same space as rim
           trajectory:   this._shotTrajectory || [],
           lastCrossing: this._lastCrossing || null,
+          // L7 diagnostic: latest pose-trigger/crossing decision + counters.
+          // Lets the debug overlay show "is PoseDetector even seeing shooting
+          // motion?" — distinguishes a missed trigger from a downstream drop.
+          lastShotReason: this._lastShotReason || null,
+          poseStats:    this._poseStats     || null,
           procW:        pw,
           procH:        ph,
           videoW:       fullVw,
@@ -1509,25 +1503,18 @@
         window.AdaptiveLearning.onBallDetected(this._canvas, this._ctx, canvasX, canvasY);
       }
 
-      // ── Phase L2 + L6: Ball-through-rim made/miss detector ──
-      // While a shot is in flight, track the ball's normalized position
-      // and check for a downward crossing of the rim's Y line.
-      //
-      // L6 evolution: the first crossing alone is unreliable — outdoor
-      // hoops with no net often have the ball touch the inner rim on
-      // entry (first crossing fires THERE, near the rim edge, may be
-      // outside the made threshold), then bounce around inside the
-      // rim, then fall through. The first-crossing X reported MISS for
-      // shots that clearly went in.
-      //
-      // Fix: when the first crossing fires, DON'T finalize. Open a
-      // POST_CROSSING_WATCH_MS window and keep recording ball positions.
-      // When the window expires (or the ball is clearly far below the
-      // rim), judge the shot based on the LOWEST point reached in that
-      // window — that's where the ball actually settled. A real made
-      // shot reaches a point well below the rim AND within the rim X
-      // bounds; a brick-off-the-rim that didn't go in has its lowest
-      // point either above the rim or far outside the rim X.
+      // ── Phase L2 + L9.1 + L9.2: Ball-through-rim made/miss ──
+      // L9.1: madeThresh widened 1.6 → 2.0 × rimHalfW (user feedback: makes
+      // were being classified as miss with the tighter sliver).
+      // L9.2: "improvement-only" post-crossing watch (100ms). After the first
+      // downward Y-crossing of the rim line, we keep looking for a subsequent
+      // ball position with SMALLER distFromRim. This handles outdoor no-net
+      // shots that glance the front rim (first crossing X is at the rim edge,
+      // ball then falls cleanly toward center). Two guards prevent false
+      // MADE from rim-bounce-and-out misses:
+      //   1. Ball Y must keep increasing (no upward bounces during window)
+      //   2. Once distFromRim starts INCREASING again, end watch (ball
+      //      moving away from rim center → use the best so far)
       if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
           this.rimZone && this._rimStabilized) {
         if (!this._shotTrajectory) this._shotTrajectory = [];
@@ -1537,78 +1524,93 @@
         var rimY = this.rimZone.centerY;
         var rimX = this.rimZone.centerX;
         var rimHalfW = (this.rimZone.width || 0.08) / 2;
-        var madeThresh = rimHalfW * 1.6;
-        var POST_CROSSING_WATCH_MS = 350;
-        var POST_CROSSING_DEEP_BELOW = rimY + 0.06;  // ball clearly past rim
+        var madeThresh = rimHalfW * 2.0;  // L9.1: was 1.6, widened for no-net outdoor rims
 
-        // ── Phase 1: detect first crossing, enter watch mode ──
-        if (!this._postCrossing && this._shotTrajectory.length >= 2) {
+        // L9.2: post-crossing watch state
+        var POST_CROSSING_WATCH_MS = 100;
+
+        // Phase 1: detect first downward crossing → open watch
+        if (!this._postCrossingWatch && this._shotTrajectory.length >= 2) {
           var prev = this._shotTrajectory[this._shotTrajectory.length - 2];
           var curr = this._shotTrajectory[this._shotTrajectory.length - 1];
           if (prev.y < rimY && curr.y >= rimY) {
-            // Compute the X at the crossing point (still useful as one data point)
             var dyTotal = curr.y - prev.y;
             var ratio = dyTotal > 1e-6 ? (rimY - prev.y) / dyTotal : 0;
             var crossingX = prev.x + ratio * (curr.x - prev.x);
-            this._postCrossing = {
-              t0: Date.now(),
-              initialCrossX: crossingX,
-              // Track the LOWEST point (max Y) reached during the watch window
-              lowestY: curr.y,
-              lowestX: curr.x,
-              samples: 1
+            var distFromRim = Math.abs(crossingX - rimX);
+            // Open the 100ms watch with this crossing as the starting "best".
+            this._postCrossingWatch = {
+              t0:        Date.now(),
+              bestDist:  distFromRim,
+              bestX:     crossingX,
+              bestY:     rimY,
+              lastY:     curr.y,
+              samples:   1,
+              rimY: rimY, rimX: rimX, madeThresh: madeThresh
             };
-            dlog('[ShotState] ball entered rim level at x=' + crossingX.toFixed(3) +
-                 ' — opening post-crossing watch');
+            dlog('[ShotState] first crossing at x=' + crossingX.toFixed(3) +
+                 ' dist=' + distFromRim.toFixed(3) + ' — opening 100ms watch');
           }
         }
 
-        // ── Phase 2: watch window active — update lowest point ──
-        if (this._postCrossing) {
-          if (normY > this._postCrossing.lowestY) {
-            this._postCrossing.lowestY = normY;
-            this._postCrossing.lowestX = normX;
+        // Phase 2: during watch, try to improve the decision
+        if (this._postCrossingWatch) {
+          var pc = this._postCrossingWatch;
+          var nowMs = Date.now();
+          var elapsed = nowMs - pc.t0;
+
+          // Guard A: ball Y must keep increasing (no upward bounce). If it
+          // bounces up, end the watch immediately — current best is final.
+          var ballBouncedUp = normY < pc.lastY - 0.005; // 0.5% slack for jitter
+          if (!ballBouncedUp) {
+            var newDist = Math.abs(normX - pc.rimX);
+            if (newDist < pc.bestDist) {
+              // Improvement found — update best.
+              pc.bestDist = newDist;
+              pc.bestX    = normX;
+              pc.bestY    = normY;
+              dlog('[ShotState] L6-lite improved: dist ' +
+                   pc.bestDist.toFixed(3) + ' (closer to rim center)');
+            }
+            // Guard B: if ball is now MOVING AWAY (newDist > bestDist by
+            // meaningful margin), end watch — ball isn't going to settle
+            // better than we already have.
+            else if (newDist > pc.bestDist + 0.01) {
+              elapsed = POST_CROSSING_WATCH_MS; // force end
+            }
+            pc.lastY = normY;
+            pc.samples++;
+          } else {
+            elapsed = POST_CROSSING_WATCH_MS; // force end on bounce-up
           }
-          this._postCrossing.samples++;
 
-          // Resolve when window expires OR ball is clearly past the rim
-          var elapsedPC = Date.now() - this._postCrossing.t0;
-          var ballClearlyPast = normY >= POST_CROSSING_DEEP_BELOW;
-          if (elapsedPC >= POST_CROSSING_WATCH_MS || ballClearlyPast) {
-            // Judge on the LOWEST point reached during the watch.
-            var pcLowX = this._postCrossing.lowestX;
-            var pcLowY = this._postCrossing.lowestY;
-            var distFromRim = Math.abs(pcLowX - rimX);
-
-            // Result requires BOTH: lowest X near rim center AND lowest Y
-            // clearly below the rim (ball fell through, not just glanced
-            // off the top). A ball that hit the rim and bounced back UP
-            // would have lowestY barely past rim Y — that's a miss.
-            var deepEnough = pcLowY >= rimY + 0.025;  // 2.5% past rim
-            var insideRim  = distFromRim <= madeThresh;
-            var result = (deepEnough && insideRim) ? 'made' : 'missed';
-            var conf = deepEnough ? Math.max(0, 1 - distFromRim / madeThresh) : 0;
+          if (elapsed >= POST_CROSSING_WATCH_MS) {
+            var finalDist = pc.bestDist;
+            var finalX    = pc.bestX;
+            var finalThresh = pc.madeThresh;
+            var result = finalDist <= finalThresh ? 'made' : 'missed';
+            var conf = Math.max(0, 1 - finalDist / finalThresh);
 
             this._lastCrossing = {
-              x: pcLowX, y: pcLowY, t: Date.now(),
-              distFromRim: distFromRim, madeThresh: madeThresh,
+              x: finalX, y: pc.bestY, t: nowMs,
+              distFromRim: finalDist, madeThresh: finalThresh,
               result: result, confidence: conf,
-              deepEnough: deepEnough, samples: this._postCrossing.samples
+              samples: pc.samples
             };
+            this._lastShotReason = (result === 'made' ? 'MADE' : 'MISSED') +
+                                   ' dist=' + finalDist.toFixed(3) +
+                                   ' / thresh=' + finalThresh.toFixed(3) +
+                                   ' (samples=' + pc.samples + ')';
 
-            dlog('[ShotState] post-crossing resolved: lowest=(' +
-                 pcLowX.toFixed(3) + ',' + pcLowY.toFixed(3) +
-                 ') rim cx=' + rimX.toFixed(3) +
-                 ' dist=' + distFromRim.toFixed(3) +
-                 ' thresh=' + madeThresh.toFixed(3) +
-                 ' deepEnough=' + deepEnough +
-                 ' → ' + result);
+            dlog('[ShotState] watch resolved: bestDist=' + finalDist.toFixed(3) +
+                 ' thresh=' + finalThresh.toFixed(3) +
+                 ' samples=' + pc.samples + ' → ' + result);
 
             var feetX = this._shooterFeetX != null ? this._shooterFeetX : 0.5;
             var feetY = this._shooterFeetY != null ? this._shooterFeetY : 0.8;
-            this._countShot(result, vw, vh, feetX, feetY, Date.now());
-            this._shotTrajectory = [];
-            this._postCrossing = null;
+            this._countShot(result, vw, vh, feetX, feetY, nowMs);
+            this._shotTrajectory   = [];
+            this._postCrossingWatch = null;
             return;
           }
         }
