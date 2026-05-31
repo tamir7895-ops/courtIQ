@@ -793,7 +793,27 @@
     // and a clear made shot scored MISS because the trajectory
     // crossing fired below the actual rim. 0.10 keeps a small downward
     // bias (so we never lock ABOVE the rim) without overshooting.
-    var BBOX_RIM_OFFSET_FRAC = 0.10;  // shift down by 10% of bbox-h → rim ≈ 60% of bbox
+    //
+    // L11: Aspect-ratio-aware offset. Different setups produce different
+    // YOLOX bboxes:
+    //   • Outdoor rim with no backboard visible → bbox tight on the orange
+    //     ring, aspect ratio 3.5+ (wide-flat). Offset 0.10 lands ON the rim.
+    //   • Indoor gym with backboard included → bbox covers backboard+ring,
+    //     aspect ratio 1.5-2 (squarer). Offset 0.10 lands ABOVE the rim
+    //     (in the middle of the backboard) — user-visible bug: makes get
+    //     classified as miss because the trajectory crosses a phantom rim
+    //     line above the real one.
+    // Linear interpolation between aspect 1.5 (offset 0.40) and 3.5 (offset
+    // 0.10). Clamped at both ends.
+    function computeRimOffsetFrac(bw, bh) {
+      var aspect = bw / Math.max(0.001, bh);
+      if (aspect >= 3.5) return 0.10;
+      if (aspect <= 1.5) return 0.40;
+      return 0.40 - (aspect - 1.5) * 0.15;
+    }
+    // Kept for the warm-start path below (saved-calibration restore) which
+    // doesn't have the live bbox dimensions. Effectively a fallback.
+    var BBOX_RIM_OFFSET_FRAC = 0.10;
 
     engine.onHoopDetected = function (hoop) {
       // Reject garbage detections near edges or with impossible size
@@ -890,8 +910,10 @@
         }
         if (maxSpread > 0.06) return;
 
-        // First lock — commit and arm the stabilization timer
-        var anchoredCY = avgCY + avgBH * BBOX_RIM_OFFSET_FRAC;
+        // First lock — commit and arm the stabilization timer.
+        // L11: use aspect-aware offset (see computeRimOffsetFrac above).
+        var lockOffsetFrac = computeRimOffsetFrac(avgBW, avgBH);
+        var anchoredCY = avgCY + avgBH * lockOffsetFrac;
         rimCenter = { x: avgCX, y: anchoredCY };
         rimSize = {
           w: Math.min(Math.max(avgBW, 0.08), 0.25),
@@ -920,7 +942,9 @@
         saveCalibration();
 
         console.log('[ShotTracker] Auto-lock at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
-          ') [bbox cy=' + avgCY.toFixed(3) + ', +' + (avgBH * BBOX_RIM_OFFSET_FRAC).toFixed(3) +
+          ') [bbox cy=' + avgCY.toFixed(3) + ', offset=' + lockOffsetFrac.toFixed(2) +
+          ' (aspect=' + (avgBW / Math.max(0.001, avgBH)).toFixed(2) + ')' +
+          ', shift=+' + (avgBH * lockOffsetFrac).toFixed(3) +
           '] from ' + hoopBuffer.length + ' detections');
         return;
       }
@@ -932,7 +956,11 @@
       var st = engine._shotState;
       if (st === 'shot_started' || st === 'near_hoop') return;
 
-      var anchoredCYNew = hoop.cy + hoop.bh * BBOX_RIM_OFFSET_FRAC;
+      // L11: live EMA also uses aspect-aware offset, so per-frame bbox
+      // shape changes (e.g. ball briefly inside the rim) tighten/loosen
+      // the anchor toward the real ring.
+      var emaOffsetFrac = computeRimOffsetFrac(hoop.bw, hoop.bh);
+      var anchoredCYNew = hoop.cy + hoop.bh * emaOffsetFrac;
       var newW = Math.min(Math.max(hoop.bw, 0.08), 0.25);
       var newH = Math.min(Math.max(hoop.bh, 0.03), 0.15);
       var a = RIM_EMA_ALPHA;
