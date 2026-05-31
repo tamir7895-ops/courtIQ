@@ -844,7 +844,7 @@
       // we EMA on every accepted detection for smooth tracking. Buffer
       // is enlarged so the clustering pass has more data to work with.
       if (!rimLocked) {
-        hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score });
+        hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score, colorRefined: !!hoop.colorRefined });
         if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
         if (hoopBuffer.length < 3) return;
 
@@ -912,7 +912,18 @@
 
         // First lock — commit and arm the stabilization timer.
         // L11: use aspect-aware offset (see computeRimOffsetFrac above).
-        var lockOffsetFrac = computeRimOffsetFrac(avgBW, avgBH);
+        // L11.2: when the engine reports colorRefined=true the cy is already
+        // snapped to the orange-ring band — applying the offset again would
+        // push it BELOW the real rim. Skip offset entirely for color-refined
+        // detections. We treat the buffer's MAJORITY as the trustworthy
+        // signal: if most samples were color-refined, trust the average cy
+        // directly.
+        var colorRefinedCount = 0;
+        for (var hRi = 0; hRi < winner.items.length; hRi++) {
+          if (winner.items[hRi].colorRefined) colorRefinedCount++;
+        }
+        var mostColorRefined = colorRefinedCount * 2 >= winner.items.length;
+        var lockOffsetFrac = mostColorRefined ? 0 : computeRimOffsetFrac(avgBW, avgBH);
         var anchoredCY = avgCY + avgBH * lockOffsetFrac;
         rimCenter = { x: avgCX, y: anchoredCY };
         rimSize = {
@@ -958,8 +969,9 @@
 
       // L11: live EMA also uses aspect-aware offset, so per-frame bbox
       // shape changes (e.g. ball briefly inside the rim) tighten/loosen
-      // the anchor toward the real ring.
-      var emaOffsetFrac = computeRimOffsetFrac(hoop.bw, hoop.bh);
+      // the anchor toward the real ring. L11.2: skip offset when the
+      // engine already snapped cy to the orange ring.
+      var emaOffsetFrac = hoop.colorRefined ? 0 : computeRimOffsetFrac(hoop.bw, hoop.bh);
       var anchoredCYNew = hoop.cy + hoop.bh * emaOffsetFrac;
       var newW = Math.min(Math.max(hoop.bw, 0.08), 0.25);
       var newH = Math.min(Math.max(hoop.bh, 0.03), 0.15);
