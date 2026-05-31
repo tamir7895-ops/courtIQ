@@ -1073,7 +1073,11 @@
           self.onHoopDetected({
             cx: (h.cx * scaleX + offsetX) / vw, cy: (h.cy * scaleY + offsetY) / vh,
             bw: (h.bw * scaleX) / vw, bh: (h.bh * scaleY) / vh,
-            score: h.score
+            score: h.score,
+            // L11.2: propagate "color refinement succeeded" so the auto-lock
+            // skips the BBOX_RIM_OFFSET_FRAC adjustment (which would over-
+            // shoot when cy is already snapped to the orange ring).
+            colorRefined: !!h.colorRefined
           });
         }
 
@@ -1333,6 +1337,19 @@
       // Store latest hoop detection for auto rim-lock (use UNFILTERED hoopKeep
       // here — the auto-lock needs the strongest raw signal). We rebuild a
       // filtered list separately below for the overlay.
+      //
+      // L11.2: refine the hoop Y by searching for the canonical ORANGE rim
+      // ring color downward from the YOLOX bbox. YOLOX sometimes detects
+      // the backboard top / clamp area instead of the rim itself (especially
+      // on indoor gym setups). Percentage-of-bbox offsets can't fix this
+      // when the gap between bbox and real rim is larger than the bbox
+      // itself. Snapping to the orange band gives us the actual rim Y.
+      if (hoopKeep.length > 0) {
+        var refined = this._refineHoopByOrange(hoopKeep[0], pw, ph);
+        // Replace the first detection in-place so onDebugFrame also shows
+        // the corrected position, not just the auto-lock pipeline.
+        hoopKeep[0] = refined;
+      }
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
       // ── L10.4: Rim-zone-aware false-ball filter ──
@@ -1425,6 +1442,82 @@
       }
 
       return ballKeep.length > 0 ? ballKeep[0] : null;
+    },
+
+    /* ── L11.2: Refine hoop Y by orange-rim color search ─────────
+       YOLOX sometimes anchors the hoop bbox on the backboard top or the
+       clamp/truss above the actual orange ring. Percentage-of-bbox offsets
+       can't compensate when the gap is larger than the bbox itself.
+       Strategy: scan a vertical strip below the bbox (and a bit above for
+       safety) within the bbox's X range. For each row, count pixels
+       matching the canonical basketball-orange test. The row with peak
+       orange density is the rim's actual Y. If no strong orange band is
+       found (e.g. partially occluded, weird lighting, B&W footage) we
+       return the original hoop — the L11.1 aspect-aware offset still
+       applies downstream.
+       ────────────────────────────────────────────────────────────── */
+    _refineHoopByOrange: function (hoop, pw, ph) {
+      if (!hoop || !this._ctx) return hoop;
+
+      var ctx = this._ctx;
+      var cx = hoop.cx, cy = hoop.cy, bw = hoop.bw, bh = hoop.bh;
+
+      // Scan region: from a bit above the bbox top down ~15% of frame.
+      // Width matches the bbox plus a small horizontal margin so we catch
+      // ring edges when the bbox is slightly off-center.
+      var scanTop    = Math.max(0,  Math.floor(cy - bh * 0.6));
+      var scanBottom = Math.min(ph - 1, Math.floor(cy + bh * 0.6 + ph * 0.15));
+      var margin     = Math.max(2, Math.floor(bw * 0.10));
+      var scanLeft   = Math.max(0,  Math.floor(cx - bw / 2 - margin));
+      var scanRight  = Math.min(pw, Math.floor(cx + bw / 2 + margin));
+      var scanW      = scanRight - scanLeft;
+      var scanH      = scanBottom - scanTop;
+      if (scanW < 5 || scanH < 5) return hoop;
+
+      var data;
+      try {
+        data = ctx.getImageData(scanLeft, scanTop, scanW, scanH).data;
+      } catch (e) {
+        return hoop;  // permission error or canvas tainted
+      }
+
+      // For each row, count orange pixels. Same color test as _verifyOrange.
+      var bestRow = -1;
+      var maxOrange = 0;
+      // Require the rim band to be at least 8% of the row width — anything
+      // less is likely noise rather than a real ring.
+      var minOrangeCount = Math.max(3, Math.floor(scanW * 0.08));
+
+      for (var ry = 0; ry < scanH; ry++) {
+        var rowStart = ry * scanW * 4;
+        var count = 0;
+        for (var rx = 0; rx < scanW; rx++) {
+          var idx = rowStart + rx * 4;
+          var r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
+            count++;
+          }
+        }
+        if (count > maxOrange) {
+          maxOrange = count;
+          bestRow = ry;
+        }
+      }
+
+      if (bestRow >= 0 && maxOrange >= minOrangeCount) {
+        var refinedCy = scanTop + bestRow;
+        // Stash flag so downstream knows the position came from a color
+        // search, not just the YOLOX bbox center. ShotTrackingScreen uses
+        // this to skip the BBOX_RIM_OFFSET_FRAC adjustment (which would
+        // over-shoot when the position is already on the orange).
+        return {
+          cx: cx, cy: refinedCy, bw: bw, bh: bh, score: hoop.score,
+          colorRefined: true,
+          colorMass:    maxOrange
+        };
+      }
+
+      return hoop;
     },
 
     /* ── Orange color verification for low-confidence ML hits ─── */
