@@ -88,9 +88,17 @@
   var streak        = 0;
   var maxStreak     = 0;
 
-  // Debug overlay state
-  var debugMode = false;
+  // Debug overlay state.
+  // Currently ALWAYS-ON during development — the user wants to see the
+  // pose skeleton, ball/hoop/player boxes, trajectory + crossing point
+  // while tuning the model. Once accuracy is dialed in we flip this
+  // back to `false` so end users get a clean view. The 🐛 toggle still
+  // works as an override mid-session.
+  var debugMode = true;
   var debugData = { balls: [], hoops: [], shotState: 'idle', frameCount: 0 };
+  // L9.3: latest shot banner — fades out after 3s. Holds the actual dist/thresh
+  // values so the user can see WHY a shot was classified made/missed.
+  var lastShotBanner = null;
 
   // DOM refs (populated in buildHTML)
   var els = {};
@@ -254,6 +262,10 @@
       els.debugToggle.classList.toggle('active', debugMode);
       els.debugPanel.classList.toggle('active', debugMode);
     });
+    // Reflect the initial debugMode in the toggle UI (always-on by default
+    // during the tuning phase — see debugMode declaration).
+    els.debugToggle.classList.toggle('active', debugMode);
+    els.debugPanel.classList.toggle('active', debugMode);
     // Keep canvas aligned with the displayed video on browser resize,
     // device rotation, or app entering/leaving fullscreen. resizeCanvas
     // is cheap (a few math ops + a couple style writes) so debouncing
@@ -770,12 +782,18 @@
     var hoopBuffer = [];
     var HOOP_BUFFER_SIZE = 5;
 
-    // The detected hoop bbox often covers backboard-and-rim or just the
-    // rim itself — we can't tell which from confidence alone. Pulling the
-    // rim estimate down to 75% of the bbox height (bottom quarter) lands
-    // close to the real rim either way, and never above it. Manual taps
-    // in onRimTap write the user's exact (x,y) — this offset is auto-only.
-    var BBOX_RIM_OFFSET_FRAC = 0.25;  // shift down by 25% of bbox-h → rim ≈ 75% of bbox
+    // The detected hoop bbox: with the v71 2-class model the hoop
+    // annotations frequently covered the full backboard, so a 0.25
+    // offset was needed to pull the estimated rim Y down to the
+    // bottom quarter. The v6_polished 3-class model was trained on
+    // cleaned annotations where huge "hoop"-tagged backboards were
+    // dropped (Phase G), so the bbox is much closer to the actual rim
+    // ring. A real-device test (outdoor screen recording) showed the
+    // 0.25 offset pushed the rim Y noticeably below the visible ring,
+    // and a clear made shot scored MISS because the trajectory
+    // crossing fired below the actual rim. 0.10 keeps a small downward
+    // bias (so we never lock ABOVE the rim) without overshooting.
+    var BBOX_RIM_OFFSET_FRAC = 0.10;  // shift down by 10% of bbox-h → rim ≈ 60% of bbox
 
     engine.onHoopDetected = function (hoop) {
       // Reject garbage detections near edges or with impossible size
@@ -1028,6 +1046,22 @@
   function onShotDetected(data) {
     if (window.TrailRenderer) TrailRenderer.snapshotArc(data.result);
     var isMade = data.result === 'made';
+    // L9.3: capture the made/miss decision for the on-screen banner. Reads
+    // _lastCrossing off the engine — it has the actual dist/thresh values
+    // that drove the decision.
+    var engRefBanner = window.ShotDetectionEngine;
+    var lc = engRefBanner && engRefBanner._lastCrossing ? engRefBanner._lastCrossing : null;
+    if (lc) {
+      lastShotBanner = {
+        result:   data.result,
+        dist:     lc.distFromRim,
+        thresh:   lc.madeThresh,
+        ratio:    lc.distFromRim / (lc.madeThresh || 1),
+        t:        Date.now()
+      };
+    } else {
+      lastShotBanner = { result: data.result, dist: null, thresh: null, ratio: null, t: Date.now() };
+    }
 
     // Record shot with launch point and zone
     var userId = window.currentUser ? window.currentUser.id : 'anonymous';
@@ -1382,6 +1416,37 @@
           canvasCtx.fillStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
           canvasCtx.fillText(rimLbl, 6, rimDY - 4);
 
+          // L9.3: BIG rim-center X marker + made-threshold bracket so the user
+          // can see exactly where the algorithm thinks the rim center is and
+          // how wide the "made" zone is. Without this, off-center rim auto-
+          // lock looks identical to a real miss.
+          var madeThresh = rimDW * 1.0; // displayed as 2.0×rimHalfW = 1.0×rimDW
+          canvasCtx.save();
+          canvasCtx.strokeStyle = '#00ff88';
+          canvasCtx.lineWidth = 3;
+          // Crosshair at rim center
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(rimDX - 14, rimDY - 14);
+          canvasCtx.lineTo(rimDX + 14, rimDY + 14);
+          canvasCtx.moveTo(rimDX + 14, rimDY - 14);
+          canvasCtx.lineTo(rimDX - 14, rimDY + 14);
+          canvasCtx.stroke();
+          // Made-threshold bracket — vertical lines at ±madeThresh
+          canvasCtx.strokeStyle = 'rgba(0,255,136,0.6)';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.setLineDash([3, 3]);
+          canvasCtx.beginPath();
+          canvasCtx.moveTo(rimDX - madeThresh, rimDY - 30);
+          canvasCtx.lineTo(rimDX - madeThresh, rimDY + 30);
+          canvasCtx.moveTo(rimDX + madeThresh, rimDY - 30);
+          canvasCtx.lineTo(rimDX + madeThresh, rimDY + 30);
+          canvasCtx.stroke();
+          canvasCtx.setLineDash([]);
+          canvasCtx.fillStyle = '#00ff88';
+          canvasCtx.font = 'bold 10px monospace';
+          canvasCtx.fillText('MADE ZONE', rimDX - madeThresh, rimDY - 34);
+          canvasCtx.restore();
+
           // near_hoop zone — dashed yellow rectangle centred on rim
           // (matches the state-machine geometry: ±1.5 rim widths
           // horizontally, ±2.5 rim heights vertically)
@@ -1555,18 +1620,154 @@
           }
         }
 
+        // Draw player detections (cyan boxes) — only added for the 3-class
+        // v6_polished model. Cap to top-3 so even crowded NBA-style frames
+        // don't get cluttered.
+        if (dd.players && dd.players.length) {
+          var PLAYER_OVERLAY_MIN = 0.35;
+          var PLAYER_OVERLAY_TOPN = 3;
+          var playersTop = dd.players
+            .filter(function(p){ return p.score >= PLAYER_OVERLAY_MIN; })
+            .sort(function(a,b){ return b.score - a.score; })
+            .slice(0, PLAYER_OVERLAY_TOPN);
+          for (var pi = 0; pi < playersTop.length; pi++) {
+            var pp = playersTop[pi];
+            var ppx = toDispX(pp.cx);
+            var ppy = toDispY(pp.cy);
+            var ppw = toDispW(pp.bw);
+            var pph = toDispH(pp.bh);
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#00e5ff';
+            canvasCtx.lineWidth = pi === 0 ? 3 : 2;
+            canvasCtx.strokeRect(ppx - ppw/2, ppy - pph/2, ppw, pph);
+            canvasCtx.fillStyle = pi === 0 ? 'rgba(0,229,255,0.12)' : 'rgba(0,229,255,0.06)';
+            canvasCtx.fillRect(ppx - ppw/2, ppy - pph/2, ppw, pph);
+            var pLabel = 'PLAYER ' + (pp.score * 100).toFixed(0) + '%';
+            canvasCtx.font = 'bold 12px monospace';
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.fillRect(ppx - ppw/2, ppy - pph/2 - 18, canvasCtx.measureText(pLabel).width + 8, 18);
+            canvasCtx.fillStyle = '#00e5ff';
+            canvasCtx.fillText(pLabel, ppx - ppw/2 + 4, ppy - pph/2 - 4);
+            canvasCtx.restore();
+          }
+        }
+
+        // ── Phase L3: Ball trajectory + crossing-point overlay ──
+        // Trajectory points are in normalized video coords (0..1) — same
+        // space as rim. Map straight to canvas via cw/ch (the canvas is
+        // already sized to the displayed video area, no crop step needed).
+        if (dd.trajectory && dd.trajectory.length >= 2) {
+          canvasCtx.save();
+          // Draw the path as a fading polyline (newest segments brighter).
+          for (var ti = 1; ti < dd.trajectory.length; ti++) {
+            var a = dd.trajectory[ti - 1];
+            var b = dd.trajectory[ti];
+            var alpha = 0.25 + 0.75 * (ti / dd.trajectory.length); // fade tail
+            canvasCtx.strokeStyle = 'rgba(255,255,255,' + alpha.toFixed(2) + ')';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(a.x * cw, a.y * ch);
+            canvasCtx.lineTo(b.x * cw, b.y * ch);
+            canvasCtx.stroke();
+          }
+          // Mark the head of the trajectory (most recent ball position).
+          var head = dd.trajectory[dd.trajectory.length - 1];
+          canvasCtx.fillStyle = '#fff';
+          canvasCtx.beginPath();
+          canvasCtx.arc(head.x * cw, head.y * ch, 5, 0, Math.PI * 2);
+          canvasCtx.fill();
+          canvasCtx.restore();
+        }
+
+        // L9.3: BIG made/missed banner across the top of the canvas for 3s
+        // after each shot. Shows the actual dist/thresh values so the user
+        // can immediately see WHY the algorithm decided MADE or MISSED.
+        if (lastShotBanner) {
+          var bSince = Date.now() - lastShotBanner.t;
+          if (bSince < 3000) {
+            var bFade = bSince < 2700 ? 1 : (1 - (bSince - 2700) / 300);
+            var bMade = lastShotBanner.result === 'made';
+            canvasCtx.save();
+            // Background bar — green for made, red for miss
+            canvasCtx.fillStyle = (bMade ? 'rgba(0,200,100,' : 'rgba(220,40,40,') + (bFade * 0.85).toFixed(2) + ')';
+            canvasCtx.fillRect(0, 0, cw, 64);
+            // Big main label
+            canvasCtx.fillStyle = 'rgba(255,255,255,' + bFade.toFixed(2) + ')';
+            canvasCtx.font = 'bold 32px monospace';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText(bMade ? '✓ MADE' : '✗ MISSED', cw / 2, 38);
+            // Sub-line with dist/thresh — only if we have the numbers
+            if (lastShotBanner.dist != null && lastShotBanner.thresh != null) {
+              canvasCtx.font = 'bold 14px monospace';
+              var pct = (lastShotBanner.ratio * 100).toFixed(0);
+              var sub = 'dist=' + (lastShotBanner.dist * 100).toFixed(1) + '% ' +
+                        'thresh=' + (lastShotBanner.thresh * 100).toFixed(1) + '% ' +
+                        '(' + pct + '% of thresh)';
+              canvasCtx.fillText(sub, cw / 2, 58);
+            }
+            canvasCtx.textAlign = 'left';
+            canvasCtx.restore();
+          }
+        }
+
+        // Draw the last crossing point as a big circle, color-coded by
+        // result, so we can see WHERE the ball passed the rim line.
+        // Fades out after 2 seconds — no point staring at old crossings.
+        if (dd.lastCrossing) {
+          var since = Date.now() - dd.lastCrossing.t;
+          if (since < 2000) {
+            var fade = 1 - since / 2000;
+            var color = dd.lastCrossing.result === 'made' ? '0,255,136' : '255,68,68';
+            canvasCtx.save();
+            canvasCtx.strokeStyle = 'rgba(' + color + ',' + fade.toFixed(2) + ')';
+            canvasCtx.fillStyle   = 'rgba(' + color + ',' + (fade * 0.25).toFixed(2) + ')';
+            canvasCtx.lineWidth = 4;
+            var cxPx = dd.lastCrossing.x * cw;
+            var cyPx = dd.lastCrossing.y * ch;
+            var rPx  = 22 + (1 - fade) * 30;  // pulse outward as it fades
+            canvasCtx.beginPath();
+            canvasCtx.arc(cxPx, cyPx, rPx, 0, Math.PI * 2);
+            canvasCtx.stroke();
+            canvasCtx.fill();
+            canvasCtx.font = 'bold 14px monospace';
+            canvasCtx.fillStyle = 'rgba(' + color + ',' + fade.toFixed(2) + ')';
+            var crossLbl = dd.lastCrossing.result.toUpperCase() +
+              ' (Δ=' + (dd.lastCrossing.distFromRim * 100).toFixed(1) + '%)';
+            canvasCtx.fillText(crossLbl, cxPx + rPx + 6, cyPx + 5);
+            canvasCtx.restore();
+          }
+        }
+
         // Update debug info panel
         if (els.debugInfo && dd.frameCount % 5 === 0) {
           var stateColor = dd.shotState === 'idle' ? '#888' :
                            dd.shotState === 'shot_started' ? '#ffaa00' :
                            dd.shotState === 'near_hoop' ? '#00ff88' : '#ff4444';
+          // L7 diagnostic: pose-trigger counters + last decision reason
+          var psHtml = '';
+          if (dd.poseStats) {
+            var ps = dd.poseStats;
+            var trigPct = ps.checks > 0 ? ((ps.triggers / ps.checks) * 100).toFixed(1) : '0.0';
+            psHtml = '<br><b>Pose:</b> ' + ps.checks + ' checks, ' +
+                     '<span style="color:#00ff88">' + ps.triggers + ' triggers</span> (' + trigPct + '%)' +
+                     ' &nbsp; <b>last conf:</b> ' + (ps.lastConfidence || 0).toFixed(2);
+          }
+          var reasonHtml = dd.lastShotReason
+            ? '<br><b>Last decision:</b> <span style="color:#facc15">' + dd.lastShotReason + '</span>'
+            : '';
           els.debugInfo.innerHTML =
             '<b>Frame:</b> ' + dd.frameCount +
             ' &nbsp; <b>State:</b> <span style="color:' + stateColor + '">' + (dd.shotState || 'idle') + '</span>' +
             '<br><b>Balls:</b> ' + (dd.balls ? dd.balls.length : 0) +
             ' &nbsp; <b>Hoops:</b> ' + (dd.hoops ? dd.hoops.length : 0) +
+            ' &nbsp; <b>Players:</b> ' + (dd.players ? dd.players.length : 0) +
             (dd.balls && dd.balls[0] ? '<br><b>Best ball:</b> ' + (dd.balls[0].score * 100).toFixed(1) + '%' : '') +
             (dd.hoops && dd.hoops[0] ? ' &nbsp; <b>Best hoop:</b> ' + (dd.hoops[0].score * 100).toFixed(1) + '%' : '') +
+            (dd.players && dd.players[0] ? ' &nbsp; <b>Best player:</b> ' + (dd.players[0].score * 100).toFixed(1) + '%' : '') +
+            '<br><b>Trajectory:</b> ' + (dd.trajectory ? dd.trajectory.length : 0) + ' points' +
+            (dd.lastCrossing ? ' &nbsp; <b>Last crossing:</b> <span style="color:' + (dd.lastCrossing.result === 'made' ? '#00ff88' : '#ff4444') + '">' + dd.lastCrossing.result + ' (Δ=' + (dd.lastCrossing.distFromRim * 100).toFixed(1) + '%)</span>' : '') +
+            psHtml +
+            reasonHtml +
             (currentBall ? '<br><b>Track:</b> ' + currentBall.source + ' (' + currentBall.normX.toFixed(2) + ', ' + currentBall.normY.toFixed(2) + ')' : '');
         }
       }
