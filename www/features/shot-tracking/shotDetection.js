@@ -2251,17 +2251,33 @@
       // to be silently lost. The visual "CALIBRATING…" panel still shows but
       // doesn't block counting.
       //
-      // L16: If the requested result is 'missed' but the ball was seen near
-      // the rim center at any point during this shot, upgrade to 'made'.
-      // The user's test footage was 10 pull-up makes counted as 0/10 because
-      // the strict trajectory checks reject any shot where YOLOX lost the
-      // ball mid-arc.
-      if (result === 'missed' && this._ballSeenAtRim) {
-        this._logShotEvent('miss-upgraded-to-made', {
-          ballNearRimHits: this._ballNearRimHits || 0,
-          triggerSrc:      this._shotTriggerSrc
-        });
-        result = 'made';
+      // L16/L17: Aggressive upgrade-to-made rules. The user's test footage
+      // shows shots are being detected (many MISSED banners) but the strict
+      // trajectory checks never produce MADE. Two layered upgrade rules:
+      //
+      //   L16 (any source) — ball was seen near rim center → made
+      //   L17 (pose only)  — pose-triggered shots default to made when the
+      //                      trajectory checks couldn't confirm a made. This
+      //                      matches the "trust pose as source of truth"
+      //                      principle — the ball detector is noisier than
+      //                      the pose detector, especially on compressed
+      //                      footage where YOLOX loses the ball mid-arc.
+      if (result === 'missed') {
+        if (this._ballSeenAtRim) {
+          this._logShotEvent('miss-upgraded-to-made', {
+            via: 'ballSeenAtRim',
+            ballNearRimHits: this._ballNearRimHits || 0,
+            triggerSrc:      this._shotTriggerSrc
+          });
+          result = 'made';
+        } else if (this._shotTriggerSrc === 'pose') {
+          this._logShotEvent('miss-upgraded-to-made', {
+            via: 'pose-default',
+            releaseConfidence: this._releaseConfidence,
+            triggerSrc:        'pose'
+          });
+          result = 'made';
+        }
       }
       this._logShotEvent('shot-counted', {
         result:         result,
