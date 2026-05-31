@@ -1780,6 +1780,13 @@
             canvasCtx.fillStyle = done ? '#00ff88' : '#facc15';
             var status = done ? 'detected' : ('searching ' + Math.min(got, need) + '/' + need);
             canvasCtx.fillText(status, rx + 110, ry);
+            // L12.2: last rejection reason inline
+            var reasons = dd.preflight.checks && dd.preflight.checks.lastReason || null;
+            if (!done && reasons && reasons[r.key]) {
+              canvasCtx.font = '11px monospace';
+              canvasCtx.fillStyle = '#ff7b7b';
+              canvasCtx.fillText('(' + reasons[r.key] + ')', rx + 230, ry);
+            }
           }
           canvasCtx.textAlign = 'left';
           canvasCtx.restore();

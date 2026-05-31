@@ -1363,14 +1363,31 @@
 
       // L12: preflight tally — only counts while still calibrating so the
       // counters stop growing once we're live.
+      // L12.2: each detection runs through a verifier first. Only VALID
+      // detections count. Failed reasons are stashed so the UI can show
+      // why a particular entity is stuck.
       if (!this._preflightReady && this._preflightChecks) {
-        if (ballKeep.length > 0)   this._preflightChecks.ball++;
-        if (hoopKeep.length > 0)   this._preflightChecks.hoop++;
-        if (playerKeep.length > 0) this._preflightChecks.player++;
+        var pf = this._preflightChecks;
+        if (!pf.lastReason) pf.lastReason = { ball: null, hoop: null, player: null };
+        if (hoopKeep.length > 0) {
+          var hv = this._verifyHoopDet(hoopKeep[0], pw, ph);
+          if (hv.valid) { pf.hoop++; pf.lastReason.hoop = null; }
+          else pf.lastReason.hoop = hv.reason;
+        }
+        if (playerKeep.length > 0) {
+          var pv = this._verifyPlayerDet(playerKeep[0], pw, ph);
+          if (pv.valid) { pf.player++; pf.lastReason.player = null; }
+          else pf.lastReason.player = pv.reason;
+        }
+        if (ballKeep.length > 0) {
+          var bv = this._verifyBallDet(ballKeep[0], pw, ph);
+          if (bv.valid) { pf.ball++; pf.lastReason.ball = null; }
+          else pf.lastReason.ball = bv.reason;
+        }
         var t = this._preflightThresholds;
-        if (this._preflightChecks.ball   >= t.ball &&
-            this._preflightChecks.hoop   >= t.hoop &&
-            this._preflightChecks.player >= t.player) {
+        if (pf.ball   >= t.ball &&
+            pf.hoop   >= t.hoop &&
+            pf.player >= t.player) {
           this._preflightReady = true;
           if (typeof this.onPreflightReady === 'function') {
             try { this.onPreflightReady({ elapsedMs: Date.now() - (this._preflightStartedAt || 0) }); }
@@ -1551,6 +1568,106 @@
       }
 
       return hoop;
+    },
+
+    /* ── L12.2: Count orange pixels in an axis-aligned region ──
+       Used by the preflight verifiers below. Stride is set to skip rows
+       and columns so a 200×100 region only inspects ~1000 pixels — fast
+       enough to call every YOLOX frame during preflight without affecting
+       cadence. */
+    _countOrangeInRegion: function (x0, y0, w, h, pw, ph) {
+      if (!this._ctx) return 0;
+      if (x0 < 0) { w += x0; x0 = 0; }
+      if (y0 < 0) { h += y0; y0 = 0; }
+      if (x0 + w > pw) w = pw - x0;
+      if (y0 + h > ph) h = ph - y0;
+      if (w < 2 || h < 2) return 0;
+
+      var data;
+      try { data = this._ctx.getImageData(x0, y0, w, h).data; }
+      catch (e) { return 0; }
+
+      var count = 0;
+      var stride = 2;  // skip every other pixel in both axes
+      for (var yy = 0; yy < h; yy += stride) {
+        for (var xx = 0; xx < w; xx += stride) {
+          var idx = (yy * w + xx) * 4;
+          var r = data[idx], g = data[idx + 1], b = data[idx + 2];
+          if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
+            count++;
+          }
+        }
+      }
+      return count;
+    },
+
+    /* ── L12.2: Per-entity preflight verification ──
+       Each returns { valid: bool, reason: string }. The preflight tally
+       only increments when valid=true so YOLOX false positives can't
+       accidentally satisfy the calibration check. */
+    _verifyHoopDet: function (hoop, pw, ph) {
+      if (!hoop) return { valid: false, reason: 'no-detection' };
+      var cyN = hoop.cy / ph;
+      var bwN = hoop.bw / pw;
+      var bhN = hoop.bh / ph;
+      // Hoops live in the upper 70% of basketball footage — anything
+      // detected in the bottom third is almost certainly something else.
+      if (cyN > 0.70) return { valid: false, reason: 'too-low' };
+      // Size sanity — the rim+backboard takes a sane fraction of frame.
+      if (bwN < 0.04) return { valid: false, reason: 'bbox-too-small' };
+      if (bwN > 0.45) return { valid: false, reason: 'bbox-too-large' };
+      // Color sanity — the rim is orange, so a band of orange should be
+      // visible in or just below the bbox. Skipping this on color-refined
+      // detections (they already proved orange is there).
+      if (!hoop.colorRefined) {
+        var sx = Math.floor(hoop.cx - hoop.bw * 0.5);
+        var sy = Math.floor(hoop.cy - hoop.bh * 0.5);
+        var sw = Math.floor(hoop.bw);
+        var sh = Math.floor(hoop.bh * 1.5 + ph * 0.08);
+        var orange = this._countOrangeInRegion(sx, sy, sw, sh, pw, ph);
+        var areaSampled = (sw / 2) * (sh / 2); // stride=2 in both axes
+        if (orange < areaSampled * 0.015) {
+          return { valid: false, reason: 'no-orange-near-hoop' };
+        }
+      }
+      return { valid: true, reason: null };
+    },
+
+    _verifyPlayerDet: function (player, pw, ph) {
+      if (!player) return { valid: false, reason: 'no-detection' };
+      var cyN = player.cy / ph;
+      var bwN = player.bw / pw;
+      var bhN = player.bh / ph;
+      // Players are anchored to the floor — center in the bottom 2/3.
+      if (cyN < 0.30) return { valid: false, reason: 'too-high' };
+      // Aspect — humans are taller than wide. Allow some slack for crouched
+      // stances during shooting motion.
+      var aspect = bhN / Math.max(0.001, bwN);
+      if (aspect < 0.9) return { valid: false, reason: 'wrong-aspect' };
+      // Size — a player at distance can still be detected, but tiny blobs
+      // are likely something else (a pole, a ball cart, etc.).
+      if (bhN < 0.10) return { valid: false, reason: 'bbox-too-small' };
+      return { valid: true, reason: null };
+    },
+
+    _verifyBallDet: function (ball, pw, ph) {
+      if (!ball) return { valid: false, reason: 'no-detection' };
+      var bwN = ball.bw / pw;
+      var bhN = ball.bh / ph;
+      // Size — basketball is small in frame at all but the closest shots.
+      if (bwN > 0.12) return { valid: false, reason: 'bbox-too-large' };
+      if (bwN < 0.006) return { valid: false, reason: 'bbox-too-small' };
+      // Roundness — balls are roughly square in bbox terms (aspect ≈ 1).
+      var aspect = bwN / Math.max(0.001, bhN);
+      if (aspect < 0.45 || aspect > 2.2) return { valid: false, reason: 'not-round' };
+      // Color — strict orange check via _verifyOrange (reuses the same
+      // pixel test that gates low-confidence ball acceptance later in the
+      // pipeline).
+      var radius = Math.max(ball.bw, ball.bh) * 0.5;
+      if (!this._verifyOrange(ball.cx, ball.cy, radius, pw, ph)) {
+        return { valid: false, reason: 'not-orange' };
+      }
+      return { valid: true, reason: null };
     },
 
     /* ── Orange color verification for low-confidence ML hits ─── */
