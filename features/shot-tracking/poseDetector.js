@@ -61,10 +61,9 @@
     belowLookbackMs:   200,    // wrist must have been below shoulder this long ago
     peakWindowMs:      200,    // window for local-minimum detection
     peakToleranceNorm: 0.025,  // |y_current - y_min| ≤ this means "at peak"
-    cooldownMs:        400,    // L14.A: was 700 — drops back-to-back triggers
-                               // when shots come every 2-3s (pull-up workouts,
-                               // form shooting drills). 400ms still rejects
-                               // wrist-bounce false peaks within a single shot.
+    cooldownMs:        250,    // L15: was 400 — pull-up workouts have shots
+                               // even closer than 2s sometimes. 250ms still
+                               // rejects within-shot wrist-bounce peaks.
     historyMs:         1500,   // how much pose history to retain
     // L8 tuning knob (default 0 = original strict behavior):
     //   wristAboveNose normally requires wrist.y < nose.y. At distance, Pose
@@ -72,7 +71,9 @@
     //   wrist at forehead/eye level rather than fully above the nose. Adding
     //   slack relaxes the gate to wrist.y < nose.y + noseSlackNorm.
     //   noseSlackNorm: 0.05 ≈ 5% of frame height (~54px on 1080p).
-    noseSlackNorm:     0.0
+    //   L15: bumped default 0.0 → 0.08 because fast pull-up release shots
+    //   often peak with wrist at eye/forehead level, not fully above nose.
+    noseSlackNorm:     0.08
   };
 
   function tune(patch) {
