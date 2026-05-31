@@ -58,9 +58,12 @@
   var TUNE = {
     visibilityMin:     0.15,   // shooter often partly occluded by defender / equipment
     armExtensionMin:   0.50,   // wrist-to-shoulder dist / shoulder-to-hip dist
-    belowLookbackMs:   200,    // wrist must have been below shoulder this long ago
-    peakWindowMs:      200,    // window for local-minimum detection
-    peakToleranceNorm: 0.025,  // |y_current - y_min| ≤ this means "at peak"
+    belowLookbackMs:   150,    // L20: was 200 — fast releases reach peak sooner
+    peakWindowMs:      350,    // L20: was 200 — slow scrub/fast shots need a
+                               // wider window to find ≥1 prior peak sample
+    peakToleranceNorm: 0.04,   // L20: was 0.025 — step-back shots have the
+                               // wrist Y oscillating from body translation;
+                               // tighter tolerance was rejecting real peaks
     cooldownMs:        250,    // L15: was 400 — pull-up workouts have shots
                                // even closer than 2s sometimes. 250ms still
                                // rejects within-shot wrist-bounce peaks.
@@ -196,7 +199,10 @@
       samplesChecked++;
       if (_history[j].wristY < recentMinY) recentMinY = _history[j].wristY;
     }
-    var isPeak = samplesChecked >= 2 && Math.abs(f.wristY - recentMinY) < TUNE.peakToleranceNorm;
+    // L20: was samplesChecked >= 2 — fast/quick-release shots produce only
+    // ONE prior sample within peakWindowMs and were being silently rejected
+    // as "not-at-peak". Require ≥1 prior sample instead.
+    var isPeak = samplesChecked >= 1 && Math.abs(f.wristY - recentMinY) < TUNE.peakToleranceNorm;
     if (!isPeak) return { isShot: false, reason: 'not-at-peak' };
 
     _lastShotReleaseTs = tsMs;
