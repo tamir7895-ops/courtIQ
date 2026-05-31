@@ -1719,6 +1719,72 @@
           canvasCtx.restore();
         }
 
+        // L12: Preflight calibration overlay. Until ALL three entities
+        // (ball / hoop / player) are reliably detected, a translucent panel
+        // covers the canvas with a progress checklist. The engine refuses
+        // to count shots while this is showing — guarantees we don't spam
+        // wrong misses on top of a half-calibrated rim position.
+        if (dd.preflight && !dd.preflight.ready) {
+          canvasCtx.save();
+          // Background tint over the whole canvas
+          canvasCtx.fillStyle = 'rgba(8, 12, 24, 0.78)';
+          canvasCtx.fillRect(0, 0, cw, ch);
+          // Center panel
+          var panelW = Math.min(440, cw - 32);
+          var panelH = 230;
+          var panelX = (cw - panelW) / 2;
+          var panelY = (ch - panelH) / 2;
+          canvasCtx.fillStyle = 'rgba(20, 24, 40, 0.95)';
+          canvasCtx.strokeStyle = 'rgba(0, 229, 255, 0.6)';
+          canvasCtx.lineWidth = 2;
+          canvasCtx.fillRect(panelX, panelY, panelW, panelH);
+          canvasCtx.strokeRect(panelX, panelY, panelW, panelH);
+
+          canvasCtx.fillStyle = '#00e5ff';
+          canvasCtx.font = 'bold 20px monospace';
+          canvasCtx.textAlign = 'center';
+          canvasCtx.fillText('CALIBRATING…', cw / 2, panelY + 38);
+
+          canvasCtx.font = '12px monospace';
+          canvasCtx.fillStyle = '#9ca3af';
+          canvasCtx.fillText('Looking for ball, hoop and player', cw / 2, panelY + 60);
+
+          // Three checklist rows
+          var rows = [
+            { key: 'hoop',   label: 'Hoop',   icon: '🟧' },
+            { key: 'player', label: 'Player', icon: '👤' },
+            { key: 'ball',   label: 'Ball',   icon: '🏀' }
+          ];
+          var rowY = panelY + 100;
+          canvasCtx.textAlign = 'left';
+          for (var pi = 0; pi < rows.length; pi++) {
+            var r = rows[pi];
+            var got = dd.preflight.checks[r.key] || 0;
+            var need = dd.preflight.thresholds[r.key] || 1;
+            var done = got >= need;
+            var rx = panelX + 32;
+            var ry = rowY + pi * 36;
+            // Status pill
+            canvasCtx.fillStyle = done ? '#00ff88' : '#facc15';
+            canvasCtx.fillRect(rx, ry - 14, 16, 16);
+            canvasCtx.fillStyle = '#000';
+            canvasCtx.font = 'bold 13px monospace';
+            canvasCtx.textAlign = 'center';
+            canvasCtx.fillText(done ? '✓' : '…', rx + 8, ry - 2);
+            // Label + count
+            canvasCtx.textAlign = 'left';
+            canvasCtx.fillStyle = done ? '#e5e7eb' : '#d1d5db';
+            canvasCtx.font = 'bold 16px monospace';
+            canvasCtx.fillText(r.label, rx + 28, ry);
+            canvasCtx.font = '13px monospace';
+            canvasCtx.fillStyle = done ? '#00ff88' : '#facc15';
+            var status = done ? 'detected' : ('searching ' + Math.min(got, need) + '/' + need);
+            canvasCtx.fillText(status, rx + 110, ry);
+          }
+          canvasCtx.textAlign = 'left';
+          canvasCtx.restore();
+        }
+
         // L9.3: BIG made/missed banner across the top of the canvas for 3s
         // after each shot. Shows the actual dist/thresh values so the user
         // can immediately see WHY the algorithm decided MADE or MISSED.

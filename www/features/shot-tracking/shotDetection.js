@@ -672,6 +672,15 @@
       this._lastCrossing = null;
       // L9.2: post-crossing watch state
       this._postCrossingWatch = null;
+      // L12: preflight safety check — accumulate detection counts for the
+      // three entities (ball / hoop / player). Shot counting is gated until
+      // all three thresholds are met, so we never spam false misses while
+      // the model is still warming up or the scene hasn't fully revealed
+      // its contents.
+      this._preflightChecks = { ball: 0, hoop: 0, player: 0 };
+      this._preflightThresholds = { ball: 3, hoop: 5, player: 3 };
+      this._preflightReady = false;
+      this._preflightStartedAt = Date.now();
       // Reset pose history so the new session starts fresh — important when
       // re-using a single engine for several uploaded videos in a row.
       if (window.PoseDetector) {
@@ -1352,6 +1361,24 @@
       }
       this._lastHoopDetection = hoopKeep.length > 0 ? hoopKeep[0] : null;
 
+      // L12: preflight tally — only counts while still calibrating so the
+      // counters stop growing once we're live.
+      if (!this._preflightReady && this._preflightChecks) {
+        if (ballKeep.length > 0)   this._preflightChecks.ball++;
+        if (hoopKeep.length > 0)   this._preflightChecks.hoop++;
+        if (playerKeep.length > 0) this._preflightChecks.player++;
+        var t = this._preflightThresholds;
+        if (this._preflightChecks.ball   >= t.ball &&
+            this._preflightChecks.hoop   >= t.hoop &&
+            this._preflightChecks.player >= t.player) {
+          this._preflightReady = true;
+          if (typeof this.onPreflightReady === 'function') {
+            try { this.onPreflightReady({ elapsedMs: Date.now() - (this._preflightStartedAt || 0) }); }
+            catch (e) { console.warn('[ShotDetection] onPreflightReady cb error:', e); }
+          }
+        }
+      }
+
       // ── L10.4: Rim-zone-aware false-ball filter ──
       // The v6_polished model produces 30-50% ball scores on the basketball
       // rim itself, on logos painted on the wall, and on other round-orange
@@ -1430,6 +1457,12 @@
           // motion?" — distinguishes a missed trigger from a downstream drop.
           lastShotReason: this._lastShotReason || null,
           poseStats:    this._poseStats     || null,
+          // L12: preflight calibration status for the screen overlay.
+          preflight:    {
+            ready:       !!this._preflightReady,
+            checks:      this._preflightChecks     || { ball: 0, hoop: 0, player: 0 },
+            thresholds:  this._preflightThresholds || { ball: 3, hoop: 5, player: 3 }
+          },
           procW:        pw,
           procH:        ph,
           videoW:       fullVw,
@@ -2000,6 +2033,22 @@
     },
 
     _countShot: function (result, vw, vh, normX, normY, now) {
+      // L12: preflight gate — refuse to count shots until calibration check
+      // is satisfied. Anything that would have been counted before preflight
+      // ready is dropped silently. The shot state still resets to cooldown
+      // so the state machine doesn't get stuck.
+      if (!this._preflightReady) {
+        this._shotState = 'idle';
+        this._ballMinY = 1.0;
+        this._shotStartY = 1.0;
+        this._sawBallAboveRim = false;
+        this._shotTriggerSrc    = null;
+        this._releaseConfidence = null;
+        this._shooterFeetX      = null;
+        this._shooterFeetY      = null;
+        return;
+      }
+
       this.lastShotTime = now;
       this._shotState = 'cooldown';
       this._shotStateTime = now;
