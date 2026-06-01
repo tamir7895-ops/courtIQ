@@ -933,6 +933,15 @@
         if (!self._poseStats) self._poseStats = { checks: 0, triggers: 0, lastConfidence: 0 };
         self._poseStats.checks++;
         var motion = window.PoseDetector.detectShootingMotion(pose.landmarks, Date.now());
+        // L23: if the strict heuristic didn't fire, try the universal
+        // "hand-at-head" set-point heuristic. Tag the trigger source so
+        // we can tell them apart in logs.
+        if (!motion.isShot && typeof window.PoseDetector.detectSetPointMotion === 'function') {
+          var sp = window.PoseDetector.detectSetPointMotion(pose.landmarks, Date.now());
+          if (sp.isShot) {
+            motion = sp;
+          }
+        }
         if (!motion.isShot && motion.reason && motion.reason !== 'cooldown') {
           // Log non-cooldown rejections only; cooldown spams too much.
           // Throttle to one rejection log per unique reason per 500ms.
@@ -954,7 +963,9 @@
           self._ballMinY          = sx.y;
           self._shotStartY        = sx.y;
           self._sawBallAboveRim   = (sx.y < self.rimZone.centerY);
-          self._shotTriggerSrc    = 'pose';
+          // L23: tag set-point triggers separately so logs / upgrade code
+          // can distinguish them from strict shooting-motion triggers.
+          self._shotTriggerSrc    = motion.detector === 'setpoint' ? 'pose-setpoint' : 'pose';
           self._releaseConfidence = motion.releaseConfidence;
           self._shooterFeetX      = motion.shooterCenterX;
           self._shooterFeetY      = motion.shooterCenterY;
@@ -963,12 +974,15 @@
           self._ballSeenAtRim     = false;// L14.B: reset rim-proximity flag
           self._ballNearRimHits   = 0;
           self._lastShotReason    = 'TRIGGER conf=' + motion.releaseConfidence.toFixed(2) +
-                                    ' hand=' + (motion.shootingHand || '?');
-          self._logShotEvent('pose-trigger', {
+                                    ' hand=' + (motion.shootingHand || '?') +
+                                    ' src=' + self._shotTriggerSrc;
+          self._logShotEvent(motion.detector === 'setpoint' ? 'pose-setpoint-trigger' : 'pose-trigger', {
             confidence:  motion.releaseConfidence,
-            shootingHand: motion.shootingHand
+            shootingHand: motion.shootingHand,
+            detector:    motion.detector || 'shooting-motion'
           });
-          dlog('[ShotState] shot_started (POSE) conf=' + motion.releaseConfidence.toFixed(2));
+          dlog('[ShotState] shot_started (' + self._shotTriggerSrc + ') conf=' +
+               motion.releaseConfidence.toFixed(2));
         }
       }
 
@@ -2042,11 +2056,18 @@
                 via: 'ballSeenAtRim', from: 'timeout-miss',
                 ballNearRimHits: this._ballNearRimHits || 0
               });
-            } else if (this._shotTriggerSrc === 'pose') {
+            } else if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
               resolved = 'made';
               this._logShotEvent('miss-upgraded-to-made', {
                 via: 'pose-default', from: 'timeout-miss',
-                releaseConfidence: this._releaseConfidence
+                releaseConfidence: this._releaseConfidence,
+                triggerSrc: this._shotTriggerSrc
+              });
+            } else if (this._shotTriggerSrc === 'ball') {
+              // L22: ball-rise confirms a real shot.
+              resolved = 'made';
+              this._logShotEvent('miss-upgraded-to-made', {
+                via: 'ball-rise-default', from: 'timeout-miss'
               });
             }
             if (resolved === 'made') this.stats.made++;
@@ -2295,11 +2316,21 @@
             triggerSrc:      this._shotTriggerSrc
           });
           result = 'made';
-        } else if (this._shotTriggerSrc === 'pose') {
+        } else if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
           this._logShotEvent('miss-upgraded-to-made', {
             via: 'pose-default',
             releaseConfidence: this._releaseConfidence,
-            triggerSrc:        'pose'
+            triggerSrc:        this._shotTriggerSrc
+          });
+          result = 'made';
+        } else if (this._shotTriggerSrc === 'ball') {
+          // L22: ball-rise already confirmed >3% upward motion over 600ms.
+          // That's a high-confidence shot signal — default to made when no
+          // trajectory crossing produced an explicit verdict. Symmetrical
+          // with L17 (pose trigger → default made).
+          this._logShotEvent('miss-upgraded-to-made', {
+            via: 'ball-rise-default',
+            triggerSrc: 'ball'
           });
           result = 'made';
         }
