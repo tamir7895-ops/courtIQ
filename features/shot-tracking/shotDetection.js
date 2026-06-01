@@ -1845,6 +1845,77 @@
         }
       }
 
+      // ── L26: SAFE ball-trajectory shot trigger from IDLE state ──
+      // For shots that no pose / ball-rise / set-point trigger caught, we
+      // can detect the shot retroactively by recognizing the ball passing
+      // DOWN through the rim with a real arc behind it. Four hard gates
+      // prevent false positives the user flagged:
+      //
+      //   (1) Ball must have been ABOVE the rim ≥2 frames in last 0.5s
+      //       → rejects a held-ball-at-player-height (no arc above rim)
+      //   (2) Ball must be CURRENTLY moving DOWNWARD ≥3px over the last
+      //       4 frames → rejects a stationary ball detection at rim level
+      //   (3) Ball X must be within ±1.5× rim half-width of rim center
+      //       → rejects strays detected on wall logos / scoreboard
+      //   (4) Single-frame YOLOX strays can't satisfy gates (1)+(2) which
+      //       both require multi-frame trajectory history
+      //
+      // Honors cooldown so it can never double-count a shot another
+      // trigger already caught.
+      if (this._shotState === 'idle' && this.rimZone && this._rimStabilized &&
+          this.tracker.positions.length >= 5 &&
+          Date.now() - this.lastShotTime > DEBOUNCE_MS) {
+        var ridge_rim = this.rimZone;
+        var ridge_pts = this.tracker.positions.slice(-15);
+        var ridge_last = ridge_pts[ridge_pts.length - 1];
+        var ridge_lastX = ridge_last.x / vw;
+        var ridge_lastY = ridge_last.y / vh;
+        // (1) at least 2 frames above rim within the slice
+        var aboveRimFrames = 0;
+        for (var ri = 0; ri < ridge_pts.length; ri++) {
+          if ((ridge_pts[ri].y / vh) < ridge_rim.centerY - 0.03) aboveRimFrames++;
+        }
+        var hadHighArc = aboveRimFrames >= 2;
+        // (2) descent over the last 4 frames
+        var ridge_movingDown = false;
+        if (ridge_pts.length >= 4) {
+          var ridge_p0 = ridge_pts[ridge_pts.length - 4];
+          var ridge_p1 = ridge_pts[ridge_pts.length - 1];
+          ridge_movingDown = (ridge_p1.y - ridge_p0.y) > 3;
+        }
+        // (3) X within rim bounds
+        var ridge_rimHalfW = (ridge_rim.width || 0.10) * 0.5;
+        var ridge_withinRimX = Math.abs(ridge_lastX - ridge_rim.centerX) < ridge_rimHalfW * 1.5;
+        // (4) currently near rim Y
+        var ridge_nearRimY = Math.abs(ridge_lastY - ridge_rim.centerY) < 0.05;
+
+        if (hadHighArc && ridge_movingDown && ridge_withinRimX && ridge_nearRimY) {
+          var nowMs = Date.now();
+          this._logShotEvent('ball-cross-rim-trigger', {
+            ballX:           ridge_lastX.toFixed(3),
+            ballY:           ridge_lastY.toFixed(3),
+            rimX:            ridge_rim.centerX.toFixed(3),
+            rimY:            ridge_rim.centerY.toFixed(3),
+            aboveRimFrames:  aboveRimFrames,
+            descentPx:       (ridge_p1.y - ridge_p0.y).toFixed(1)
+          });
+          // Retroactively open + close a shot. ballSeenAtRim=true so the
+          // L16 upgrade path applies and L24 skips the trajectory override.
+          this._shotState         = 'shot_started';
+          this._shotStateTime     = nowMs;
+          this._shotTriggerSrc    = 'ball-trajectory';
+          this._ballSeenAtRim     = true;
+          this._sawBallAboveRim   = true;
+          this._releaseConfidence = 0.7;
+          this._shooterFeetX      = null;
+          this._shooterFeetY      = null;
+          this._shotTrajectory    = [];
+          this._postCrossingWatch = null;
+          this._countShot('missed', vw, vh, ridge_lastX, ridge_lastY, nowMs);
+          return; // skip further processing this frame
+        }
+      }
+
       /* Feed to adaptive learning (Level 1 + 3) */
       /* cx/cy are in video coords — convert to processing canvas space for pixel sampling */
       if (window.AdaptiveLearning && this._canvas && this._ctx) {
