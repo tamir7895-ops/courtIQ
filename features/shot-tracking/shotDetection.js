@@ -1000,14 +1000,15 @@
       // to drive shot_started→near_hoop→made. This is what allows a
       // pose-triggered shot to be UPGRADED from "missed by fallback"
       // to "made via ball-trajectory" when both signals are present.
-      // L25: faster banner. Was 800ms → user perceived this as a 2-3 second
-      // delay between ball entering rim and the MADE banner appearing.
-      // 400ms is short enough that the banner pops up near the moment of the
-      // shot's resolution but still gives the ball-trajectory path (L11.2)
-      // a chance to fire first when YOLOX caught the ball at the rim.
-      var POSE_SHOT_FALLBACK_MS = 400;
-      var BALL_HOT_WINDOW_MS    = 300;   // tightened proportionally
-      var POSE_HARD_TIMEOUT_MS  = 1500;  // hard cap regardless of ball activity
+      // L28: was 400 — too short, banner fired BEFORE the ball reached the
+      // rim because the ball takes ~500-800ms to travel from the release
+      // point to the rim Y line. The L26 ball-cross-rim trigger can still
+      // fire as soon as it catches the actual crossing (no waiting).
+      // Pose fallback at 700ms gives the ball a chance to be tracked by
+      // YOLOX and trigger L26 first; falls back to "trust pose" if not.
+      var POSE_SHOT_FALLBACK_MS = 700;
+      var BALL_HOT_WINDOW_MS    = 500;
+      var POSE_HARD_TIMEOUT_MS  = 1800;
       if (self._shotState === 'shot_started' && self._shotTriggerSrc === 'pose') {
         var elapsed = Date.now() - self._shotStateTime;
         var ballHot = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_HOT_WINDOW_MS;
@@ -1886,8 +1887,12 @@
         // (3) X within rim bounds
         var ridge_rimHalfW = (ridge_rim.width || 0.10) * 0.5;
         var ridge_withinRimX = Math.abs(ridge_lastX - ridge_rim.centerX) < ridge_rimHalfW * 1.5;
-        // (4) currently near rim Y
-        var ridge_nearRimY = Math.abs(ridge_lastY - ridge_rim.centerY) < 0.05;
+        // (4) L27: ball must have CROSSED the rim Y line (be AT or just
+        // BELOW it), not just approached from above. The previous ±5 %
+        // tolerance accepted balls 5 % above the rim, which fired the
+        // MADE banner BEFORE the ball actually entered the rim.
+        var ridge_nearRimY = ridge_lastY >= ridge_rim.centerY - 0.005 &&
+                             ridge_lastY <= ridge_rim.centerY + 0.08;
 
         if (hadHighArc && ridge_movingDown && ridge_withinRimX && ridge_nearRimY) {
           var nowMs = Date.now();
