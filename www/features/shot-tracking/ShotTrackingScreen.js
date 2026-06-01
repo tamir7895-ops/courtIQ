@@ -1833,8 +1833,11 @@
         // can immediately see WHY the algorithm decided MADE or MISSED.
         if (lastShotBanner) {
           var bSince = Date.now() - lastShotBanner.t;
-          if (bSince < 3000) {
-            var bFade = bSince < 2700 ? 1 : (1 - (bSince - 2700) / 300);
+          // L25: brief flash — 1200ms total (1000ms full + 200ms fade out)
+          // instead of 3000ms. User wanted "a quick mark" not a sustained
+          // banner.
+          if (bSince < 1200) {
+            var bFade = bSince < 1000 ? 1 : (1 - (bSince - 1000) / 200);
             var bMade = lastShotBanner.result === 'made';
             canvasCtx.save();
             // Background bar — green for made, red for miss
