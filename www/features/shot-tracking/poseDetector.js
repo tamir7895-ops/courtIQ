@@ -68,6 +68,11 @@
                                // even closer than 2s sometimes. 250ms still
                                // rejects within-shot wrist-bounce peaks.
     historyMs:         1500,   // how much pose history to retain
+    setpointLookbackMs: 700,   // L23: how far back to look for "wrist was
+                               // below shoulder" when validating a set-point
+                               // (hand-at-head) trigger. Generous to catch
+                               // slow drawback shots, but the cooldown still
+                               // prevents back-to-back triggers.
     // L8 tuning knob (default 0 = original strict behavior):
     //   wristAboveNose normally requires wrist.y < nose.y. At distance, Pose
     //   Lite is jittery and shooters with a "set shot" form may peak with
@@ -219,6 +224,93 @@
     };
   }
 
+  /* ── L23: detectSetPointMotion — "hands-at-head" trigger ────────
+     Universal basketball set-point heuristic. Every shot has a moment
+     where one or both hands are at head/forehead level immediately
+     before release — regardless of whether it's a jumper, step-back,
+     fadeaway, hook, or fast pull-up. This is far more reliable than
+     the strict peak detection in detectShootingMotion which depends on
+     a precise wrist-Y minimum within a 350ms window.
+
+     The check:
+       (a) cooldown OK
+       (b) at least one wrist is within HEAD region (distance to nose
+           ≤ 0.5 × shoulder-to-shoulder span, or a sane fallback)
+       (c) that wrist was BELOW shoulder within last setpointLookbackMs
+           — i.e. we just saw the hand rise up to the head, not just
+           a static "hand resting on head" pose
+       (d) visibility on the relevant joints OK
+
+     Used as a SECONDARY trigger in _pollPoseShot, only if the strict
+     detectShootingMotion didn't fire on this frame. So we never
+     downgrade strong-confidence triggers.
+   ──────────────────────────────────────────────────────────────── */
+  function detectSetPointMotion(lm, tsMs) {
+    if (!lm || lm.length < 25) return { isShot: false, reason: 'no-features' };
+    if (tsMs - _lastShotReleaseTs < TUNE.cooldownMs) return { isShot: false, reason: 'cooldown' };
+
+    var nose = lm[L.NOSE];
+    var lsh = lm[L.LSH], rsh = lm[L.RSH];
+    var lw  = lm[L.LWR], rw  = lm[L.RWR];
+    if (!nose || !lsh || !rsh || !lw || !rw) return { isShot: false, reason: 'missing-landmarks' };
+
+    // Visibility — head + at least one wrist
+    var noseVis = nose.visibility || 0;
+    var lwVis = lw.visibility || 0;
+    var rwVis = rw.visibility || 0;
+    if (noseVis < 0.30) return { isShot: false, reason: 'nose-not-visible' };
+    if (Math.max(lwVis, rwVis) < 0.20) return { isShot: false, reason: 'wrists-not-visible' };
+
+    // Head region radius — scaled to shoulder-to-shoulder span so it
+    // adapts to distance/zoom. Fallback if shoulders look degenerate.
+    var shoulderSpan = Math.hypot(lsh.x - rsh.x, lsh.y - rsh.y);
+    var headRadius = Math.max(0.06, Math.min(0.20, shoulderSpan * 0.6));
+
+    // Check each wrist against the head region. Use BOTH X and Y proximity.
+    var leftDist  = Math.hypot(lw.x - nose.x, lw.y - nose.y);
+    var rightDist = Math.hypot(rw.x - nose.x, rw.y - nose.y);
+    var leftInHead  = leftDist  <= headRadius;
+    var rightInHead = rightDist <= headRadius;
+    if (!leftInHead && !rightInHead) return { isShot: false, reason: 'no-wrist-at-head' };
+
+    // Pick the shooting wrist — the one at the head, with better visibility
+    var useLeft;
+    if (leftInHead && !rightInHead)      useLeft = true;
+    else if (rightInHead && !leftInHead) useLeft = false;
+    else                                  useLeft = lwVis >= rwVis;
+    var wrist = useLeft ? lw : rw;
+    var wristVis = useLeft ? lwVis : rwVis;
+    var shoulder = useLeft ? lsh : rsh;
+    var shootingHand = useLeft ? 'L' : 'R';
+
+    // Confirm this is a SHOT not a static hand-on-head: the same wrist
+    // must have been below shoulder within the last setpointLookbackMs.
+    var lookbackMs = TUNE.setpointLookbackMs || 700;
+    var startedBelow = false;
+    for (var i = 0; i < _history.length - 1; i++) {
+      var h = _history[i];
+      if (tsMs - h.ts < lookbackMs && tsMs - h.ts >= 50 && !h.wristAboveShoulder) {
+        startedBelow = true;
+        break;
+      }
+    }
+    if (!startedBelow) return { isShot: false, reason: 'setpoint-no-prior-low' };
+
+    _lastShotReleaseTs = tsMs;
+    var hipCenterX = (lm[L.LHIP].x + lm[L.RHIP].x) * 0.5;
+    var hipCenterY = (lm[L.LHIP].y + lm[L.RHIP].y) * 0.5;
+    return {
+      isShot: true,
+      releaseTs:         tsMs,
+      releaseConfidence: Math.min(1, wristVis * (noseVis || 0.5) * 1.3),
+      shooterCenterX:    hipCenterX,
+      shooterCenterY:    hipCenterY,
+      shootingHand:      shootingHand,
+      wristY:            wrist.y,
+      detector:          'setpoint'
+    };
+  }
+
   function resetMotion() {
     _history = [];
     _lastShotReleaseTs = 0;
@@ -353,6 +445,7 @@
     init:                 init,
     detect:               detect,
     detectShootingMotion: detectShootingMotion,
+    detectSetPointMotion: detectSetPointMotion,
     resetMotion:          resetMotion,
     tune:                 tune,
     isReady:              isReady,
