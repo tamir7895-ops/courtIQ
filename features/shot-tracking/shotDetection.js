@@ -2308,6 +2308,11 @@
       //                      principle — the ball detector is noisier than
       //                      the pose detector, especially on compressed
       //                      footage where YOLOX loses the ball mid-arc.
+      // L24: track whether an upgrade fired so the trajectory cross-check
+      // below can skip the override step. The cross-check was undoing
+      // every upgrade when ball trajectory was partial (common on
+      // compressed footage where YOLOX loses the ball mid-arc).
+      var resultUpgraded = false;
       if (result === 'missed') {
         if (this._ballSeenAtRim) {
           this._logShotEvent('miss-upgraded-to-made', {
@@ -2316,6 +2321,7 @@
             triggerSrc:      this._shotTriggerSrc
           });
           result = 'made';
+          resultUpgraded = true;
         } else if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
           this._logShotEvent('miss-upgraded-to-made', {
             via: 'pose-default',
@@ -2323,6 +2329,7 @@
             triggerSrc:        this._shotTriggerSrc
           });
           result = 'made';
+          resultUpgraded = true;
         } else if (this._shotTriggerSrc === 'ball') {
           // L22: ball-rise already confirmed >3% upward motion over 600ms.
           // That's a high-confidence shot signal — default to made when no
@@ -2333,6 +2340,7 @@
             triggerSrc: 'ball'
           });
           result = 'made';
+          resultUpgraded = true;
         }
       }
       this._logShotEvent('shot-counted', {
@@ -2376,16 +2384,25 @@
       var madeAnalysis = analyzeMade(normTraj, this.rimZone);
       var missAnalysis = analyzeMiss(normTraj, this.rimZone);
 
-      // Cross-check state machine result with trajectory analysis
+      // Cross-check state machine result with trajectory analysis.
+      // L24: SKIP the override entirely when the result was already upgraded
+      // by L16/L17/L22. Partial trajectories (compressed footage, YOLOX
+      // blinks) make analyzeMade=false + analyzeMiss=true even on real
+      // makes, which then undoes every upgrade and produces 0 MADE / N
+      // ATTEMPTS sessions. The upgrade signals (ballSeenAtRim, pose
+      // trigger, ball-rise trigger) are more reliable than trajectory
+      // analysis on noisy footage.
       var finalResult = result;
-      if (result === 'made' && !madeAnalysis.isMade && missAnalysis.isMiss) {
-        // State machine said made, but trajectory says miss — trust trajectory
-        finalResult = 'missed';
-        dlog('[ShotTracker] Override: made → missed (trajectory analysis)');
-      } else if (result === 'missed' && madeAnalysis.isMade) {
-        // State machine said miss, but trajectory clearly shows made — trust trajectory
-        finalResult = 'made';
-        dlog('[ShotTracker] Override: missed → made (trajectory analysis)');
+      if (!resultUpgraded) {
+        if (result === 'made' && !madeAnalysis.isMade && missAnalysis.isMiss) {
+          // State machine said made, but trajectory says miss — trust trajectory
+          finalResult = 'missed';
+          dlog('[ShotTracker] Override: made → missed (trajectory analysis)');
+        } else if (result === 'missed' && madeAnalysis.isMade) {
+          // State machine said miss, but trajectory clearly shows made — trust trajectory
+          finalResult = 'made';
+          dlog('[ShotTracker] Override: missed → made (trajectory analysis)');
+        }
       }
 
       if (finalResult === 'made') this.stats.made++;
