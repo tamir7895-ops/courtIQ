@@ -1000,15 +1000,16 @@
       // to drive shot_started→near_hoop→made. This is what allows a
       // pose-triggered shot to be UPGRADED from "missed by fallback"
       // to "made via ball-trajectory" when both signals are present.
-      // L28: was 400 — too short, banner fired BEFORE the ball reached the
-      // rim because the ball takes ~500-800ms to travel from the release
-      // point to the rim Y line. The L26 ball-cross-rim trigger can still
-      // fire as soon as it catches the actual crossing (no waiting).
-      // Pose fallback at 700ms gives the ball a chance to be tracked by
-      // YOLOX and trigger L26 first; falls back to "trust pose" if not.
-      var POSE_SHOT_FALLBACK_MS = 700;
-      var BALL_HOT_WINDOW_MS    = 500;
-      var POSE_HARD_TIMEOUT_MS  = 1800;
+      // L29: was 700 — still slightly too eager. Real ball travel from the
+      // release point to the rim Y line is 800-1200ms depending on shot
+      // distance. The L26 ball-cross-rim trigger fires AS the ball crosses
+      // the rim and pre-empts this fallback when YOLOX caught the ball.
+      // Pose-fallback only kicks in for shots where ball tracking was lost
+      // mid-arc — and there the right banner moment is "when the ball
+      // would have arrived", i.e. ~1.1s after release.
+      var POSE_SHOT_FALLBACK_MS = 1100;
+      var BALL_HOT_WINDOW_MS    = 600;
+      var POSE_HARD_TIMEOUT_MS  = 2000;
       if (self._shotState === 'shot_started' && self._shotTriggerSrc === 'pose') {
         var elapsed = Date.now() - self._shotStateTime;
         var ballHot = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_HOT_WINDOW_MS;
