@@ -1143,16 +1143,20 @@
         // within 1.4s with a real verdict for this very shot.
         var transitPending = !!self._transitEventAt;
         if (!transitPending && !ballHot && !transitHot && elapsed > POSE_HARD_TIMEOUT_MS) {
-          var sawRimActivity = self._transitAboveAt >= self._shotStateTime ||
-                               self._ballSeenAtRim;
-          var fallbackResult = self._ballThroughRimAt > 0 ? 'made'
-                             : (sawRimActivity ? 'missed' : null);
+          // L33: pose timeouts NEVER self-count a miss. Every real miss
+          // that reaches the rim arms a rim event (A-window) and gets
+          // counted there with correct timing; the timeout-miss branch
+          // only ever produced phantoms (pose fired, ball never came) and
+          // miss+made doubles on tip plays (timeout verdict landing
+          // mid-play, rim event counting the same attempt again seconds
+          // later). Through-evidence → made stays: it is evidence-backed
+          // and covers makes whose A-spike the detector missed.
+          var fallbackResult = self._ballThroughRimAt > 0 ? 'made' : null;
           self._logShotEvent('pose-fallback', {
             elapsedMs:      elapsed,
             ballSeenAtRim:  !!self._ballSeenAtRim,
             ballThroughRim: !!self._ballThroughRimAt,
-            sawRimActivity: sawRimActivity,
-            resolvedAs:     fallbackResult || 'dropped-no-evidence'
+            resolvedAs:     fallbackResult || 'dropped-no-through'
           });
           if (fallbackResult) {
             var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
@@ -2034,12 +2038,14 @@
 
       // Ordered transit test uses the PREVIOUS tick's above-time, so a
       // ball sitting on the rim (A+B lit together, gap≈0) never passes.
-      // Centrality guard: when the motion channel fires B, its hot blob
+      // Centrality guard: whichever channel fires B, its blob centroid
       // must be in the MIDDLE of the net cone — a deflection clipping the
       // window's edge (eval n8: rim hit exiting down-left just outside
-      // the net) produced a false through.
-      var bCentered = !bHotSpike || b.hotCx == null ||
-                      (b.hotCx >= 0.25 && b.hotCx <= 0.75);
+      // the net) kept producing a false through. L33: tightened to
+      // 0.28-0.72 and applied to the ORANGE channel too (it had no
+      // centrality check at all).
+      var bFireCx = bHotSpike ? b.hotCx : (bOrangeSpike ? b.orangeCx : null);
+      var bCentered = bFireCx == null || (bFireCx >= 0.28 && bFireCx <= 0.72);
       var prevAboveAt = this._transitAboveAt || 0;
       if (bSpike && bCentered && prevAboveAt &&
           nowT - prevAboveAt >= 60 && nowT - prevAboveAt <= 1200 &&
@@ -2071,7 +2077,14 @@
       // ~0.75s apart (eval v3 n3/n4 merged into one count at 800), while
       // a tip that bounces and re-enters (~450ms) must NOT split into two
       // events (500 produced a phantom double on eval n9).
+      // L33: QUIET-BEFORE-ARRIVAL gate — a real shot arrives out of empty
+      // sky, so the A-window must have been quiet for ≥450ms before this
+      // spike. Sustained rim-area activity (a player standing under the
+      // basket) keeps prevAboveAt fresh every tick and used to re-arm +
+      // re-fire "made" roughly once per second (eval v1: three phantom
+      // counts in 2s, trigger=None).
       if (aSpike && !this._transitEventAt &&
+          (prevAboveAt === 0 || nowT - prevAboveAt >= 450) &&
           nowT - this.lastShotTime > 650) {
         this._transitEventAt = nowT;
         this._logShotEvent('rim-event-armed', {
@@ -2087,7 +2100,7 @@
           this._transitEventAt = 0;
         } else if (this._ballThroughRimAt > 0) {
           this._transitEventAt = 0;
-          if (this._shotState === 'idle') {
+          if (!this._shotTriggerSrc) {
             this._shotTriggerSrc    = 'rim-event';
             this._releaseConfidence = 0.6;
           }
@@ -2095,7 +2108,7 @@
           this._countShot('made', vw, vh, rim.centerX, rim.centerY, nowT);
         } else if (nowT - this._transitEventAt > 1400) {
           this._transitEventAt = 0;
-          if (this._shotState === 'idle') {
+          if (!this._shotTriggerSrc) {
             this._shotTriggerSrc    = 'rim-event';
             this._releaseConfidence = 0.6;
           }
@@ -2125,7 +2138,7 @@
       if (!this._transitPrev) this._transitPrev = {};
       var prev = this._transitPrev[key];
       var cur = new Uint8ClampedArray(n);
-      var orange = 0, hotCount = 0, hotSumX = 0, gi = 0;
+      var orange = 0, orangeSumX = 0, hotCount = 0, hotSumX = 0, gi = 0;
       var samePrev = prev && prev.length === n;
       for (var yy = 0; yy < gh; yy++) {
         var rowOff = (yy * stride * w) * 4;
@@ -2134,6 +2147,7 @@
           var r = data[idx], g = data[idx + 1], bch = data[idx + 2];
           if (r > 120 && g > 40 && g < 180 && bch < 100 && r > g * 1.15 && r > bch * 1.6) {
             orange++;
+            orangeSumX += xx;
           }
           var gray = (r * 3 + g * 4 + bch) >> 3;
           if (samePrev && Math.abs(gray - prev[gi]) > 25) {
@@ -2146,12 +2160,13 @@
       this._transitPrev[key] = cur;
       // hot = fraction of sampled pixels whose gray changed by >25 since
       // the previous tick — compact moving blobs (the ball) score high,
-      // codec shimmer / slight net sway score near zero. hotCx = the hot
-      // blob's horizontal centroid as a 0..1 fraction of the window.
+      // codec shimmer / slight net sway score near zero. hotCx/orangeCx =
+      // each blob's horizontal centroid as a 0..1 fraction of the window.
       return {
-        orange: orange,
-        hot:    samePrev ? hotCount / n : 0,
-        hotCx:  (samePrev && hotCount > 0) ? (hotSumX / hotCount) / Math.max(1, gw - 1) : null
+        orange:   orange,
+        orangeCx: orange > 0 ? (orangeSumX / orange) / Math.max(1, gw - 1) : null,
+        hot:      samePrev ? hotCount / n : 0,
+        hotCx:    (samePrev && hotCount > 0) ? (hotSumX / hotCount) / Math.max(1, gw - 1) : null
       };
     },
 
@@ -2844,21 +2859,14 @@
         }
         if (now - this._shotStateTime > 3000) {
           // Pose-triggered shot timed out without the ball reaching near_hoop.
-          // L31.2: aligned with the pose-fallback policy — count only when
-          // there is EVIDENCE (through-rim → made, rim activity → missed);
-          // a trigger with zero rim activity is far more likely a phantom
-          // pose than a real airball, so it is dropped, not counted.
-          // (The 3.2s pose-fallback usually fires first; this is the
-          // backstop for setpoint-triggered shots and pose-loop hiccups.)
+          // L33: aligned with the pose-fallback policy — pose/setpoint
+          // timeouts count ONLY with through-rim evidence (→ made). Misses
+          // that actually reached the rim are counted by the rim-event
+          // path with correct timing; a timeout with no through is either
+          // a phantom trigger or an airball — dropped, not counted.
           if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
-            var sawRimAct = (this._transitAboveAt && this._transitAboveAt >= this._shotStateTime) ||
-                            this._ballSeenAtRim;
             if (this._ballThroughRimAt > 0) {
               this._countShot('made', vw, vh, normX, normY, now);
-              return;
-            }
-            if (sawRimAct) {
-              this._countShot('missed', vw, vh, normX, normY, now);
               return;
             }
             this._logShotEvent('pose-timeout-dropped', { triggerSrc: this._shotTriggerSrc });
@@ -2914,7 +2922,28 @@
         var timeout         = now - this._shotStateTime > 2000;
 
         if (ballFarFromHoop || timeout) {
-          if (motionOk) {
+          // L33: pose/setpoint shots never self-count a miss here either —
+          // near_hoop is entered and exited by WRIST and Kalman samples on
+          // these shots, so "ball moved away" is not ball evidence. The
+          // rim-event path owns their miss verdicts (eval: this branch was
+          // double-counting tip plays ~1s before the rim event resolved
+          // the same attempt). Through-evidence still converts to a make.
+          var isPoseSrc = (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint');
+          if (isPoseSrc && this._ballThroughRimAt > 0) {
+            this._countShot('made', vw, vh, normX, normY, now);
+          } else if (isPoseSrc) {
+            this._logShotEvent('pose-nearhoop-dropped', {
+              far: !!ballFarFromHoop, timedOut: !!timeout
+            });
+            this._shotState     = 'idle';
+            this._ballMinY      = 1.0;
+            this._shotStartY    = 1.0;
+            this._sawBallAboveRim = false;
+            this._shotTriggerSrc    = null;
+            this._releaseConfidence = null;
+            this._shooterFeetX      = null;
+            this._shooterFeetY      = null;
+          } else if (motionOk) {
             this._countShot('missed', vw, vh, normX, normY, now);
           } else {
             // Not a real shot — drop back to idle without counting
