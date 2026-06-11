@@ -594,11 +594,52 @@
         return Promise.resolve(true);
       }
 
+      // L34: dedupe concurrent loads. The screen now calls init() once on
+      // OPEN (to preload the model while the user grants camera / picks a
+      // video / the rim calibrates) and AGAIN on tracking start. Without
+      // this guard the second call would kick off a second
+      // InferenceSession.create on the still-loading model. Both callers
+      // share one in-flight promise; once resolved, the self.model branch
+      // above short-circuits future calls.
+      if (self._modelLoadPromise) return self._modelLoadPromise;
+
       self._setStatus('loading');
 
-      return new Promise(function (resolve) {
+      self._modelLoadPromise = new Promise(function (resolve) {
         self._tryLoadModel(resolve);
       });
+      return self._modelLoadPromise;
+    },
+
+    // L34: kick off model loading WITHOUT the per-session resets in init()
+    // (those would wipe a tracker mid-session). Safe to call repeatedly —
+    // it just ensures the heavy ONNX + WASM/WebGPU warmup overlaps with
+    // the user's setup time instead of blocking the first shots. The
+    // returned promise resolves true when the detector (or color fallback)
+    // is ready.
+    preloadModel: function () {
+      var self = this;
+      if (self.model) return Promise.resolve(true);
+      if (self._modelLoadPromise) return self._modelLoadPromise;
+      if (!self._canvas) {
+        self._canvas = document.createElement('canvas');
+        self._ctx = self._canvas.getContext('2d', { willReadFrequently: true });
+      }
+      if (typeof ort === 'undefined') {
+        // ORT script hasn't parsed yet — retry shortly; the deferred
+        // <script> usually lands within a few hundred ms of screen open.
+        if (!self._preloadRetries) self._preloadRetries = 0;
+        if (self._preloadRetries < 20) {
+          self._preloadRetries++;
+          setTimeout(function () { self.preloadModel(); }, 300);
+        }
+        return Promise.resolve(false);
+      }
+      self._setStatus('loading');
+      self._modelLoadPromise = new Promise(function (resolve) {
+        self._tryLoadModel(resolve);
+      });
+      return self._modelLoadPromise;
     },
 
     _tryLoadModel: function (resolve) {

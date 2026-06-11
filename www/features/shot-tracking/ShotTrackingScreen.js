@@ -325,6 +325,17 @@
     streak = 0;
     maxStreak = 0;
 
+    // L34: PRELOAD the YOLOX model the instant the screen opens, so the
+    // heavy ONNX + WebGPU/WASM warmup (a few seconds on first run with the
+    // webgpu bundle) overlaps with the user granting camera / picking a
+    // video / the rim calibrating — instead of blocking the first shots.
+    // Reported symptom: "until the model loaded the video ran a bit and
+    // missed a few shots." init() is deduped (L34) so the later
+    // startTracking() init() call just rides this same load.
+    if (window.ShotDetectionEngine && typeof window.ShotDetectionEngine.preloadModel === 'function') {
+      try { window.ShotDetectionEngine.preloadModel(); } catch (e) { /* non-fatal */ }
+    }
+
     // Reset rim/3PT state
     rimCenter = null;
     rimLocked = false;
