@@ -26,6 +26,20 @@
     console.log.apply(console, arguments);
   }
 
+  /* ── Script-relative base URL ───────────────────────────────────
+     Assets (model, preprocessing worker) live relative to the REPO
+     ROOT, two levels above this script. Resolving against
+     document.currentScript.src instead of the page URL keeps fetches
+     working on pages served from sub-paths (debug harnesses, deep
+     links) — a page-relative path 404s there and silently dumps the
+     engine into color-only mode. Empty string = legacy page-relative
+     fallback. */
+  var SCRIPT_BASE = '';
+  try {
+    var _scriptSrc = document.currentScript && document.currentScript.src;
+    if (_scriptSrc) SCRIPT_BASE = new URL('../../', _scriptSrc).href;
+  } catch (e) { /* keep '' */ }
+
   /* ── Constants ──────────────────────────────────────────────── */
   var DEBOUNCE_MS          = 400;   // L14.A: was 700 — matches looser pose cooldown
   var MIN_TRAJECTORY_PTS   = 3;    // Fewer points needed before analyzing
@@ -63,7 +77,7 @@
   // Web Worker for CHW preprocessing (offloads ~520K array writes from main thread)
   var _chwWorker   = null;
   try {
-    _chwWorker = new Worker('features/shot-tracking/yoloxWorker.js');
+    _chwWorker = new Worker(SCRIPT_BASE + 'features/shot-tracking/yoloxWorker.js');
   } catch (e) {
     console.warn('[ShotDetection] Web Worker unavailable, using main thread CHW');
   }
@@ -184,7 +198,16 @@
       // No measurement — predict with Kalman if still within prediction window
       // Extended window during active shot (RISING/FALLING) via _activeShot flag
       var maxPredict = tracker._activeShotExtend ? Math.floor(KALMAN_MAX_PREDICT * 1.5) : KALMAN_MAX_PREDICT;
-      if (kf.initialized && kf.predictCount < maxPredict) {
+      // L31: stop predicting once the ghost leaves the frame (10% slack).
+      // Eval logs showed the constant-velocity ghost sailing to x = 4.4×
+      // frame width over several seconds, feeding the UI and bloating the
+      // position buffer with fiction.
+      var ghostInFrame = true;
+      if (tracker._vw > 0 && tracker._vh > 0) {
+        ghostInFrame = kf.x >= -tracker._vw * 0.1 && kf.x <= tracker._vw * 1.1 &&
+                       kf.y >= -tracker._vh * 0.3 && kf.y <= tracker._vh * 1.1;
+      }
+      if (kf.initialized && kf.predictCount < maxPredict && ghostInFrame) {
         kalmanPredict(kf);
         // Push predicted position (marked as predicted)
         tracker.positions.push({ x: kf.x, y: kf.y, frame: frameNum, ts: Date.now(), predicted: true });
@@ -223,11 +246,20 @@
     var pts = tracker.positions;
     if (!pts || pts.length < 2) return false;
     var now = Date.now();
-    var newest = pts[pts.length - 1];
-    if (!newest) return false;
+    // L30: only MEASURED detections count as motion evidence. Kalman-
+    // PREDICTED ghosts (pure physics, no pixels) used to satisfy this
+    // trigger — one fired with the "ball" above the frame (normY=-0.07).
+    var newestIdx = -1;
+    for (var n = pts.length - 1; n >= 0; n--) {
+      if (!pts[n].predicted) { newestIdx = n; break; }
+    }
+    if (newestIdx < 1) return false;
+    var newest = pts[newestIdx];
+    if (now - newest.ts > windowMs) return false;  // last real sighting is stale
     var oldest = null;
-    for (var i = pts.length - 2; i >= 0; i--) {
+    for (var i = newestIdx - 1; i >= 0; i--) {
       if (now - pts[i].ts > windowMs) break;
+      if (pts[i].predicted) continue;
       oldest = pts[i];
     }
     if (!oldest) return false;
@@ -582,48 +614,86 @@
         return;
       }
 
-      var modelPath = 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished';
+      // Model path resolves against THIS SCRIPT's URL (see SCRIPT_BASE).
+      // A page-relative path 404s on pages served from a sub-path and the
+      // engine silently became color-only.
+      var modelPath = SCRIPT_BASE + 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished';
+
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
       // with "int64 is not supported" during InferenceSession.create.
       // Crucially, ORT does NOT auto-fall-through to the next EP on parse
-      // failure — listing webgl ahead of wasm causes the whole load to
-      // throw. WebGPU stays first (modern Chrome/Edge get GPU-accelerated
-      // inference); WASM is the universal fallback.
-      ort.InferenceSession.create(modelPath, {
-        executionProviders: ['webgpu', 'wasm'],
-        graphOptimizationLevel: 'all'
-      }).then(function (session) {
-        self.model = session;
-        self._detectorType = 'yolox';
-        // Pre-allocate reusable buffers
-        var sz = YOLOX_INPUT_SIZE;
-        _yoloxBuf = new Float32Array(1 * 3 * sz * sz);
-        _yoloxCanvas = document.createElement('canvas');
-        _yoloxCanvas.width = sz;
-        _yoloxCanvas.height = sz;
-        _yoloxCtx = _yoloxCanvas.getContext('2d');
-        dlog('[ShotDetection] YOLOX-tiny v6 basketball model loaded (640x640, Apache 2.0)');
-        // Kick off PoseDetector load in PARALLEL. It is not awaited — the
-        // engine works fine with ball-only detection if pose never arrives.
-        // When pose IS ready, _analyzeShotState picks it up automatically
-        // because isReady() returns true.
-        if (window.PoseDetector && typeof window.PoseDetector.init === 'function') {
-          window.PoseDetector.init().then(function () {
-            dlog('[ShotDetection] PoseDetector ready — pose-driven shot trigger active');
-          }).catch(function (poseErr) {
-            console.warn('[ShotDetection] PoseDetector init failed — ball-only mode:', poseErr && poseErr.message);
-          });
+      // failure — so each backend gets its own create() attempt:
+      //   1. webgpu       — GPU inference. Requires the ort.webgpu.min.js
+      //      bundle; plain ort.min.js ships WITHOUT the WebGPU EP, which
+      //      used to silently fall through to a main-thread WASM session
+      //      (~1.4s per inference, ~0.7Hz instead of the ~5Hz the state
+      //      machine assumes).
+      //   2. wasm + proxy — WASM inside a dedicated worker. Same latency,
+      //      but off the main thread so video/pose/color keep flowing.
+      //   3. wasm         — last resort (proxy can fail under file:// or
+      //      a restrictive CSP).
+      var attempts = [
+        { eps: ['webgpu'], proxy: false, label: 'webgpu' },
+        { eps: ['wasm'],   proxy: true,  label: 'wasm-proxy' },
+        { eps: ['wasm'],   proxy: false, label: 'wasm-main-thread' }
+      ];
+
+      var tryAttempt = function (i) {
+        if (i >= attempts.length) {
+          console.error('[ShotDetection] YOLOX-tiny load failed on every backend — color-only mode');
+          self._colorOnlyMode = true;
+          self._detectorType = 'none';
+          self._setStatus('color-only');
+          resolve(true);
+          return;
         }
-        self._setStatus('ready');
-        resolve(true);
-      }).catch(function (err) {
-        console.warn('[ShotDetection] YOLOX-tiny load failed — color-only mode:', err);
-        self._colorOnlyMode = true;
-        self._detectorType = 'none';
-        self._setStatus('color-only');
-        resolve(true);
-      });
+        var att = attempts[i];
+        // proxy must be set BEFORE the wasm backend first initializes;
+        // attempt order guarantees that (webgpu failing does not init wasm).
+        try { ort.env.wasm.proxy = att.proxy; } catch (e) { /* read-only in exotic builds */ }
+
+        ort.InferenceSession.create(modelPath, {
+          executionProviders: att.eps,
+          graphOptimizationLevel: 'all'
+        }).then(function (session) {
+          self.model = session;
+          self._detectorType = 'yolox';
+          self._backend = att.label;
+          // Pre-allocate reusable buffers
+          var sz = YOLOX_INPUT_SIZE;
+          _yoloxBuf = new Float32Array(1 * 3 * sz * sz);
+          _yoloxCanvas = document.createElement('canvas');
+          _yoloxCanvas.width = sz;
+          _yoloxCanvas.height = sz;
+          _yoloxCtx = _yoloxCanvas.getContext('2d');
+          if (att.label === 'webgpu') {
+            console.log('[ShotDetection] YOLOX-tiny v6 loaded — backend: webgpu');
+          } else {
+            // Degraded performance is a real production signal — not gated.
+            console.warn('[ShotDetection] YOLOX-tiny v6 loaded — backend: ' + att.label +
+              ' (degraded: expect ~1.4s/inference; check that ort.webgpu.min.js is the loaded bundle and WebGPU is available)');
+          }
+          // Kick off PoseDetector load in PARALLEL. It is not awaited — the
+          // engine works fine with ball-only detection if pose never arrives.
+          // When pose IS ready, _analyzeShotState picks it up automatically
+          // because isReady() returns true.
+          if (window.PoseDetector && typeof window.PoseDetector.init === 'function') {
+            window.PoseDetector.init().then(function () {
+              dlog('[ShotDetection] PoseDetector ready — pose-driven shot trigger active');
+            }).catch(function (poseErr) {
+              console.warn('[ShotDetection] PoseDetector init failed — ball-only mode:', poseErr && poseErr.message);
+            });
+          }
+          self._setStatus('ready');
+          resolve(true);
+        }).catch(function (err) {
+          console.warn('[ShotDetection] YOLOX load failed on ' + att.label + ': ' +
+            (err && err.message ? err.message : err));
+          tryAttempt(i + 1);
+        });
+      };
+      tryAttempt(0);
     },
 
     setRimZone: function (normCX, normCY, normW, normH) {
@@ -655,6 +725,9 @@
       this.lastShotTime = 0;
       this._mlMissCount = 0;
       this._frameCount = 0;
+      // Crop region is per-video — a previous session's UI-overlay crop
+      // must not leak into a new video with different dimensions/chrome.
+      this._cropRegion = undefined;
       this._shotState = 'idle';
       this._shotStateTime = 0;
       this._ballMinY = 1.0;
@@ -689,6 +762,19 @@
       // L14.B / L14.C: ball-near-rim tracker + per-shot event log
       this._ballSeenAtRim = false;
       this._ballNearRimHits = 0;
+      // L30: ordered through-rim evidence (above the rim → below it within
+      // the made span) — the only signal allowed to convert miss → made.
+      this._ballAboveRimAt = 0;
+      this._ballThroughRimAt = 0;
+      this._lastBallDetMs = 0;
+      // L31: rim-transit detector state
+      this._transitBaseA = null;
+      this._transitBaseB = null;
+      this._transitSadBaseA = 0;
+      this._transitSadBaseB = 0;
+      this._transitAboveAt = 0;
+      this._transitPrev = null;
+      this._transitEventAt = 0;
       this._shotEventLog = [];
       this._sessionStartedAt = Date.now();
       // Reset pose history so the new session starts fresh — important when
@@ -709,6 +795,27 @@
     },
 
     stop: function () {
+      // L32: flush a pending rim event before tearing down — a shot in the
+      // final second of a video used to vanish with the session (eval v3
+      // lost its last put-back to truncation). Through-evidence → made;
+      // an armed event older than 500ms with no through → missed.
+      if (this._transitEventAt && this.videoEl) {
+        var flushVw = this.videoEl.videoWidth  || 1;
+        var flushVh = this.videoEl.videoHeight || 1;
+        var flushRes = this._ballThroughRimAt > 0 ? 'made'
+                     : (Date.now() - this._transitEventAt > 500 ? 'missed' : null);
+        this._transitEventAt = 0;
+        if (flushRes) {
+          if (this._shotState === 'idle') {
+            this._shotTriggerSrc    = 'rim-event';
+            this._releaseConfidence = 0.6;
+          }
+          this._logShotEvent('rim-event-flushed', { result: flushRes });
+          this._countShot(flushRes, flushVw, flushVh,
+            this.rimZone ? this.rimZone.centerX : 0.5,
+            this.rimZone ? this.rimZone.centerY : 0.4, Date.now());
+        }
+      }
       this.isRunning = false;
       if (this.detectionTimer) {
         clearTimeout(this.detectionTimer);
@@ -973,6 +1080,8 @@
           self._postCrossingWatch = null; // L9.2: clear any stale watch state
           self._ballSeenAtRim     = false;// L14.B: reset rim-proximity flag
           self._ballNearRimHits   = 0;
+          self._ballAboveRimAt    = 0;    // L30: reset through-rim evidence
+          self._ballThroughRimAt  = 0;
           self._lastShotReason    = 'TRIGGER conf=' + motion.releaseConfidence.toFixed(2) +
                                     ' hand=' + (motion.shootingHand || '?') +
                                     ' src=' + self._shotTriggerSrc;
@@ -1007,31 +1116,60 @@
       // Pose-fallback only kicks in for shots where ball tracking was lost
       // mid-arc — and there the right banner moment is "when the ball
       // would have arrived", i.e. ~1.1s after release.
-      var POSE_SHOT_FALLBACK_MS = 1100;
+      // L31.2: the rim-event counter (transit detector) is the PRIMARY
+      // resolver for any shot whose ball reaches the rim. This fallback is
+      // now hard-timeout-only: the old soft window (1.1-1.6s) kept ruling
+      // "missed" while the ball was still mid-air (eval arcs ran 1.2-2.3s
+      // from pose trigger to rim) and the rim event then counted the same
+      // attempt AGAIN — every long make became a miss+made double.
+      //
+      // At the hard timeout the policy is evidence-based:
+      //   • through-rim evidence  → made (rim event was consumed by a
+      //     concurrent verdict path; count it)
+      //   • rim activity happened but no through → missed (ball got there
+      //     and bounced away; normally the rim event already resolved it
+      //     and we never reach here)
+      //   • ZERO rim activity since the trigger → DROP without counting.
+      //     On eval footage pose triggers in verified-empty spans
+      //     outnumber true never-reaches-rim airballs by a wide margin —
+      //     counting these as misses poisons the stats with phantoms.
       var BALL_HOT_WINDOW_MS    = 600;
-      var POSE_HARD_TIMEOUT_MS  = 2000;
+      var POSE_HARD_TIMEOUT_MS  = 3200;
       if (self._shotState === 'shot_started' && self._shotTriggerSrc === 'pose') {
         var elapsed = Date.now() - self._shotStateTime;
         var ballHot = self._lastBallDetMs && (Date.now() - self._lastBallDetMs) < BALL_HOT_WINDOW_MS;
-        var fireFallback = (elapsed > POSE_SHOT_FALLBACK_MS && !ballHot) ||
-                            elapsed > POSE_HARD_TIMEOUT_MS;
-        if (fireFallback) {
-          // L14.B: if the ball was seen near the rim at ANY point during
-          // this shot, the shooter probably scored — even if YOLOX never
-          // produced a full crossing trajectory. This recovers makes on
-          // compressed / low-res footage where the ball blinks in and
-          // out of detection.
-          var fallbackResult = self._ballSeenAtRim ? 'made' : 'missed';
+        var transitHot = self._transitAboveAt && (Date.now() - self._transitAboveAt) < BALL_HOT_WINDOW_MS;
+        // A pending rim event ALWAYS outranks the fallback — it resolves
+        // within 1.4s with a real verdict for this very shot.
+        var transitPending = !!self._transitEventAt;
+        if (!transitPending && !ballHot && !transitHot && elapsed > POSE_HARD_TIMEOUT_MS) {
+          var sawRimActivity = self._transitAboveAt >= self._shotStateTime ||
+                               self._ballSeenAtRim;
+          var fallbackResult = self._ballThroughRimAt > 0 ? 'made'
+                             : (sawRimActivity ? 'missed' : null);
           self._logShotEvent('pose-fallback', {
             elapsedMs:      elapsed,
             ballSeenAtRim:  !!self._ballSeenAtRim,
-            ballSeenCount:  self._ballNearRimHits || 0,
-            ballHot:        !!ballHot,
-            resolvedAs:     fallbackResult
+            ballThroughRim: !!self._ballThroughRimAt,
+            sawRimActivity: sawRimActivity,
+            resolvedAs:     fallbackResult || 'dropped-no-evidence'
           });
-          var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
-          var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
-          self._countShot(fallbackResult, vw, vh, feetX, feetY, Date.now());
+          if (fallbackResult) {
+            var feetX = self._shooterFeetX != null ? self._shooterFeetX : 0.5;
+            var feetY = self._shooterFeetY != null ? self._shooterFeetY : 0.8;
+            self._countShot(fallbackResult, vw, vh, feetX, feetY, Date.now());
+          } else {
+            // Phantom trigger — reset without polluting the stats.
+            self._shotState         = 'idle';
+            self._shotStateTime     = Date.now();
+            self._ballMinY          = 1.0;
+            self._shotStartY        = 1.0;
+            self._sawBallAboveRim   = false;
+            self._shotTriggerSrc    = null;
+            self._releaseConfidence = null;
+            self._shooterFeetX      = null;
+            self._shooterFeetY      = null;
+          }
         }
       }
     },
@@ -1053,6 +1191,16 @@
       var colorBall = null;
       if (canvasReady) {
         colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+        // L32: global camera-motion estimate FIRST — its callback shifts
+        // the locked rim, so the transit windows below sample the rim's
+        // current (post-pan) position.
+        self.tracker._vw = vw;
+        self.tracker._vh = vh;
+        self._estimateGlobalMotion(pw, ph, vw, vh);
+        // L31: rim-transit detector — pixel-level through-rim evidence at
+        // full loop cadence. Runs on footage where YOLOX cannot see the
+        // in-flight ball at all (compressed/blurred video).
+        self._updateRimTransit(pw, ph, vw, vh);
       }
 
       /* Scale ball positions from processing canvas back to FULL video coords
@@ -1073,9 +1221,15 @@
         }
       }
 
-      /* ── YOLOX detection (every 6th frame, async, non-blocking) ── */
+      /* ── YOLOX detection (async, non-blocking) ──
+         L30: divisor 6 → 3 on the WebGPU backend. 6 was a safe floor for
+         main-thread WASM (~1.4s/inference); on webgpu inference is tens of
+         ms and the loop itself runs ~15-20Hz, so %6 starved ball sampling
+         to ~2.7Hz (0-2 samples per shot arc). %3 restores ~5Hz. WASM
+         backends keep the conservative 6. */
       self._frameCount++;
-      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % 6 === 0) {
+      var yoloxDivisor = (self._backend === 'webgpu') ? 3 : 6;
+      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % yoloxDivisor === 0) {
         self._isDetecting = true;
         self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall);
       }
@@ -1386,10 +1540,17 @@
 
         // Hoop candidates — threshold 0.10 balances precision vs recall
         // Area filter: hoop should be 0.1%-8% of frame (not 40%)
-        // Aspect ratio: hoops are wider than tall (1.5-5.0 w/h ratio)
+        // Aspect ratio: v6_polished boxes the rim+NET together, which lands
+        // square-ish (w/h ≈ 0.9-1.3). The old ≥1.5 lower bound was tuned for
+        // rim-only boxes and rejected ~100% of this model's real hoop
+        // detections on eval footage (median conf 0.43 thrown away), leaving
+        // rim-lock to feed on wide false positives. ≥0.55 keeps net-heavy
+        // boxes while still dropping poles/players (≈0.3-0.5); ≤5.0 still
+        // drops banners/scoreboards. Orange verification downstream
+        // (_verifyHoopDet, _refineHoopByOrange) guards the rest.
         if (hoopScore > 0.10 && area > frameArea * 0.001 && area < frameArea * 0.08) {
           var hoopAspect = bw / (bh || 1);
-          if (hoopAspect >= 1.5 && hoopAspect <= 5.0) {
+          if (hoopAspect >= 0.55 && hoopAspect <= 5.0) {
             hoopCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: hoopScore });
           }
         }
@@ -1502,6 +1663,14 @@
           // Expanded rim zone — catches balls "on the rim" plus a small
           // halo around it. Tuned to also catch logos painted just below
           // the rim (e.g. the Oregon "O" in the user's test video).
+          //
+          // L30: only reject STATIC REPEATS inside the zone. The FPs this
+          // filter targets (wall logos, the rim itself scored as "ball")
+          // re-detect at the same spot frame after frame; a real ball
+          // FLYING through the rim zone lands somewhere new each sample.
+          // The old reject-everything version deleted exactly the above-
+          // rim / at-rim evidence the L26 idle trigger and the through-rim
+          // evidence collector need — untriggered shots became invisible.
           var rimNX = rim.centerX, rimNY = rim.centerY;
           var rimNW = rim.width  || 0.10;
           var rimNH = rim.height || 0.04;
@@ -1509,11 +1678,19 @@
           var expR = rimNX + rimNW * 1.5;
           var expT = rimNY - rimNH * 4.0;
           var expB = rimNY + rimNH * 6.0;  // extends DOWN to cover wall logos
+          var selfFilt = this;
+          var nowFilt = Date.now();
           ballKeep = ballKeep.filter(function (b) {
             var bxN = b.cx / pw;
             var byN = b.cy / ph;
             var insideExpRim = (bxN >= expL && bxN <= expR && byN >= expT && byN <= expB);
-            return !insideExpRim;
+            if (!insideExpRim) return true;
+            var lr = selfFilt._lastRimZoneBallReject;
+            var staticRepeat = !!(lr && (nowFilt - lr.ts) < 1200 &&
+                                  Math.abs(bxN - lr.x) < 0.035 &&
+                                  Math.abs(byN - lr.y) < 0.035);
+            selfFilt._lastRimZoneBallReject = { x: bxN, y: byN, ts: nowFilt };
+            return !staticRepeat;
           });
         }
       }
@@ -1605,9 +1782,23 @@
       // Scan region: from a bit above the bbox top down ~15% of frame.
       // Width matches the bbox plus a small horizontal margin so we catch
       // ring edges when the bbox is slightly off-center.
-      var scanTop    = Math.max(0,  Math.floor(cy - bh * 0.6));
-      var scanBottom = Math.min(ph - 1, Math.floor(cy + bh * 0.6 + ph * 0.15));
-      var margin     = Math.max(2, Math.floor(bw * 0.10));
+      // Scan window anchored to the BOX TOP: v6_polished boxes CONTAIN the
+      // rim line (square rim+net boxes carry the ring ~6% of box height
+      // below the top edge; wide rim-only boxes carry it near the center).
+      // The old window extended 15% of the FRAME below the box — a v71-era
+      // relic for backboard-anchored boxes whose ring sat far below. On v6
+      // footage that tail reached the BALL during layups/rim-rolls, and the
+      // ball's much stronger orange hijacked the snap: eval v3 locked the
+      // "rim" 0.14 below the ring, on a row the ball had just occupied,
+      // and the L19 freeze then cemented the error for the whole session.
+      var boxTop     = cy - bh * 0.5;
+      var scanTop    = Math.max(0,  Math.floor(boxTop - bh * 0.3));
+      var scanBottom = Math.min(ph - 1, Math.floor(boxTop + bh * 0.9));
+      // Margin widened 0.10 → 0.25: when YOLOX anchors the box slightly to
+      // one side of the ring (seen on outdoor eval footage — lock ended up
+      // 0.06 left of the true ring), the ring edge falls outside a narrow
+      // strip and the refinement never fires.
+      var margin     = Math.max(2, Math.floor(bw * 0.25));
       var scanLeft   = Math.max(0,  Math.floor(cx - bw / 2 - margin));
       var scanRight  = Math.min(pw, Math.floor(cx + bw / 2 + margin));
       var scanW      = scanRight - scanLeft;
@@ -1621,23 +1812,31 @@
         return hoop;  // permission error or canvas tainted
       }
 
-      // For each row, count orange pixels. Same color test as _verifyOrange.
+      // For each row, count orange pixels AND accumulate their x-sum so the
+      // winning band also yields a horizontal centroid. Same color test as
+      // _verifyOrange.
       var bestRow = -1;
       var maxOrange = 0;
       // Require the rim band to be at least 8% of the row width — anything
       // less is likely noise rather than a real ring.
       var minOrangeCount = Math.max(3, Math.floor(scanW * 0.08));
+      var rowCounts = new Int32Array(scanH);
+      var rowSumX   = new Float64Array(scanH);
 
       for (var ry = 0; ry < scanH; ry++) {
         var rowStart = ry * scanW * 4;
         var count = 0;
+        var sumX = 0;
         for (var rx = 0; rx < scanW; rx++) {
           var idx = rowStart + rx * 4;
           var r = data[idx], g = data[idx + 1], b = data[idx + 2];
           if (r > 120 && g > 40 && g < 180 && b < 100 && r > g * 1.15 && r > b * 1.6) {
             count++;
+            sumX += rx;
           }
         }
+        rowCounts[ry] = count;
+        rowSumX[ry]   = sumX;
         if (count > maxOrange) {
           maxOrange = count;
           bestRow = ry;
@@ -1646,18 +1845,314 @@
 
       if (bestRow >= 0 && maxOrange >= minOrangeCount) {
         var refinedCy = scanTop + bestRow;
+        // Horizontal centroid of the rim band (best row ±1 for stability).
+        // YOLOX box centers drift off the ring when the box includes pole /
+        // backboard / caption pixels; cy alone was snapped to the orange but
+        // cx kept the bad box center — outdoor eval locked 0.06 left of the
+        // real ring. Centroid of the orange band IS the ring center.
+        var bandCount = 0, bandSumX = 0;
+        for (var by = Math.max(0, bestRow - 1); by <= Math.min(scanH - 1, bestRow + 1); by++) {
+          bandCount += rowCounts[by];
+          bandSumX  += rowSumX[by];
+        }
+        var refinedCx = cx;
+        if (bandCount >= minOrangeCount) {
+          var centroidX = scanLeft + bandSumX / bandCount;
+          // Sanity: don't chase orange far outside the box (banner edge,
+          // second hoop) — cap the shift at 60% of box width.
+          if (Math.abs(centroidX - cx) <= bw * 0.6) refinedCx = centroidX;
+        }
         // Stash flag so downstream knows the position came from a color
         // search, not just the YOLOX bbox center. ShotTrackingScreen uses
         // this to skip the BBOX_RIM_OFFSET_FRAC adjustment (which would
         // over-shoot when the position is already on the orange).
         return {
-          cx: cx, cy: refinedCy, bw: bw, bh: bh, score: hoop.score,
+          cx: refinedCx, cy: refinedCy, bw: bw, bh: bh, score: hoop.score,
           colorRefined: true,
           colorMass:    maxOrange
         };
       }
 
       return hoop;
+    },
+
+    /* ── L32: Global camera-motion estimate ────────────────────────
+       Coarse whole-frame SAD search on a 96×54 gray thumbnail of the
+       processing canvas (±5 thumb-px ≈ ±5% of frame width per tick).
+       When the camera pans, the locked rim must RIDE the scene — YOLOX
+       hoop detections are far too sparse on small/far rims to re-anchor
+       in time (eval v1: ~37% of the video sat in hoop-lost windows
+       during pans and every shot there went uncounted). Emits
+       onGlobalMotion with the SCENE displacement in full-video
+       normalized coords; the screen shifts its locked rim by exactly
+       that. Static cameras emit nothing.
+       ────────────────────────────────────────────────────────────── */
+    _estimateGlobalMotion: function (pw, ph, vw, vh) {
+      if (!this._canvas || !this.onGlobalMotion) return;
+      var GW = 96, GH = 54;
+      if (!this._gmCanvas) {
+        this._gmCanvas = document.createElement('canvas');
+        this._gmCanvas.width = GW; this._gmCanvas.height = GH;
+        this._gmCtx = this._gmCanvas.getContext('2d', { willReadFrequently: true });
+      }
+      var data;
+      try {
+        this._gmCtx.drawImage(this._canvas, 0, 0, GW, GH);
+        data = this._gmCtx.getImageData(0, 0, GW, GH).data;
+      } catch (e) { return; }
+      var n = GW * GH;
+      var cur = new Uint8ClampedArray(n);
+      for (var i = 0, j = 0; i < n; i++, j += 4) {
+        cur[i] = (data[j] * 3 + data[j + 1] * 4 + data[j + 2]) >> 3;
+      }
+      var prev = this._gmPrev;
+      this._gmPrev = cur;
+      if (!prev || prev.length !== n) return;
+
+      var R = 5;  // search radius in thumbnail px
+      var bestDx = 0, bestDy = 0, bestSad = Infinity, zeroSad = 0;
+      for (var dy = -R; dy <= R; dy++) {
+        for (var dx = -R; dx <= R; dx++) {
+          var sad = 0;
+          for (var y = R + 1; y < GH - R - 1; y += 2) {
+            var rowC = y * GW, rowP = (y + dy) * GW + dx;
+            for (var x = R + 1; x < GW - R - 1; x += 2) {
+              sad += Math.abs(cur[rowC + x] - prev[rowP + x]);
+            }
+          }
+          if (dx === 0 && dy === 0) zeroSad = sad;
+          if (sad < bestSad) { bestSad = sad; bestDx = dx; bestDy = dy; }
+        }
+      }
+      // Static camera / ambiguous match → no shift. The 0.8 factor keeps
+      // noise and local object motion (players) from masquerading as pans.
+      if ((bestDx === 0 && bestDy === 0) || bestSad > zeroSad * 0.8) return;
+      // cur[x] matches prev[x+bestDx] → the scene moved by -bestDx (proc px).
+      var sceneDxProc = -bestDx * (pw / GW);
+      var sceneDyProc = -bestDy * (ph / GH);
+      var dxNorm = sceneDxProc * (this._cropScaleX || 1) / Math.max(1, vw);
+      var dyNorm = sceneDyProc * (this._cropScaleY || 1) / Math.max(1, vh);
+      this.onGlobalMotion(dxNorm, dyNorm);
+    },
+
+    /* ── L31: Rim-transit detector ─────────────────────────────────
+       The v6 model frequently CANNOT see the ball in flight (compressed
+       footage, motion blur, washed-out color) — eval showed entire makes
+       with zero in-corridor ball detections even at 10fps offline. But a
+       basketball passing through the rim is a huge orange mass moving
+       through two small, KNOWN windows. So: count orange pixels in a
+       window just ABOVE the rim line and one in the net cone BELOW it,
+       every processing tick (~3-5× the YOLOX cadence), against a slowly
+       learned per-window baseline (absorbs the rim's own orange, wall
+       logos, fence flowers…). An A-spike followed by a B-spike within
+       1.2s = the ball went THROUGH — this feeds the same
+       _ballAboveRimAt/_ballThroughRimAt evidence fields the counting
+       logic already consumes. A ball that rolls off the rim keeps A+B
+       spiking SIMULTANEOUSLY (gap < one tick) and never satisfies the
+       ordered test; a ball deflected outside the net never spikes B.
+       ────────────────────────────────────────────────────────────── */
+    _updateRimTransit: function (pw, ph, vw, vh) {
+      if (!this.rimZone || !this._rimStabilized || !this._ctx) return;
+      var rim = this.rimZone;
+      var sx = this._cropScaleX || 1, sy = this._cropScaleY || 1;
+      var ox = this._cropOffsetX || 0, oy = this._cropOffsetY || 0;
+      // rim normalized (full-video space) → processing-canvas px
+      var rimPx = ((rim.centerX * vw) - ox) / sx;
+      var rimPy = ((rim.centerY * vh) - oy) / sy;
+      var rimPw = Math.max(10, (rim.width  || 0.10) * vw / sx);
+      var rimPh = Math.max(5,  (rim.height || 0.04) * vh / sy);
+      if (rimPx < 0 || rimPx > pw || rimPy < 0 || rimPy > ph) return;
+
+      var aX = Math.floor(rimPx - rimPw * 0.8), aW = Math.floor(rimPw * 1.6);
+      var aY = Math.floor(rimPy - rimPh * 3.5), aH = Math.floor(rimPh * 3.0);
+      // B is NARROW (±0.45×rim width): the net cone. Eval v3 n8 (rim hit
+      // deflecting down-left just outside the net) clipped the edge of a
+      // ±0.6 window and produced a false "through" — a real make passes
+      // well inside the cone.
+      var bX = Math.floor(rimPx - rimPw * 0.45), bW = Math.floor(rimPw * 0.9);
+      var bY = Math.floor(rimPy + rimPh * 0.7), bH = Math.floor(rimPh * 3.5);
+      if (aW < 6 || aH < 3 || bW < 6 || bH < 3) return;
+      // Control region: same size as B, shifted sideways — calibrates out
+      // GLOBAL motion (camera pan/zoom lights every window equally).
+      var cShift = Math.floor(rimPw * 2.2);
+      var cX = (bX + bW + cShift + bW <= pw) ? bX + cShift + bW : bX - cShift - bW;
+
+      var a = this._scanTransitRegion('A', aX, aY, aW, aH, pw, ph);
+      var b = this._scanTransitRegion('B', bX, bY, bW, bH, pw, ph);
+      var c = this._scanTransitRegion('C', cX, bY, bW, bH, pw, ph);
+      if (!a || !b) return;
+      if (this._transitBaseA == null) {
+        this._transitBaseA  = a.orange; this._transitBaseB  = b.orange;
+        this._transitSadBaseA = 0; this._transitSadBaseB = 0;
+        return;
+      }
+
+      var nowT = Date.now();
+      var ctrlHot = c ? c.hot : 0;
+      // Two channels per window:
+      //  • orange-mass spike — saturated footage (outdoor, gyms)
+      //  • motion HOT-FRACTION spike (share of pixels whose gray changed
+      //    by >25 since the previous tick) — compressed/washed footage
+      //    where the ball fails the orange test entirely (eval v3: the
+      //    model's own ball candidates died on "not orange"). Hot-fraction
+      //    beats mean-abs-diff: a transiting ball is a compact blob of
+      //    LARGE deltas (~10-25% of the window), while net sway and codec
+      //    shimmer are wide fields of small deltas.
+      // Camera-pan veto: a pan lights EVERY window — when the control
+      // region (same size as B, off to the side) is mostly hot, nothing
+      // counts. A ratio guard was tried first and suppressed putback/tip
+      // plays (the player's own body motion lit the control region while
+      // the actual ball action was at the rim) — eval v3 lost every
+      // at-rim play of the second half to it. Hard veto only.
+      var aOrangeSpike = a.orange > Math.max(this._transitBaseA * 1.8, this._transitBaseA + 10);
+      var bOrangeSpike = b.orange > Math.max(this._transitBaseB * 1.8, this._transitBaseB + 10);
+      var panVeto = ctrlHot > 0.45;
+      var aHotSpike = !panVeto && a.hot > Math.max(0.05, this._transitSadBaseA * 2.5);
+      var bHotSpike = !panVeto && b.hot > Math.max(0.05, this._transitSadBaseB * 2.5);
+      var aSpike = aOrangeSpike || aHotSpike;
+      var bSpike = bOrangeSpike || bHotSpike;
+      // Baselines learn ONLY from non-spike ticks so the ball itself is
+      // never absorbed into "normal". Hot-fraction baseline is SLOW
+      // (≈3%/tick) — sustained at-rim action must not become "normal"
+      // within a couple of seconds.
+      if (!aOrangeSpike) this._transitBaseA = this._transitBaseA * 0.95 + a.orange * 0.05;
+      if (!bOrangeSpike) this._transitBaseB = this._transitBaseB * 0.95 + b.orange * 0.05;
+      if (!aHotSpike) this._transitSadBaseA = this._transitSadBaseA * 0.97 + a.hot * 0.03;
+      if (!bHotSpike) this._transitSadBaseB = this._transitSadBaseB * 0.97 + b.hot * 0.03;
+
+      if (DEBUG) {
+        this._transitDbgN = (this._transitDbgN || 0) + 1;
+        if (this._transitDbgN % 20 === 0) {
+          dlog('[Transit] oA=' + a.orange + '/' + this._transitBaseA.toFixed(0) +
+               ' oB=' + b.orange + '/' + this._transitBaseB.toFixed(0) +
+               ' hotA=' + a.hot.toFixed(2) + '/' + this._transitSadBaseA.toFixed(2) +
+               ' hotB=' + b.hot.toFixed(2) + '/' + this._transitSadBaseB.toFixed(2) +
+               ' hotC=' + ctrlHot.toFixed(2) +
+               ' spikes=' + (aSpike ? 'A' : '-') + (bSpike ? 'B' : '-'));
+        }
+      }
+
+      // Ordered transit test uses the PREVIOUS tick's above-time, so a
+      // ball sitting on the rim (A+B lit together, gap≈0) never passes.
+      // Centrality guard: when the motion channel fires B, its hot blob
+      // must be in the MIDDLE of the net cone — a deflection clipping the
+      // window's edge (eval n8: rim hit exiting down-left just outside
+      // the net) produced a false through.
+      var bCentered = !bHotSpike || b.hotCx == null ||
+                      (b.hotCx >= 0.25 && b.hotCx <= 0.75);
+      var prevAboveAt = this._transitAboveAt || 0;
+      if (bSpike && bCentered && prevAboveAt &&
+          nowT - prevAboveAt >= 60 && nowT - prevAboveAt <= 1200 &&
+          !this._ballThroughRimAt) {
+        this._ballThroughRimAt = nowT;
+        this._logShotEvent('rim-transit-through', {
+          aOrange: a.orange, bOrange: b.orange,
+          aHot: +a.hot.toFixed(2), bHot: +b.hot.toFixed(2), ctrlHot: +ctrlHot.toFixed(2),
+          aBase: +this._transitBaseA.toFixed(1), bBase: +this._transitBaseB.toFixed(1),
+          msSinceAbove: nowT - prevAboveAt
+        });
+      }
+      if (aSpike) {
+        this._transitAboveAt = nowT;
+        this._ballAboveRimAt = nowT;
+      }
+
+      // ── L31.2: RIM-EVENT COUNTING ─────────────────────────────────
+      // The A-window arrival is the most reliable "an attempt reached the
+      // rim" signal on footage where YOLOX can't track the ball and pose
+      // triggers are erratic (eval: pose fired 0.8-2.3s before the rim
+      // arrival, so the 1.1s fallback kept counting shots BEFORE the ball
+      // got there). Arm a rim event on the A-spike; resolve MADE the
+      // moment through-evidence lands, or MISSED after 1.4s without it.
+      // If a pose/ball-triggered shot is in flight, this resolves THAT
+      // shot (single count, correct timing); from idle it counts an
+      // attempt of its own.
+      // L32: arming gap 800 → 650ms — rapid put-back sequences arrive
+      // ~0.75s apart (eval v3 n3/n4 merged into one count at 800), while
+      // a tip that bounces and re-enters (~450ms) must NOT split into two
+      // events (500 produced a phantom double on eval n9).
+      if (aSpike && !this._transitEventAt &&
+          nowT - this.lastShotTime > 650) {
+        this._transitEventAt = nowT;
+        this._logShotEvent('rim-event-armed', {
+          aOrange: a.orange, aHot: +a.hot.toFixed(2), ctrlHot: +ctrlHot.toFixed(2),
+          shotState: this._shotState
+        });
+      }
+      if (this._transitEventAt) {
+        // Another path (L9.2 watch / near_hoop rule) just counted this rim
+        // event — drop the pending duplicate. (L32: 900 → 650ms, matches
+        // the arming gap so back-to-back put-backs survive.)
+        if (nowT - this.lastShotTime < 650) {
+          this._transitEventAt = 0;
+        } else if (this._ballThroughRimAt > 0) {
+          this._transitEventAt = 0;
+          if (this._shotState === 'idle') {
+            this._shotTriggerSrc    = 'rim-event';
+            this._releaseConfidence = 0.6;
+          }
+          this._logShotEvent('rim-event-resolved', { result: 'made' });
+          this._countShot('made', vw, vh, rim.centerX, rim.centerY, nowT);
+        } else if (nowT - this._transitEventAt > 1400) {
+          this._transitEventAt = 0;
+          if (this._shotState === 'idle') {
+            this._shotTriggerSrc    = 'rim-event';
+            this._releaseConfidence = 0.6;
+          }
+          this._logShotEvent('rim-event-resolved', { result: 'missed' });
+          this._countShot('missed', vw, vh, rim.centerX, rim.centerY, nowT);
+        }
+      }
+    },
+
+    /* L31: one-pass region scan → orange-pixel count + motion energy
+       (mean abs gray diff vs the previous tick's pixels, stride 2).
+       Returns null when the region is degenerate or the canvas is
+       unreadable. Previous-frame buffers are kept per region key. */
+    _scanTransitRegion: function (key, x0, y0, w, h, pw, ph) {
+      if (x0 < 0) { w += x0; x0 = 0; }
+      if (y0 < 0) { h += y0; y0 = 0; }
+      if (x0 + w > pw) w = pw - x0;
+      if (y0 + h > ph) h = ph - y0;
+      if (w < 4 || h < 4) return null;
+      var data;
+      try { data = this._ctx.getImageData(x0, y0, w, h).data; }
+      catch (e) { return null; }
+
+      var stride = 2;
+      var gw = Math.floor(w / stride), gh = Math.floor(h / stride);
+      var n = gw * gh;
+      if (!this._transitPrev) this._transitPrev = {};
+      var prev = this._transitPrev[key];
+      var cur = new Uint8ClampedArray(n);
+      var orange = 0, hotCount = 0, hotSumX = 0, gi = 0;
+      var samePrev = prev && prev.length === n;
+      for (var yy = 0; yy < gh; yy++) {
+        var rowOff = (yy * stride * w) * 4;
+        for (var xx = 0; xx < gw; xx++) {
+          var idx = rowOff + (xx * stride) * 4;
+          var r = data[idx], g = data[idx + 1], bch = data[idx + 2];
+          if (r > 120 && g > 40 && g < 180 && bch < 100 && r > g * 1.15 && r > bch * 1.6) {
+            orange++;
+          }
+          var gray = (r * 3 + g * 4 + bch) >> 3;
+          if (samePrev && Math.abs(gray - prev[gi]) > 25) {
+            hotCount++;
+            hotSumX += xx;
+          }
+          cur[gi++] = gray;
+        }
+      }
+      this._transitPrev[key] = cur;
+      // hot = fraction of sampled pixels whose gray changed by >25 since
+      // the previous tick — compact moving blobs (the ball) score high,
+      // codec shimmer / slight net sway score near zero. hotCx = the hot
+      // blob's horizontal centroid as a 0..1 fraction of the window.
+      return {
+        orange: orange,
+        hot:    samePrev ? hotCount / n : 0,
+        hotCx:  (samePrev && hotCount > 0) ? (hotSumX / hotCount) / Math.max(1, gw - 1) : null
+      };
     },
 
     /* ── L12.2: Count orange pixels in an axis-aligned region ──
@@ -1802,21 +2297,28 @@
       var normX = cx / vw;
       var normY = cy / vh;
 
-      // Velocity jump rejection: if ball jumps > 0.15 normalized distance
-      // and fewer than 3 consecutive detections, reject as likely player switch
+      // Velocity jump rejection: reject teleports (likely a switch to a
+      // different orange object) — but TIME-AWARE. L30: the old fixed 0.15
+      // threshold assumed ~30Hz sampling; at the real YOLOX cadence
+      // (200-400ms between detections) a genuine shot arc legitimately
+      // moves 0.2-0.4 normalized between samples, so the fixed threshold
+      // rejected nearly every in-flight detection and starved the tracker.
+      // Allow up to 1.2 norm/s of real motion (capped), floor at 0.15.
       if (this._prevBallNorm) {
         var dx = normX - this._prevBallNorm.x;
         var dy = normY - this._prevBallNorm.y;
         var jumpDist = Math.sqrt(dx * dx + dy * dy);
-        if (jumpDist > 0.15 && this._consecutiveDets < 3) {
+        var dtSec = this._prevBallNorm.ts ? Math.min(1.0, (Date.now() - this._prevBallNorm.ts) / 1000) : 0.033;
+        var maxJump = Math.min(0.45, Math.max(0.15, 1.2 * dtSec));
+        if (jumpDist > maxJump && this._consecutiveDets < 3) {
           // Reject this detection — likely jumped to a player
           this._consecutiveDets = 0;
-          this._prevBallNorm = { x: normX, y: normY };
+          this._prevBallNorm = { x: normX, y: normY, ts: Date.now() };
           return;
         }
       }
       this._consecutiveDets++;
-      this._prevBallNorm = { x: normX, y: normY };
+      this._prevBallNorm = { x: normX, y: normY, ts: Date.now() };
 
       updateTracker(this.tracker, cx, cy);
       this.ballPosition = {
@@ -1845,6 +2347,29 @@
           this._ballSeenAtRim = true;
           this._ballNearRimHits = (this._ballNearRimHits || 0) + 1;
         }
+
+        // L30: ordered THROUGH-RIM evidence from measured detections.
+        // "Above the rim earlier, below it within the made span shortly
+        // after" survives the detector blinks that break the consecutive-
+        // frame crossing watch, while staying far stricter than
+        // _ballSeenAtRim (any near-rim frame — true for misses too).
+        var madeSpan = rimHW * 2.0;     // same span the L9.2 watch uses
+        var nowEvid = Date.now();
+        if (normY < rimCY - rimHH && dxN <= madeSpan * 1.25) {
+          this._ballAboveRimAt = nowEvid;
+        } else if (!this._ballThroughRimAt &&
+                   this._ballAboveRimAt &&
+                   nowEvid - this._ballAboveRimAt <= 1500 &&
+                   normY > rimCY + rimHH &&
+                   normY < rimCY + rimHH * 10 &&
+                   dxN <= madeSpan) {
+          this._ballThroughRimAt = nowEvid;
+          this._logShotEvent('ball-through-rim-evidence', {
+            dxFromRim:    +dxN.toFixed(3),
+            normY:        +normY.toFixed(3),
+            msSinceAbove: nowEvid - this._ballAboveRimAt
+          });
+        }
       }
 
       // ── L26: SAFE ball-trajectory shot trigger from IDLE state ──
@@ -1864,11 +2389,16 @@
       //
       // Honors cooldown so it can never double-count a shot another
       // trigger already caught.
-      if (this._shotState === 'idle' && this.rimZone && this._rimStabilized &&
-          this.tracker.positions.length >= 5 &&
-          Date.now() - this.lastShotTime > DEBOUNCE_MS) {
+      // L30: the trigger gates below must see MEASURED points only —
+      // Kalman-predicted ghosts satisfy the arc/descent gates with pure
+      // physics, no pixels involved.
+      var ridgeRealPts = (this._shotState === 'idle' && this.rimZone && this._rimStabilized &&
+                          Date.now() - this.lastShotTime > DEBOUNCE_MS)
+        ? this.tracker.positions.slice(-15).filter(function (p) { return !p.predicted; })
+        : null;
+      if (ridgeRealPts && ridgeRealPts.length >= 5) {
         var ridge_rim = this.rimZone;
-        var ridge_pts = this.tracker.positions.slice(-15);
+        var ridge_pts = ridgeRealPts;
         var ridge_last = ridge_pts[ridge_pts.length - 1];
         var ridge_lastX = ridge_last.x / vw;
         var ridge_lastY = ridge_last.y / vh;
@@ -1905,20 +2435,53 @@
             aboveRimFrames:  aboveRimFrames,
             descentPx:       (ridge_p1.y - ridge_p0.y).toFixed(1)
           });
-          // Retroactively open + close a shot. ballSeenAtRim=true so the
-          // L16 upgrade path applies and L24 skips the trajectory override.
-          this._shotState         = 'shot_started';
+          // L30: open a retroactive shot and hand the verdict to the L9.2
+          // post-crossing watch instead of counting an instant "missed"
+          // that the L16 chain then upgraded to MADE unconditionally. The
+          // watch's improvement + bounce guards are what actually separate
+          // swishes from front-rim bounce-outs; if the ball vanishes into
+          // the net, the through-rim evidence (L14.B) or the near_hoop
+          // timeout resolves the shot instead.
+          var ridge_rimHalfW2 = (ridge_rim.width || 0.08) / 2;
+          // Interpolate the rim-line crossing from the last point above the
+          // rim to the current one — same math as the watch's phase 1.
+          var ridge_crossX = ridge_lastX;
+          for (var rci = ridge_pts.length - 2; rci >= 0; rci--) {
+            var rpY = ridge_pts[rci].y / vh;
+            if (rpY < ridge_rim.centerY) {
+              var rpX = ridge_pts[rci].x / vw;
+              var rDy = ridge_lastY - rpY;
+              var rRatio = rDy > 1e-6 ? (ridge_rim.centerY - rpY) / rDy : 0;
+              ridge_crossX = rpX + rRatio * (ridge_lastX - rpX);
+              break;
+            }
+          }
+          this._shotState         = 'near_hoop';
           this._shotStateTime     = nowMs;
           this._shotTriggerSrc    = 'ball-trajectory';
           this._ballSeenAtRim     = true;
+          this._ballNearRimHits   = (this._ballNearRimHits || 0) + 1;
+          this._ballAboveRimAt    = nowMs;  // factual: the arc was above the rim
+          this._ballThroughRimAt  = 0;
           this._sawBallAboveRim   = true;
+          this._shotStartY        = ridge_lastY;
+          this._ballMinY          = ridge_pts.reduce(function (m, p) { return Math.min(m, p.y); }, Infinity) / vh;
           this._releaseConfidence = 0.7;
           this._shooterFeetX      = null;
           this._shooterFeetY      = null;
-          this._shotTrajectory    = [];
-          this._postCrossingWatch = null;
-          this._countShot('missed', vw, vh, ridge_lastX, ridge_lastY, nowMs);
-          return; // skip further processing this frame
+          this._shotTrajectory    = [{ x: ridge_lastX, y: ridge_lastY, t: nowMs }];
+          this._postCrossingWatch = {
+            t0:        nowMs,
+            bestDist:  Math.abs(ridge_crossX - ridge_rim.centerX),
+            bestX:     ridge_crossX,
+            bestY:     ridge_rim.centerY,
+            lastY:     ridge_lastY,
+            samples:   1,
+            rimY: ridge_rim.centerY, rimX: ridge_rim.centerX,
+            madeThresh: ridge_rimHalfW2 * 2.0
+          };
+          // NO return and NO instant count — flow falls through to the
+          // L9.2 watch block below, which resolves made/missed in ~100ms.
         }
       }
 
@@ -2045,7 +2608,7 @@
         }
       }
 
-      this._analyzeShotState(vw, vh, normX, normY);
+      this._analyzeShotState(vw, vh, normX, normY, 'ball');
     },
 
     _processNoBall: function () {
@@ -2076,14 +2639,20 @@
       if (kf.initialized && kf.predictCount > 0 && kf.predictCount <= maxPredictNoBall) {
         var vw = this.videoEl ? this.videoEl.videoWidth : 1;
         var vh = this.videoEl ? this.videoEl.videoHeight : 1;
-        this.ballPosition = {
-          normX: kf.x / vw, normY: kf.y / vh,
-          source: 'predicted', confidence: 0
-        };
-        if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
-        // Continue analyzing shot state with predicted position
-        this._analyzeShotState(vw, vh, kf.x / vw, kf.y / vh);
-        return;
+        // L31: only surface/analyze the ghost while it is still inside the
+        // frame — out-of-frame extrapolations are fiction, not a ball.
+        var ghostVisible = kf.x >= -vw * 0.1 && kf.x <= vw * 1.1 &&
+                           kf.y >= -vh * 0.3 && kf.y <= vh * 1.1;
+        if (ghostVisible) {
+          this.ballPosition = {
+            normX: kf.x / vw, normY: kf.y / vh,
+            source: 'predicted', confidence: 0
+          };
+          if (this.onBallUpdate) this.onBallUpdate(this.ballPosition);
+          // Continue analyzing shot state with predicted position
+          this._analyzeShotState(vw, vh, kf.x / vw, kf.y / vh, 'predicted');
+          return;
+        }
       }
       this.ballPosition = null;
       if (this.onBallUpdate) this.onBallUpdate(null);
@@ -2108,73 +2677,42 @@
           var lw = posePoll.landmarks[15] || { x:0.5, y:0.5 };
           var rw = posePoll.landmarks[16] || { x:0.5, y:0.5 };
           var wrist = (lw.y < rw.y) ? lw : rw;
-          this._analyzeShotState(vwP, vhP, wrist.x, wrist.y);
+          this._analyzeShotState(vwP, vhP, wrist.x, wrist.y, 'wrist');
         }
       }
 
-      // Timeout-based miss: if ball was tracked near rim and disappeared
-      if (this.rimZone && this.tracker.positions.length >= MIN_TRAJECTORY_PTS && !this.tracker.isTracking) {
+      // Timeout-based miss: the ball was being tracked during an ACTIVE
+      // shot and vanished near the rim without producing a verdict.
+      // L30: gated to active shot states — the old version also fired from
+      // IDLE, manufacturing phantom attempts whose "last point" was usually
+      // a Kalman ghost (the position buffer ends with up to 60-90 predicted
+      // entries before isTracking finally flips false). The verdict now
+      // comes from _countShot, which upgrades missed → made only on
+      // through-rim evidence (the L16/L17/L22 trigger-source upgrades that
+      // lived here are gone — they made 'missed' unreachable).
+      if ((this._shotState === 'shot_started' || this._shotState === 'near_hoop') &&
+          this.rimZone && this.tracker.positions.length >= MIN_TRAJECTORY_PTS && !this.tracker.isTracking) {
         var now = Date.now();
         if (now - this.lastShotTime < DEBOUNCE_MS) return;
         var vw = this.videoEl ? this.videoEl.videoWidth : 1;
         var vh = this.videoEl ? this.videoEl.videoHeight : 1;
         var pts = this.tracker.positions;
-        var lastPt = pts[pts.length - 1];
+        // Last MEASURED point — predicted tails are not sightings.
+        var lastPt = null;
+        for (var lpi = pts.length - 1; lpi >= 0; lpi--) {
+          if (!pts[lpi].predicted) { lastPt = pts[lpi]; break; }
+        }
         if (lastPt) {
           var normX = lastPt.x / vw;
           var normY = lastPt.y / vh;
           if (isInApproachZone(normX, normY, this.rimZone)) {
-            dlog('[ShotDetection] timeout miss: ball disappeared near rim');
-            this.lastShotTime = now;
-            this.stats.attempts++;
-            // L18: apply the same L16/L17 upgrade-to-made rules that
-            // _countShot uses. Previously this fallback emitted MISSED
-            // directly without consulting ballSeenAtRim or pose source,
-            // which short-circuited L17 entirely on every timeout-miss.
-            var resolved = 'missed';
-            if (this._ballSeenAtRim) {
-              resolved = 'made';
-              this._logShotEvent('miss-upgraded-to-made', {
-                via: 'ballSeenAtRim', from: 'timeout-miss',
-                ballNearRimHits: this._ballNearRimHits || 0
-              });
-            } else if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
-              resolved = 'made';
-              this._logShotEvent('miss-upgraded-to-made', {
-                via: 'pose-default', from: 'timeout-miss',
-                releaseConfidence: this._releaseConfidence,
-                triggerSrc: this._shotTriggerSrc
-              });
-            } else if (this._shotTriggerSrc === 'ball') {
-              // L22: ball-rise confirms a real shot.
-              resolved = 'made';
-              this._logShotEvent('miss-upgraded-to-made', {
-                via: 'ball-rise-default', from: 'timeout-miss'
-              });
-            }
-            if (resolved === 'made') this.stats.made++;
-            var launchPt = getLaunchPoint(this.tracker, vw, vh);
-            var shotZone = classifyShotZone(launchPt, this.rimZone, this.threePtDistance);
-            var missData = {
-              result: resolved,
-              shotX: normX,
-              shotY: normY,
-              trajectory: getTrajectoryNormalized(this.tracker, vw, vh, 20),
-              launchPoint: launchPt,
-              shotZone: shotZone,
-              timestamp: now,
-              triggerSrc: this._shotTriggerSrc,
-              releaseConfidence: this._releaseConfidence
-            };
-            this._logShotEvent('shot-counted', {
-              result: resolved, triggerSrc: this._shotTriggerSrc, from: 'timeout-miss',
-              ballSeenAtRim: !!this._ballSeenAtRim
+            dlog('[ShotDetection] timeout miss: ball disappeared near rim during active shot');
+            this._logShotEvent('timeout-miss', {
+              lastX: +normX.toFixed(3),
+              lastY: +normY.toFixed(3),
+              throughRim: !!this._ballThroughRimAt
             });
-            if (window.AdaptiveLearning) {
-              window.AdaptiveLearning.onShotCompleted(missData.trajectory, resolved, this.rimZone);
-            }
-            if (this.onShotDetected) this.onShotDetected(missData);
-            resetTracker(this.tracker);
+            this._countShot('missed', vw, vh, normX, normY, now);
           }
         }
       }
@@ -2197,7 +2735,7 @@
          minimum-motion gate prevents a stationary ball or a short
          dribble bounce from being counted as a shot.
     ────────────────────────────────────────────────────────────── */
-    _analyzeShotState: function (vw, vh, normX, normY) {
+    _analyzeShotState: function (vw, vh, normX, normY, sampleSource) {
       // _rimStabilized is the screen's "rim has finished converging" signal.
       // Until that flips on, we ignore everything — the EMA on the auto-lock
       // is still settling and we don't want phantom shots from a rim zone
@@ -2205,6 +2743,13 @@
       if (!this.rimZone || !this._rimStabilized) return;
       var now = Date.now();
       var rim = this.rimZone;
+      // L30: only MEASURED ball detections may create made/miss EVIDENCE
+      // (above-rim flags, min-Y, the crossing rule). Kalman-predicted
+      // ghosts follow gravity straight "through" the rim, and the pose
+      // wrist proxy puts a "ball" at rim height whenever a player reaches
+      // up under the basket — both faked crossings before this gate.
+      // Non-ball samples still drive zone ENTRY and timeouts.
+      var isBallSample = (sampleSource === 'ball' || sampleSource === undefined);
 
       // Cooldown
       if (this._shotState === 'cooldown') {
@@ -2218,7 +2763,7 @@
       }
 
       // Track the highest point the ball reaches (lowest Y value)
-      if (normY < this._ballMinY) this._ballMinY = normY;
+      if (isBallSample && normY < this._ballMinY) this._ballMinY = normY;
 
       var pts = this.tracker.positions;
 
@@ -2259,6 +2804,8 @@
           this._sawBallAboveRim   = (normY < rim.centerY); // already above rim at release?
           this._ballSeenAtRim     = false;  // L14.B: reset rim-proximity flag
           this._ballNearRimHits   = 0;
+          this._ballAboveRimAt    = 0;      // L30: reset through-rim evidence
+          this._ballThroughRimAt  = 0;
           this._logShotEvent(poseShot && poseShot.isShot ? 'pose-trigger' : 'ball-rise-trigger', {
             normY: normY,
             rimCenterY: rim.centerY
@@ -2283,7 +2830,7 @@
 
       // ── SHOT_STARTED: wait for ball to reach the rim zone ──
       if (this._shotState === 'shot_started') {
-        if (normY < rim.centerY) this._sawBallAboveRim = true;
+        if (isBallSample && normY < rim.centerY) this._sawBallAboveRim = true;
 
         // Rim-relative entry zone: within 2.5 rim-heights of the rim center.
         // Scales with however the model sized the hoop bbox, instead of
@@ -2297,15 +2844,25 @@
         }
         if (now - this._shotStateTime > 3000) {
           // Pose-triggered shot timed out without the ball reaching near_hoop.
-          // The shooter clearly took a shot (pose said so with high
-          // confidence), but YOLOX couldn't track the ball — red ball,
-          // small ball, off-camera arc, whatever. Conservative behaviour:
-          // count it as a MISS so the attempt isn't silently dropped.
-          // Ball-triggered shots that never reach near_hoop are dropped as
-          // before (they may have been noise rather than real shots).
-          if (this._shotTriggerSrc === 'pose') {
-            this._countShot('missed', vw, vh, normX, normY, now);
-            return;
+          // L31.2: aligned with the pose-fallback policy — count only when
+          // there is EVIDENCE (through-rim → made, rim activity → missed);
+          // a trigger with zero rim activity is far more likely a phantom
+          // pose than a real airball, so it is dropped, not counted.
+          // (The 3.2s pose-fallback usually fires first; this is the
+          // backstop for setpoint-triggered shots and pose-loop hiccups.)
+          if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
+            var sawRimAct = (this._transitAboveAt && this._transitAboveAt >= this._shotStateTime) ||
+                            this._ballSeenAtRim;
+            if (this._ballThroughRimAt > 0) {
+              this._countShot('made', vw, vh, normX, normY, now);
+              return;
+            }
+            if (sawRimAct) {
+              this._countShot('missed', vw, vh, normX, normY, now);
+              return;
+            }
+            this._logShotEvent('pose-timeout-dropped', { triggerSrc: this._shotTriggerSrc });
+            // fall through to the silent reset below
           }
           this._shotState = 'idle';
           this._ballMinY = 1.0;
@@ -2327,7 +2884,7 @@
 
         var ballAboveRim  = normY < rim.centerY;
         var ballBelowRim  = normY > rim.centerY + (rim.height || 0.04);
-        if (ballAboveRim) this._sawBallAboveRim = true;
+        if (isBallSample && ballAboveRim) this._sawBallAboveRim = true;
 
         // Minimum-motion gate: ball must have actually risen, scaled to
         // how far below the rim the shot started. Below the rim by 0.30
@@ -2345,7 +2902,9 @@
         var motionOk   = isPoseShot || (this._sawBallAboveRim && arcHeight >= minMotion);
 
         // MADE: was above rim, now below rim, horizontally aligned, motion gate cleared
-        if (this._sawBallAboveRim && ballBelowRim && nearHoopX && motionOk) {
+        // L30: isBallSample — a MADE verdict needs a measured ball below the
+        // rim, not a Kalman ghost or a wrist landmark sitting there.
+        if (isBallSample && this._sawBallAboveRim && ballBelowRim && nearHoopX && motionOk) {
           this._countShot('made', vw, vh, normX, normY, now);
           return;
         }
@@ -2379,59 +2938,37 @@
       // to be silently lost. The visual "CALIBRATING…" panel still shows but
       // doesn't block counting.
       //
-      // L16/L17: Aggressive upgrade-to-made rules. The user's test footage
-      // shows shots are being detected (many MISSED banners) but the strict
-      // trajectory checks never produce MADE. Two layered upgrade rules:
+      // L30: EVIDENCE-GATED counting — replaces the L16/L17/L22 upgrade
+      // chain. Those rules gave every trigger source its own miss→made
+      // path ("ball was anywhere near the rim" / "pose said shot" /
+      // "ball rose"), which made 'missed' structurally unreachable: every
+      // eval run returned N/N MADE vs ground truth 13 made / 8 miss.
       //
-      //   L16 (any source) — ball was seen near rim center → made
-      //   L17 (pose only)  — pose-triggered shots default to made when the
-      //                      trajectory checks couldn't confirm a made. This
-      //                      matches the "trust pose as source of truth"
-      //                      principle — the ball detector is noisier than
-      //                      the pose detector, especially on compressed
-      //                      footage where YOLOX loses the ball mid-arc.
-      // L24: track whether an upgrade fired so the trajectory cross-check
-      // below can skip the override step. The cross-check was undoing
-      // every upgrade when ball trajectory was partial (common on
-      // compressed footage where YOLOX loses the ball mid-arc).
+      // The ONE remaining upgrade: ordered through-rim evidence collected
+      // by L14.B' — a measured ball above the rim, then below it within
+      // the made span, in that order, within 1.5s. That is what a make
+      // LOOKS like when detector blinks hide the actual crossing frame.
+      // A trigger source alone never converts a miss into a make; shots
+      // with no ball evidence stay missed attempts (the honest reading:
+      // we saw a shot happen and never saw the ball go in).
       var resultUpgraded = false;
-      if (result === 'missed') {
-        if (this._ballSeenAtRim) {
-          this._logShotEvent('miss-upgraded-to-made', {
-            via: 'ballSeenAtRim',
-            ballNearRimHits: this._ballNearRimHits || 0,
-            triggerSrc:      this._shotTriggerSrc
-          });
-          result = 'made';
-          resultUpgraded = true;
-        } else if (this._shotTriggerSrc === 'pose' || this._shotTriggerSrc === 'pose-setpoint') {
-          this._logShotEvent('miss-upgraded-to-made', {
-            via: 'pose-default',
-            releaseConfidence: this._releaseConfidence,
-            triggerSrc:        this._shotTriggerSrc
-          });
-          result = 'made';
-          resultUpgraded = true;
-        } else if (this._shotTriggerSrc === 'ball') {
-          // L22: ball-rise already confirmed >3% upward motion over 600ms.
-          // That's a high-confidence shot signal — default to made when no
-          // trajectory crossing produced an explicit verdict. Symmetrical
-          // with L17 (pose trigger → default made).
-          this._logShotEvent('miss-upgraded-to-made', {
-            via: 'ball-rise-default',
-            triggerSrc: 'ball'
-          });
-          result = 'made';
-          resultUpgraded = true;
-        }
+      if (result === 'missed' && this._ballThroughRimAt > 0) {
+        this._logShotEvent('miss-upgraded-to-made', {
+          via: 'through-rim-evidence',
+          ballNearRimHits: this._ballNearRimHits || 0,
+          triggerSrc:      this._shotTriggerSrc
+        });
+        result = 'made';
+        resultUpgraded = true;
       }
       this._logShotEvent('shot-counted', {
-        result:         result,
-        triggerSrc:     this._shotTriggerSrc,
-        ballSeenAtRim:  !!this._ballSeenAtRim,
+        result:          result,
+        triggerSrc:      this._shotTriggerSrc,
+        ballSeenAtRim:   !!this._ballSeenAtRim,
+        ballThroughRim:  !!this._ballThroughRimAt,
         ballNearRimHits: this._ballNearRimHits || 0,
-        normX:          normX,
-        normY:          normY
+        normX:           normX,
+        normY:           normY
       });
 
       this.lastShotTime = now;
@@ -2458,8 +2995,10 @@
       var traj = getTrajectoryNormalized(this.tracker, vw, vh, 20);
 
       // ── Trajectory-based verification (analyzeMade/analyzeMiss) ──
-      // Normalize pixel trajectory to 0-1 space to match rimZone coordinates
-      var rawPts = this.tracker.positions.slice(-30);
+      // Normalize pixel trajectory to 0-1 space to match rimZone coordinates.
+      // L30: measured points only — Kalman tails fall plausibly through the
+      // rim by construction and fooled analyzeMade.
+      var rawPts = this.tracker.positions.slice(-30).filter(function (pt) { return !pt.predicted; });
       var normTraj = rawPts.map(function (pt) {
         return { x: pt.x / vw, y: pt.y / vh, frame: pt.frame };
       });
@@ -2519,6 +3058,11 @@
       this._releaseConfidence = null;
       this._shooterFeetX      = null;
       this._shooterFeetY      = null;
+      // L30: consume the rim evidence — the next shot must earn its own.
+      this._ballSeenAtRim     = false;
+      this._ballNearRimHits   = 0;
+      this._ballAboveRimAt    = 0;
+      this._ballThroughRimAt  = 0;
     },
 
     _setStatus: function (status) {

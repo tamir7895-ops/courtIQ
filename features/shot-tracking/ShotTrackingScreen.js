@@ -44,10 +44,21 @@
   // Time after the first auto-lock before the state machine is allowed
   // to count shots. The rim is still drifting toward its true position
   // during this window.
-  var RIM_STABILIZATION_MS  = 2000;
+  // L31: 2000 → 1200. With the orange-snapped (colorRefined) cluster lock
+  // the position is already exact at lock time — eval locks landed within
+  // 0.01 of ground truth in <1s. The 2s window blinded the engine to
+  // shots in the first ~2.5s of every session (eval v3 lost its opening
+  // put-back to it).
+  var RIM_STABILIZATION_MS  = 1200;
   // No hoop detection for this long → rim is "lost", state machine is
   // re-gated until detections resume. ~10 frames at 5Hz.
   var HOOP_LOST_MS          = 2000;
+  // L32: with camera-motion compensation the locked rim stays valid
+  // through detection droughts (pans, occlusion), so "lost" no longer
+  // gates counting immediately — only a HARD drought does. Eval v1 spent
+  // ~37% of the video gated by the old 2s rule and missed every shot
+  // inside those windows.
+  var HOOP_LOST_HARD_MS     = 5000;
   // No auto-lock within this window → reveal the manual-tap fallback UI.
   var MANUAL_FALLBACK_MS    = 5000;
 
@@ -766,6 +777,16 @@
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
     engine.onDebugFrame   = function (data) { debugData = data; };
+    // L32: camera-motion compensation — the locked rim RIDES global scene
+    // motion (pans/handheld drift). Applies in auto AND manual mode; the
+    // orange-refined EMA still fine-corrects whenever detections flow,
+    // and the recovery re-lock handles shifts the estimator missed.
+    engine.onGlobalMotion = function (dxN, dyN) {
+      if (!rimCenter || !rimLocked) return;
+      rimCenter.x = Math.min(0.98, Math.max(0.02, rimCenter.x + dxN));
+      rimCenter.y = Math.min(0.98, Math.max(0.02, rimCenter.y + dyN));
+      engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    };
 
     // Auto-detect hoop from YOLOX + continuous re-anchoring
     // Smoothing buffer: accumulate detections before locking/re-anchoring
@@ -784,22 +805,29 @@
     // crossing fired below the actual rim. 0.10 keeps a small downward
     // bias (so we never lock ABOVE the rim) without overshooting.
     //
-    // L11: Aspect-ratio-aware offset. Different setups produce different
-    // YOLOX bboxes:
-    //   • Outdoor rim with no backboard visible → bbox tight on the orange
-    //     ring, aspect ratio 3.5+ (wide-flat). Offset 0.10 lands ON the rim.
-    //   • Indoor gym with backboard included → bbox covers backboard+ring,
-    //     aspect ratio 1.5-2 (squarer). Offset 0.10 lands ABOVE the rim
-    //     (in the middle of the backboard) — user-visible bug: makes get
-    //     classified as miss because the trajectory crosses a phantom rim
-    //     line above the real one.
-    // Linear interpolation between aspect 1.5 (offset 0.40) and 3.5 (offset
-    // 0.10). Clamped at both ends.
+    // L11: Aspect-ratio-aware offset (fraction of bbox HEIGHT added to bbox
+    // CENTER cy; negative = rim is ABOVE the box center).
+    //
+    // L30 rewrite — measured against frame-level ground truth on eval
+    // footage (scratch/gt/ground_truth.json):
+    //   • Square-ish bbox (aspect ≤1.3) = rim+NET boxed together. The net
+    //     hangs BELOW the ring, so the ring sits at the TOP edge of the box:
+    //     measured rim line at 0.061 of box height from the top (n=289,
+    //     IQR 0.055-0.067) → offset from center = 0.061 - 0.5 ≈ -0.44.
+    //     The old mapping returned +0.40 here — the OPPOSITE direction,
+    //     placing the rim deep inside the net. (That branch was tuned for
+    //     v71-era backboard+rim boxes, which the v6_polished training set
+    //     no longer produces — Phase G dropped backboard-tagged hoops.)
+    //   • Wide-flat bbox (aspect ≥3.5) = rim-only, ring ≈ box center.
+    //     Offset +0.10 validated on a real device — keep.
+    // Linear interpolation between the two anchors. In practice the orange
+    // color refinement (colorRefined → offset 0) dominates; this mapping is
+    // the fallback for no-orange conditions (dark gyms, B&W footage).
     function computeRimOffsetFrac(bw, bh) {
       var aspect = bw / Math.max(0.001, bh);
       if (aspect >= 3.5) return 0.10;
-      if (aspect <= 1.5) return 0.40;
-      return 0.40 - (aspect - 1.5) * 0.15;
+      if (aspect <= 1.3) return -0.44;
+      return -0.44 + (aspect - 1.3) * (0.54 / 2.2);
     }
     // Kept for the warm-start path below (saved-calibration restore) which
     // doesn't have the live bbox dimensions. Effectively a fallback.
@@ -827,8 +855,27 @@
       if (hoopLost) {
         hoopLost = false;
         if (rimLocked && rimAutoMode) {
-          engine.setRimStabilized(true);
-          setAutoStatus('Tracking', 'tracking');
+          // L31: a lost→recovered cycle usually means the camera MOVED
+          // (pan/zoom), not just an occlusion. The L19 freeze would keep
+          // the old screen position forever — on panning eval footage the
+          // lock drifted 0.05+ off the ring after each pan. If the fresh
+          // detection is far from the frozen lock, restart clustering;
+          // otherwise un-freeze the EMA so it can drift back onto the ring.
+          var recAnchY = hoop.colorRefined
+            ? hoop.cy
+            : hoop.cy + hoop.bh * computeRimOffsetFrac(hoop.bw, hoop.bh);
+          var recDist = Math.abs(hoop.cx - rimCenter.x) + Math.abs(recAnchY - rimCenter.y);
+          if (recDist > 0.06) {
+            rimLocked = false;
+            hoopBuffer.length = 0;
+            firstColorRefinedAt = 0;
+            engine.setRimStabilized(false);
+            setAutoStatus('Re-locking…', 'searching');
+          } else {
+            firstColorRefinedAt = Date.now();
+            engine.setRimStabilized(true);
+            setAutoStatus('Tracking', 'tracking');
+          }
         }
       }
 
@@ -950,7 +997,7 @@
         console.log('[ShotTracker] Auto-lock at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
           ') [bbox cy=' + avgCY.toFixed(3) + ', offset=' + lockOffsetFrac.toFixed(2) +
           ' (aspect=' + (avgBW / Math.max(0.001, avgBH)).toFixed(2) + ')' +
-          ', shift=+' + (avgBH * lockOffsetFrac).toFixed(3) +
+          ', shift=' + (avgBH * lockOffsetFrac >= 0 ? '+' : '') + (avgBH * lockOffsetFrac).toFixed(3) +
           '] from ' + hoopBuffer.length + ' detections');
         return;
       }
@@ -1248,12 +1295,20 @@
       // so the cost is just two timestamp comparisons per frame.
       var nowTs = Date.now();
       var engRef = window.ShotDetectionEngine;
-      // Hoop lost — gate the state machine until we see it again.
+      // Hoop lost — flag + status at 2s, but keep COUNTING alive: the
+      // L32 motion compensation keeps the locked rim riding the scene.
       if (rimLocked && rimAutoMode && lastHoopDetectAt > 0 && !hoopLost &&
           (nowTs - lastHoopDetectAt > HOOP_LOST_MS)) {
         hoopLost = true;
-        if (engRef) engRef.setRimStabilized(false);
         setAutoStatus('Searching for hoop...', 'lost');
+      }
+      // HARD drought — now the rim really might be gone (left the frame,
+      // scene change). Gate the state machine until detections resume.
+      if (rimLocked && rimAutoMode && hoopLost && lastHoopDetectAt > 0 &&
+          (nowTs - lastHoopDetectAt > HOOP_LOST_HARD_MS)) {
+        if (engRef && engRef._rimStabilized) {
+          engRef.setRimStabilized(false);
+        }
       }
       // Auto-fallback — YOLOX hasn't locked the rim within the window.
       // Two paths:

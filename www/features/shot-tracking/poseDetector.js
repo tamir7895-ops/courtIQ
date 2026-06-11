@@ -254,12 +254,17 @@
     var lw  = lm[L.LWR], rw  = lm[L.RWR];
     if (!nose || !lsh || !rsh || !lw || !rw) return { isShot: false, reason: 'missing-landmarks' };
 
-    // Visibility — head + at least one wrist
+    // Visibility — head + at least one wrist.
+    // L30: floors raised 0.30/0.20 → 0.50/0.50. The set-point heuristic has
+    // no other confidence gate and was firing on hallucinated poses with
+    // visibility products as low as 0.03 (phantom shot_started triggers in
+    // verified-empty footage spans). MediaPipe emits 33 landmarks even on
+    // an empty court; real shooters at sane framing score well above 0.5.
     var noseVis = nose.visibility || 0;
     var lwVis = lw.visibility || 0;
     var rwVis = rw.visibility || 0;
-    if (noseVis < 0.30) return { isShot: false, reason: 'nose-not-visible' };
-    if (Math.max(lwVis, rwVis) < 0.20) return { isShot: false, reason: 'wrists-not-visible' };
+    if (noseVis < 0.50) return { isShot: false, reason: 'nose-not-visible' };
+    if (Math.max(lwVis, rwVis) < 0.50) return { isShot: false, reason: 'wrists-not-visible' };
 
     // Head region radius — scaled to shoulder-to-shoulder span so it
     // adapts to distance/zoom. Fallback if shoulders look degenerate.
@@ -296,13 +301,18 @@
     }
     if (!startedBelow) return { isShot: false, reason: 'setpoint-no-prior-low' };
 
+    // L30: combined-confidence floor — belt and braces over the per-joint
+    // floors above. A set-point trigger this weak is noise, not a shot.
+    var spConfidence = Math.min(1, wristVis * (noseVis || 0.5) * 1.3);
+    if (spConfidence < 0.30) return { isShot: false, reason: 'setpoint-low-confidence' };
+
     _lastShotReleaseTs = tsMs;
     var hipCenterX = (lm[L.LHIP].x + lm[L.RHIP].x) * 0.5;
     var hipCenterY = (lm[L.LHIP].y + lm[L.RHIP].y) * 0.5;
     return {
       isShot: true,
       releaseTs:         tsMs,
-      releaseConfidence: Math.min(1, wristVis * (noseVis || 0.5) * 1.3),
+      releaseConfidence: spConfidence,
       shooterCenterX:    hipCenterX,
       shooterCenterY:    hipCenterY,
       shootingHand:      shootingHand,
