@@ -37,6 +37,11 @@ const DataService = {
   },
 
   async createWeek(weekNumber, label) {
+    // Preview mode (?preview=1) has no real session — the fake client can't
+    // insert, and callers need a row with an id. Return a local stub instead.
+    if (window.__PREVIEW_MODE__) {
+      return { id: 'preview-week-' + weekNumber, week_number: weekNumber, label: label };
+    }
     const { data, error } = await sb
       .from('training_weeks')
       .insert({

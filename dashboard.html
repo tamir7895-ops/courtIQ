@@ -2760,7 +2760,7 @@ if(new URLSearchParams(location.search).has('preview')){
   window.__PREVIEW_MODE__=true;
   var _fakeSession={user:{id:'preview',email:'preview@courtiq.app',user_metadata:{first_name:'Marcus'}}};
   var _fakeAuth={getSession:function(){return Promise.resolve({data:{session:_fakeSession}})},onAuthStateChange:function(){return{data:{subscription:{unsubscribe:function(){}}}}},getUser:function(){return Promise.resolve({data:{user:_fakeSession.user}})}};
-  var _fakeQuery={select:function(){return _fakeQuery},eq:function(){return _fakeQuery},order:function(){return _fakeQuery},limit:function(){return _fakeQuery},single:function(){return Promise.resolve({data:null,error:null})},then:function(cb){return cb({data:[],error:null})}};
+  var _fakeQuery={select:function(){return _fakeQuery},eq:function(){return _fakeQuery},order:function(){return _fakeQuery},limit:function(){return _fakeQuery},insert:function(){return _fakeQuery},update:function(){return _fakeQuery},upsert:function(){return _fakeQuery},delete:function(){return _fakeQuery},single:function(){return Promise.resolve({data:null,error:null})},then:function(cb){return cb({data:[],error:null})}};
   var _fakeSb={auth:_fakeAuth,from:function(){return _fakeQuery},rpc:function(){return Promise.resolve({data:null,error:null})}};
   // Stub supabase.createClient to return our fake
   window.supabase={createClient:function(){return _fakeSb}};
