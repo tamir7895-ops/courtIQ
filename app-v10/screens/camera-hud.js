@@ -378,6 +378,15 @@
       lctx.fillStyle = '#fff';
       lctx.font = '11px monospace';
       lctx.fillText(fd.t.toFixed(1) + 's · ' + Math.round(fd.frac * 100) + '%', 12, 20);
+      // rim status chip (top-right): searching / locked / approx
+      var rimLabel = !fd.ring ? 'RIM: SEARCHING…' : (fd.ring.fb ? 'RIM: APPROX' : 'RIM: LOCKED');
+      var rimColor = !fd.ring ? '#FF6B5E' : (fd.ring.fb ? '#FFC24B' : '#5BE37D');
+      lctx.font = 'bold 11px monospace';
+      var tw = lctx.measureText(rimLabel).width;
+      lctx.fillStyle = 'rgba(0,0,0,0.55)';
+      lctx.fillRect(W - tw - 18, 6, tw + 12, 20);
+      lctx.fillStyle = rimColor;
+      lctx.fillText(rimLabel, W - tw - 12, 20);
       // shot dots + verdict flash. Repaint on any SIGNATURE change (early
       // verdicts can self-correct while the ring median converges), flash
       // only when a NEW shot closes.

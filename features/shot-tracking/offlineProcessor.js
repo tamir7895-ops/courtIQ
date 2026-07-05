@@ -115,32 +115,43 @@
       _ringCtx.drawImage(video, x0, y0, w, h, 0, 0, w, h);
       data = _ringCtx.getImageData(0, 0, w, h).data;
     } catch (e) { return null; }
-    var counts = new Int32Array(h);
-    var mask = new Uint8Array(w * h);
-    for (var y = 0; y < h; y++) {
-      var off = y * w * 4, c = 0;
-      for (var x = 0; x < w; x++) {
-        var r = data[off + x * 4], g = data[off + x * 4 + 1], b = data[off + x * 4 + 2];
-        if (r > 110 && g < 105 && b < 105 && r > g * 1.45 && r > b * 1.35) {
-          mask[y * w + x] = 1; c++;
+    // Two mask passes, strict first:
+    //   1) RED — saturated painted rims (validated 14/14 on the eval clip).
+    //      Runs first because it is far more selective: orange balls,
+    //      autumn foliage and warm wood all FAIL its g<105 gate.
+    //   2) ORANGE — standard rims under daylight/night lighting (g 60-160)
+    //      that red misses entirely. Only consulted when red finds nothing,
+    //      so it can never contaminate footage where red works.
+    function passScan(mode) {
+      var counts = new Int32Array(h);
+      var mask = new Uint8Array(w * h);
+      for (var y = 0; y < h; y++) {
+        var off = y * w * 4, c = 0;
+        for (var x = 0; x < w; x++) {
+          var r = data[off + x * 4], g = data[off + x * 4 + 1], b = data[off + x * 4 + 2];
+          var hit = mode === 'red'
+            ? (r > 110 && g < 105 && b < 105 && r > g * 1.45 && r > b * 1.35)
+            : (r > 120 && g >= 60 && g < 160 && b < 110 && r > g * 1.25 && r > b * 1.7);
+          if (hit) { mask[y * w + x] = 1; c++; }
         }
+        counts[y] = c;
       }
-      counts[y] = c;
+      var bestRow = 0;
+      for (var yy = 1; yy < h; yy++) if (counts[yy] > counts[bestRow]) bestRow = yy;
+      if (counts[bestRow] < 10) return null;
+      var band = new Uint8Array(w);
+      for (var by = Math.max(0, bestRow - 3); by <= Math.min(h - 1, bestRow + 3); by++) {
+        for (var bx2 = 0; bx2 < w; bx2++) if (mask[by * w + bx2]) band[bx2] = 1;
+      }
+      var run = longestRun(band, 6);
+      if (run[2] < 12) return null;
+      return {
+        y: (y0 + bestRow) / vh,
+        left: (x0 + run[0]) / vw,
+        right: (x0 + run[1]) / vw
+      };
     }
-    var bestRow = 0;
-    for (var yy = 1; yy < h; yy++) if (counts[yy] > counts[bestRow]) bestRow = yy;
-    if (counts[bestRow] < 10) return null;
-    var band = new Uint8Array(w);
-    for (var by = Math.max(0, bestRow - 3); by <= Math.min(h - 1, bestRow + 3); by++) {
-      for (var bx2 = 0; bx2 < w; bx2++) if (mask[by * w + bx2]) band[bx2] = 1;
-    }
-    var run = longestRun(band, 6);
-    if (run[2] < 12) return null;
-    return {
-      y: (y0 + bestRow) / vh,
-      left: (x0 + run[0]) / vw,
-      right: (x0 + run[1]) / vw
-    };
+    return passScan('red') || passScan('orange');
   }
 
   /* Verdict for one attempt window — PURE function shared by the final
@@ -292,10 +303,35 @@
               var rl = median(ringSamples.map(function (s) { return s.left; }));
               var rr = median(ringSamples.map(function (s) { return s.right; }));
               if (rr - rl <= 0.015) return null;
-              return { y: ry, cx: (rl + rr) / 2, halfW: (rr - rl) / 2 };
+              var ring = { y: ry, cx: (rl + rr) / 2, halfW: (rr - rl) / 2 };
+              // halfW floor from the YOLO hoop bbox — a partial color-band
+              // scan (dim light, thin paint) can undershoot the true ring
+              // span; the bbox-derived width (×0.72 rim/bbox ratio) floors
+              // it. Inactive on footage where the scan is healthy.
+              if (hoopPx.length >= 8) {
+                var pw4 = eng._procW || pwLast;
+                var bboxHalf = (median(hoopPx.map(function (h) { return h.bw; })) / pw4) * 0.5 * 0.72;
+                if (ring.halfW < bboxHalf * 0.8) ring.halfW = bboxHalf * 0.8;
+              }
+              return ring;
+            }
+            // Fallback ring for live view when the color scan yields no
+            // samples (unusual rim paint / lighting): YOLO hoop bbox
+            // median + colorRefined ring rows — same formula pass 2 uses.
+            function liveFallbackRing() {
+              if (hoopPx.length < 8) return null;
+              var pw3 = eng._procW || pwLast, ph3 = eng._procH || phLast;
+              var bcx = median(hoopPx.map(function (h) { return h.cx; })) / pw3;
+              var bcy = median(hoopPx.map(function (h) { return h.cy; })) / ph3;
+              var bbw = median(hoopPx.map(function (h) { return h.bw; })) / pw3;
+              var bbh = median(hoopPx.map(function (h) { return h.bh; })) / ph3;
+              var ringY = crHoopY.length >= 3 ? median(crHoopY) : (bcy - bbh / 2 + bbh * 0.15);
+              if (bbw < 0.02) return null;
+              return { y: ringY, cx: bcx, halfW: bbw * 0.5 * 0.72, fb: true };
             }
             function liveTick() {
               var ring = ringFromSamples();
+              if (!ring && rows.length > 120) ring = liveFallbackRing();
               if (!ring) return;
               if (live.ring && (Math.abs(live.ring.y - ring.y) > 0.004 ||
                                 Math.abs(live.ring.cx - ring.cx) > 0.004 ||
@@ -324,11 +360,12 @@
                   }
                 }
               }
-              // Verdicts only once the ring is STABLE (≥6 samples), and
+              // Verdicts only once the ring is STABLE (≥6 color samples,
+              // or ~8s of footage on the bbox-fallback ring), and
               // re-classify EVERY closed window each tick with the current
               // ring — early verdicts self-correct as the median converges
               // (a dot may flip color once; the final pass stays authority).
-              if (ringSamples.length < 6) return;
+              if (ring.fb ? rows.length < 240 : ringSamples.length < 6) return;
               var shots2 = [];
               for (var wi = 0; wi < live.arrivals.length; wi++) {
                 var a = live.arrivals[wi];
@@ -397,16 +434,8 @@
               onProgress(1);
               onStage('Classifying shots…');
 
-              // ── Ring geometry ─────────────────────────────────
-              var ring = null;
-              if (ringSamples.length >= 3) {
-                var ry = median(ringSamples.map(function (s) { return s.y; }));
-                var rl = median(ringSamples.map(function (s) { return s.left; }));
-                var rr = median(ringSamples.map(function (s) { return s.right; }));
-                if (rr - rl > 0.015) {
-                  ring = { y: ry, cx: (rl + rr) / 2, halfW: (rr - rl) / 2 };
-                }
-              }
+              // ── Ring geometry (same rules as the live layer) ──
+              var ring = ringFromSamples();
               if (!ring && hoopPx.length >= 5) {
                 // Fallback: bbox median + colorRefined ring rows. The bbox
                 // hugs rim+net, so the ring x-span ≈ 0.72 of the box width
