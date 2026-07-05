@@ -285,10 +285,28 @@
               lastDets = row;
               for (var i = 0; i < fd.hoops.length; i++) {
                 var hh = fd.hoops[i];
-                if (hh.score >= 0.30) hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh });
+                // Keep EVERY hoop the engine surfaces (its floor is 0.10)
+                // with its score — night/low-light footage rarely clears
+                // 0.30, and a fixed high gate starved the ring logic to
+                // "hoop frames: 4" on real user footage. strongHoops()
+                // picks the most confident usable subset adaptively.
+                hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh, s: hh.score });
                 if (hh.colorRefined) crHoopY.push(hh.cy / fd.ph);
               }
             };
+
+            // Adaptive confidence subset: prefer ≥0.30 detections (clean
+            // footage), fall back to ≥0.15, then to everything surfaced.
+            // Median-based consumers tolerate the extra noise of the lower
+            // tiers; on high-conf footage this returns the same set as the
+            // old fixed 0.30 gate (regression-safe by construction).
+            function strongHoops() {
+              var hi = hoopPx.filter(function (h) { return h.s >= 0.30; });
+              if (hi.length >= 8) return hi;
+              var mid = hoopPx.filter(function (h) { return h.s >= 0.15; });
+              if (mid.length >= 8) return mid;
+              return hoopPx;
+            }
 
             // ── LIVE attempt tracker (display only) ───────────────
             // Runs the SAME classifyRange math incrementally so verdicts
@@ -308,9 +326,10 @@
               // scan (dim light, thin paint) can undershoot the true ring
               // span; the bbox-derived width (×0.72 rim/bbox ratio) floors
               // it. Inactive on footage where the scan is healthy.
-              if (hoopPx.length >= 8) {
+              var hpF = strongHoops();
+              if (hpF.length >= 8) {
                 var pw4 = eng._procW || pwLast;
-                var bboxHalf = (median(hoopPx.map(function (h) { return h.bw; })) / pw4) * 0.5 * 0.72;
+                var bboxHalf = (median(hpF.map(function (h) { return h.bw; })) / pw4) * 0.5 * 0.72;
                 if (ring.halfW < bboxHalf * 0.8) ring.halfW = bboxHalf * 0.8;
               }
               return ring;
@@ -319,12 +338,13 @@
             // samples (unusual rim paint / lighting): YOLO hoop bbox
             // median + colorRefined ring rows — same formula pass 2 uses.
             function liveFallbackRing() {
-              if (hoopPx.length < 8) return null;
+              var hp = strongHoops();
+              if (hp.length < 8) return null;
               var pw3 = eng._procW || pwLast, ph3 = eng._procH || phLast;
-              var bcx = median(hoopPx.map(function (h) { return h.cx; })) / pw3;
-              var bcy = median(hoopPx.map(function (h) { return h.cy; })) / ph3;
-              var bbw = median(hoopPx.map(function (h) { return h.bw; })) / pw3;
-              var bbh = median(hoopPx.map(function (h) { return h.bh; })) / ph3;
+              var bcx = median(hp.map(function (h) { return h.cx; })) / pw3;
+              var bcy = median(hp.map(function (h) { return h.cy; })) / ph3;
+              var bbw = median(hp.map(function (h) { return h.bw; })) / pw3;
+              var bbh = median(hp.map(function (h) { return h.bh; })) / ph3;
               var ringY = crHoopY.length >= 3 ? median(crHoopY) : (bcy - bbh / 2 + bbh * 0.15);
               if (bbw < 0.02) return null;
               return { y: ringY, cx: bcx, halfW: bbw * 0.5 * 0.72, fb: true };
@@ -396,18 +416,21 @@
                 // Ring measurement every ~24 frames — at NATIVE resolution
                 // straight from the video element (the frame is still on
                 // this timestamp after processFrameOffline resolves).
-                if (frame % 24 === 0 && hoopPx.length >= 8 && ringSamples.length < 15) {
-                  var pw2 = eng._procW || pwLast, ph2 = eng._procH || phLast;
-                  var sx2 = (video.videoWidth || pw2) / pw2;
-                  var sy2 = (video.videoHeight || ph2) / ph2;
-                  var boxFull = {
-                    cx: median(hoopPx.map(function (h) { return h.cx; })) * sx2,
-                    cy: median(hoopPx.map(function (h) { return h.cy; })) * sy2,
-                    bw: median(hoopPx.map(function (h) { return h.bw; })) * sx2,
-                    bh: median(hoopPx.map(function (h) { return h.bh; })) * sy2
-                  };
-                  var s = scanRingFull(video, boxFull);
-                  if (s) ringSamples.push(s);
+                if (frame % 24 === 0 && ringSamples.length < 15) {
+                  var hp = strongHoops();
+                  if (hp.length >= 8) {
+                    var pw2 = eng._procW || pwLast, ph2 = eng._procH || phLast;
+                    var sx2 = (video.videoWidth || pw2) / pw2;
+                    var sy2 = (video.videoHeight || ph2) / ph2;
+                    var boxFull = {
+                      cx: median(hp.map(function (h) { return h.cx; })) * sx2,
+                      cy: median(hp.map(function (h) { return h.cy; })) * sy2,
+                      bw: median(hp.map(function (h) { return h.bw; })) * sx2,
+                      bh: median(hp.map(function (h) { return h.bh; })) * sy2
+                    };
+                    var s = scanRingFull(video, boxFull);
+                    if (s) ringSamples.push(s);
+                  }
                 }
                 liveTick();
                 if (onFrame) {
@@ -436,22 +459,35 @@
 
               // ── Ring geometry (same rules as the live layer) ──
               var ring = ringFromSamples();
-              if (!ring && hoopPx.length >= 5) {
+              var hpFinal = strongHoops();
+              if (!ring && hpFinal.length >= 5) {
                 // Fallback: bbox median + colorRefined ring rows. The bbox
                 // hugs rim+net, so the ring x-span ≈ 0.72 of the box width
                 // (measured on eval footage) and the ring line sits at the
                 // colorRefined row (or just under the box top).
                 var pw = eng._procW || pwLast, ph = eng._procH || phLast;
-                var bcx = median(hoopPx.map(function (h) { return h.cx; })) / pw;
-                var bcy = median(hoopPx.map(function (h) { return h.cy; })) / ph;
-                var bbw = median(hoopPx.map(function (h) { return h.bw; })) / pw;
-                var bbh = median(hoopPx.map(function (h) { return h.bh; })) / ph;
+                var bcx = median(hpFinal.map(function (h) { return h.cx; })) / pw;
+                var bcy = median(hpFinal.map(function (h) { return h.cy; })) / ph;
+                var bbw = median(hpFinal.map(function (h) { return h.bw; })) / pw;
+                var bbh = median(hpFinal.map(function (h) { return h.bh; })) / ph;
                 var ringY = crHoopY.length >= 3 ? median(crHoopY) : (bcy - bbh / 2 + bbh * 0.15);
                 ring = { y: ringY, cx: bcx, halfW: bbw * 0.5 * 0.72 };
               }
 
+              var maxConf = 0;
+              for (var mi = 0; mi < hoopPx.length; mi++) if (hoopPx[mi].s > maxConf) maxConf = hoopPx[mi].s;
               var diag = {
                 frames: rows.length, hoopDetections: hoopPx.length,
+                hoopHiConf: hoopPx.filter(function (h) { return h.s >= 0.30; }).length,
+                hoopMaxConf: +maxConf.toFixed(3),
+                usedTier: (function () {
+                  var hi = 0, mid = 0;
+                  for (var ti = 0; ti < hoopPx.length; ti++) {
+                    if (hoopPx[ti].s >= 0.30) hi++;
+                    if (hoopPx[ti].s >= 0.15) mid++;
+                  }
+                  return hi >= 8 ? 'hi' : (mid >= 8 ? 'mid' : 'all');
+                })(),
                 ringSamples: ringSamples.length, rimLocked: !!ring,
                 ring: ring
               };
