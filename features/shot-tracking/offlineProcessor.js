@@ -332,6 +332,10 @@
                 var bboxHalf = (median(hpF.map(function (h) { return h.bw; })) / pw4) * 0.5 * 0.72;
                 if (ring.halfW < bboxHalf * 0.8) ring.halfW = bboxHalf * 0.8;
               }
+              // Absolute floor: partial color-band scans undershoot; every
+              // measured real ring so far sits at halfW 0.030-0.047
+              // (landscape AND portrait), so clamp the low end there.
+              if (ring.halfW < 0.030) ring.halfW = 0.030;
               return ring;
             }
             // Fallback ring for live view when the color scan yields no
@@ -412,6 +416,36 @@
               var t = Math.min(duration - 0.001, frame * dt);
               seekTo(video, t).then(function () {
                 return eng.processFrameOffline();
+              }).then(function () {
+                // ── p14: rim-zoom GAP-FILLER ─────────────────────
+                // Portrait/distant footage shrinks the ball below the
+                // model's resolution in the full-frame pass (measured:
+                // ZERO detections during the through-rim moment). When a
+                // ring estimate exists and this frame produced no ball
+                // near it, run a second inference on an upscaled square
+                // crop around the ring and merge the finds. Frames that
+                // already have rim-area evidence skip this entirely, so
+                // validated footage keeps its exact evidence base.
+                var ringNow = live.ring;
+                if (ringNow && lastDets && eng.detectBallsInRegionOffline) {
+                  var hasNear = lastDets.balls.some(function (b) {
+                    return Math.abs(b.x - ringNow.cx) < 0.17 &&
+                           b.y > ringNow.y - 0.24 && b.y < ringNow.y + 0.14;
+                  });
+                  if (!hasNear) {
+                    var vw5 = video.videoWidth || 1, vh5 = video.videoHeight || 1;
+                    var sidePx = Math.min(vw5, vh5) / 2;
+                    var swN = sidePx / vw5, shN = sidePx / vh5;
+                    var sxN = Math.max(0, Math.min(1 - swN, ringNow.cx - swN / 2));
+                    var syN = Math.max(0, Math.min(1 - shN, ringNow.y - shN * 0.45));
+                    return eng.detectBallsInRegionOffline(sxN, syN, swN, shN).then(function (zb) {
+                      if (zb && zb.length && rows.length) {
+                        var row5 = rows[rows.length - 1];
+                        for (var zi = 0; zi < zb.length; zi++) row5.balls.push(zb[zi]);
+                      }
+                    });
+                  }
+                }
               }).then(function () {
                 // Ring measurement every ~24 frames — at NATIVE resolution
                 // straight from the video element (the frame is still on

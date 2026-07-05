@@ -1235,6 +1235,93 @@
       });
     },
 
+    /* ── p14: RIM-ZOOM second pass (offline only) ──────────────────
+       Runs YOLOX on a SQUARE region of the source video around the ring,
+       upscaled to 640×640. Portrait/distant footage letterboxes the full
+       frame down until the ball is ~9 px — invisible to the model — while
+       a 2-2.5× rim crop lifts it to 30-80 px (measured: conf 0.00 → 0.86
+       on real footage). The offline processor calls this as a GAP-FILLER
+       for frames where the full-frame pass saw no ball near the rim, so
+       validated footage keeps its exact evidence. Serialized with the
+       main pass (caller awaits processFrameOffline first).
+       Region is normalized video coords; returns [{x, y, s}] normalized
+       to the video, [] on any failure. */
+    detectBallsInRegionOffline: function (sxN, syN, swN, shN) {
+      var self = this;
+      return new Promise(function (resolve) {
+        try {
+          if (!self.model || !self.videoEl || self._zoomBusy) { resolve([]); return; }
+          var vw = self.videoEl.videoWidth, vh = self.videoEl.videoHeight;
+          if (!vw || !vh) { resolve([]); return; }
+          var sz = YOLOX_INPUT_SIZE;
+          if (!self._zoomCanvas) {
+            self._zoomCanvas = document.createElement('canvas');
+            self._zoomCanvas.width = sz; self._zoomCanvas.height = sz;
+            self._zoomCtx = self._zoomCanvas.getContext('2d', { willReadFrequently: true });
+          }
+          var sx = Math.max(0, Math.min(vw, sxN * vw));
+          var sy = Math.max(0, Math.min(vh, syN * vh));
+          var sw = Math.min(swN * vw, vw - sx);
+          var sh = Math.min(shN * vh, vh - sy);
+          if (sw < 32 || sh < 32) { resolve([]); return; }
+          self._zoomBusy = true;
+          self._zoomCtx.drawImage(self.videoEl, sx, sy, sw, sh, 0, 0, sz, sz);
+          var imgData = self._zoomCtx.getImageData(0, 0, sz, sz).data;
+          if (!self._zoomBuf) self._zoomBuf = new Float32Array(sz * sz * 3);
+          var chSize = sz * sz;
+          for (var i = 0; i < chSize; i++) {           // BGR like training
+            self._zoomBuf[i]              = imgData[i * 4 + 2];
+            self._zoomBuf[chSize + i]     = imgData[i * 4 + 1];
+            self._zoomBuf[chSize * 2 + i] = imgData[i * 4];
+          }
+          var tensor = new ort.Tensor('float32', self._zoomBuf, [1, 3, sz, sz]);
+          self.model.run({ images: tensor }).then(function (results) {
+            var out = results[Object.keys(results)[0]].data;
+            self._yoloxPostprocess(out);
+            var needsSig = false;
+            for (var si = 0; si < Math.min(out.length, 800); si += YOLOX_STRIDE) {
+              if (out[si + 4] < 0 || out[si + 5] < 0) { needsSig = true; break; }
+            }
+            function sg(x) { return 1 / (1 + Math.exp(-x)); }
+            var cands = [];
+            var num = out.length / YOLOX_STRIDE;
+            for (var r = 0; r < num; r++) {
+              var off = r * YOLOX_STRIDE;
+              var obj = needsSig ? sg(out[off + 4]) : out[off + 4];
+              if (obj < 0.01) continue;
+              var bs = obj * (needsSig ? sg(out[off + 5]) : out[off + 5]);
+              if (bs < 0.02) continue;
+              var bw = out[off + 2], bh = out[off + 3];
+              var area = bw * bh;
+              if (area < sz * sz * 0.00003 || area > sz * sz * 0.2) continue;
+              var asp = Math.max(bw, bh) / (Math.min(bw, bh) || 1);
+              if (asp > 3.0) continue;
+              cands.push({ cx: out[off], cy: out[off + 1], bw: bw, bh: bh, score: bs });
+            }
+            var keep = self._greedyNMS(cands, 0.45).slice(0, 5);
+            var mapped = keep.map(function (d) {
+              return {
+                x: (sx + (d.cx / sz) * sw) / vw,
+                y: (sy + (d.cy / sz) * sh) / vh,
+                s: d.score
+              };
+            });
+            try {
+              Object.keys(results).forEach(function (k) {
+                var t = results[k];
+                if (t && typeof t.dispose === 'function') t.dispose();
+              });
+            } catch (_) {}
+            self._zoomBusy = false;
+            resolve(mapped);
+          }).catch(function () { self._zoomBusy = false; resolve([]); });
+        } catch (e) {
+          self._zoomBusy = false;
+          resolve([]);
+        }
+      });
+    },
+
     _drawToCanvas: function () {
       var vw = this.videoEl.videoWidth;
       var vh = this.videoEl.videoHeight;
