@@ -143,6 +143,46 @@
     };
   }
 
+  /* Verdict for one attempt window — PURE function shared by the final
+     pass-2 classification AND the live display layer, so what the user
+     watches during analysis is the exact same math as the saved result.
+     obsArr: per-frame arrays of rim-area ball obs {x,y,s} (normalized). */
+  function classifyRange(obsArr, ring, f0, f1) {
+    function bestOf(i) {
+      var arr = obsArr[i];
+      if (!arr || !arr.length) return null;
+      var best = arr[0];
+      for (var k = 1; k < arr.length; k++) if (arr[k].s > best.s) best = arr[k];
+      return best;
+    }
+    // 1) downward ring-plane crossings within the ring span
+    var prevF = -1, prevB = null;
+    for (var i = f0; i <= f1; i++) {
+      var b = bestOf(i);
+      if (!b) continue;
+      if (prevB && (i - prevF) <= 6 && prevB.y < ring.y && b.y >= ring.y) {
+        var r = (ring.y - prevB.y) / Math.max(b.y - prevB.y, 1e-6);
+        var xAt = prevB.x + r * (b.x - prevB.x);
+        if (Math.abs(xAt - ring.cx) <= ring.halfW * 0.95) {
+          return { v: 'made', why: 'ring-cross x=' + xAt.toFixed(3) + ' f=' + i };
+        }
+      }
+      prevF = i; prevB = b;
+    }
+    // 2) inside-net evidence (any candidate)
+    for (var j = f0; j <= f1; j++) {
+      var arr2 = obsArr[j] || [];
+      for (var k2 = 0; k2 < arr2.length; k2++) {
+        var o = arr2[k2];
+        if (o.y >= ring.y + 0.008 && o.y <= ring.y + 0.062 &&
+            Math.abs(o.x - ring.cx) <= ring.halfW * 0.70) {
+          return { v: 'made', why: 'inside-net (' + o.x.toFixed(3) + ',' + o.y.toFixed(3) + ') f=' + j };
+        }
+      }
+    }
+    return { v: 'missed', why: 'no through evidence' };
+  }
+
   var ShotOfflineProcessor = {
     _running: false,
 
@@ -154,8 +194,14 @@
       // console can always answer "where is it stuck?" (self._stage/_frac).
       var onProgress = function (f) { self._frac = f; try { (opts.onProgress || function () {})(f); } catch (e) {} };
       var onStage    = function (s) { self._stage = s; try { (opts.onStage || function () {})(s); } catch (e) {} };
+      // Live-view hook: called after every processed frame with the seeked
+      // video element + this frame's detections + current ring estimate +
+      // shots classified so far — the UI draws the analysis as it happens.
+      var onFrame    = typeof opts.onFrame === 'function'
+        ? function (d) { try { opts.onFrame(d); } catch (e) {} }
+        : null;
       var signal     = opts.signal || null;
-      self._stage = 'video-load'; self._frac = 0;
+      self._stage = 'video-load'; self._frac = 0; self._liveShots = [];
 
       return new Promise(function (resolve, reject) {
         if (self._running) { reject(new Error('offline processing already running')); return; }
@@ -212,9 +258,10 @@
             eng.isRunning = true;
 
             var pwLast = 640, phLast = 360;
+            var lastDets = null;   // this frame's normalized detections (live view)
             eng.onFrameDetections = function (fd) {
               pwLast = fd.pw; phLast = fd.ph;
-              rows.push({
+              var row = {
                 t: fd.t,
                 balls: fd.balls.map(function (b) {
                   return { x: b.cx / fd.pw, y: b.cy / fd.ph, s: b.score };
@@ -222,13 +269,80 @@
                 players: fd.players.map(function (p) {
                   return { x: p.cx / fd.pw, y: p.cy / fd.ph, w: p.bw / fd.pw, h: p.bh / fd.ph, s: p.score };
                 })
-              });
+              };
+              rows.push(row);
+              lastDets = row;
               for (var i = 0; i < fd.hoops.length; i++) {
                 var hh = fd.hoops[i];
                 if (hh.score >= 0.30) hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh });
                 if (hh.colorRefined) crHoopY.push(hh.cy / fd.ph);
               }
             };
+
+            // ── LIVE attempt tracker (display only) ───────────────
+            // Runs the SAME classifyRange math incrementally so verdicts
+            // pop the moment each attempt window closes. Pass 2 stays the
+            // single source of truth for the saved session; the live ring
+            // uses the same median as pass 2 and the live state rebuilds
+            // if the ring estimate shifts while samples accumulate.
+            var live = { obs: [], built: 0, arrivals: [], closed: 0, shots: [], ring: null };
+            function ringFromSamples() {
+              if (ringSamples.length < 3) return null;
+              var ry = median(ringSamples.map(function (s) { return s.y; }));
+              var rl = median(ringSamples.map(function (s) { return s.left; }));
+              var rr = median(ringSamples.map(function (s) { return s.right; }));
+              if (rr - rl <= 0.015) return null;
+              return { y: ry, cx: (rl + rr) / 2, halfW: (rr - rl) / 2 };
+            }
+            function liveTick() {
+              var ring = ringFromSamples();
+              if (!ring) return;
+              if (live.ring && (Math.abs(live.ring.y - ring.y) > 0.004 ||
+                                Math.abs(live.ring.cx - ring.cx) > 0.004 ||
+                                Math.abs(live.ring.halfW - ring.halfW) > 0.004)) {
+                live.obs = []; live.built = 0; live.arrivals = []; live.closed = 0; live.shots = [];
+              }
+              live.ring = ring;
+              var GAP = Math.round(0.8 * fps), CAP = Math.round(2.6 * fps);
+              for (; live.built < rows.length; live.built++) {
+                var bl = rows[live.built].balls, near = [];
+                for (var bi = 0; bi < bl.length; bi++) {
+                  var b = bl[bi];
+                  if (Math.abs(b.x - ring.cx) < 0.17 &&
+                      b.y > ring.y - 0.24 && b.y < ring.y + 0.14) near.push(b);
+                }
+                live.obs.push(near);
+                for (var oi = 0; oi < near.length; oi++) {
+                  if (near[oi].y < ring.y - 0.012) {
+                    var la = live.arrivals[live.arrivals.length - 1];
+                    if (!la || live.built - la.last > GAP) {
+                      live.arrivals.push({ start: live.built, last: live.built });
+                    } else {
+                      la.last = live.built;
+                    }
+                    break;
+                  }
+                }
+              }
+              // Verdicts only once the ring is STABLE (≥6 samples), and
+              // re-classify EVERY closed window each tick with the current
+              // ring — early verdicts self-correct as the median converges
+              // (a dot may flip color once; the final pass stays authority).
+              if (ringSamples.length < 6) return;
+              var shots2 = [];
+              for (var wi = 0; wi < live.arrivals.length; wi++) {
+                var a = live.arrivals[wi];
+                var hasNext = wi + 1 < live.arrivals.length;
+                if (!hasNext && rows.length - 1 <= a.start + CAP) break;  // window still open
+                var end = hasNext ? Math.min(live.arrivals[wi + 1].start - 1, a.start + CAP)
+                                  : a.start + CAP;
+                end = Math.min(end, live.obs.length - 1);
+                var res = classifyRange(live.obs, ring, a.start, end);
+                shots2.push({ t: rows[a.start].t, result: res.v });
+              }
+              live.shots = shots2;
+              self._liveShots = live.shots;
+            }
 
             var dt = 1 / fps;
             var totalFrames = Math.max(1, Math.floor(duration * fps));
@@ -257,6 +371,17 @@
                   };
                   var s = scanRingFull(video, boxFull);
                   if (s) ringSamples.push(s);
+                }
+                liveTick();
+                if (onFrame) {
+                  onFrame({
+                    video: video,
+                    t: rows.length ? rows[rows.length - 1].t : t,
+                    frac: (frame + 1) / totalFrames,
+                    dets: lastDets,
+                    ring: live.ring,
+                    shots: live.shots
+                  });
                 }
                 frame++;
                 if (frame % 4 === 0) onProgress(frame / totalFrames);
@@ -355,31 +480,7 @@
                 return best;
               }
               function classify(f0, f1) {
-                // 1) downward ring-plane crossings within the ring span
-                var prevF = -1, prevB = null;
-                for (var i = f0; i <= f1; i++) {
-                  var b = bestObs(i);
-                  if (!b) continue;
-                  if (prevB && (i - prevF) <= 6 && prevB.y < ring.y && b.y >= ring.y) {
-                    var r = (ring.y - prevB.y) / Math.max(b.y - prevB.y, 1e-6);
-                    var xAt = prevB.x + r * (b.x - prevB.x);
-                    if (Math.abs(xAt - ring.cx) <= ring.halfW * 0.95) {
-                      return { v: 'made', why: 'ring-cross x=' + xAt.toFixed(3) + ' f=' + i };
-                    }
-                  }
-                  prevF = i; prevB = b;
-                }
-                // 2) inside-net evidence (any candidate)
-                for (var j = f0; j <= f1; j++) {
-                  for (var k2 = 0; k2 < obs[j].length; k2++) {
-                    var o = obs[j][k2];
-                    if (o.y >= ring.y + 0.008 && o.y <= ring.y + 0.062 &&
-                        Math.abs(o.x - ring.cx) <= ring.halfW * 0.70) {
-                      return { v: 'made', why: 'inside-net (' + o.x.toFixed(3) + ',' + o.y.toFixed(3) + ') f=' + j };
-                    }
-                  }
-                }
-                return { v: 'missed', why: 'no through evidence' };
+                return classifyRange(obs, ring, f0, f1);
               }
 
               // ── Build shot records ─────────────────────────────

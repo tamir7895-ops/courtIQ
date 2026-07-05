@@ -296,23 +296,119 @@
 
   function runOfflineUpload(file, ctx) {
     var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--tomato)', borderRadius: '99px', transition: 'width .25s ease' } });
-    var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '14px', opacity: '0.9' }, text: '0%' });
-    var stageEl = h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '14px', opacity: '0.85', marginTop: '4px' }, text: 'Loading models…' });
+    var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', opacity: '0.9' }, text: '0%' });
+    var stageEl = h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '13px', opacity: '0.85', marginTop: '2px' }, text: 'Loading models…' });
+
+    // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
+    // The processor hands back every analyzed frame + detections via
+    // onFrame; we draw the video with ball circles, the measured ring
+    // line/span, player boxes, and pop MADE/MISS the moment each attempt
+    // window closes (same classifyRange math as the final results).
+    var liveCanvas = h('canvas', { style: { width: '100%', display: 'block', borderRadius: '12px', border: '3px solid rgba(255,255,255,0.22)', background: '#000' } });
+    liveCanvas.width = 640; liveCanvas.height = 360;
+    var flashEl = h('div', {
+      style: {
+        position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)',
+        fontFamily: 'var(--font-display)', fontWeight: '900', fontSize: '30px',
+        letterSpacing: '0.1em', textShadow: '0 2px 10px rgba(0,0,0,0.75)',
+        opacity: '0', transition: 'opacity .25s ease', pointerEvents: 'none'
+      }
+    });
+    var liveWrap = h('div', { style: { position: 'relative', width: 'min(92vw, 560px)', margin: '12px 0 2px' } }, [liveCanvas, flashEl]);
+    var dotsEl = h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', margin: '10px 0 2px', minHeight: '13px' } });
+    var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', opacity: '0.85', minHeight: '15px' }, text: '' });
+
     var overlay = h('div', {
       style: {
         position: 'fixed', inset: '0', background: 'var(--ink)', color: 'var(--cream)', zIndex: '70',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '30px', textAlign: 'center'
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '22px', textAlign: 'center'
       }
     }, [
-      h('i', { class: 'ph-bold ph-film-strip', style: { fontSize: '48px', color: 'var(--mustard)', marginBottom: '12px' } }),
-      h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: '900', letterSpacing: '0.06em' }, text: 'ANALYZING VIDEO' }),
-      stageEl,
-      h('div', { style: { width: '72%', maxWidth: '320px', height: '10px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '20px 0 8px', overflow: 'hidden' } }, [bar]),
+      h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '900', letterSpacing: '0.06em' }, text: 'ANALYZING VIDEO' }),
+      liveWrap,
+      dotsEl,
+      liveCount,
+      h('div', { style: { width: '72%', maxWidth: '320px', height: '9px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '12px 0 6px', overflow: 'hidden' } }, [bar]),
       pct,
-      h('div', { style: { fontSize: '12px', opacity: '0.55', marginTop: '16px', fontStyle: 'italic', maxWidth: '300px' }, text: 'Reading every frame for accurate made / miss. This takes a minute — keep this tab in front.' })
+      stageEl
     ]);
     document.body.appendChild(overlay);
     v10Layer = overlay;
+
+    var lctx = liveCanvas.getContext('2d');
+    var lastShotCount = 0, lastShotSig = '', flashTimer = null, aspectSet = false;
+    function drawLive(fd) {
+      var W = liveCanvas.width, H = liveCanvas.height;
+      if (!aspectSet && fd.video.videoWidth > 0) {
+        liveCanvas.height = Math.round(640 * fd.video.videoHeight / fd.video.videoWidth);
+        H = liveCanvas.height; aspectSet = true;
+      }
+      try { lctx.drawImage(fd.video, 0, 0, W, H); } catch (e) { return; }
+      // measured ring: green line + span ticks
+      if (fd.ring) {
+        var ry = fd.ring.y * H;
+        var rl = (fd.ring.cx - fd.ring.halfW) * W;
+        var rr = (fd.ring.cx + fd.ring.halfW) * W;
+        lctx.strokeStyle = 'rgba(90,255,130,0.95)';
+        lctx.lineWidth = 2;
+        lctx.beginPath(); lctx.moveTo(rl - 16, ry); lctx.lineTo(rr + 16, ry); lctx.stroke();
+        lctx.lineWidth = 3;
+        lctx.beginPath(); lctx.moveTo(rl, ry - 10); lctx.lineTo(rl, ry + 10); lctx.stroke();
+        lctx.beginPath(); lctx.moveTo(rr, ry - 10); lctx.lineTo(rr, ry + 10); lctx.stroke();
+      }
+      // ball candidates: yellow circles (brighter = higher confidence)
+      var balls = (fd.dets && fd.dets.balls) || [];
+      for (var i = 0; i < balls.length; i++) {
+        var b = balls[i];
+        lctx.strokeStyle = 'rgba(255,214,0,' + Math.min(1, 0.45 + b.s) + ')';
+        lctx.lineWidth = 2.5;
+        lctx.beginPath(); lctx.arc(b.x * W, b.y * H, 9, 0, Math.PI * 2); lctx.stroke();
+      }
+      // players: thin white boxes
+      var players = (fd.dets && fd.dets.players) || [];
+      lctx.strokeStyle = 'rgba(255,255,255,0.45)';
+      lctx.lineWidth = 1.5;
+      for (var p = 0; p < players.length; p++) {
+        var pl = players[p];
+        lctx.strokeRect((pl.x - pl.w / 2) * W, (pl.y - pl.h / 2) * H, pl.w * W, pl.h * H);
+      }
+      // time chip
+      lctx.fillStyle = 'rgba(0,0,0,0.55)';
+      lctx.fillRect(6, 6, 96, 20);
+      lctx.fillStyle = '#fff';
+      lctx.font = '11px monospace';
+      lctx.fillText(fd.t.toFixed(1) + 's · ' + Math.round(fd.frac * 100) + '%', 12, 20);
+      // shot dots + verdict flash. Repaint on any SIGNATURE change (early
+      // verdicts can self-correct while the ring median converges), flash
+      // only when a NEW shot closes.
+      var shots = fd.shots || [];
+      var sig = shots.map(function (s) { return s.result === 'made' ? 'M' : 'X'; }).join('');
+      if (sig !== lastShotSig) {
+        dotsEl.innerHTML = '';
+        var made = 0;
+        for (var si = 0; si < shots.length; si++) {
+          if (shots[si].result === 'made') made++;
+          dotsEl.appendChild(h('span', {
+            style: {
+              width: '11px', height: '11px', borderRadius: '50%', display: 'inline-block',
+              background: shots[si].result === 'made' ? '#3FA34D' : '#D64541',
+              border: '2px solid rgba(255,255,255,0.6)'
+            }
+          }));
+        }
+        liveCount.textContent = shots.length + ' shots · ' + made + ' made · ' + (shots.length - made) + ' missed';
+        if (shots.length > lastShotCount) {
+          var last = shots[shots.length - 1];
+          flashEl.textContent = last.result === 'made' ? 'MADE!' : 'MISS';
+          flashEl.style.color = last.result === 'made' ? '#5BE37D' : '#FF6B5E';
+          flashEl.style.opacity = '1';
+          if (flashTimer) clearTimeout(flashTimer);
+          flashTimer = setTimeout(function () { flashEl.style.opacity = '0'; }, 900);
+        }
+        lastShotCount = shots.length;
+        lastShotSig = sig;
+      }
+    }
 
     function fallbackToRealtime() {
       try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
@@ -326,7 +422,8 @@
     window.ShotOfflineProcessor.process(file, {
       fps: 30,
       onProgress: function (f) { var p = Math.round(f * 100); bar.style.width = p + '%'; pct.textContent = p + '%'; },
-      onStage: function (s) { stageEl.textContent = s; }
+      onStage: function (s) { stageEl.textContent = s; },
+      onFrame: drawLive
     }).then(function (res) {
       // If nothing was detected, tell the user WHY instead of a silent
       // "0 of 0" recap. The diag says whether the hoop was ever found /
