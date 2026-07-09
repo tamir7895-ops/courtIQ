@@ -70,11 +70,18 @@
     var meta = ((p.position || 'GUARD') + ' · LV ' + (p.level || 1)).toUpperCase();
     var ini = (p.initial || (p.name || 'A')[0] || 'A').toUpperCase();
 
-    // CourtIQ logo: basketball orange + cream seams
+    // CourtIQ logo: orange basketball with the four classic seams —
+    // horizontal, bowed vertical, two bowed side seams (same language
+    // as the hero flight-arc ball).
     var logoSvg = svg('svg', { viewBox: '0 0 32 32' }, [
-      svg('circle', { cx: '16', cy: '16', r: '14', fill: '#FF4F1F' }),
-      svg('path', { d: 'M 16 2 L 16 30 M 2 16 L 30 16 M 6 6 Q 16 14 26 6 M 6 26 Q 16 18 26 26',
-        stroke: '#0A2850', 'stroke-width': '1.8', fill: 'none' })
+      svg('circle', { cx: '16', cy: '16', r: '14', fill: '#FF4F1F', stroke: '#0A2850', 'stroke-width': '1.6' }),
+      svg('path', {
+        d: 'M 2 16 L 30 16 ' +
+           'M 16 2 Q 11.3 16 16 30 ' +
+           'M 8.1 4.3 Q 0.5 16 8.1 27.7 ' +
+           'M 23.9 4.3 Q 31.5 16 23.9 27.7',
+        stroke: '#0A2850', 'stroke-width': '1.8', fill: 'none'
+      })
     ]);
 
     // Avatar: real DiceBear image (saved by avatar-customizer) or fallback initial.
