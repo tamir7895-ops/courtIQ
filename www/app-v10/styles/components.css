@@ -1106,3 +1106,239 @@ body::after {
 
 /* ── PIN CARD: highlighter sticky shadow ──────────────── */
 .v10-pin { box-shadow: 3px 3px 0 var(--highlight); }
+
+/* ═══════════════════════════════════════════════════════
+   v10.7 — HOME RELAYOUT PIECES
+   Week strip under the hero, weekly challenge cards,
+   reels link, and the big-edition coach pin.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── LAST-WEEK STRIP (calendar docked under the hero) ─── */
+.v10-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin: -6px 0 var(--s-3);
+}
+.v10-week__cell {
+  background: var(--cream);
+  border: 1.5px solid var(--ink);
+  padding: 5px 2px 4px;
+  text-align: center;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 90ms var(--ease-in-out);
+}
+.v10-week__cell:active { transform: scale(0.93); }
+.v10-week__day {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--muted);
+}
+.v10-week__num {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 1.05;
+  color: var(--ink);
+  letter-spacing: -0.3px;
+}
+.v10-week__val {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.v10-week__cell.is-hot  { background: var(--sage); }
+.v10-week__cell.is-hot .v10-week__day,
+.v10-week__cell.is-hot .v10-week__num,
+.v10-week__cell.is-hot .v10-week__val { color: var(--cream); }
+.v10-week__cell.is-cold { background: var(--mustard); }
+.v10-week__cell.is-cold .v10-week__day,
+.v10-week__cell.is-cold .v10-week__num,
+.v10-week__cell.is-cold .v10-week__val { color: var(--ink); }
+.v10-week__cell.is-today {
+  background: var(--orange);
+  box-shadow: 2px 2px 0 var(--ink);
+  transform: rotate(-1deg);
+}
+.v10-week__cell.is-today .v10-week__day,
+.v10-week__cell.is-today .v10-week__num,
+.v10-week__cell.is-today .v10-week__val { color: var(--cream); }
+
+/* ── WEEKLY CHALLENGE CARDS ────────────────────────────── */
+.v10-challenge {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  margin-bottom: 8px;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 90ms var(--ease-in-out);
+  overflow: hidden;
+}
+.v10-challenge:active { transform: scale(0.985); }
+.v10-challenge--orange { box-shadow: 3px 3px 0 var(--orange); }
+.v10-challenge--sage   { box-shadow: 3px 3px 0 var(--sage); }
+
+.v10-challenge__badge {
+  width: 58px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border-right: 2px solid var(--ink);
+  position: relative;
+}
+.v10-challenge--orange .v10-challenge__badge { background: var(--orange); color: var(--cream); }
+.v10-challenge--sage   .v10-challenge__badge { background: var(--sage);   color: var(--cream); }
+.v10-challenge__badge i { font-size: 22px; }
+.v10-challenge__badge-no {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  opacity: 0.9;
+}
+
+.v10-challenge__main { flex: 1; min-width: 0; padding: 9px 12px 8px; }
+.v10-challenge__title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.2px;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1;
+}
+.v10-challenge__sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 11.5px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+/* Court-baseline progress track — a ball rides the fill tip */
+.v10-challenge__bar {
+  height: 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--cream-deep);
+  margin-top: 7px;
+  position: relative;
+}
+.v10-challenge__fill {
+  height: 100%;
+  position: relative;
+  transition: width 600ms var(--ease-out-expo);
+}
+.v10-challenge--orange .v10-challenge__fill { background: var(--orange); }
+.v10-challenge--sage   .v10-challenge__fill { background: var(--sage); }
+.v10-challenge__fill::after {
+  content: '';
+  position: absolute;
+  right: -7px; top: 50%;
+  width: 13px; height: 13px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 100% 1.2px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center / 1.2px 100% no-repeat,
+    var(--orange);
+}
+.v10-challenge__meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.v10-challenge__count {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+.v10-challenge__xp {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background: var(--highlight);
+  border: 1.5px solid var(--ink);
+  padding: 2px 7px;
+}
+.v10-challenge__xp i { font-size: 11px; }
+
+/* ── REELS LINK (ticket-stub row under the challenges) ── */
+.v10-reels-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1.5px dashed var(--ink);
+  background: transparent;
+  padding: 9px 12px;
+  margin-bottom: var(--s-3);
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  transition: transform 90ms var(--ease-in-out), background var(--t-fast);
+}
+.v10-reels-link i { font-size: 15px; color: var(--orange); }
+.v10-reels-link__arrow { transition: transform 150ms var(--ease-spring); }
+.v10-reels-link:active { transform: scale(0.97); background: rgba(224, 168, 46, 0.14); }
+.v10-reels-link:active .v10-reels-link__arrow { transform: translateX(4px); }
+
+/* ── COACH PIN, BIG EDITION ────────────────────────────── */
+.v10-pin--lg {
+  padding: 16px 16px 12px;
+  border-width: 2.5px;
+  box-shadow: 4px 4px 0 var(--highlight), 7px 7px 0 rgba(255, 79, 31, 0.28);
+  transform: rotate(-0.4deg);
+}
+.v10-pin--lg .v10-pin__tab {
+  font-size: 10px;
+  padding: 4px 12px;
+  top: -12px;
+  box-shadow: 2px 2px 0 var(--orange);
+}
+.v10-pin--lg .v10-pin__body {
+  font-size: 16.5px;
+  line-height: 1.4;
+  margin-top: 8px;
+}
+.v10-pin--lg .v10-pin__footer { margin-top: 10px; }
+.v10-pin--lg .v10-pin__sig { font-size: 10px; }
+/* Ghost quote mark stamped behind the text */
+.v10-pin--lg::after {
+  content: '\201C';
+  position: absolute;
+  right: 8px; top: -6px;
+  font-family: var(--font-body);
+  font-size: 84px;
+  line-height: 1;
+  color: var(--orange);
+  opacity: 0.16;
+  pointer-events: none;
+}

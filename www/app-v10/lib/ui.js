@@ -173,7 +173,7 @@
       }
       bodyKids.push(document.createTextNode('”'));
     }
-    return h('div', { class: 'v10-pin' }, [
+    return h('div', { class: 'v10-pin' + (opts.lg ? ' v10-pin--lg' : '') }, [
       h('div', { class: 'v10-pin__tab' }, [icon('ph-push-pin-simple'), h('span', { text: opts.tab || 'PINNED' })]),
       h('div', { class: 'v10-pin__body' }, bodyKids),
       h('div', { class: 'v10-pin__footer' }, [
