@@ -1,4 +1,4 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en" style="background:#FBF5E8">
 <head>
 <meta charset="utf-8" />
@@ -16,26 +16,26 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=2026-07-09-p15" />
-<link rel="stylesheet" href="styles/components.css?v=2026-07-09-p15" />
+<link rel="stylesheet" href="styles/tokens.css?v=2026-07-09-p20" />
+<link rel="stylesheet" href="styles/components.css?v=2026-07-09-p20" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="/features/shot-tracking/shot-tracking.css?v=2026-07-09-p15" />
+<link rel="stylesheet" href="/features/shot-tracking/shot-tracking.css?v=2026-07-09-p20" />
 </head>
 <body>
 
 <main id="app" role="main"></main>
 
-<!-- ─── Preview-mode flag (skip auth redirects when no session) ─── -->
+<!-- ג”€ג”€ג”€ Preview-mode flag (skip auth redirects when no session) ג”€ג”€ג”€ -->
 <script>
   window.__PREVIEW_MODE__ = true;   // assume preview until session confirmed
 </script>
 
-<!-- ─── Engine: 3rd-party CDNs ─── -->
+<!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
 
-<!-- ─── Engine: CourtIQ data + auth services ─── -->
+<!-- ג”€ג”€ג”€ Engine: CourtIQ data + auth services ג”€ג”€ג”€ -->
 <script src="/js/utils.js"></script>
 <script src="/js/supabase-client.js"></script>
 <script src="/js/data-service.js"></script>
@@ -56,16 +56,16 @@
   window.__MP = { PoseLandmarker: PoseLandmarker, FilesetResolver: FilesetResolver };
 </script>
 
-<!-- ─── Engine: shot tracking pipeline (YOLO + Pose) ─── -->
-<script src="/features/shot-tracking/v2/config.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/adaptiveLearning.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/poseDetector.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/shotDetection.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/offlineProcessor.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/shotService.js?v=2026-07-09-p15"></script>
-<script src="/features/shot-tracking/ShotTrackingScreen.js?v=2026-07-09-p15"></script>
+<!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
+<script src="/features/shot-tracking/v2/config.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/adaptiveLearning.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/poseDetector.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/shotDetection.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/offlineProcessor.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/shotService.js?v=2026-07-09-p20"></script>
+<script src="/features/shot-tracking/ShotTrackingScreen.js?v=2026-07-09-p20"></script>
 
-<!-- ─── Session bootstrap: get real Supabase user if available ─── -->
+<!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
   (function () {
     if (typeof sb === 'undefined' || !sb || !sb.auth || !sb.auth.getSession) return;
@@ -75,31 +75,31 @@
         window.__PREVIEW_MODE__ = false;
         console.info('[v10] signed-in user:', window.currentUser.email);
       } else {
-        console.info('[v10] no session — preview mode');
+        console.info('[v10] no session ג€” preview mode');
       }
     }).catch(function (e) { console.warn('[v10] getSession failed:', e); });
   })();
 </script>
 
-<!-- ─── v10 lib (foundation) ─── -->
-<script src="lib/ui.js?v=2026-07-09-p15"></script>
-<script src="lib/data.js?v=2026-07-09-p15"></script>
-<script src="lib/nav.js?v=2026-07-09-p15"></script>
-<script src="app.js?v=2026-07-09-p15"></script>
+<!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
+<script src="lib/ui.js?v=2026-07-09-p20"></script>
+<script src="lib/data.js?v=2026-07-09-p20"></script>
+<script src="lib/nav.js?v=2026-07-09-p20"></script>
+<script src="app.js?v=2026-07-09-p20"></script>
 
-<!-- ─── Screens (each calls window.app.register on load) ─── -->
-<script src="screens/home.js?v=2026-07-09-p15"></script>
-<script src="screens/track.js?v=2026-07-09-p15"></script>
-<script src="screens/train.js?v=2026-07-09-p15"></script>
-<script src="screens/coach.js?v=2026-07-09-p15"></script>
-<script src="screens/me.js?v=2026-07-09-p15"></script>
-<script src="screens/camera-hud.js?v=2026-07-09-p15"></script>
-<script src="screens/post-session.js?v=2026-07-09-p15"></script>
-<script src="screens/onboarding.js?v=2026-07-09-p15"></script>
-<script src="screens/drill-library.js?v=2026-07-09-p15"></script>
-<script src="screens/workout-player.js?v=2026-07-09-p15"></script>
-<script src="screens/avatar-customizer.js?v=2026-07-09-p15"></script>
-<script src="screens/notifications.js?v=2026-07-09-p15"></script>
+<!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
+<script src="screens/home.js?v=2026-07-09-p20"></script>
+<script src="screens/track.js?v=2026-07-09-p20"></script>
+<script src="screens/train.js?v=2026-07-09-p20"></script>
+<script src="screens/coach.js?v=2026-07-09-p20"></script>
+<script src="screens/me.js?v=2026-07-09-p20"></script>
+<script src="screens/camera-hud.js?v=2026-07-09-p20"></script>
+<script src="screens/post-session.js?v=2026-07-09-p20"></script>
+<script src="screens/onboarding.js?v=2026-07-09-p20"></script>
+<script src="screens/drill-library.js?v=2026-07-09-p20"></script>
+<script src="screens/workout-player.js?v=2026-07-09-p20"></script>
+<script src="screens/avatar-customizer.js?v=2026-07-09-p20"></script>
+<script src="screens/notifications.js?v=2026-07-09-p20"></script>
 
 <script>
   // Bootstrap after all scripts load

@@ -297,19 +297,33 @@
               // PAN detector: rolling median of recent hoop cx — if the
               // smoothed center wanders > 4% of frame width the camera is
               // panning and pass 2 switches to TRACK mode (ring follows
-              // the hoop instead of a single locked position).
+              // the hoop instead of a single locked position). Spread is
+              // the p90−p10 of the median HISTORY, not running min/max —
+              // a single detection flicker onto another object must not
+              // flip a static video (Dr.Dish) into track mode forever.
               if (fd.hoops.length) {
                 _panWin.push(hoopPx[hoopPx.length - 1].cx / fd.pw);
                 if (_panWin.length > 15) _panWin.shift();
                 if (_panWin.length >= 10) {
                   var pmed = _panWin.slice().sort(function (a, b) { return a - b; })[_panWin.length >> 1];
-                  if (pmed < _panMin) _panMin = pmed;
-                  if (pmed > _panMax) _panMax = pmed;
+                  _panMedHist.push(pmed);
                 }
               }
             };
-            var _panWin = [], _panMin = Infinity, _panMax = -Infinity;
-            function isPanning() { return (_panMax - _panMin) > 0.04 && hoopPx.length >= 30; }
+            var _panWin = [], _panMedHist = [], _panCache = { n: -1, spread: 0 };
+            function panSpread() {
+              if (_panMedHist.length !== _panCache.n) {
+                if (_panMedHist.length >= 45) {
+                  var srt = _panMedHist.slice().sort(function (a, b) { return a - b; });
+                  _panCache.spread = srt[Math.floor(srt.length * 0.9)] - srt[Math.floor(srt.length * 0.1)];
+                } else {
+                  _panCache.spread = 0;
+                }
+                _panCache.n = _panMedHist.length;
+              }
+              return _panCache.spread;
+            }
+            function isPanning() { return panSpread() > 0.04 && hoopPx.length >= 30; }
 
             // Adaptive confidence subset: prefer ≥0.30 detections (clean
             // footage), fall back to ≥0.15, then to everything surfaced.
@@ -460,13 +474,20 @@
                     return Math.abs(b.x - ringNow.cx) < 0.17 &&
                            b.y > ringNow.y - 0.24 && b.y < ringNow.y + 0.14;
                   });
-                  if (!hasNear) {
+                  // Panning (track mode): ALWAYS zoom. The net-occluded ball
+                  // scores 0.02-0.06 and only the upscaled crop sees it; a
+                  // second ball or foliage in the full frame must not skip
+                  // the zoom (it ate the make evidence at 9.3s on the night
+                  // video). Static footage keeps gap-fill-only so the
+                  // validated dish/pullups evidence base stays identical.
+                  if (!hasNear || isPanning()) {
                     var vw5 = video.videoWidth || 1, vh5 = video.videoHeight || 1;
                     var sidePx = Math.min(vw5, vh5) / 2;
                     var swN = sidePx / vw5, shN = sidePx / vh5;
                     var sxN = Math.max(0, Math.min(1 - swN, ringNow.cx - swN / 2));
                     var syN = Math.max(0, Math.min(1 - shN, ringNow.y - shN * 0.45));
-                    return eng.detectBallsInRegionOffline(sxN, syN, swN, shN).then(function (zb) {
+                    return eng.detectBallsInRegionOffline(sxN, syN, swN, shN,
+                                                          isPanning() ? 0.012 : 0.02).then(function (zb) {
                       if (zb && zb.length && rows.length) {
                         var row5 = rows[rows.length - 1];
                         for (var zi = 0; zi < zb.length; zi++) row5.balls.push(zb[zi]);
@@ -579,6 +600,8 @@
               var GAP = Math.round(0.8 * fps), CAP = Math.round(2.6 * fps);
               var trackMode = isPanning();
               var ringAtF = null;   // per-frame ring (track mode only)
+              diag.mode = trackMode ? 'track' : 'static';
+              diag.panSpread = +panSpread().toFixed(3);
 
               if (trackMode) {
                 // ── TRACK MODE (panning camera) ──────────────────
@@ -651,6 +674,42 @@
                 obs.push(near);
               }
 
+              // Global fixture map (track mode): the net-knot detects as a
+              // "ball" in ~1/3 of ALL frames at a fixed ring-relative spot.
+              // Grid cells firing in ≥12% of frames are static structure —
+              // their obs only count as a real ball when the score clearly
+              // exceeds the cell's own baseline (2.5× median, floor 0.10).
+              var FIX = [];
+              if (trackMode) {
+                var CELLW = 0.015, cellHits = {}, cellScores = {};
+                for (var fx1 = 0; fx1 < rows.length; fx1++) {
+                  var rgF = ringOf(fx1), seenF = {};
+                  for (var fx2 = 0; fx2 < obs[fx1].length; fx2++) {
+                    var kx = Math.round((obs[fx1][fx2].x - rgF.cx) / CELLW);
+                    var ky = Math.round((obs[fx1][fx2].y - rgF.y) / CELLW);
+                    var key = kx + ',' + ky;
+                    (cellScores[key] = cellScores[key] || []).push(obs[fx1][fx2].s);
+                    if (!seenF[key]) { seenF[key] = 1; cellHits[key] = (cellHits[key] || 0) + 1; }
+                  }
+                }
+                Object.keys(cellHits).forEach(function (key) {
+                  if (cellHits[key] >= 0.12 * rows.length) {
+                    var kp = key.split(',');
+                    FIX.push({ dx: parseInt(kp[0], 10) * CELLW,
+                               dy: parseInt(kp[1], 10) * CELLW,
+                               ms: median(cellScores[key]) });
+                  }
+                });
+              }
+              diag.fixtures = FIX.length;
+              function isFixture(dx, dy, s) {
+                for (var f5 = 0; f5 < FIX.length; f5++) {
+                  if (Math.abs(dx - FIX[f5].dx) <= 0.02 && Math.abs(dy - FIX[f5].dy) <= 0.02 &&
+                      s <= Math.max(2.5 * FIX[f5].ms, 0.10)) return true;
+                }
+                return false;
+              }
+
               // ── Arrivals → attempt windows ─────────────────────
               var aboveIdx = [];
               for (var ai = 0; ai < rows.length; ai++) {
@@ -683,74 +742,108 @@
               }
               function classify(f0, f1) {
                 if (!trackMode) return classifyRange(obs, ring, f0, f1);
-                // TRACK-MODE verdicts (calibrated on the night video):
-                // A crossing must be near-vertical (side bounces jump a
-                // rim-width sideways between samples), must not re-rise,
-                // and must keep falling INSIDE the cone. Inside-the-net
-                // evidence needs descent continuity — a ball HELD by a
-                // player under the rim has no above-ring history.
+                // TRACK-MODE verdicts — v7 chain, validated 7/7 against
+                // frame-verified GT on the night video via replay of the
+                // app's own detections (scratch/replay_v7.py):
+                //   ENTRY (descent into the cone) → no DEPARTURE (a NEW
+                //   lateral object at ring height = the ball escaping; a
+                //   second ball already tracked there is exempt) → DWELL
+                //   (non-fixture, slow-drift band obs; only the net stops
+                //   a ball mid-air) of ≥3 frames OR an EXIT-CLOSE (descent
+                //   chain below the net to dy≥+0.085 inside |dx|≤0.08) →
+                //   no RE-RISE (rim rattles pop back up).
                 var lim = Math.min(f1 + 1, rows.length);
-                var H = ringOf(f0).halfW;
-                function belowConfirm(i) {
-                  for (var k = i; k < Math.min(i + 9, lim); k++) {
-                    var rk = ringOf(k);
-                    for (var q = 0; q < obs[k].length; q++) {
-                      var o = obs[k][q];
-                      if (Math.abs(o.x - rk.cx) <= H * 0.95 && o.y >= rk.y && o.y <= rk.y + 0.12) return true;
+                for (var a = f0; a < lim; a++) {
+                  var rgA = ringOf(a);
+                  var ent = null;
+                  for (var e1 = 0; e1 < obs[a].length; e1++) {
+                    var p = obs[a][e1];
+                    var ady = p.y - rgA.y;
+                    if (ady >= -0.13 && ady <= -0.018 && Math.abs(p.x - rgA.cx) <= 0.09) {
+                      if (!ent || p.s > ent.s) ent = p;
                     }
                   }
-                  return false;
-                }
-                var prevF = -1, prevB = null;
-                for (var i = f0; i < lim; i++) {
-                  var rg = ringOf(i);
-                  var b = null;
-                  for (var q2 = 0; q2 < obs[i].length; q2++) {
-                    if (!b || obs[i][q2].s > b.s) b = obs[i][q2];
-                  }
-                  if (b) {
-                    if (prevB && (i - prevF) <= 6) {
-                      var rp = ringOf(prevF);
-                      if (prevB.y < rp.y - 0.005 && b.y >= rg.y) {
-                        var dxs = Math.abs(b.x - prevB.x);
-                        var r = (rp.y - prevB.y) / Math.max((b.y - prevB.y) + (rg.y - rp.y), 1e-6);
-                        var xAt = prevB.x + r * (b.x - prevB.x);
-                        var cxAt = rp.cx + r * (rg.cx - rp.cx);
-                        if (Math.abs(xAt - cxAt) <= H * 1.0 && dxs <= H * 1.2) {
-                          var rise = false;
-                          for (var k2 = i + 1; k2 < Math.min(i + 8, lim); k2++) {
-                            var rk2 = ringOf(k2);
-                            for (var q3 = 0; q3 < obs[k2].length; q3++) {
-                              if (obs[k2][q3].y < rk2.y - 0.012 && Math.abs(obs[k2][q3].x - rk2.cx) < 0.17) { rise = true; break; }
-                            }
-                            if (rise) break;
-                          }
-                          if (!rise && belowConfirm(i)) {
-                            return { v: 'made', why: 'track cross-thru x=' + xAt.toFixed(3) + ' f=' + i };
-                          }
+                  if (!ent) continue;
+                  // departure: new lateral object right after entry, no predecessor
+                  var dep = false;
+                  for (var k1 = a + 1; k1 < Math.min(a + 7, lim) && !dep; k1++) {
+                    var rgK1 = ringOf(k1);
+                    for (var q1 = 0; q1 < obs[k1].length; q1++) {
+                      var q = obs[k1][q1];
+                      var qdx = q.x - rgK1.cx, qdy = q.y - rgK1.y;
+                      if (!(Math.abs(qdx) >= 0.07 && Math.abs(qdx) <= 0.14 &&
+                            qdy >= -0.05 && qdy <= 0.05 && q.s >= 0.03)) continue;
+                      if (Math.abs(q.x - ent.x) > 0.05 * (k1 - a) + 0.02) continue;
+                      var pre = false;
+                      for (var j1 = Math.max(0, a - 3); j1 <= a && !pre; j1++) {
+                        for (var j2 = 0; j2 < obs[j1].length; j2++) {
+                          if (Math.abs(obs[j1][j2].x - q.x) <= 0.05 &&
+                              Math.abs(obs[j1][j2].y - q.y) <= 0.08) { pre = true; break; }
                         }
                       }
+                      if (!pre) { dep = true; break; }
                     }
-                    prevF = i; prevB = b;
                   }
-                }
-                for (var j = f0; j < lim; j++) {
-                  var rj = ringOf(j);
-                  for (var q4 = 0; q4 < obs[j].length; q4++) {
-                    var o2 = obs[j][q4];
-                    if (o2.y >= rj.y + 0.008 && o2.y <= rj.y + 0.10 && Math.abs(o2.x - rj.cx) <= H * 0.70) {
-                      for (var j2 = Math.max(f0, j - 8); j2 < j; j2++) {
-                        var rj2 = ringOf(j2);
-                        for (var q5 = 0; q5 < obs[j2].length; q5++) {
-                          if (obs[j2][q5].y < rj2.y - 0.012 && Math.abs(obs[j2][q5].x - o2.x) < 0.05) {
-                            return { v: 'made', why: 'track thru ' + j2 + '->' + j };
-                          }
+                  if (dep) continue;
+                  // dwell: non-fixture band obs within 5f, x-continuous with entry
+                  for (var b1 = a + 1; b1 < Math.min(a + 6, lim); b1++) {
+                    var rgB = ringOf(b1);
+                    for (var o1 = 0; o1 < obs[b1].length; o1++) {
+                      var o = obs[b1][o1];
+                      var dx = o.x - rgB.cx, dy = o.y - rgB.y;
+                      if (dy < -0.015 || dy > 0.055 || Math.abs(dx) > 0.05) continue;
+                      if (Math.abs(o.x - ent.x) > 0.06) continue;
+                      if (isFixture(dx, dy, o.s)) continue;
+                      var runLen = 1, lastF = b1, lastO = o;
+                      for (var k2 = b1 + 1; k2 < Math.min(b1 + 16, lim); k2++) {
+                        if (k2 - lastF > 3) break;
+                        var rgK2 = ringOf(k2), best = null;
+                        for (var q4 = 0; q4 < obs[k2].length; q4++) {
+                          var c = obs[k2][q4];
+                          var cdx = c.x - rgK2.cx, cdy = c.y - rgK2.y;
+                          if (cdy < -0.015 || cdy > 0.055 || Math.abs(cdx) > 0.05) continue;
+                          if (isFixture(cdx, cdy, c.s)) continue;
+                          var steps = k2 - lastF;
+                          if (Math.abs(c.y - lastO.y) > 0.014 * steps ||
+                              Math.abs(c.x - lastO.x) > 0.02 * steps) continue;
+                          if (!best || c.s > best.s) best = c;
+                        }
+                        if (best) { runLen++; lastF = k2; lastO = best; }
+                      }
+                      // exit-close: descent chain below the net
+                      var exitok = false, cur = lastO, curF = lastF;
+                      for (var k3 = lastF + 1; k3 < Math.min(lastF + 8, lim); k3++) {
+                        if (k3 - curF > 3) break;
+                        var rgK3 = ringOf(k3), best2 = null;
+                        for (var q5 = 0; q5 < obs[k3].length; q5++) {
+                          var c2 = obs[k3][q5], st2 = k3 - curF;
+                          if (Math.abs(c2.x - cur.x) > 0.06 * st2) continue;
+                          if (!((c2.y - cur.y) >= 0.010 * st2)) continue;
+                          if (Math.abs(c2.x - rgK3.cx) > 0.08) continue;
+                          if (!best2 || c2.s > best2.s) best2 = c2;
+                        }
+                        if (!best2) continue;
+                        cur = best2; curF = k3;
+                        if (cur.y - rgK3.y >= 0.085) { exitok = true; break; }
+                      }
+                      if (runLen < 3 && !exitok) continue;
+                      // re-rise kill
+                      var rise = false;
+                      for (var k4 = lastF + 1; k4 < Math.min(lastF + 7, lim) && !rise; k4++) {
+                        var rgK4 = ringOf(k4);
+                        for (var q6 = 0; q6 < obs[k4].length; q6++) {
+                          if (obs[k4][q6].s >= 0.04 &&
+                              (obs[k4][q6].y - rgK4.y) <= -0.025 &&
+                              Math.abs(obs[k4][q6].x - lastO.x) <= 0.06) { rise = true; break; }
                         }
                       }
+                      if (rise) continue;
+                      return { v: 'made', why: 'dwell ' + a + '->' + b1 + '..' + lastF +
+                                              ' (' + runLen + 'f' + (exitok ? '+exit' : '') + ')' };
                     }
                   }
                 }
-                return { v: 'missed', why: 'no through (track)' };
+                return { v: 'missed', why: 'no through (v7)' };
               }
 
               // ── Build shot records ─────────────────────────────
@@ -797,9 +890,38 @@
               }
 
               diag.attempts = shots.length;
+              diag.verdicts = shots.map(function (s) {
+                return (s.__videoT).toFixed(1) + (s.result === 'made' ? 'M' : 'X');
+              }).join(' ');
+              // Debug data export (set window.__opDebug = true BEFORE the
+              // run): full evidence base for offline re-analysis — lets the
+              // Python lab replay the exact rules on the APP's detections.
+              try {
+                if (typeof window !== 'undefined' && window.__opDebug) {
+                  window.__opDump = {
+                    mode: diag.mode, panSpread: diag.panSpread,
+                    windows: windows, fps: fps,
+                    ring: ring,
+                    rings: (function () {
+                      var out = [];
+                      for (var di = 0; di < rows.length; di++) {
+                        var rgD = ringOf(di);
+                        out.push([+rgD.cx.toFixed(4), +rgD.y.toFixed(4)]);
+                      }
+                      return out;
+                    })(),
+                    halfW: ringOf(0).halfW,
+                    balls: rows.map(function (r) {
+                      return r.balls.map(function (b) {
+                        return [+b.x.toFixed(4), +b.y.toFixed(4), +b.s.toFixed(3)];
+                      });
+                    })
+                  };
+                }
+              } catch (e) {}
               try {
                 console.log('[OfflineProcessor] shots —',
-                  shots.map(function (s) { return (s.__videoT).toFixed(1) + 's:' + (s.result === 'made' ? 'M' : 'X'); }).join(' '));
+                  shots.map(function (s) { return (s.__videoT).toFixed(1) + 's:' + (s.result === 'made' ? 'M' : 'X') + ' (' + s.why + ')'; }).join(' | '));
               } catch (e) {}
 
               cleanup();

@@ -1246,8 +1246,11 @@
        main pass (caller awaits processFrameOffline first).
        Region is normalized video coords; returns [{x, y, s}] normalized
        to the video, [] on any failure. */
-    detectBallsInRegionOffline: function (sxN, syN, swN, shN) {
+    detectBallsInRegionOffline: function (sxN, syN, swN, shN, minScore) {
       var self = this;
+      // Default floor 0.02; track-mode callers pass 0.012 — a net-occluded
+      // night ball sits right AT 0.02 and WebGPU numerics drop it below.
+      var floor = (typeof minScore === 'number' && minScore > 0) ? minScore : 0.02;
       return new Promise(function (resolve) {
         try {
           if (!self.model || !self.videoEl || self._zoomBusy) { resolve([]); return; }
@@ -1290,7 +1293,7 @@
               var obj = needsSig ? sg(out[off + 4]) : out[off + 4];
               if (obj < 0.01) continue;
               var bs = obj * (needsSig ? sg(out[off + 5]) : out[off + 5]);
-              if (bs < 0.02) continue;
+              if (bs < floor) continue;
               var bw = out[off + 2], bh = out[off + 3];
               var area = bw * bh;
               if (area < sz * sz * 0.00003 || area > sz * sz * 0.2) continue;

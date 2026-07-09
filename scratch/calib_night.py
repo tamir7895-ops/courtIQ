@@ -16,8 +16,14 @@ import onnxruntime as ort
 SCRATCH = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(SCRATCH)
 FPS = 30.0
-GT = [(0.9,'M'),(7.0,'X'),(9.3,'M'),(18.4,'X'),(19.45,'M'),(20.8,'M'),
-      (21.47,'X'),(22.55,'X'),(28.7,'X'),(33.1,'M')]
+# GT corrected 2026-07-09 by frame-level zoom verification (gt/night/zoom*.jpg):
+#  - 0.9 was 'M' -> X: ball bounces off the rim top and falls OUTSIDE-LEFT
+#    (zoom09.jpg f36-f50; the 2.5fps sheet hid the bounce).
+#  - 20.8 'M' + 21.47 'X' were ONE event -> X@20.9: single ball, rim rattle
+#    pops up f627-f640 and lands outside-left f646-f651 (zoom208pre.jpg);
+#    nothing passes the net before the rattle.
+GT = [(1.0,'X'),(7.0,'X'),(9.3,'M'),(18.4,'X'),(19.45,'M'),(20.9,'X'),
+      (22.55,'X'),(28.7,'X'),(33.1,'M')]
 
 files = sorted(glob.glob(os.path.join(SCRATCH, 'frames', 'v1_30', '*.jpg')))
 N = len(files)
@@ -174,57 +180,62 @@ for fi in range(N):
         if not arrivals or fi-arrivals[-1][1] > GAP: arrivals.append([fi,fi])
         else: arrivals[-1][1]=fi
 
-def below_confirm(i, f0, lim):
-    """A make keeps falling INSIDE the cone under the ring; side bounces
-    exit the cone. Confirm within the 8 frames after the crossing."""
-    for k in range(i, min(i+9, lim)):
-        kcx, kcy = ring_at(k)
-        for o in obs[k]:
-            if abs(o[0]-kcx) <= HALF*0.95 and kcy <= o[1] <= kcy+0.12:
-                return True
-    return False
-
-def classify(f0,f1):
+def classify(f0, f1):
+    """v6 chain rule: ENTRY above the ring -> NET-BRAKE pause in the cone
+    -> no RE-RISE. Physics: only the net stops a ball mid-air. Misses cross
+    the cone at free-fall speed (>=0.02/frame vertical, no >=2-frame slow
+    cluster); the static net-knot fires forever but never has a fresh entry
+    within 4 frames + 0.05 x-continuity; rim rattles pause on the iron but
+    re-rise right after. Verified per-event on gt/night/zoom*.jpg."""
     lim = min(f1+1, N)
-    # Rule A — crossing that STICKS AND FALLS THROUGH:
-    #  * interpolated x within the span,
-    #  * horizontal speed bounded (side bounces jump a rim-width between
-    #    samples; a true drop is near-vertical),
-    #  * no re-rise above the ring within 7 frames,
-    #  * below-cone continuation within 8 frames.
-    prevF, prevB = -1, None
-    for i in range(f0, lim):
-        rcx, rcy = ring_at(i)
-        arr=obs[i]
-        b = max(arr,key=lambda o:o[2]) if arr else None
-        if b:
-            if prevB and (i-prevF)<=6:
-                pcx, pcy = ring_at(prevF)
-                if prevB[1] < pcy-0.005 and b[1] >= rcy:
-                    dx = abs(b[0]-prevB[0])
-                    r = (pcy-prevB[1])/max((b[1]-prevB[1]) + (rcy-pcy), 1e-6)
-                    x_at = prevB[0] + r*(b[0]-prevB[0])
-                    cx_at = pcx + r*(rcx-pcx)
-                    if abs(x_at-cx_at) <= HALF*1.0 and dx <= HALF*1.2:
-                        rise = False
-                        for k in range(i+1, min(i+8, lim)):
-                            kcx, kcy = ring_at(k)
-                            if any(o[1] < kcy-0.012 and abs(o[0]-kcx) < 0.17 for o in obs[k]):
-                                rise = True; break
-                        if not rise and below_confirm(i, f0, lim):
-                            return 'M', f'cross-thru x={x_at:.3f} f={i}'
-            prevF, prevB = i, b
-    # Rule B — descent continuity: inside-cone obs preceded (<=8f, tight
-    # x-continuity) by an ABOVE-ring obs. Held balls have no above history.
-    for i in range(f0, lim):
-        rcx, rcy = ring_at(i)
-        for o in obs[i]:
-            if rcy+0.008 <= o[1] <= rcy+0.10 and abs(o[0]-rcx) <= HALF*0.70:
-                for j in range(max(f0, i-8), i):
-                    pcy = ring_at(j)[1]
-                    if any(p[1] < pcy-0.012 and abs(p[0]-o[0]) < 0.05 for p in obs[j]):
-                        return 'M', f'thru {j}->{i}'
-    return 'X', 'no through'
+    for b1 in range(f0, lim):
+        rcx, rcy = ring_at(b1)
+        for o in obs[b1]:
+            dx, dy = o[0]-rcx, o[1]-rcy
+            if not (-0.015 <= dy <= 0.055 and abs(dx) <= 0.05): continue
+            # A: entry above the ring, <=4 frames before, x-continuous
+            A = None
+            for a in range(max(f0, b1-4), b1):
+                acx, acy = ring_at(a)
+                for p in obs[a]:
+                    adx, ady = p[0]-acx, p[1]-acy
+                    if -0.13 <= ady <= -0.018 and abs(adx) <= 0.09 and abs(p[0]-o[0]) <= 0.05:
+                        A = a; break
+                if A is not None: break
+            if A is None: continue
+            # static-fixture guard: if this pause spot already fired in >=3
+            # of the 8 frames BEFORE the entry, it's the net-knot, not a ball
+            pre_hits = 0
+            for k in range(max(0, A-8), A):
+                kcx, kcy = ring_at(k)
+                if any(abs(q[0]-kcx-dx) <= 0.02 and abs(q[1]-kcy-dy) <= 0.02 for q in obs[k]):
+                    pre_hits += 1
+            if pre_hits >= 3: continue
+            # B: extend the pause run (frame gap <=3, slow drift only)
+            run_len, last_f, last = 1, b1, o
+            for k in range(b1+1, min(b1+16, lim)):
+                if k - last_f > 3: break
+                kcx, kcy = ring_at(k)
+                best = None
+                for q in obs[k]:
+                    qdx, qdy = q[0]-kcx, q[1]-kcy
+                    if not (-0.015 <= qdy <= 0.055 and abs(qdx) <= 0.05): continue
+                    steps = k - last_f
+                    if abs(q[1]-last[1]) > 0.014*steps or abs(q[0]-last[0]) > 0.02*steps: continue
+                    if best is None or q[2] > best[2]: best = q
+                if best is not None:
+                    run_len += 1; last_f, last = k, best
+            if run_len < 2: continue
+            # re-rise kill: solid obs back above the ring right after the pause
+            rise = False
+            for k in range(last_f+1, min(last_f+7, lim)):
+                kcx, kcy = ring_at(k)
+                if any(q[2] >= 0.04 and (q[1]-kcy) <= -0.025 and abs(q[0]-last[0]) <= 0.06
+                       for q in obs[k]):
+                    rise = True; break
+            if rise: continue
+            return 'M', f'net-brake {A}->{b1}..{last_f} ({run_len}f)'
+    return 'X', 'no net-brake'
 
 results=[]
 for i,a in enumerate(arrivals):
@@ -238,16 +249,26 @@ for t0,t1,v,why in results: print(f'  {t0:5.1f}-{t1:5.1f}s {v} ({why})')
 print('pred:', '-'.join(v for _,_,v,_ in results))
 print('gt  :', '-'.join(v for _,v in GT), f'({len(GT)} events)')
 
-gt_used=[False]*len(GT); ok=0; matched=0; phantom=[]
-for t0,t1,v,why in results:
+gt_used=[False]*len(GT); assign={}
+# pass 1: strict containment (GT time inside the window)
+for ri,(t0,t1,v,why) in enumerate(results):
+    for gi,(gt_t,gv) in enumerate(GT):
+        if not gt_used[gi] and t0 <= gt_t <= t1:
+            gt_used[gi]=True; assign[ri]=gi; break
+# pass 2: nearest unused within +-1.6s of window start
+for ri,(t0,t1,v,why) in enumerate(results):
+    if ri in assign: continue
     bi=-1
     for gi,(gt_t,gv) in enumerate(GT):
-        if not gt_used[gi] and t0-1.6 <= gt_t <= t0+3.2:
+        if not gt_used[gi] and abs(gt_t-t0) <= 1.6:
             if bi<0 or abs(GT[bi][0]-t0) > abs(gt_t-t0): bi=gi
-    if bi>=0:
-        gt_used[bi]=True; matched+=1
-        if v==GT[bi][1]: ok+=1
-        else: print(f'  BAD @{t0:.1f} pred {v} vs GT {GT[bi][1]}@{GT[bi][0]} ({why})')
+    if bi>=0: gt_used[bi]=True; assign[ri]=bi
+ok=0; phantom=[]
+for ri,(t0,t1,v,why) in enumerate(results):
+    if ri in assign:
+        gi=assign[ri]
+        if v==GT[gi][1]: ok+=1
+        else: print(f'  BAD @{t0:.1f} pred {v} vs GT {GT[gi][1]}@{GT[gi][0]} ({why})')
     else: phantom.append(round(t0,1))
 missed=[g for g,u in zip(GT,gt_used) if not u]
-print(f'matched {matched}/{len(GT)} | verdicts OK {ok}/{matched} | phantom {phantom} | missed {missed}')
+print(f'matched {len(assign)}/{len(GT)} | verdicts OK {ok}/{len(assign)} | phantom {phantom} | missed {missed}')
