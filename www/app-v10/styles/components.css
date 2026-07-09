@@ -1414,3 +1414,80 @@ body::after {
 /* Chips row */
 .v10-chips { margin-bottom: clamp(4px, 0.8dvh, 12px); }
 .v10-chip { padding: clamp(5px, 1.2dvh, 8px) 6px; }
+
+/* ── PHONE WIDTH (≤420px): narrow screens wrap text into extra
+   lines, which grows pages vertically — trim type and chrome so
+   copy stays on its intended line count. ─────────────────────── */
+@media (max-width: 420px) {
+  #app { padding-left: 12px; padding-right: 12px; gap: 4px; }
+  .v10-pill__brand-meta { display: none; }
+  .v10-pill__brand-name { font-size: 16px; }
+  .v10-pill__name-line { font-size: 12px; }
+  .v10-hero { margin-bottom: 4px; }
+  .v10-hero__sub { font-size: 10px; }
+  .v10-hero__num { font-size: clamp(36px, 6.6dvh, 52px); }
+  .v10-hero__headline { font-size: clamp(18px, 3dvh, 22px); }
+  .v10-bento { margin-bottom: 4px; }
+  .v10-week { margin-bottom: 4px; }
+  .v10-ribbon { margin: 3px 0; }
+  .v10-challenge { margin-bottom: 5px; }
+  .v10-challenge__sub { font-size: 9.5px; }
+  .v10-challenge__title { font-size: clamp(13px, 2.1dvh, 15px); }
+  .v10-challenge__badge { width: clamp(40px, 6.8dvh, 48px); }
+  .v10-reels-link { margin-bottom: 4px; }
+  .v10-pin { margin: 5px 0 4px; }
+  .v10-pin--lg .v10-pin__body { font-size: clamp(12.5px, 1.9dvh, 14px); }
+  .v10-tile__title { font-size: 13px; }
+  .v10-tile { padding: clamp(6px, 1.2dvh, 9px); }
+  .v10-bento__label { font-size: 6.5px; }
+  .v10-week__val { font-size: 7px; }
+  .v10-ribbon__title { font-size: 12px; }
+  .v10-cta { font-size: 13px; padding: clamp(9px, 1.5dvh, 12px); }
+  .v10-court { margin-bottom: 4px; }
+}
+
+/* ── SHORT SCREENS (≤760px tall — iPhone SE, compact Androids,
+   short browser windows): aggressive vertical compression — every
+   decorative pixel gives way, the content itself stays complete. ── */
+@media (max-height: 760px) {
+  /* NOTE: bottom padding must clear the fixed nav footprint
+     (8px float + ~54px bar on phone widths) — never trim it. */
+  #app { gap: 3px; padding-top: 4px; padding-bottom: calc(66px + var(--safe-bottom)); }
+  /* The inline flex spacer must fully collapse on short screens */
+  #app > div[style*="flex: 1 1 auto"] { min-height: 0 !important; }
+  .v10-pill { padding: 3px 10px; }
+  .v10-hero__headline { font-size: 17px; }
+  .v10-bento { margin-bottom: 3px; }
+  .v10-bento__cell { padding: 3px 6px 2px; }
+  .v10-bento__icon { font-size: 10px; margin-bottom: 0; }
+  .v10-bento__num { font-size: 13px; }
+  .v10-hero { padding: 5px 12px; margin-bottom: 3px; }
+  .v10-hero__num { font-size: 30px; letter-spacing: -1.5px; }
+  .v10-hero__num-unit { font-size: 14px; }
+  .v10-hero__sub { margin-top: 1px; }
+  .v10-hero__aside { padding: 4px 8px; }
+  .v10-hero__aside-num { font-size: 18px; }
+  .v10-week { margin: -2px 0 3px; }
+  .v10-week__cell { padding: 2px 2px 1px; }
+  .v10-week__num { font-size: 11px; }
+  .v10-week__val { display: none; }
+  .v10-ribbon { margin: 3px 0; padding: 3px 0; }
+  .v10-challenge { margin-bottom: 3px; }
+  .v10-challenge__main { padding: 3px 10px; }
+  .v10-challenge__bar { margin-top: 3px; height: 7px; }
+  .v10-challenge__meta { margin-top: 2px; }
+  .v10-challenge__xp { padding: 1px 6px; font-size: 9px; }
+  .v10-reels-link { padding: 5px 10px; margin-bottom: 3px; }
+  .v10-pin { margin: 5px 0 3px; }
+  .v10-pin--lg { padding: 8px 12px 6px; }
+  .v10-pin--lg .v10-pin__body { font-size: 12px; margin-top: 4px; }
+  .v10-pin--lg .v10-pin__footer { margin-top: 4px; }
+  .v10-cta { padding: 8px; }
+  .v10-tile { padding: 5px 8px; }
+  .v10-tile__meta { margin-top: 2px; font-size: 8px; }
+  .v10-chips { margin-bottom: 3px; }
+  .v10-chip { padding: 4px 6px; }
+  .v10-court { padding: 6px 10px; margin-bottom: 3px; }
+  .v10-court svg { max-height: 26dvh; }
+  .v10-row { padding: 5px 10px; margin-bottom: 4px; }
+}
