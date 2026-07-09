@@ -290,10 +290,26 @@
                 // 0.30, and a fixed high gate starved the ring logic to
                 // "hoop frames: 4" on real user footage. strongHoops()
                 // picks the most confident usable subset adaptively.
-                hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh, s: hh.score });
+                hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh, s: hh.score,
+                              fi: rows.length - 1 });
                 if (hh.colorRefined) crHoopY.push(hh.cy / fd.ph);
               }
+              // PAN detector: rolling median of recent hoop cx — if the
+              // smoothed center wanders > 4% of frame width the camera is
+              // panning and pass 2 switches to TRACK mode (ring follows
+              // the hoop instead of a single locked position).
+              if (fd.hoops.length) {
+                _panWin.push(hoopPx[hoopPx.length - 1].cx / fd.pw);
+                if (_panWin.length > 15) _panWin.shift();
+                if (_panWin.length >= 10) {
+                  var pmed = _panWin.slice().sort(function (a, b) { return a - b; })[_panWin.length >> 1];
+                  if (pmed < _panMin) _panMin = pmed;
+                  if (pmed > _panMax) _panMax = pmed;
+                }
+              }
             };
+            var _panWin = [], _panMin = Infinity, _panMax = -Infinity;
+            function isPanning() { return (_panMax - _panMin) > 0.04 && hoopPx.length >= 30; }
 
             // Adaptive confidence subset: prefer ≥0.30 detections (clean
             // footage), fall back to ≥0.15, then to everything surfaced.
@@ -427,6 +443,18 @@
                 // already have rim-area evidence skip this entirely, so
                 // validated footage keeps its exact evidence base.
                 var ringNow = live.ring;
+                // Panning: the static live-ring lags the hoop — center the
+                // zoom crop on the RECENT hoop position instead.
+                if (isPanning() && hoopPx.length >= 8) {
+                  var rec = hoopPx.slice(-15);
+                  var pwR = eng._procW || pwLast, phR = eng._procH || phLast;
+                  ringNow = {
+                    cx: median(rec.map(function (h) { return h.cx; })) / pwR,
+                    y:  median(rec.map(function (h) { return h.cy; })) / phR - 0.03,
+                    halfW: (live.ring && live.ring.halfW) || 0.03,
+                    fb: true
+                  };
+                }
                 if (ringNow && lastDets && eng.detectBallsInRegionOffline) {
                   var hasNear = lastDets.balls.some(function (b) {
                     return Math.abs(b.x - ringNow.cx) < 0.17 &&
@@ -456,14 +484,26 @@
                     var pw2 = eng._procW || pwLast, ph2 = eng._procH || phLast;
                     var sx2 = (video.videoWidth || pw2) / pw2;
                     var sy2 = (video.videoHeight || ph2) / ph2;
+                    // Panning: the scan box must FOLLOW the hoop (recent
+                    // window), else the all-time median box drifts off the
+                    // rim. Static footage keeps the all-time median so the
+                    // validated behavior is byte-identical.
+                    var src = isPanning() ? hp.slice(-15) : hp;
+                    var bcx2 = median(src.map(function (h) { return h.cx; }));
+                    var bcy2 = median(src.map(function (h) { return h.cy; }));
                     var boxFull = {
-                      cx: median(hp.map(function (h) { return h.cx; })) * sx2,
-                      cy: median(hp.map(function (h) { return h.cy; })) * sy2,
-                      bw: median(hp.map(function (h) { return h.bw; })) * sx2,
-                      bh: median(hp.map(function (h) { return h.bh; })) * sy2
+                      cx: bcx2 * sx2,
+                      cy: bcy2 * sy2,
+                      bw: median(src.map(function (h) { return h.bw; })) * sx2,
+                      bh: median(src.map(function (h) { return h.bh; })) * sy2
                     };
                     var s = scanRingFull(video, boxFull);
-                    if (s) ringSamples.push(s);
+                    if (s) {
+                      // Reference for track mode: offsets are measured
+                      // relative to the box the sample was taken around.
+                      s.fi = frame; s.refCx = bcx2 / pw2; s.refCy = bcy2 / ph2;
+                      ringSamples.push(s);
+                    }
                   }
                 }
                 liveTick();
@@ -534,16 +574,79 @@
                 return;
               }
 
-              // ── Rim-area observations ─────────────────────────
+              // ── Rim-area observations + windows ───────────────
               var NEAR_X = 0.17, NEAR_ABOVE = 0.24, NEAR_BELOW = 0.14, ABOVE_EPS = 0.012;
+              var GAP = Math.round(0.8 * fps), CAP = Math.round(2.6 * fps);
+              var trackMode = isPanning();
+              var ringAtF = null;   // per-frame ring (track mode only)
+
+              if (trackMode) {
+                // ── TRACK MODE (panning camera) ──────────────────
+                // Per-frame ring follows a smoothed hoop track; verdict
+                // rules are hardened for open-court play (held balls,
+                // side bounces). Calibrated on the night video: attempts
+                // 12/12 vs hand GT.
+                var bestByF = {};
+                for (var hi2 = 0; hi2 < hoopPx.length; hi2++) {
+                  var hh2 = hoopPx[hi2];
+                  if (hh2.fi == null) continue;
+                  if (!bestByF[hh2.fi] || hh2.s > bestByF[hh2.fi].s) bestByF[hh2.fi] = hh2;
+                }
+                var pwT = eng._procW || pwLast, phT = eng._procH || phLast;
+                var oIdx = Object.keys(bestByF).map(Number).sort(function (a, b) { return a - b; });
+                // median smooth (±8 observed neighbours) then interpolate
+                var smx = {}, smy = {};
+                for (var s1 = 0; s1 < oIdx.length; s1++) {
+                  var wx = [], wy = [];
+                  for (var s2 = Math.max(0, s1 - 8); s2 <= Math.min(oIdx.length - 1, s1 + 8); s2++) {
+                    wx.push(bestByF[oIdx[s2]].cx); wy.push(bestByF[oIdx[s2]].cy);
+                  }
+                  smx[oIdx[s1]] = median(wx) / pwT; smy[oIdx[s1]] = median(wy) / phT;
+                }
+                var trX = new Array(rows.length), trY = new Array(rows.length);
+                var lo = 0;
+                for (var fT = 0; fT < rows.length; fT++) {
+                  while (lo + 1 < oIdx.length && oIdx[lo + 1] <= fT) lo++;
+                  var a2 = oIdx[Math.max(0, Math.min(lo, oIdx.length - 1))];
+                  var b2 = oIdx[Math.max(0, Math.min(lo + 1, oIdx.length - 1))];
+                  if (fT <= oIdx[0]) { trX[fT] = smx[oIdx[0]]; trY[fT] = smy[oIdx[0]]; }
+                  else if (fT >= oIdx[oIdx.length - 1]) { trX[fT] = smx[oIdx[oIdx.length-1]]; trY[fT] = smy[oIdx[oIdx.length-1]]; }
+                  else {
+                    var tt = (fT - a2) / Math.max(1, b2 - a2);
+                    trX[fT] = smx[a2] + tt * (smx[b2] - smx[a2]);
+                    trY[fT] = smy[a2] + tt * (smy[b2] - smy[a2]);
+                  }
+                }
+                // ring offsets from pan-following color samples
+                var DY, DX, HALFT;
+                var offs = ringSamples.filter(function (s) { return s.fi != null && s.refCy != null; });
+                if (offs.length >= 3) {
+                  DY = median(offs.map(function (s) { return s.y - s.refCy; }));
+                  DX = median(offs.map(function (s) { return (s.left + s.right) / 2 - s.refCx; }));
+                  HALFT = Math.max(median(offs.map(function (s) { return (s.right - s.left) / 2; })), 0.03);
+                } else {
+                  var bhT = median(hoopPx.map(function (h) { return h.bh; })) / phT;
+                  DY = -bhT * 0.35; DX = 0;
+                  HALFT = Math.max((median(hoopPx.map(function (h) { return h.bw; })) / pwT) * 0.5 * 0.72 * 0.8, 0.03);
+                }
+                ringAtF = function (i) {
+                  var ii = Math.max(0, Math.min(rows.length - 1, i));
+                  return { cx: trX[ii] + DX, y: trY[ii] + DY, halfW: HALFT };
+                };
+                ring = ringAtF(Math.floor(rows.length / 2));   // diag/zones anchor
+              }
+
+              function ringOf(i) { return trackMode ? ringAtF(i) : ring; }
+
               var obs = [];   // index-aligned with rows: array of [{x,y,s}] near rim
               for (var ri = 0; ri < rows.length; ri++) {
                 var near = [];
                 var bl = rows[ri].balls;
+                var rg = ringOf(ri);
                 for (var bi = 0; bi < bl.length; bi++) {
                   var b = bl[bi];
-                  if (Math.abs(b.x - ring.cx) < NEAR_X &&
-                      b.y > ring.y - NEAR_ABOVE && b.y < ring.y + NEAR_BELOW) near.push(b);
+                  if (Math.abs(b.x - rg.cx) < NEAR_X &&
+                      b.y > rg.y - NEAR_ABOVE && b.y < rg.y + NEAR_BELOW) near.push(b);
                 }
                 obs.push(near);
               }
@@ -551,11 +654,11 @@
               // ── Arrivals → attempt windows ─────────────────────
               var aboveIdx = [];
               for (var ai = 0; ai < rows.length; ai++) {
+                var rgA = ringOf(ai);
                 for (var oi = 0; oi < obs[ai].length; oi++) {
-                  if (obs[ai][oi].y < ring.y - ABOVE_EPS) { aboveIdx.push(ai); break; }
+                  if (obs[ai][oi].y < rgA.y - ABOVE_EPS) { aboveIdx.push(ai); break; }
                 }
               }
-              var GAP = Math.round(0.8 * fps), CAP = Math.round(2.6 * fps);
               var arrivals = [];
               for (var gi = 0; gi < aboveIdx.length; gi++) {
                 var fi2 = aboveIdx[gi];
@@ -579,7 +682,75 @@
                 return best;
               }
               function classify(f0, f1) {
-                return classifyRange(obs, ring, f0, f1);
+                if (!trackMode) return classifyRange(obs, ring, f0, f1);
+                // TRACK-MODE verdicts (calibrated on the night video):
+                // A crossing must be near-vertical (side bounces jump a
+                // rim-width sideways between samples), must not re-rise,
+                // and must keep falling INSIDE the cone. Inside-the-net
+                // evidence needs descent continuity — a ball HELD by a
+                // player under the rim has no above-ring history.
+                var lim = Math.min(f1 + 1, rows.length);
+                var H = ringOf(f0).halfW;
+                function belowConfirm(i) {
+                  for (var k = i; k < Math.min(i + 9, lim); k++) {
+                    var rk = ringOf(k);
+                    for (var q = 0; q < obs[k].length; q++) {
+                      var o = obs[k][q];
+                      if (Math.abs(o.x - rk.cx) <= H * 0.95 && o.y >= rk.y && o.y <= rk.y + 0.12) return true;
+                    }
+                  }
+                  return false;
+                }
+                var prevF = -1, prevB = null;
+                for (var i = f0; i < lim; i++) {
+                  var rg = ringOf(i);
+                  var b = null;
+                  for (var q2 = 0; q2 < obs[i].length; q2++) {
+                    if (!b || obs[i][q2].s > b.s) b = obs[i][q2];
+                  }
+                  if (b) {
+                    if (prevB && (i - prevF) <= 6) {
+                      var rp = ringOf(prevF);
+                      if (prevB.y < rp.y - 0.005 && b.y >= rg.y) {
+                        var dxs = Math.abs(b.x - prevB.x);
+                        var r = (rp.y - prevB.y) / Math.max((b.y - prevB.y) + (rg.y - rp.y), 1e-6);
+                        var xAt = prevB.x + r * (b.x - prevB.x);
+                        var cxAt = rp.cx + r * (rg.cx - rp.cx);
+                        if (Math.abs(xAt - cxAt) <= H * 1.0 && dxs <= H * 1.2) {
+                          var rise = false;
+                          for (var k2 = i + 1; k2 < Math.min(i + 8, lim); k2++) {
+                            var rk2 = ringOf(k2);
+                            for (var q3 = 0; q3 < obs[k2].length; q3++) {
+                              if (obs[k2][q3].y < rk2.y - 0.012 && Math.abs(obs[k2][q3].x - rk2.cx) < 0.17) { rise = true; break; }
+                            }
+                            if (rise) break;
+                          }
+                          if (!rise && belowConfirm(i)) {
+                            return { v: 'made', why: 'track cross-thru x=' + xAt.toFixed(3) + ' f=' + i };
+                          }
+                        }
+                      }
+                    }
+                    prevF = i; prevB = b;
+                  }
+                }
+                for (var j = f0; j < lim; j++) {
+                  var rj = ringOf(j);
+                  for (var q4 = 0; q4 < obs[j].length; q4++) {
+                    var o2 = obs[j][q4];
+                    if (o2.y >= rj.y + 0.008 && o2.y <= rj.y + 0.10 && Math.abs(o2.x - rj.cx) <= H * 0.70) {
+                      for (var j2 = Math.max(f0, j - 8); j2 < j; j2++) {
+                        var rj2 = ringOf(j2);
+                        for (var q5 = 0; q5 < obs[j2].length; q5++) {
+                          if (obs[j2][q5].y < rj2.y - 0.012 && Math.abs(obs[j2][q5].x - o2.x) < 0.05) {
+                            return { v: 'made', why: 'track thru ' + j2 + '->' + j };
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+                return { v: 'missed', why: 'no through (track)' };
               }
 
               // ── Build shot records ─────────────────────────────
