@@ -304,24 +304,31 @@
     // onFrame; we draw the video with ball circles, the measured ring
     // line/span, player boxes, and pop MADE/MISS the moment each attempt
     // window closes (same classifyRange math as the final results).
-    // Both max constraints so PORTRAIT videos stay inside the viewport
-    // (canvas keeps its intrinsic aspect; landscape unchanged at 560px).
+    // The canvas fills whatever space the column leaves over (flex area
+    // below), so the video is as LARGE as possible on every screen —
+    // portrait or landscape — while title/progress stay visible.
     var liveCanvas = h('canvas', { style: {
       width: 'auto', height: 'auto', display: 'block',
-      maxWidth: 'min(92vw, 560px)', maxHeight: '44vh',
-      margin: '0 auto',
+      maxWidth: 'min(92vw, 560px)', maxHeight: '100%',
       borderRadius: '12px', border: '3px solid rgba(255,255,255,0.22)', background: '#000'
     } });
     liveCanvas.width = 640; liveCanvas.height = 360;
     var flashEl = h('div', {
       style: {
         position: 'absolute', top: '10px', left: '50%', transform: 'translateX(-50%)',
-        fontFamily: 'var(--font-display)', fontWeight: '900', fontSize: '30px',
+        fontFamily: 'var(--font-display)', fontWeight: '900', fontSize: 'clamp(22px, 3.4dvh, 30px)',
         letterSpacing: '0.1em', textShadow: '0 2px 10px rgba(0,0,0,0.75)',
         opacity: '0', transition: 'opacity .25s ease', pointerEvents: 'none'
       }
     });
-    var liveWrap = h('div', { style: { position: 'relative', maxWidth: 'min(92vw, 560px)', margin: '12px 0 2px' } }, [liveCanvas, flashEl]);
+    // Holder hugs the canvas so the MADE/MISS flash rides ON the video
+    var canvasHolder = h('div', { style: { position: 'relative', maxHeight: '100%', display: 'flex' } },
+      [liveCanvas, flashEl]);
+    var liveWrap = h('div', { style: {
+      flex: '1 1 auto', minHeight: '0', width: '100%',
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(2px, 0.5dvh, 4px)'
+    } }, [canvasHolder]);
     var dotsEl = h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', margin: '10px 0 2px', minHeight: '13px' } });
     var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', opacity: '0.85', minHeight: '15px' }, text: '' });
 
@@ -332,15 +339,19 @@
     var overlay = h('div', {
       style: {
         position: 'fixed', inset: '0', background: 'var(--ink)', color: 'var(--cream)', zIndex: '70',
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '22px', textAlign: 'center'
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        // Fit-to-viewport: safe-area aware (notch / home indicator),
+        // fluid vertical costs — the flex canvas area absorbs the rest.
+        padding: 'calc(var(--safe-top, 0px) + clamp(10px, 2dvh, 22px)) 16px calc(var(--safe-bottom, 0px) + clamp(10px, 2dvh, 22px))',
+        textAlign: 'center', overflow: 'hidden'
       }
     }, [
       loaderEl,
-      h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '900', letterSpacing: '0.06em' }, text: 'ANALYZING VIDEO' }),
+      h('div', { style: { fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', letterSpacing: '0.06em', flexShrink: '0' }, text: 'ANALYZING VIDEO' }),
       liveWrap,
       dotsEl,
       liveCount,
-      h('div', { style: { width: '72%', maxWidth: '320px', height: '9px', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: '12px 0 6px', overflow: 'hidden' } }, [bar]),
+      h('div', { style: { width: '72%', maxWidth: '320px', height: 'clamp(7px, 1dvh, 9px)', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(3px, 0.7dvh, 6px)', overflow: 'hidden', flexShrink: '0' } }, [bar]),
       pct,
       stageEl
     ]);
