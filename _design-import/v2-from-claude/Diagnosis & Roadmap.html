@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CourtIQ — Diagnosis & Roadmap</title>
+<link rel="stylesheet" href="colors_and_type.css" />
+<style>
+  body {
+    background: var(--c-bg);
+    color: var(--c-white);
+    font-family: var(--font-body);
+    line-height: 1.65;
+    padding: 0;
+  }
+  /* page grain */
+  body::before {
+    content:'';
+    position: fixed; inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events:none; z-index:1; opacity:.5;
+  }
+  .doc {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 80px 56px 160px;
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ───────── masthead ───────── */
+  .masthead {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 28px;
+    align-items: center;
+    padding-bottom: 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    margin-bottom: 56px;
+  }
+  .mark {
+    width: 72px; height: 72px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #ff3a14 0%, #ff1a00 60%, #c81100 100%);
+    display: grid; place-items: center;
+    box-shadow: 0 12px 40px rgba(255,26,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .mark::after {
+    content:''; position:absolute; inset:0;
+    background: radial-gradient(circle at 30% 25%, rgba(255,255,255,0.35), transparent 50%);
+  }
+  .mark svg { position: relative; z-index:1; }
+  .masthead .meta { display:flex; flex-direction:column; gap:6px; }
+  .masthead .kicker {
+    font-family: var(--font-display);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: #ff5a3c;
+  }
+  .masthead h1 {
+    font-family: var(--font-display);
+    font-size: 56px;
+    font-weight: 900;
+    line-height: 0.92;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    font-style: italic;
+    color: var(--c-white);
+  }
+  .masthead h1 em { font-style: italic; color: #ff3a14; }
+  .masthead .sub {
+    font-size: 14px;
+    color: var(--c-text-secondary);
+    max-width: 56ch;
+  }
+
+  /* ───────── section heading ───────── */
+  .step {
+    display: flex; align-items: baseline; gap: 16px;
+    margin: 88px 0 8px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+  }
+  .step .num {
+    font-family: var(--font-display);
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: .18em;
+    color: var(--c-amber);
+    text-transform: uppercase;
+  }
+  .step h2 {
+    font-family: var(--font-display);
+    font-size: 38px;
+    font-weight: 900;
+    line-height: 1;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    font-style: italic;
+    color: var(--c-white);
+  }
+  .step .tag {
+    margin-left: auto;
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--c-text-tertiary);
+  }
+  .lede {
+    font-size: 17px;
+    color: var(--c-text-secondary);
+    margin: 24px 0 40px;
+    max-width: 64ch;
+    text-wrap: pretty;
+  }
+  .lede strong { color: var(--c-white); }
+
+  h3.sub {
+    font-family: var(--font-display);
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-text-tertiary);
+    margin: 56px 0 18px;
+  }
+
+  /* ───────── verdict cards ───────── */
+  .verdict {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 24px 26px;
+    margin-bottom: 14px;
+    position: relative;
+    overflow: hidden;
+  }
+  .verdict::before {
+    content:''; position:absolute; left:0; top:0; bottom:0;
+    width: 3px; background: var(--accent, #ff3a14);
+  }
+  .verdict.agree::before  { background: #56d364; }
+  .verdict.partial::before{ background: #f5a623; }
+  .verdict.dispute::before{ background: #4ca3ff; }
+  .verdict.add::before    { background: #bc8cff; }
+
+  .verdict header {
+    display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .verdict .ref {
+    font-family: var(--font-display);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-text-tertiary);
+  }
+  .verdict h4 {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.005em;
+    text-transform: uppercase;
+    color: var(--c-white);
+    flex: 1;
+  }
+  .stamp {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 4px 10px;
+    border-radius: 999px;
+  }
+  .stamp.agree   { color: #56d364; background: rgba(86,211,100,.10); border:1px solid rgba(86,211,100,.25); }
+  .stamp.partial { color: #f5a623; background: rgba(245,166,35,.10); border:1px solid rgba(245,166,35,.25); }
+  .stamp.dispute { color: #4ca3ff; background: rgba(76,163,255,.10); border:1px solid rgba(76,163,255,.25); }
+  .stamp.add     { color: #bc8cff; background: rgba(188,140,255,.10); border:1px solid rgba(188,140,255,.25); }
+
+  .verdict p {
+    color: var(--c-text-secondary);
+    font-size: 14.5px;
+    line-height: 1.65;
+    margin-bottom: 10px;
+  }
+  .verdict p:last-child { margin-bottom: 0; }
+  .verdict p strong { color: var(--c-white); }
+  .verdict p em { color: #ff5a3c; font-style: normal; font-weight: 600; }
+
+  /* ───────── priorities (P1 strip) ───────── */
+  .priorities {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin: 28px 0 8px;
+  }
+  .pri {
+    background: linear-gradient(180deg, rgba(255,58,20,0.06), rgba(255,58,20,0.0) 70%), var(--glass-bg);
+    border: 1px solid rgba(255,58,20,0.25);
+    border-radius: 22px;
+    padding: 22px 22px 24px;
+    position: relative;
+  }
+  .pri .badge {
+    font-family: var(--font-display);
+    font-size: 10px; font-weight: 800;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: #ff3a14;
+  }
+  .pri h5 {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 900; line-height: 1.05;
+    text-transform: uppercase;
+    margin: 8px 0 10px;
+    color: var(--c-white);
+    text-wrap: balance;
+  }
+  .pri p { font-size: 13.5px; color: var(--c-text-secondary); line-height: 1.55; }
+
+  /* ───────── basketball thesis block ───────── */
+  .thesis {
+    margin-top: 40px;
+    padding: 32px;
+    border-radius: 24px;
+    background:
+      radial-gradient(110% 80% at 0% 0%, rgba(255,58,20,0.10), transparent 55%),
+      var(--glass-bg);
+    border: 1px solid rgba(255,255,255,0.10);
+    box-shadow: var(--shadow-card);
+    position: relative;
+    overflow: hidden;
+  }
+  .thesis .eyebrow {
+    color: #ff5a3c;
+    margin-bottom: 8px;
+  }
+  .thesis blockquote {
+    font-family: var(--font-display);
+    font-size: 36px;
+    font-weight: 900;
+    line-height: 1.02;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    font-style: italic;
+    color: var(--c-white);
+    margin: 8px 0 20px;
+    text-wrap: balance;
+  }
+  .thesis blockquote em {
+    font-style: italic;
+    color: #ff3a14;
+    background: linear-gradient(180deg, transparent 60%, rgba(255,58,20,0.18) 60%);
+    padding: 0 4px;
+  }
+  .thesis .four {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-top: 18px;
+  }
+  .thesis .four .pillar {
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.02);
+  }
+  .thesis .four .lbl {
+    font-family: var(--font-display);
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-text-tertiary);
+  }
+  .thesis .four .val {
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 800;
+    text-transform: uppercase;
+    color: var(--c-white);
+    margin-top: 6px;
+    line-height: 1.15;
+  }
+
+  /* ───────── roadmap table ───────── */
+  .wave {
+    margin-top: 40px;
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 22px;
+    overflow: hidden;
+    background: var(--glass-bg);
+  }
+  .wave > header {
+    display: grid;
+    grid-template-columns: 80px 1fr auto;
+    align-items: baseline;
+    gap: 18px;
+    padding: 18px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background:
+      linear-gradient(90deg, var(--accent-tint, rgba(255,58,20,0.10)) 0%, transparent 70%);
+  }
+  .wave > header .num {
+    font-family: var(--font-display);
+    font-size: 38px; font-weight: 900;
+    color: var(--accent, #ff3a14);
+    line-height: 0.9;
+    font-style: italic;
+    letter-spacing: -0.02em;
+  }
+  .wave > header h3 {
+    font-family: var(--font-display);
+    font-size: 22px; font-weight: 800;
+    text-transform: uppercase;
+    color: var(--c-white);
+    letter-spacing: -0.005em;
+  }
+  .wave > header h3 + .desc {
+    font-size: 13px;
+    color: var(--c-text-secondary);
+    margin-top: 4px;
+    font-family: var(--font-body);
+    text-transform: none;
+    letter-spacing: 0;
+  }
+  .wave > header .meta {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-text-tertiary);
+    text-align: right;
+  }
+  .wave > header .meta strong { color: var(--accent, #ff3a14); display:block; font-size: 14px; }
+
+  table.surfaces {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13.5px;
+  }
+  table.surfaces th, table.surfaces td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    vertical-align: top;
+  }
+  table.surfaces tr:last-child td { border-bottom: none; }
+  table.surfaces th {
+    font-family: var(--font-display);
+    font-size: 10px; font-weight: 800;
+    letter-spacing: .2em; text-transform: uppercase;
+    color: var(--c-text-tertiary);
+    background: rgba(255,255,255,0.02);
+  }
+  table.surfaces td.surface {
+    font-family: var(--font-display);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--c-white);
+    width: 28%;
+  }
+  table.surfaces td.surface .crumb {
+    display: block;
+    font-family: var(--font-body);
+    font-size: 11px;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--c-text-tertiary);
+    margin-top: 2px;
+  }
+  table.surfaces td.move {
+    color: var(--c-text-secondary);
+    line-height: 1.55;
+  }
+  table.surfaces td.verd {
+    width: 100px;
+  }
+  .v {
+    font-family: var(--font-display);
+    font-size: 10px; font-weight: 800;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    display: inline-block;
+  }
+  .v.redesign { color: #ff3a14; background: rgba(255,58,20,.10); border:1px solid rgba(255,58,20,.30); }
+  .v.refine   { color: #f5a623; background: rgba(245,166,35,.10); border:1px solid rgba(245,166,35,.25); }
+  .v.port     { color: #4ca3ff; background: rgba(76,163,255,.10); border:1px solid rgba(76,163,255,.25); }
+  .v.build    { color: #bc8cff; background: rgba(188,140,255,.10); border:1px solid rgba(188,140,255,.25); }
+  .v.keep     { color: #56d364; background: rgba(86,211,100,.10); border:1px solid rgba(86,211,100,.25); }
+
+  /* ───────── proposals (tokens / icons / templates) ───────── */
+  .proposals {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+  }
+  .prop {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 20px 22px;
+  }
+  .prop .h {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--c-amber);
+    margin-bottom: 12px;
+  }
+  .prop ul { list-style: none; }
+  .prop li {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 10px;
+    align-items: baseline;
+    padding: 8px 0;
+    border-top: 1px solid rgba(255,255,255,0.05);
+  }
+  .prop li:first-child { border-top: none; }
+  .prop li .name {
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 11.5px;
+    color: var(--c-white);
+    white-space: nowrap;
+  }
+  .prop li .desc {
+    font-size: 12.5px;
+    color: var(--c-text-secondary);
+    line-height: 1.5;
+  }
+  .swatch {
+    display: inline-block;
+    width: 10px; height: 10px;
+    border-radius: 3px;
+    vertical-align: middle;
+    margin-right: 6px;
+    border: 1px solid rgba(255,255,255,.15);
+  }
+
+  /* ───────── celebration / motion blocks ───────── */
+  .twocol {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 22px;
+  }
+  .block {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 18px;
+    padding: 22px;
+  }
+  .block h6 {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: #ff5a3c;
+    margin-bottom: 14px;
+  }
+  .block dl { display: grid; grid-template-columns: 110px 1fr; row-gap: 10px; column-gap: 14px; }
+  .block dt {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--c-white);
+    padding-top: 1px;
+  }
+  .block dd { color: var(--c-text-secondary); font-size: 13px; line-height: 1.55; }
+
+  .signature {
+    margin-top: 28px;
+    padding: 28px 32px;
+    border-radius: 22px;
+    border: 1px solid rgba(255,58,20,0.30);
+    background:
+      radial-gradient(80% 100% at 100% 0%, rgba(255,58,20,0.10), transparent 60%),
+      rgba(22,25,33,0.7);
+    position: relative;
+    overflow: hidden;
+  }
+  .signature .eyebrow { color: #ff3a14; }
+  .signature h4 {
+    font-family: var(--font-display);
+    font-size: 32px;
+    font-weight: 900;
+    line-height: 1.02;
+    text-transform: uppercase;
+    font-style: italic;
+    margin: 6px 0 12px;
+    color: var(--c-white);
+    text-wrap: balance;
+  }
+  .signature h4 em { color: #ff3a14; font-style: italic; }
+  .signature p { color: var(--c-text-secondary); font-size: 14.5px; max-width: 60ch; }
+
+  /* ───────── nav flow at the end ───────── */
+  .flow {
+    margin-top: 28px;
+    padding: 22px 24px;
+    border-radius: 18px;
+    background: rgba(14,16,20,0.6);
+    border: 1px solid rgba(255,255,255,0.06);
+    font-family: 'SF Mono', ui-monospace, monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: var(--c-text-secondary);
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .flow .home  { color: #f5a623; }
+  .flow .track { color: #56d364; }
+  .flow .train { color: #4ca3ff; }
+  .flow .coach { color: #bc8cff; }
+  .flow .me    { color: #2dd4bf; }
+  .flow .arr   { color: var(--c-text-tertiary); }
+  .flow .sig   { color: #ff5a3c; font-weight: 700; }
+
+  /* end note */
+  .endnote {
+    margin-top: 80px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+    font-size: 13px;
+    color: var(--c-text-tertiary);
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .endnote strong { color: var(--c-white); font-family: var(--font-display); letter-spacing: .1em; text-transform: uppercase; }
+
+  .eyebrow.local {
+    font-family: var(--font-display);
+    font-size: 11px; font-weight: 800;
+    letter-spacing: .22em; text-transform: uppercase;
+    color: #ff5a3c;
+  }
+</style>
+</head>
+<body>
+<div class="doc">
+
+  <!-- ═══════ MASTHEAD ═══════ -->
+  <header class="masthead">
+    <div class="mark" aria-hidden="true">
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+        <circle cx="22" cy="22" r="16" stroke="#fff" stroke-width="2.4"/>
+        <path d="M6 22h32M22 6v32M9.5 11.5C14 16 14 28 9.5 32.5M34.5 11.5C30 16 30 28 34.5 32.5" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div class="meta">
+      <div class="kicker">CourtIQ · Senior Product Designer · Apr 30, 2026</div>
+      <h1>The app isn't <em>basketball</em><br/>yet. Here's why.</h1>
+      <div class="sub">A design critique and full surface roadmap before any pixels move. Read this end-to-end, push back where I'm wrong, then green-light the wave order.</div>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       STEP 1 — DIAGNOSIS
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="step">
+    <span class="num">Step 01</span>
+    <h2>Diagnosis</h2>
+    <span class="tag">Read first · Confirm before we build</span>
+  </div>
+
+  <p class="lede">
+    I read the artifact files — <strong>colors_and_type.css</strong>, <strong>ui-kit.css</strong>, the brand sheet —
+    and stress-tested your eleven hypotheses against the production tokens.
+    <strong>You're mostly right, but you've misnamed the disease.</strong>
+    The app doesn't lack basketball-ness because it's missing court graphics.
+    It lacks basketball-ness because <em>nothing on screen has earned the right to be loud.</em>
+    Glass is a quiet material. You stacked five quiet materials and asked them to feel like a buzzer-beater.
+  </p>
+
+  <!-- ─── A. validate / dispute the 11 ─── -->
+  <h3 class="sub">A · Validating your 11 hypotheses</h3>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.1</span>
+      <h4>No "what now" on any tab landing</h4>
+      <span class="stamp agree">Agree — strongest symptom</span>
+    </header>
+    <p>Confirmed. The hierarchy isn't broken at the component level — it's broken at the <strong>screen level</strong>. Every tab is a stack of glass cards of equal mass. The fix isn't a bigger card; it's a <em>singular, asymmetric hero</em> that takes 40–55% of the viewport and an explicit "demoted" zone below it. Today's first card already wants to be the hero — it's just not built like one.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.2</span>
+      <h4>Everything is glass, nothing stands out</h4>
+      <span class="stamp agree">Agree — root cause</span>
+    </header>
+    <p>This is the disease. Glass is an "ambient" material in the design system's own grammar (the README literally says <em>"Glass is for containers, not for everything"</em>). The fix is a three-tier surface system: <strong>hero (solid accent or photo)</strong> → <strong>glass (ambient grouping)</strong> → <strong>flat (dividers, rows, lists)</strong>. Right now we use one tier for all three jobs.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.3</span>
+      <h4>Legacy sub-pages break the experience</h4>
+      <span class="stamp agree">Agree — biggest UX cliff</span>
+    </header>
+    <p>Confirmed and probably worse than you think. The legacy <code>.ks-*</code>/<code>.db-*</code> screens (Log/History/Alerts/Moves/Shop/Onboarding) outnumber the v2 screens. Every tab has at least one cliff. <strong>This is the #1 priority on the roadmap below</strong> — not because legacy is ugly, but because it kills the brand promise on the second tap.</p>
+  </article>
+
+  <article class="verdict partial">
+    <header>
+      <span class="ref">§5.4</span>
+      <h4>Coach feels template-y, not premium</h4>
+      <span class="stamp partial">Agree — but reframe</span>
+    </header>
+    <p>You're right that the bulleted-list pattern reads as "AI output, formatted." But the diagnosis is wrong. The fix isn't <em>less structure</em>. A real coach IS structured — they give you a verdict, the why, and the prescription. The problem is <strong>tonal</strong>: the verdict needs to feel <em>spoken</em> (italic display, second-person, one sentence), and the prescription needs to feel <em>physical</em> (one drill card the coach is "handing you," not three suggestions on a list).</p>
+    <p>Reframe: Coach isn't a chatbot transcript. <em>Coach is a Polaroid clipped to your locker.</em></p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.5</span>
+      <h4>Five accents fight for attention</h4>
+      <span class="stamp agree">Agree — and CSS rule isn't enough</span>
+    </header>
+    <p>The <code>.ciq-accent-faded</code> class exists but it's a band-aid. The real rule needs to be structural: <strong>only the active tab's accent is "live" (full saturation, full glow, motion-able). Cross-tab references render as text-only token references — never as a colored card.</strong> When Coach recommends a Train drill, the recommendation card stays purple-accented (Coach is the speaker), and only an arrow + the drill <em>name</em> point to Train. We don't render a blue card inside Coach.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.6</span>
+      <h4>Inconsistent empty / loading states</h4>
+      <span class="stamp agree">Agree</span>
+    </header>
+    <p>Real, but lower priority. The fix is mechanical: enforce <code>.ciq-empty</code> / <code>.ciq-loading</code> as the only legal templates and add the four missing states (<code>error</code>, <code>success</code>, <code>skeleton</code>, <code>locked</code>) — see §New Tokens.</p>
+  </article>
+
+  <article class="verdict partial">
+    <header>
+      <span class="ref">§5.7</span>
+      <h4>No basketball-native character</h4>
+      <span class="stamp partial">Half right — see thesis below</span>
+    </header>
+    <p>You're right that swapping icons isn't enough. You're <em>also</em> right that "rhythm, density, information cadence" matters. But you're missing one specific thing — see the dedicated thesis block below. Short version: <em>basketball is a court of measured zones, not a feed of cards</em>, and the app should structurally inherit that.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.8</span>
+      <h4>Missing micro-interactions, no celebrations</h4>
+      <span class="stamp agree">Agree — but pick ONE signature</span>
+    </header>
+    <p>Confirmed. The trap to avoid: building five different celebrations (made-shot, streak, badge, level-up, workout-complete) all in different motion vocabularies. <strong>One signature gesture — the "swish" — applied at five intensities</strong>. See §Motion Budget.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.9</span>
+      <h4>Camera HUD looks like a debug overlay</h4>
+      <span class="stamp agree">Agree — and it's the demo</span>
+    </header>
+    <p>This is the feature you'd put in the App Store screenshot. Right now it looks like a Chrome devtools panel. Treatment direction: <strong>broadcast scoreboard, not telemetry</strong>. Score is biggest. % is hero stat. Status is a single pulsing dot, not three system messages. Detection boxes are debug-only and toggle off by default in production.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.10</span>
+      <h4>Avatar &amp; Shop feel disconnected</h4>
+      <span class="stamp agree">Agree</span>
+    </header>
+    <p>Avatar should be a <strong>first-class identity surface</strong>, not a settings input. It should appear at four scales (16/24/48/300px), animate when XP is earned, and be the visual anchor of every leaderboard row. Shop should look like a 2K MyTeam pack, not a settings list — see roadmap row §6.13.</p>
+  </article>
+
+  <article class="verdict agree">
+    <header>
+      <span class="ref">§5.11</span>
+      <h4>Onboarding doesn't set the tone</h4>
+      <span class="stamp agree">Agree — and we should rebuild this LAST, not first</span>
+    </header>
+    <p>You called it: this is the user's first impression. But here's the counterintuitive move — <strong>we redesign onboarding last</strong>. Why? Because the scouting-report reveal at step 7 should hand the user into the app's strongest screens. We can't design the cliff until we've built the landing.</p>
+  </article>
+
+  <!-- ─── B. things you missed ─── -->
+  <h3 class="sub">B · Three things you missed</h3>
+
+  <article class="verdict add">
+    <header>
+      <span class="ref">+1</span>
+      <h4>The brand color from the logo isn't in the token system</h4>
+      <span class="stamp add">Net new</span>
+    </header>
+    <p>The brand sheet is unmistakably <strong>red-orange (#FF1A00)</strong> — basketball leather, the iq mark, the targeting crosshair, all of it. The codebase has <code>--c-amber #f5a623</code> as "brand primary" — but amber is a Home <em>tab</em> accent, not a brand color. They are doing different jobs and right now they collide. <strong>Proposal: introduce <code>--c-brand: #ff3a14</code> as the marketing/chrome/logo color, leave amber as Home tab accent.</strong> See new tokens below.</p>
+  </article>
+
+  <article class="verdict add">
+    <header>
+      <span class="ref">+2</span>
+      <h4>The 96-token system has no "depth" tokens — only "color" tokens</h4>
+      <span class="stamp add">Net new</span>
+    </header>
+    <p>Looking at colors_and_type.css: there are 5 surface levels but no semantic <em>elevation</em> tokens. A "hero card" and a "list row" both reach into <code>--glass-bg</code>. That's why everything visually flattens. <strong>Proposal: add <code>--surface-hero</code>, <code>--surface-glass</code>, <code>--surface-flat</code> as semantic surface roles</strong> that map to existing values but lock them by job.</p>
+  </article>
+
+  <article class="verdict add">
+    <header>
+      <span class="ref">+3</span>
+      <h4>The "italic display" type is doing too much work alone</h4>
+      <span class="stamp add">Net new</span>
+    </header>
+    <p>Italic Barlow Condensed is the single strongest brand signal in the app. But it's used everywhere — H1, H2, big stats, eyebrows. When a signature is everywhere, it's nowhere. <strong>Proposal: italic = "the human voice" only</strong> (verdicts, hero titles, celebration overlays). Stats and labels stay upright. This gives the italic moments emotional weight again.</p>
+  </article>
+
+  <!-- ─── C. priorities ─── -->
+  <h3 class="sub">C · The three highest-leverage problems</h3>
+  <p class="lede" style="margin-top:8px">
+    If we solve these three, every other symptom in §5 collapses or shrinks. Sequence the entire roadmap around them.
+  </p>
+
+  <div class="priorities">
+    <div class="pri">
+      <div class="badge">Priority 01</div>
+      <h5>Define the surface trinity</h5>
+      <p><strong>Hero · Glass · Flat.</strong> One semantic ladder, three jobs. Once this lands, "no hero on landings," "glass everywhere," and "five accents fighting" all dissolve. This is a token-and-CSS week, not a screen week — and it must come first.</p>
+    </div>
+    <div class="pri">
+      <div class="badge">Priority 02</div>
+      <h5>Port every legacy sub-page in one wave</h5>
+      <p>Don't drip the legacy fix across tabs. <strong>One wave: kill <code>.ks-*</code> / <code>.db-*</code> entirely</strong> by porting Log, History, Alerts, Moves, Shop, and Onboarding behind feature flags. The cliff isn't acceptable in any tab.</p>
+    </div>
+    <div class="pri">
+      <div class="badge">Priority 03</div>
+      <h5>Make Track the showcase screen first</h5>
+      <p>Track is the <em>flagship</em> — both Lab landing and the camera HUD. If we rebuild Track to look like ESPN broadcast, the app's quality bar resets. Every other tab gets measured against it. Build Track-Lab + Camera HUD before touching Coach or Me polish.</p>
+    </div>
+  </div>
+
+  <!-- ─── D. the basketball question ─── -->
+  <h3 class="sub">D · The basketball question</h3>
+
+  <div class="thesis">
+    <div class="eyebrow">My thesis · Argue back if it's wrong</div>
+    <blockquote>
+      A basketball app feels like basketball when its <em>information lives where the action lives</em> — <em>on the court</em>, not in cards stacked off it.
+    </blockquote>
+    <p style="color: var(--c-text-secondary); font-size: 14.5px; max-width: 64ch; line-height: 1.65;">
+      Basketball isn't a list. It's a <strong>half-court diagram</strong> with seven zones, each carrying meaning: corner threes, the wing, the elbow, the paint, the restricted area. <strong>The half-court is the primary information architecture of this app, not the bottom nav.</strong> Stats hung on zones, drills sorted by zone, history filtered by zone, the camera calibrated against zones, the avatar's "specialty" expressed as a zone heatmap. The court is the layout grid — and the brand's circuit-line aesthetic is what the zone outlines should look like (technical, vector-precise, not painted).
+    </p>
+    <p style="color: var(--c-text-secondary); font-size: 14.5px; max-width: 64ch; margin-top: 12px; line-height: 1.65;">
+      Apple Sports, Strava, NTC don't get to use this. We do. <strong>The half-court diagram is our killer layout — not just a Track-tab visualization.</strong> When that thesis is wrong, the design will tell you. When it's right, the app will feel unmistakably like basketball with no extra ornament.
+    </p>
+    <div class="four">
+      <div class="pillar"><div class="lbl">Brand pillar</div><div class="val">Basketball</div></div>
+      <div class="pillar"><div class="lbl">Brand pillar</div><div class="val">Focus / Target</div></div>
+      <div class="pillar"><div class="lbl">Brand pillar</div><div class="val">Data / AI</div></div>
+      <div class="pillar"><div class="lbl">Brand pillar</div><div class="val">Intelligence</div></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════
+       STEP 2 — ROADMAP
+       ═══════════════════════════════════════════════════════════════ -->
+  <div class="step">
+    <span class="num">Step 02</span>
+    <h2>Roadmap</h2>
+    <span class="tag">Sequenced by impact wave · Not by tab</span>
+  </div>
+
+  <p class="lede">
+    Five waves. Each wave ships behind <code>window.COURTIQ_UI_V2[tabName]</code> flags so we can roll back per-tab.
+    No screens are designed before <strong>Wave 0 (Foundations)</strong> ships — that's the surface trinity, the brand-vs-amber split,
+    and the four missing states. Without those, every screen we draw is one we'll redraw.
+  </p>
+
+  <!-- ─────────── WAVE 0 ─────────── -->
+  <section class="wave" style="--accent:#ff3a14; --accent-tint: rgba(255,58,20,0.10);">
+    <header>
+      <div class="num">00</div>
+      <div>
+        <h3>Foundations · Tokens, States, Trinity</h3>
+        <div class="desc">No screens yet. Land the surface ladder, the brand/amber split, and the missing state classes. Cuts every later week in half.</div>
+      </div>
+      <div class="meta">Week 1<br/><strong>Blocking</strong></div>
+    </header>
+    <table class="surfaces">
+      <colgroup><col style="width:28%"/><col/><col style="width:100px"/></colgroup>
+      <thead><tr><th>Surface</th><th>Design move</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="surface">Surface trinity<span class="crumb">--surface-hero / --surface-glass / --surface-flat</span></td><td class="move">Add three semantic surface tokens. Document which one each component is allowed to reach into. Glass becomes legal only inside <code>--surface-glass</code> contexts.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Brand vs Amber split<span class="crumb">§6.1 global chrome</span></td><td class="move">Introduce <code>--c-brand: #ff3a14</code> for logo, splash, marketing chrome, error/celebration accents. Amber stays as Home tab. Update masthead, splash, push, app icon paths.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Missing states<span class="crumb">§6.15 error · success · skeleton · locked</span></td><td class="move">Define <code>.ciq-error</code>, <code>.ciq-success</code>, <code>.ciq-skeleton</code>, <code>.ciq-locked</code>. Each gets a basketball-native icon and one prescribed copy pattern.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Italic-as-voice rule<span class="crumb">§5 add-3</span></td><td class="move">Italic display reserved for verdicts, hero titles, celebration overlays. All stats, eyebrows, labels become upright. Audit and convert in a single PR.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Cross-tab reference rule<span class="crumb">§5.5</span></td><td class="move">When one tab references another's content, the source tab keeps its accent. Destination is text + arrow only — never a colored card. Update Coach drill recs first.</td><td><span class="v build">BUILD</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────── WAVE 1 ─────────── -->
+  <section class="wave" style="--accent:#56d364; --accent-tint: rgba(86,211,100,0.08);">
+    <header>
+      <div class="num">01</div>
+      <div>
+        <h3>The Showcase · Track-Lab + Camera HUD</h3>
+        <div class="desc">Build the flagship before the chrome. Track-Lab and the live camera reset the quality bar. Every later screen is graded against these.</div>
+      </div>
+      <div class="meta">Weeks 2–3<br/><strong>P1</strong></div>
+    </header>
+    <table class="surfaces">
+      <colgroup><col style="width:28%"/><col/><col style="width:100px"/></colgroup>
+      <thead><tr><th>Surface</th><th>Design move</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="surface">Track · Lab (default)<span class="crumb">§6.4 HeroPage</span></td><td class="move">Half-court is the hero, not a card. FG% as 88px hero stat top-left, half-court SVG as full-bleed canvas, zone tiles dock to the bottom as a 7-zone strip. <em>The court IS the layout.</em></td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Track · Heatmap<span class="crumb">§6.4 EmbeddedSection</span></td><td class="move">Promote into the Lab landing — heatmap is a toggle on the same half-court, not a separate page. Loses the sub-nav chip.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Track · Zones<span class="crumb">§6.4 EmbeddedSection</span></td><td class="move">Zone tap on the court drives a slide-up sheet with that zone's stats + history. No more "Zones" sub-page; it's an interaction on Lab.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Track · Sessions<span class="crumb">§6.4 ListPage</span></td><td class="move">Session row = mini half-court thumbnail (40 dots) + FG% + duration. Expand reveals drill-by-drill. No glass; flat rows separated by hairlines.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Camera · Rim Lock<span class="crumb">§6.10 Phase 1 · DetailOverlay</span></td><td class="move">Crosshair becomes the brand's "Focus/Target" pillar — circuit-line crosshair, corner brackets that snap inward when locked. "LOCK RIM" CTA pinned to thumb-zone bottom.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Camera · 3PT Calibration<span class="crumb">§6.10 Phase 2 · DetailOverlay</span></td><td class="move">As user taps, the 3PT arc draws itself from the rim point — math made visual. "SKIP" demoted to tertiary text.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Camera · Live HUD<span class="crumb">§6.10 Phase 3 · DetailOverlay · the money shot</span></td><td class="move">Broadcast scoreboard. Top-center: FG% at 64px green. Top-left: MADE / ATT in scoreboard typography. Top-right: zone glyph + timer. Bottom: single status dot + END button. Made flash = green vignette + "SWISH" 80px italic. Streak ≥3 escalates to "HEATING UP."</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Camera · Post-Session<span class="crumb">§6.10 HeroPage / DetailOverlay</span></td><td class="move">Game-recap moment. Hero FG% at 96px, half-court shot chart at full width, drill-by-drill below. "Share" button generates a screenshot-able image. Compare-to-last-session strip at bottom.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────── WAVE 2 ─────────── -->
+  <section class="wave" style="--accent:#4ca3ff; --accent-tint: rgba(76,163,255,0.08);">
+    <header>
+      <div class="num">02</div>
+      <div>
+        <h3>The Cliff · Kill Legacy in One Wave</h3>
+        <div class="desc">Every <code>.ks-*</code> / <code>.db-*</code> screen, ported behind feature flags. Done together so no tab has a cliff.</div>
+      </div>
+      <div class="meta">Weeks 4–5<br/><strong>P1</strong></div>
+    </header>
+    <table class="surfaces">
+      <colgroup><col style="width:28%"/><col/><col style="width:100px"/></colgroup>
+      <thead><tr><th>Surface</th><th>Design move</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="surface">Home · Log Session<span class="crumb">§6.3 ListPage</span></td><td class="move">Stepper, not a form. One large input per screen-screen-row. Position picker pattern from onboarding, reused. Submit → return to Today + XP toast.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Home · History<span class="crumb">§6.3 ListPage</span></td><td class="move">Week sections with date range header, session rows match Track Sessions row pattern. No more glass-card-per-session.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Home · Alerts<span class="crumb">§6.3 ListPage</span></td><td class="move">Inbox pattern. Unread = bold + dot. Swipe-to-dismiss. Notification icon driven by source tab's accent.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Train · Moves Library<span class="crumb">§6.5 ListPage</span></td><td class="move">Move cards = canvas court animation thumbnail (auto-play on tap), name, primary use. Same visual language as drill cards.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Train · Lab<span class="crumb">§6.5 EmbeddedSection</span></td><td class="move">Skinned as a tagged section inside Generator, not its own sub-page. Tag: "EXPERIMENTAL."</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Train · Night Training<span class="crumb">§6.5 EmbeddedSection</span></td><td class="move">Same as Lab — a filter, not a destination. Visual badge for low-light drills.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Me · Shop<span class="crumb">§6.13 ListPage</span></td><td class="move">2K-pack treatment. Wallet bar at top, item card = mini avatar wearing the item, owned/locked/affordable states using new state tokens. Buy = BottomSheet with full-size avatar preview.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Me · Archetype<span class="crumb">§6.7 EmbeddedSection</span></td><td class="move">Promoted up into the Profile hero as a single archetype crest + 3 traits. Old chart moves into a "View full archetype" sub-sheet.</td><td><span class="v port">PORT</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────── WAVE 3 ─────────── -->
+  <section class="wave" style="--accent:#bc8cff; --accent-tint: rgba(188,140,255,0.10);">
+    <header>
+      <div class="num">03</div>
+      <div>
+        <h3>The Voice · Coach + Train Hero Polish</h3>
+        <div class="desc">Make Coach feel personal, not auto-generated. Make Train feel like a workout, not a list.</div>
+      </div>
+      <div class="meta">Weeks 6–7<br/><strong>P2</strong></div>
+    </header>
+    <table class="surfaces">
+      <colgroup><col style="width:28%"/><col/><col style="width:100px"/></colgroup>
+      <thead><tr><th>Surface</th><th>Design move</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="surface">Coach · Default landing<span class="crumb">§6.6 HeroPage</span></td><td class="move">One bold verdict line at 48px italic, like a personal trainer talking to you. Below: ONE drill recommendation, hand-picked, treated as a card the coach is handing you. No bullets above the fold. "Why?" reveals reasoning on tap.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Coach · Update Performance<span class="crumb">§6.6 FormPage</span></td><td class="move">Sliders, never number inputs. 4 categories on one screen with the radar chart updating live. "Send to Coach" CTA.</td><td><span class="v port">PORT</span></td></tr>
+        <tr><td class="surface">Coach · Insight History<span class="crumb">§6.6 ListPage</span></td><td class="move">Chronological. Each row = date + one-line verdict + tap to expand. The "verdict line" carries through history as a recognizable pattern.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Train · Today (default)<span class="crumb">§6.5 HeroPage</span></td><td class="move">"Start" CTA is the hero — full-width, blue solid, anchored to thumb zone. Daily challenge as a single line above. Drill list below as flat rows, not cards.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Train · Drill Library<span class="crumb">§6.5 ListPage</span></td><td class="move">Cards collapse to row by default, expand to court-animation preview on tap. Add → checkmark animation, not a toast.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Train · Generator<span class="crumb">§6.5 ListPage</span></td><td class="move">Filter chips (Focus × Difficulty) become a sticky scoreboard-style bar. Incoming-from-Coach drill highlighted with brand-red outline-pulse, not blue.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Drill Card (expanded)<span class="crumb">§6.11 BottomSheet</span></td><td class="move">Court animation full-width at top, drill description + sets/reps below, "START WORKOUT" primary CTA. Animation auto-plays in sheet, pauses on collapse.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Workout Player<span class="crumb">§6.12 DetailOverlay</span></td><td class="move">Timer is hero at 96px upright. Top: "SET 2/4 · REP 3/10" scoreboard. Active vs Rest = blue intense vs dimmed cool. Bottom: huge thumb-zone Pause/Skip/Next buttons. Complete = brand-red celebration overlay with XP earned.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────── WAVE 4 ─────────── -->
+  <section class="wave" style="--accent:#2dd4bf; --accent-tint: rgba(45,212,191,0.10);">
+    <header>
+      <div class="num">04</div>
+      <div>
+        <h3>The Identity · Me, Avatar, Home, Onboarding</h3>
+        <div class="desc">Land the daily ritual surfaces, give the avatar its first-class status, set the tone with onboarding last.</div>
+      </div>
+      <div class="meta">Weeks 8–10<br/><strong>P2 / P3</strong></div>
+    </header>
+    <table class="surfaces">
+      <colgroup><col style="width:28%"/><col/><col style="width:100px"/></colgroup>
+      <thead><tr><th>Surface</th><th>Design move</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td class="surface">Home · Today (default)<span class="crumb">§6.3 HeroPage</span></td><td class="move">Hero card = today's challenge with the position-specific drill, full-width, amber-accented. Streak fire + level pip dock to a slim strip beneath. Recent sessions as flat rows, NOT cards.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Home · Calendar<span class="crumb">§6.3 EmbeddedSection</span></td><td class="move">Month grid → tap day → bottom sheet with that day's sessions + "Schedule" CTA. Day cells use heatmap intensity for activity.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Me · Profile (default)<span class="crumb">§6.7 HeroPage</span></td><td class="move">Avatar at 96px is the hero, archetype crest below name, 3-stat strip in scoreboard typography, trophy carousel + send-challenge dock. Stadium-photo bg returns as a subtle full-bleed.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Me · Trophies<span class="crumb">§6.7 ListPage</span></td><td class="move">2-col grid. Earned = full-color crest. Locked = greyscale silhouette + progress ring. Tap locked → "Earn this by…" sheet.</td><td><span class="v build">BUILD</span></td></tr>
+        <tr><td class="surface">Me · Social<span class="crumb">§6.7 ListPage</span></td><td class="move">Leaderboard rows lead with the player's avatar at 32px, FG% in scoreboard type, position chip. "Send Challenge" sticky bottom CTA.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Avatar Customizer<span class="crumb">§6.9 DetailOverlay</span></td><td class="move">300px avatar centered top, category strip below, swatch grid bottom. Locked items dimmed with level badge. 6 preset personas as quick-start. Save = the avatar zooms briefly into the topbar position to show propagation.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+        <tr><td class="surface">Settings (sheet)<span class="crumb">§6.7 BottomSheet</span></td><td class="move">Standard list rows. Sign Out is brand-red and at the bottom. Email read-only above.</td><td><span class="v refine">REFINE</span></td></tr>
+        <tr><td class="surface">Onboarding · 0–7<span class="crumb">§6.2 FormPage flow</span></td><td class="move">Scouting combine. Step 1 Position picker = 5 court-zone tiles, tap drops you onto that spot. Step 3 Skills radar = live Chart.js, sliders feel like tuning a 2K player card. Step 7 Scouting Report = draft-night reveal: avatar appears, grade stamps in (brand-red), traits list animates row-by-row, NBA comp card flips in.</td><td><span class="v redesign">REDESIGN</span></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ─────────── PROPOSALS ─────────── -->
+  <h3 class="sub">New tokens · icons · templates</h3>
+
+  <div class="proposals">
+    <div class="prop">
+      <div class="h">New tokens</div>
+      <ul>
+        <li><span class="name"><span class="swatch" style="background:#ff3a14"></span>--c-brand</span><span class="desc"><strong>#ff3a14</strong> · Brand red-orange, lifted from the logo. Logo, splash, error/celebration accents, app icon background. Distinct from amber.</span></li>
+        <li><span class="name">--surface-hero</span><span class="desc">Solid accent or photo. One per screen. Replaces ad-hoc <code>--c-surface3</code> reaches.</span></li>
+        <li><span class="name">--surface-glass</span><span class="desc">Aliases <code>--glass-bg</code>. Legal only inside grouped content.</span></li>
+        <li><span class="name">--surface-flat</span><span class="desc">Transparent. List rows, dividers, inline content.</span></li>
+        <li><span class="name">--c-error</span><span class="desc">Aliases <code>--c-brand</code>. Camera permission denied, AI failures, network errors.</span></li>
+        <li><span class="name">--c-success</span><span class="desc">Aliases <code>--c-track</code> green. Workout complete, session saved.</span></li>
+        <li><span class="name">--ease-swish</span><span class="desc"><code>cubic-bezier(.2,.85,.3,1)</code> · The signature easing. Made-shot flashes, level-ups.</span></li>
+      </ul>
+    </div>
+    <div class="prop">
+      <div class="h">New icons (justify each)</div>
+      <ul>
+        <li><span class="name">crosshair-bracket</span><span class="desc">Camera Rim Lock + Track Lab heading. Brand "Focus/Target" pillar — corner brackets that snap inward.</span></li>
+        <li><span class="name">half-court</span><span class="desc">Used as a glyph (16/24px) — inline references to a zone or session shot chart.</span></li>
+        <li><span class="name">scoreboard-dot</span><span class="desc">The pulsing live indicator. Replaces the generic "Tracking…" loader.</span></li>
+        <li><span class="name">medal-locked</span><span class="desc">Trophies "locked" state — silhouette + ring, distinct from the standard trophy glyph.</span></li>
+        <li><span class="name">whistle</span><span class="desc">Coach tab eyebrow + insight history rows. Hand-drawn feel against the technical 1.75px stroke.</span></li>
+      </ul>
+    </div>
+    <div class="prop">
+      <div class="h">New template (1 only)</div>
+      <ul>
+        <li><span class="name">CourtPage</span><span class="desc"><strong>7th template.</strong> Hero half-court SVG as the layout grid; child elements dock to specific zones. Used by Track Lab, Camera HUD, Post-Session, and the onboarding Position picker. Justification: the basketball-thesis layout above can't be expressed inside HeroPage/ListPage cleanly — the court IS the structure, not content.</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- ─────────── motion + signature + celebrations ─────────── -->
+  <h3 class="sub">Motion budget · Signature · Celebrations</h3>
+
+  <div class="twocol">
+    <div class="block">
+      <h6>Motion budget</h6>
+      <dl>
+        <dt>Animated</dt><dd>Tab switch, hero entrance, made-shot flash, level-up, badge unlock, drill court animations, scoreboard digit roll-up, made-streak escalation.</dd>
+        <dt>Static</dt><dd>List rows, settings, history pages, all body text, all eyebrows, all secondary CTAs.</dd>
+        <dt>Cadence</dt><dd>250ms default. 400ms for hero entrances. 600ms for made-shot. 1200ms for level-up (auto-dismiss).</dd>
+      </dl>
+    </div>
+    <div class="block">
+      <h6>The signature micro-interaction</h6>
+      <dl>
+        <dt>Name</dt><dd><strong>SWISH.</strong></dd>
+        <dt>Gesture</dt><dd>Italic display word slides up from below + glow vignette on the screen edges, then both fade. <code>--ease-swish</code>.</dd>
+        <dt>Five intensities</dt><dd>Made shot (green, 600ms) · Streak ≥3 "HEATING UP" (green→amber, 800ms) · Drill complete (amber, 600ms) · Level up (brand-red, 1200ms with stamp) · Workout complete (brand-red full overlay, 1500ms).</dd>
+      </dl>
+    </div>
+  </div>
+
+  <div class="signature">
+    <div class="eyebrow">The basketball move · One concrete decision</div>
+    <h4>The half-court SVG isn't a Track-tab visualization. It's the <em>app's</em> primary information surface.</h4>
+    <p>One concrete commitment: <strong>every tab references the same half-court SVG component at one of three scales</strong> — full (Track Lab), thumbnail (Home recent sessions, Me profile), glyph (16px inline references). When a Coach insight references "your right-corner three," the corner zone glows at 16px <em>inside Coach's text</em>. When a leaderboard row shows a player's specialty, it's a 24px half-court mini-heatmap. The basketball-ness is structural, not decorative.</p>
+  </div>
+
+  <!-- ─────────── tab transition ─────────── -->
+  <h3 class="sub">Tab transition · Cross-tab routing</h3>
+
+  <div class="block" style="margin-top:18px">
+    <h6>Directional tab transitions</h6>
+    <dl>
+      <dt>Right swipe</dt><dd>(Home → Track → Train → Coach → Me) · Old tab translateX(-12%) + fade, new tab translateX(0%) from right, 280ms <code>--ease-out-expo</code>. The chip-style accent on the bottom nav slides between tab cells in 220ms.</dd>
+      <dt>Left swipe</dt><dd>Mirrored.</dd>
+      <dt>Cross-tab routing (Coach → Train)</dt><dd>The drill card flies up from inside the Coach insight, "lands" in the new Train Generator at the matched card's slot, outline-pulses in brand-red for 800ms. <em>The drill physically moved between rooms.</em></dd>
+    </dl>
+  </div>
+
+  <h3 class="sub">Connected nav flow · every screen reachable</h3>
+
+  <div class="flow">
+<span class="home">HOME (amber)</span>
+  ├─ Today (default)
+  │   ├─ Daily Challenge ─────<span class="arr">→</span> <span class="train">TRAIN ▸ Today</span>
+  │   ├─ Streak counter ──────<span class="arr">→</span> Streak History (sheet)
+  │   ├─ Level/XP card ───────<span class="arr">→</span> <span class="me">ME ▸ Profile</span>
+  │   └─ Recent session row ──<span class="arr">→</span> <span class="track">TRACK ▸ Sessions detail</span>
+  ├─ Log Session ─────────────<span class="arr">→</span> back + XP toast
+  ├─ History ─────────────────<span class="arr">→</span> <span class="track">TRACK ▸ Sessions detail</span>
+  ├─ Calendar ────────────────<span class="arr">→</span> Log Session
+  └─ Alerts ──────────────────<span class="arr">→</span> any tab deep-link
+
+<span class="track">TRACK (green)</span>
+  ├─ Lab (default · CourtPage)
+  │   ├─ Half-court hero ─ tap zone <span class="arr">→</span> Zone sheet
+  │   ├─ Launch Camera <span class="sig">⊙</span> ─<span class="arr">→</span> Rim Lock <span class="arr">→</span> 3PT Cal <span class="arr">→</span> Live HUD <span class="arr">→</span> Post-Session
+  │   └─ Upload Video ────────<span class="arr">→</span> processing <span class="arr">→</span> Post-Session
+  └─ Sessions ────────────────<span class="arr">→</span> drill-by-drill expand
+
+<span class="train">TRAIN (blue)</span>
+  ├─ Today (default · Start hero)
+  │   └─ START <span class="sig">⊙</span> ───────────────<span class="arr">→</span> Workout Player overlay
+  ├─ Drill Library ───────────<span class="arr">→</span> Drill Detail (sheet w/ court animation)
+  ├─ Generator ───────────────<span class="arr">→</span> Drill Detail (sheet w/ court animation)
+  │   <span class="coach">[from Coach: drill flies in + outline-pulse]</span>
+  └─ Moves Library ───────────<span class="arr">→</span> animation play
+
+<span class="coach">COACH (purple)</span>
+  ├─ Coach (default · Polaroid pattern)
+  │   ├─ Verdict line (italic 48px)
+  │   ├─ One drill rec ───────<span class="arr">→</span> <span class="train">TRAIN ▸ Generator (drill flies)</span>
+  │   ├─ Why? ────────────────<span class="arr">→</span> reasoning expand
+  │   └─ Update This Week ────<span class="arr">→</span> Update form
+  ├─ Update Performance ──────<span class="arr">→</span> new Insight Card
+  └─ Insight History ─────────<span class="arr">→</span> past insight detail
+
+<span class="me">ME (teal)</span>
+  ├─ Profile (default)
+  │   ├─ Avatar tap ──────────<span class="arr">→</span> Avatar Customizer (overlay)
+  │   ├─ Trophy carousel ─────<span class="arr">→</span> Trophies sub-page
+  │   ├─ Archetype crest ─────<span class="arr">→</span> Archetype detail
+  │   └─ Account row ─────────<span class="arr">→</span> Settings (sheet)
+  ├─ Trophies ────────────────<span class="arr">→</span> earned/locked detail
+  ├─ Social ──────────────────<span class="arr">→</span> mini-profile sheet · challenge composer
+  └─ Shop ────────────────────<span class="arr">→</span> item preview <span class="arr">→</span> Buy sheet
+</div>
+
+  <!-- ─────────── what i need from you ─────────── -->
+  <div class="step" style="margin-top:96px">
+    <span class="num">Step 03</span>
+    <h2>Confirm or push back</h2>
+    <span class="tag">Then we design Wave 0 first</span>
+  </div>
+
+  <p class="lede" style="margin-bottom: 16px">
+    Before I draw a single screen, I need green-light on three things:
+  </p>
+
+  <ol style="counter-reset: list; padding-left: 0; list-style: none; max-width: 64ch; display: flex; flex-direction: column; gap: 14px;">
+    <li style="display:grid; grid-template-columns: 36px 1fr; gap:14px; align-items:baseline;">
+      <span style="font-family: var(--font-display); font-size: 22px; font-weight:900; color:#ff3a14; font-style:italic;">01</span>
+      <span style="color: var(--c-text-secondary); font-size:15.5px;"><strong style="color: var(--c-white);">The basketball thesis</strong> — half-court as the app's primary information surface. If you disagree, the rest of the roadmap is wrong; tell me now.</span>
+    </li>
+    <li style="display:grid; grid-template-columns: 36px 1fr; gap:14px; align-items:baseline;">
+      <span style="font-family: var(--font-display); font-size: 22px; font-weight:900; color:#ff3a14; font-style:italic;">02</span>
+      <span style="color: var(--c-text-secondary); font-size:15.5px;"><strong style="color: var(--c-white);">Brand-vs-amber split</strong> — introducing <code>--c-brand: #ff3a14</code> as a new token. Confirms the logo's red-orange has a home in the system without disturbing tab accents.</span>
+    </li>
+    <li style="display:grid; grid-template-columns: 36px 1fr; gap:14px; align-items:baseline;">
+      <span style="font-family: var(--font-display); font-size: 22px; font-weight:900; color:#ff3a14; font-style:italic;">03</span>
+      <span style="color: var(--c-text-secondary); font-size:15.5px;"><strong style="color: var(--c-white);">Wave order</strong> — Foundations → Track-Lab + Camera → Legacy port → Coach + Train → Identity + Onboarding. If you want Coach polish before Track flagship, say so; I'll rebuild the sequence.</span>
+    </li>
+  </ol>
+
+  <div class="endnote">
+    <div><strong>Status</strong> · Step 1 + Step 2 complete. No screens drawn.</div>
+    <div><strong>Next</strong> · Wave 0 foundations on green-light.</div>
+  </div>
+
+</div>
+</body>
+</html>

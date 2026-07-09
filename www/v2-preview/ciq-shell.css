@@ -1,0 +1,441 @@
+/* ciq-shell.css — Shared shell styles for BottomNav + BottomSheet */
+
+/* ════════════════════════════════════════════════════
+   BOTTOM NAV — global tab bar
+   ════════════════════════════════════════════════════ */
+.ciq-nav {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  z-index: 80;
+  padding: 10px 16px 22px;
+  pointer-events: none;
+}
+.ciq-nav__bg {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(6,8,12,0) 0%, rgba(6,8,12,0.55) 30%, rgba(6,8,12,0.92) 100%);
+  pointer-events: none;
+}
+.ciq-nav__row {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  padding: 8px 6px;
+  border-radius: 22px;
+  background: rgba(14, 16, 20, 0.78);
+  backdrop-filter: blur(22px) saturate(180%);
+  -webkit-backdrop-filter: blur(22px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.07);
+  box-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 12px 36px rgba(0,0,0,0.45);
+  pointer-events: auto;
+}
+.ciq-nav__btn {
+  flex: 1;
+  appearance: none; cursor: pointer;
+  background: transparent; border: none;
+  display: flex; flex-direction: column; align-items: center;
+  gap: 3px;
+  padding: 6px 2px 4px;
+  color: rgba(240,236,228,0.50);
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  text-transform: uppercase;
+  position: relative;
+  transition: color 200ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.ciq-nav__btn:hover { color: rgba(240,236,228,0.80); }
+
+.ciq-nav__icon-wrap {
+  position: relative;
+  width: 24px; height: 24px;
+  display: grid; place-items: center;
+}
+.ciq-nav__icon {
+  width: 22px; height: 22px;
+  position: relative; z-index: 2;
+  transition: transform 220ms cubic-bezier(0.2, 0.85, 0.3, 1);
+}
+.ciq-nav__btn.is-active .ciq-nav__icon {
+  stroke-width: 2;
+}
+.ciq-nav__fill {
+  position: absolute;
+  inset: -2px;
+  background: currentColor;
+  opacity: 0.16;
+  border-radius: 8px;
+  z-index: 1;
+  box-shadow: 0 0 16px var(--ciq-nav-glow);
+}
+.ciq-nav__btn.is-active {
+  font-weight: 800;
+}
+.ciq-nav__btn.is-active .ciq-nav__lbl {
+  letter-spacing: 0.18em;
+}
+.ciq-nav__dot {
+  position: absolute;
+  bottom: -2px; left: 50%;
+  transform: translateX(-50%);
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 6px var(--ciq-nav-glow);
+}
+.ciq-nav__lbl {
+  line-height: 1;
+}
+
+/* ════════════════════════════════════════════════════
+   BOTTOM SHEET — settings + custom overlays
+   ════════════════════════════════════════════════════ */
+.ciq-sheet-root {
+  position: absolute;
+  inset: 0;
+  z-index: 200;
+  display: flex; align-items: flex-end;
+}
+.ciq-sheet-scrim {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.55);
+  animation: ciq-sheet-fade 220ms ease-out;
+  -webkit-backdrop-filter: blur(2px);
+          backdrop-filter: blur(2px);
+}
+@keyframes ciq-sheet-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ciq-sheet {
+  position: relative;
+  width: 100%;
+  max-height: 82%;
+  background: linear-gradient(180deg, rgba(20,24,32,0.96) 0%, rgba(10,12,16,0.98) 100%);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border-top: 1px solid rgba(255,255,255,0.10);
+  border-radius: 24px 24px 0 0;
+  padding: 8px 18px 32px;
+  animation: ciq-sheet-up 320ms cubic-bezier(0.2, 0.85, 0.3, 1);
+  box-shadow: 0 -20px 60px rgba(0,0,0,0.7);
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  color: #f0ece4;
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+@keyframes ciq-sheet-up {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.ciq-sheet__handle {
+  width: 40px; height: 4px;
+  border-radius: 999px;
+  background: rgba(240,236,228,0.32);
+  margin: 6px auto 12px;
+}
+.ciq-sheet__head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 6px;
+}
+.ciq-sheet__title {
+  font-family: "Anton", "Bebas Neue", "Helvetica Neue", sans-serif;
+  font-size: 22px; font-weight: 400;
+  letter-spacing: 0.02em; text-transform: uppercase;
+  color: var(--ciq-sheet-accent, #2dd4bf);
+}
+.ciq-sheet__close {
+  width: 32px; height: 32px;
+  border-radius: 999px;
+  border: 1px solid rgba(240,236,228,0.14);
+  background: transparent; color: #f0ece4;
+  display: grid; place-items: center;
+  cursor: pointer;
+}
+.ciq-sheet__body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 8px 0 0;
+  flex: 1;
+}
+.ciq-sheet__body::-webkit-scrollbar { width: 0; }
+
+
+/* ════════════════════════════════════════════════════
+   CIQ LOGO + TOP BAR — shared brand mark, used on every main tab
+   ════════════════════════════════════════════════════ */
+.ciq-logo {
+  appearance: none; cursor: pointer;
+  display: inline-flex; align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  padding: 4px 2px;
+  color: var(--ciq-logo-color, #f0ece4);
+  font-family: "Barlow Condensed", "Anton", "Helvetica Neue", sans-serif;
+  transition: opacity 160ms ease;
+}
+.ciq-logo:hover { opacity: 0.85; }
+.ciq-logo:active { transform: scale(0.97); }
+.ciq-logo__mark {
+  flex-shrink: 0;
+  filter: drop-shadow(0 0 8px rgba(255,107,61,0.20));
+}
+.ciq-logo__wordmark {
+  font-style: italic;
+  font-weight: 500;
+  font-size: 18px;
+  letter-spacing: 0.01em;
+  text-transform: none;
+  line-height: 1;
+  color: var(--ciq-logo-color, #f0ece4);
+  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+.ciq-logo__wordmark em {
+  font-style: italic;
+  font-weight: 900;
+  color: var(--ciq-logo-color, #f0ece4);
+  letter-spacing: 0;
+  margin-left: 0.5px;
+}
+
+/* Top-bar shell — used INSIDE the existing per-tab stamp */
+.ciq-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+}
+.ciq-topbar__r {
+  display: inline-flex; align-items: center; gap: 8px;
+}
+
+
+/* ════════════════════════════════════════════════════════════════════
+   DESIGN TOKENS — Part 2 polish pass
+   Loaded after the per-tab CSS so these win the cascade and unify
+   glass surfaces, transitions, skeletons, and empty states across
+   every screen. Per-tab accent colors stay scoped via :where() so
+   the cascade specificity doesn't break tab-themed children.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ciq-glass-bg:     rgba(22, 25, 33, 0.70);
+  --ciq-glass-border: rgba(255, 255, 255, 0.08);
+  --ciq-glass-blur:   blur(20px);
+  --ciq-glass-shadow:
+    0 1px 0 rgba(255,255,255,0.04) inset,
+    0 8px 28px rgba(0,0,0,0.35);
+  --ciq-r-card: 16px;
+  --ciq-r-card-hero: 24px;
+  --ciq-pad-card: 20px;
+  --ciq-pad-hero: 24px;
+  --ciq-ease:   cubic-bezier(0.4, 0, 0.2, 1);
+  --ciq-ease-swish: cubic-bezier(0.2, 0.85, 0.3, 1);
+  --ciq-trans:  0.25s var(--ciq-ease);
+}
+
+/* ── Glass card primitive ─────────────────────────────────────────── */
+.ciq-card {
+  background: var(--ciq-glass-bg);
+  backdrop-filter: var(--ciq-glass-blur);
+  -webkit-backdrop-filter: var(--ciq-glass-blur);
+  border: 1px solid var(--ciq-glass-border);
+  border-radius: var(--ciq-r-card);
+  box-shadow: var(--ciq-glass-shadow);
+  padding: var(--ciq-pad-card);
+}
+.ciq-card--hero {
+  border-radius: var(--ciq-r-card-hero);
+  padding: var(--ciq-pad-hero);
+}
+
+/* Per-tab .ho-glass / .me-glass / .co-glass / .dl-glass / .ac-glass /
+   .wp-glass already use a near-identical glass spec defined in each
+   tab's own CSS (rgba(20,24,32,0.78) + 1px white@9% + blur 22px). Those
+   load AFTER ciq-shell.css so they win the cascade. New components
+   should use .ciq-card for the shared values. */
+
+/* ── Typography utility classes ──────────────────────────────────── */
+.ciq-h1 {
+  font-family: "Barlow Condensed", "Anton", "Helvetica Neue", sans-serif;
+  font-style: italic; font-weight: 900;
+  font-size: 48px; line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.ciq-h2 {
+  font-family: "Barlow Condensed", "Anton", "Helvetica Neue", sans-serif;
+  font-style: italic; font-weight: 700;
+  font-size: 28px; line-height: 0.98;
+  letter-spacing: -0.005em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.ciq-h3 {
+  font-family: "Barlow Condensed", "Anton", "Helvetica Neue", sans-serif;
+  font-weight: 600;
+  font-size: 18px; line-height: 1.05;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin: 0;
+}
+.ciq-eyebrow {
+  font-family: "Lexend", system-ui, -apple-system, sans-serif;
+  font-weight: 700;
+  font-size: 11px; line-height: 1.2;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(240,236,228,0.62);
+  margin: 0;
+}
+.ciq-body {
+  font-family: "Lexend", system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  font-size: 14px; line-height: 1.4;
+  color: rgba(240,236,228,0.86);
+  margin: 0;
+}
+.ciq-stat {
+  font-family: "Barlow Condensed", "Anton", "Helvetica Neue", sans-serif;
+  font-style: italic; font-weight: 800;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
+
+/* ── Tap feedback (universal) ────────────────────────────────────── */
+.ciq-tap {
+  transition: transform 120ms var(--ciq-ease);
+  cursor: pointer;
+}
+.ciq-tap:active { transform: scale(0.97); }
+
+/* ── Number pulse (counter changes / live values) ───────────────── */
+@keyframes ciq-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.06); }
+}
+.ciq-pulse-on-change {
+  animation: ciq-pulse 180ms var(--ciq-ease);
+}
+
+/* ── Count-up helper (just a class hook; JS drives the value) ──── */
+@keyframes ciq-countup-fade {
+  from { opacity: 0.55; }
+  to   { opacity: 1; }
+}
+.ciq-countup { animation: ciq-countup-fade 600ms var(--ciq-ease); }
+
+/* ── Skeleton shimmer ─────────────────────────────────────────────── */
+@keyframes ciq-skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.ciq-skeleton {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(255,255,255,0.04) 0%,
+      rgba(255,255,255,0.10) 50%,
+      rgba(255,255,255,0.04) 100%);
+  background-size: 200% 100%;
+  animation: ciq-skeleton-shimmer 1.4s linear infinite;
+  border-radius: 8px;
+  color: transparent !important;
+  pointer-events: none;
+  user-select: none;
+}
+.ciq-skeleton--card {
+  border-radius: var(--ciq-r-card);
+  min-height: 120px;
+}
+.ciq-skeleton--text {
+  display: inline-block;
+  min-width: 80px;
+  height: 1em;
+  vertical-align: -2px;
+}
+.ciq-skeleton--avatar { border-radius: 50%; }
+.ciq-skeleton--ring   { border-radius: 50%; }
+
+/* Loading container — a stack of skeletons mimicking real cards */
+.ciq-loading {
+  display: flex; flex-direction: column;
+  gap: 12px;
+  padding: 18px 0;
+}
+.ciq-loading__row {
+  display: flex; gap: 10px;
+}
+.ciq-loading__row .ciq-skeleton { flex: 1; }
+
+/* ── Empty state ─────────────────────────────────────────────────── */
+.ciq-empty {
+  display: flex; flex-direction: column;
+  align-items: center; gap: 12px;
+  padding: 32px 22px;
+  text-align: center;
+  background: var(--ciq-glass-bg);
+  backdrop-filter: var(--ciq-glass-blur);
+  -webkit-backdrop-filter: var(--ciq-glass-blur);
+  border: 1px solid var(--ciq-glass-border);
+  border-radius: var(--ciq-r-card);
+  box-shadow: var(--ciq-glass-shadow);
+}
+.ciq-empty__icon {
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: var(--ciq-empty-accent-dim, rgba(255,255,255,0.06));
+  border: 1px solid var(--ciq-empty-accent, rgba(255,255,255,0.20));
+  color: var(--ciq-empty-accent, #f0ece4);
+  display: grid; place-items: center;
+}
+.ciq-empty__icon svg { width: 24px; height: 24px; }
+.ciq-empty__title {
+  font-family: "Barlow Condensed", "Anton", sans-serif;
+  font-style: italic; font-weight: 700;
+  font-size: 22px;  line-height: 1.05;
+  color: #f0ece4;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: -0.005em;
+  max-width: 240px;
+  text-wrap: balance;
+}
+.ciq-empty__sub {
+  font-family: "Lexend", system-ui, sans-serif;
+  font-size: 13px; line-height: 1.45;
+  color: rgba(240,236,228,0.62);
+  max-width: 260px;
+  margin: 0;
+  text-wrap: pretty;
+}
+.ciq-empty__cta {
+  appearance: none; cursor: pointer; border: none;
+  margin-top: 6px;
+  padding: 10px 18px;
+  background: var(--ciq-empty-accent, #f0ece4);
+  color: #04060a;
+  border-radius: 999px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  display: inline-flex; align-items: center; gap: 8px;
+  box-shadow: 0 6px 20px var(--ciq-empty-accent-glow, rgba(245,166,35,0.30));
+  transition: transform 120ms var(--ciq-ease);
+}
+.ciq-empty__cta:active { transform: scale(0.97); }
+.ciq-empty__cta svg { width: 12px; height: 12px; }
+
+/* Per-tab accent helpers for empty states */
+.ciq-empty--home  { --ciq-empty-accent: #f5a623; --ciq-empty-accent-dim: rgba(245,166,35,0.12);  --ciq-empty-accent-glow: rgba(245,166,35,0.32); }
+.ciq-empty--train { --ciq-empty-accent: #4ca3ff; --ciq-empty-accent-dim: rgba(76,163,255,0.12);  --ciq-empty-accent-glow: rgba(76,163,255,0.32); }
+.ciq-empty--track { --ciq-empty-accent: #56d364; --ciq-empty-accent-dim: rgba(86,211,100,0.12);  --ciq-empty-accent-glow: rgba(86,211,100,0.32); }
+.ciq-empty--coach { --ciq-empty-accent: #bc8cff; --ciq-empty-accent-dim: rgba(188,140,255,0.12); --ciq-empty-accent-glow: rgba(188,140,255,0.32); }
+.ciq-empty--me    { --ciq-empty-accent: #2dd4bf; --ciq-empty-accent-dim: rgba(45,212,191,0.12);  --ciq-empty-accent-glow: rgba(45,212,191,0.32); }

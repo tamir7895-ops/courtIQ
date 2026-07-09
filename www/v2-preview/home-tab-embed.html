@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>CourtIQ · Home</title>
+<link href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:ital,wght@0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,500;1,600;1,700;1,800;1,900&family=Lexend:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="colors_and_type.css" />
+<link rel="stylesheet" href="ciq-shell.css" />
+<link rel="stylesheet" href="me-tab.css" />
+<link rel="stylesheet" href="home-tab.css" />
+<style>
+  html, body { background: var(--c-bg); margin: 0; padding: 0; height: 100%; }
+  body { overflow-x: hidden; overscroll-behavior-y: none; }
+  /* Pass-through device frame for embed — fills viewport, no phone chrome */
+  .embed-stage { width: 100vw; min-height: 100vh; max-width: 480px; margin: 0 auto; position: relative; }
+  .stage__caption, .tweaks-panel-root { display: none !important; }
+</style>
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" crossorigin="anonymous"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="env,react">
+  // Stub IOSDevice as a pass-through that fills its container — strips the phone frame.
+  window.IOSDevice = function IOSDevice(props) {
+    return React.createElement('div', {
+      className: 'embed-stage',
+      style: { background: '#06080c', position: 'relative', minHeight: '100vh' }
+    }, props.children);
+  };
+  // Stub TweaksPanel + section helpers — design-mode controls, off in production
+  window.TweaksPanel = function() { return null; };
+  window.TweakSection = function() { return null; };
+  window.TweakRadio = function() { return null; };
+  window.TweakSlider = function() { return null; };
+  window.TweakToggle = function() { return null; };
+  window.useTweaks = function(defaults) {
+    const [t, setT] = React.useState(defaults);
+    const setTweak = (k, v) => setT(prev => ({ ...prev, [k]: v }));
+    return [t, setTweak];
+  };
+</script>
+
+<script type="text/babel" data-presets="env,react" src="ciq-shell.jsx"></script>
+<script type="text/babel" data-presets="env,react">window.CIQBottomNav = CIQBottomNav; window.CIQBottomSheet = CIQBottomSheet;</script>
+<script type="text/babel" data-presets="env,react" src="me-data.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="home-data.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="home-icons.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="home-screen.jsx"></script>
+<script type="text/babel" data-presets="env,react" src="home-app.jsx"></script>
+</body>
+</html>

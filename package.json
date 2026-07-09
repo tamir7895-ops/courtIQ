@@ -6,7 +6,9 @@
   "scripts": {
     "build": "node build.js",
     "sync": "node build.js && npx cap sync android",
-    "open": "npx cap open android"
+    "open": "npx cap open android",
+    "ios:open": "npx cap open ios",
+    "ios:sync": "node build.js && npx cap sync ios"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +17,7 @@
     "@capacitor/android": "^8.2.0",
     "@capacitor/camera": "^8.0.2",
     "@capacitor/cli": "^6.2.1",
-    "@capacitor/core": "^8.2.0"
+    "@capacitor/core": "^8.2.0",
+    "@capacitor/ios": "^8.2.0"
   }
 }

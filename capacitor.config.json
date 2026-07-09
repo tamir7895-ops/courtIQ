@@ -2,8 +2,21 @@
   "appId": "com.courtiq.app",
   "appName": "CourtIQ",
   "webDir": "www",
+  "loggingBehavior": "none",
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "allowNavigation": [
+      "*.supabase.co",
+      "*.supabase.in",
+      "api.anthropic.com",
+      "cdn.jsdelivr.net",
+      "storage.googleapis.com",
+      "tfhub.dev"
+    ]
+  },
+  "ios": {
+    "scheme": "courtiq",
+    "contentInset": "automatic"
   },
   "plugins": {
     "Camera": {

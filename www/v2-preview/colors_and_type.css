@@ -1,0 +1,297 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ Design System — colors_and_type.css
+   Extracted 1:1 from the production codebase (shared.css).
+   Import this file at the top of any artifact to get the
+   full token layer + base typography + semantic roles.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── BRAND FONTS (local @font-face) ─────────────────────── */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-Regular.ttf') format('truetype');
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-Medium.ttf') format('truetype');
+  font-weight: 500; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-SemiBold.ttf') format('truetype');
+  font-weight: 600; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-Bold.ttf') format('truetype');
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+  font-weight: 800; font-style: normal; font-display: swap;
+}
+/* ExtraBold also mapped to 900 for semantic "black" usage */
+@font-face {
+  font-family: 'Barlow Condensed';
+  src: url('/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype');
+  font-weight: 900; font-style: normal; font-display: swap;
+}
+
+/* Lexend — variable weight body font */
+@font-face {
+  font-family: 'Lexend';
+  src: url('/fonts/Lexend_wght_.ttf') format('truetype-variations'),
+       url('/fonts/Lexend_wght_.ttf') format('truetype');
+  font-weight: 100 900; font-style: normal; font-display: swap;
+}
+
+:root {
+  /* ─── CORE PALETTE (from codebase) ─────────────────────── */
+  --c-bg:          #0e1014;   /* app background — near black, cool */
+  --c-surface:     #161921;   /* card surface */
+  --c-surface2:    #1e2129;   /* elevated card / pill */
+  --c-surface3:    #252830;
+  --c-surface-elev:#1c1f28;
+  --c-border:      rgba(255,255,255,0.06);
+
+  /* ─── AMBER — brand primary (HOME accent) ──────────────── */
+  --c-amber:       #f5a623;
+  --c-amber-hover: #ffc04a;
+  --c-amber-dark:  #c88418;
+  --c-amber-dim:   rgba(245,166,35,0.12);
+  --c-amber-glow:  rgba(245,166,35,0.25);
+  --c-amber-subtle:rgba(245,166,35,0.06);
+
+  /* ─── SECTION ACCENTS (bottom-nav system) ──────────────── */
+  /* Each feature's primary actions, highlights, and active
+     states should use its section accent. */
+  --c-home:   #f5a623; /* amber  — Home    */
+  --c-train:  #4ca3ff; /* blue   — Train   */
+  --c-track:  #56d364; /* green  — Track   */
+  --c-coach:  #bc8cff; /* purple — Coach   */
+  --c-me:     #2dd4bf; /* teal   — Me      */
+
+  --c-home-dim:  rgba(245,166,35,0.12);
+  --c-train-dim: rgba(76,163,255,0.12);
+  --c-track-dim: rgba(86,211,100,0.12);
+  --c-coach-dim: rgba(188,140,255,0.12);
+  --c-me-dim:    rgba(45,212,191,0.12);
+
+  /* ─── STATUS ──────────────────────────────────────────── */
+  --c-green:     #56d364;
+  --c-green-dim: rgba(86,211,100,0.10);
+  --c-red:       #e84040;
+  --c-red-dim:   rgba(232,64,64,0.10);
+  --c-blue:      #4ca3ff;
+  --c-blue-dim:  rgba(76,163,255,0.10);
+  --c-teal:      #2dd4bf;
+  --c-teal-dim:  rgba(45,212,191,0.10);
+  --c-purple:    #bc8cff;
+  --c-purple-dim:rgba(188,140,255,0.10);
+
+  /* ─── TEXT HIERARCHY (on dark) ─────────────────────────── */
+  --c-white:           #f0ede6;          /* warm off-white — not #fff */
+  --c-text-primary:    #f0ede6;
+  --c-text-secondary:  rgba(240,237,230,0.65);
+  --c-text-tertiary:   rgba(240,237,230,0.40);
+  --c-text-disabled:   rgba(240,237,230,0.22);
+  --c-muted:           rgba(240,237,230,0.45);
+  --c-dimmer:          rgba(240,237,230,0.22);
+
+  /* ─── GLASSMORPHISM (the signature) ────────────────────── */
+  --glass-bg:     rgba(22,25,33,0.7);
+  --glass-border: rgba(255,255,255,0.08);
+  --glass-blur:   20px;
+
+  /* ─── RADII ────────────────────────────────────────────── */
+  --r-sm: 10px;
+  --r-md: 16px;
+  --r-lg: 24px;
+  --r-xl: 32px;
+
+  /* ─── SHADOWS / ELEVATION ──────────────────────────────── */
+  --shadow-xs:    0 1px 2px rgba(0,0,0,0.2);
+  --shadow-sm:    0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.15);
+  --shadow-md:    0 4px 8px rgba(0,0,0,0.25), 0 2px 4px rgba(0,0,0,0.15);
+  --shadow-lg:    0 8px 24px rgba(0,0,0,0.3), 0 4px 8px rgba(0,0,0,0.2);
+  --shadow-xl:    0 16px 48px rgba(0,0,0,0.35), 0 8px 16px rgba(0,0,0,0.2);
+  --shadow-card:    0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-card-lg: 0 4px 12px rgba(0,0,0,0.3), 0 24px 64px rgba(0,0,0,0.35);
+  --shadow-btn:   0 8px 32px rgba(245,166,35,0.35);
+  --shadow-glow:  0 0 40px rgba(245,166,35,0.08);
+  --shadow-amber: 0 0 20px rgba(245,166,35,0.15), 0 0 60px rgba(245,166,35,0.05);
+  --shadow-inset: inset 0 1px 2px rgba(0,0,0,0.3);
+
+  /* ─── SPACING (8px grid) ───────────────────────────────── */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-7:  28px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* ─── TYPOGRAPHY ───────────────────────────────────────── */
+  --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+  --font-body:    'Lexend', system-ui, -apple-system, BlinkMacSystemFont,
+                  'Segoe UI', sans-serif;
+
+  --fs-xs:   11px;
+  --fs-sm:   13px;
+  --fs-base: 15px;
+  --fs-md:   17px;
+  --fs-lg:   20px;
+  --fs-xl:   24px;
+  --fs-2xl:  30px;
+  --fs-3xl:  38px;
+  --fs-4xl:  48px;
+
+  --fw-normal: 400;
+  --fw-medium: 500;
+  --fw-semi:   600;
+  --fw-bold:   700;
+  --fw-heavy:  800;
+  --fw-black:  900;
+
+  /* ─── MOTION ───────────────────────────────────────────── */
+  --transition:    0.25s cubic-bezier(0.4,0,0.2,1);
+  --duration-fast: 0.15s;
+  --duration-base: 0.25s;
+  --duration-slow: 0.4s;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ─── SAFE-AREA (Capacitor/iOS) ────────────────────────── */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+}
+
+/* ─── BASE / RESET ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  background: var(--c-bg);
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--c-bg);
+  color: var(--c-white);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ─── SEMANTIC TYPE ROLES ────────────────────────────────── */
+.h-display,
+h1.display {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 5.5vw, 72px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+h1, .h1 {
+  font-family: var(--font-display);
+  font-size: var(--fs-4xl);
+  font-weight: 900;
+  line-height: 1.0;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+h2, .h2 {
+  font-family: var(--font-display);
+  font-size: var(--fs-3xl);
+  font-weight: 900;
+  line-height: 1.05;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+h3, .h3 {
+  font-family: var(--font-display);
+  font-size: var(--fs-2xl);
+  font-weight: 800;
+  line-height: 1.1;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+h4, .h4 {
+  font-family: var(--font-display);
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  line-height: 1.2;
+  color: var(--c-white);
+}
+
+/* The signature: uppercase condensed eyebrow/label, amber, spaced out */
+.eyebrow,
+.label-kicker {
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--c-amber);
+}
+
+/* "STAT" — giant numbers on dark */
+.stat-number {
+  font-family: var(--font-display);
+  font-size: clamp(44px, 6vw, 72px);
+  font-weight: 900;
+  line-height: 1;
+  color: var(--c-amber);
+  font-feature-settings: "tnum" 1;
+  letter-spacing: -0.01em;
+}
+.stat-label {
+  font-family: var(--font-display);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--c-text-tertiary);
+}
+
+/* body */
+p, .body {
+  font-family: var(--font-body);
+  font-size: var(--fs-base);
+  line-height: 1.6;
+  color: var(--c-text-secondary);
+}
+.body-lg { font-size: var(--fs-md); line-height: 1.6; }
+.body-sm { font-size: var(--fs-sm); line-height: 1.5; color: var(--c-muted); }
+
+.caption {
+  font-family: var(--font-body);
+  font-size: var(--fs-xs);
+  color: var(--c-text-tertiary);
+  letter-spacing: 0.02em;
+}
+
+a { color: var(--c-amber); text-decoration: none; }
+a:hover { color: var(--c-amber-hover); }
+
+code, pre, .mono {
+  font-family: 'SF Mono', ui-monospace, 'JetBrains Mono', Menlo, monospace;
+  font-size: 0.9em;
+}

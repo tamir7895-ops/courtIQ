@@ -116,7 +116,7 @@
     }
 
     showAuthSuccess('signin', email);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    setTimeout(() => { window.location.href = 'app-v10/index.html'; }, 1500);
   }
 
   async function submitSignUp() {
@@ -152,7 +152,7 @@
     }
 
     showAuthSuccess('signup', first);
-    setTimeout(() => { window.location.href = 'dashboard.html'; }, 1500);
+    setTimeout(() => { window.location.href = 'app-v10/index.html'; }, 1500);
   }
 
   async function signOut() {
@@ -188,7 +188,7 @@
       const navBtns = document.querySelector('.nav-buttons');
       if (navBtns && !document.getElementById('db-panel-log')) {
         navBtns.innerHTML = `
-          <a href="dashboard.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
+          <a href="app-v10/index.html" class="btn-cta" style="font-size:12px;padding:10px 22px;">DASHBOARD</a>
           <button onclick="signOut()" class="btn-hamburger" style="font-size:11px;color:var(--c-muted);background:none;border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:8px 14px;cursor:pointer;">Sign Out</button>
         `;
       }

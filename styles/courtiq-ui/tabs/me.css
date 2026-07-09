@@ -736,3 +736,304 @@
   color: rgba(240,236,228,0.42); font-weight: 700;
   text-transform: uppercase;
 }
+
+/* ════════════════════════════════════════════════════════════════════
+   === v5 redesign 2026-06-29 ===
+   Me tab — teal accent. Built on top of v2-tokens.css (Barlow + Lexend).
+   The block below is self-contained and idempotent. It coexists with
+   legacy Me-tab selectors above (those are kept as fallback). The
+   v5-* classes here mirror www/v2-preview/v5/v5.css 1:1.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* Per-tab accent assignment for Me (teal). */
+.v5-screen--me { --accent: var(--c-me); }
+
+/* ─── SCREEN SCAFFOLD ────────────────────────────────────── */
+.v5-screen {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  padding: 22px 20px calc(78px + var(--safe-bottom, 0px));
+  position: relative;
+}
+
+/* ─── HEADER: eyebrow + page title + avatar ──────────────── */
+.v5-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+.v5-header__l { flex: 1; min-width: 0; }
+.v5-eyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--accent, var(--c-amber));
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.v5-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  text-transform: uppercase;
+  color: var(--c-white);
+}
+
+/* ─── AVATAR (top-right, with XP ring) ───────────────────── */
+.v5-avatar-wrap { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.v5-avatar {
+  position: relative;
+  width: 48px;
+  height: 48px;
+}
+.v5-avatar__ring {
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(var(--accent, var(--c-amber)) 0deg, var(--accent, var(--c-amber)) var(--xp, 270deg), rgba(255,255,255,0.08) var(--xp, 270deg));
+}
+.v5-avatar__inner {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2a3142, #1a1f2c);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--accent, var(--c-amber));
+  border: 2px solid var(--c-bg);
+}
+.v5-avatar__lv {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--accent, var(--c-amber));
+  text-transform: uppercase;
+}
+
+/* ─── HERO METRIC (one big thing, ring or chart) ─────────── */
+.v5-hero {
+  background: color-mix(in srgb, var(--accent, var(--c-amber)) 5%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, var(--c-amber)) 18%, transparent);
+  border-radius: var(--r-lg);
+  padding: 22px 16px 18px;
+  margin-bottom: 22px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.v5-hero__eyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--c-text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.v5-hero__ring-wrap { position: relative; display: inline-block; }
+.v5-hero__metric {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+.v5-hero__num {
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 900;
+  letter-spacing: -2px;
+  color: var(--accent, var(--c-amber));
+  line-height: 1;
+  font-feature-settings: "tnum" 1;
+}
+.v5-hero__num-unit {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--c-text-tertiary);
+  font-weight: 700;
+}
+.v5-hero__sub {
+  font-size: 11px;
+  color: var(--c-text-tertiary);
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+.v5-hero__big-headline {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  line-height: 1.05;
+  text-transform: uppercase;
+  color: var(--c-white);
+  padding: 20px 8px;
+}
+.v5-hero__big-headline em {
+  color: var(--accent, var(--c-amber));
+  font-style: normal;
+}
+
+/* ─── 3-COLUMN STATS GRID ────────────────────────────────── */
+.v5-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.v5-stat {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--r-md);
+  padding: 12px 10px;
+  text-align: center;
+}
+.v5-stat__lbl {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--c-text-tertiary);
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.v5-stat__num {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--c-white);
+  font-feature-settings: "tnum" 1;
+}
+.v5-stat__num--accent { color: var(--accent, var(--c-amber)); }
+.v5-stat__num em { font-size: 14px; color: var(--c-text-tertiary); font-weight: 500; font-style: normal; }
+
+/* ─── SUPPORTING CARD (eyebrow + headline + arrow) ───────── */
+.v5-card {
+  background: color-mix(in srgb, var(--card-accent, transparent) 4%, rgba(255,255,255,0.04));
+  border: 1px solid color-mix(in srgb, var(--card-accent, rgba(255,255,255,0.08)) 18%, rgba(255,255,255,0.08));
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: background var(--duration-fast);
+}
+.v5-card:hover { background: rgba(255,255,255,0.06); }
+.v5-card__l { flex: 1; min-width: 0; }
+.v5-card__lbl {
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--card-accent, var(--c-text-tertiary));
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.v5-card__title {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--c-white);
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+}
+.v5-card__arrow {
+  font-size: 18px;
+  color: color-mix(in srgb, var(--card-accent, var(--c-text-tertiary)) 60%, transparent);
+}
+
+/* Per-card accent variants */
+.v5-card--coach   { --card-accent: var(--c-coach); }
+.v5-card--track   { --card-accent: var(--c-track); }
+.v5-card--train   { --card-accent: var(--c-train); }
+.v5-card--me      { --card-accent: var(--c-me); }
+.v5-card--amber   { --card-accent: var(--c-amber); }
+
+/* ─── PRIMARY CTA ────────────────────────────────────────── */
+.v5-cta {
+  display: block;
+  width: 100%;
+  background: var(--accent, var(--c-amber));
+  border: none;
+  border-radius: var(--r-md);
+  padding: 15px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--c-bg);
+  cursor: pointer;
+  transition: filter var(--duration-fast), transform var(--duration-fast);
+  text-decoration: none;
+  text-align: center;
+}
+.v5-cta:hover  { filter: brightness(1.08); }
+.v5-cta:active { transform: scale(0.985); }
+.v5-cta__arrow { margin-left: 6px; }
+
+/* ─── BOTTOM NAV (fixed) ─────────────────────────────────── */
+.v5-bottom-nav {
+  position: fixed;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 452px;
+  background: rgba(14,16,20,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 22px;
+  padding: 8px;
+  display: flex;
+  justify-content: space-around;
+  z-index: 50;
+}
+.v5-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  text-decoration: none;
+  color: var(--c-text-tertiary);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  padding: 4px 8px;
+  border-radius: 10px;
+}
+.v5-nav-item__icon {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+}
+.v5-nav-item__lbl { text-transform: uppercase; }
+.v5-nav-item.is-active { color: var(--accent, var(--c-amber)); font-weight: 800; }
+
+/* ─── SVG ICON HELPERS ───────────────────────────────────── */
+.v5-icon { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; }
+.v5-bn-icon { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+/* legacy — kept for fallback */
+/* The Me-tab selectors above are the v3/v4 path; do not delete —
+   they remain the active rendering path until v5 markup ships in dashboard.html. */

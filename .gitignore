@@ -42,3 +42,14 @@ www/_audit/
 # ── Capacitor generated ──
 android/app/build/
 android/.gradle/
+
+# Local eval artifacts (frames, detections, GT sheets) — hundreds of MB
+scratch/
+
+# Local test videos served via tunnel, not for the repo
+www/_test_video.mp4
+www/_pullups.mp4
+www/_test2.mp4
+
+# Workflow edits need a token with workflow scope — keep local tweaks untracked
+.github/workflows/*.disabled

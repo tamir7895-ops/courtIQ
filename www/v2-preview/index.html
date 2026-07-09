@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CourtIQ v2 — Design Preview Index</title>
+<link rel="stylesheet" href="colors_and_type.css" />
+<style>
+  body { padding: 64px 32px; }
+  .container { max-width: 960px; margin: 0 auto; }
+  .hdr { display: flex; align-items: center; gap: 20px; padding-bottom: 32px; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 48px; }
+  .mark { width: 60px; height: 60px; border-radius: 14px; background: linear-gradient(135deg, #ff5a3c 0%, #ff3a14 60%, #c81100 100%); box-shadow: 0 12px 32px rgba(255,26,0,0.30); display: grid; place-items: center; font-size: 28px; }
+  h1 { font-family: var(--font-display); font-size: 42px; font-weight: 900; line-height: 0.95; letter-spacing: -0.015em; text-transform: uppercase; font-style: italic; }
+  .kicker { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: .22em; text-transform: uppercase; color: var(--c-amber); margin-bottom: 6px; }
+  .sub { color: var(--c-text-secondary); font-size: 14px; margin-top: 8px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
+  .card { display: flex; flex-direction: column; gap: 12px; padding: 24px; border-radius: 20px; background: var(--glass-bg); backdrop-filter: blur(20px); border: 1px solid var(--glass-border); text-decoration: none; transition: all 0.2s; }
+  .card:hover { border-color: var(--c-amber); transform: translateY(-2px); }
+  .card .num { font-family: var(--font-display); font-size: 11px; font-weight: 800; letter-spacing: .2em; color: var(--c-amber); text-transform: uppercase; }
+  .card .name { font-family: var(--font-display); font-size: 22px; font-weight: 900; line-height: 1.05; text-transform: uppercase; color: var(--c-white); }
+  .card .desc { font-family: var(--font-body); font-size: 13px; color: var(--c-text-secondary); }
+  .pill { display: inline-block; font-family: var(--font-display); font-size: 10px; font-weight: 800; letter-spacing: .18em; text-transform: uppercase; padding: 4px 10px; border-radius: 999px; }
+  .pill.tab { background: var(--c-home-dim); color: var(--c-home); border: 1px solid var(--c-home-dim); }
+  .pill.flow { background: var(--c-track-dim); color: var(--c-track); border: 1px solid var(--c-track-dim); }
+  .pill.feature { background: var(--c-coach-dim); color: var(--c-coach); border: 1px solid var(--c-coach-dim); }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="hdr">
+    <div class="mark">🏀</div>
+    <div>
+      <div class="kicker">CourtIQ · Design Preview</div>
+      <h1>v2 — Full <em style="color: var(--c-amber)">Redesign</em></h1>
+      <p class="sub">11 screens designed in Claude. Click any tile to view live.</p>
+    </div>
+  </div>
+
+  <div class="grid">
+    <a class="card" href="foundations.html"><span class="num">Wave 0</span><span class="name">Foundations</span><span class="pill feature">Design System</span><span class="desc">Tokens, palette, type scale, components</span></a>
+    <a class="card" href="home-tab.html"><span class="num">Tab 1</span><span class="name">Home</span><span class="pill tab">Tab · Amber</span><span class="desc">Today's session, log, calendar</span></a>
+    <a class="card" href="track-lab.html"><span class="num">Tab 2</span><span class="name">Track Lab</span><span class="pill tab" style="background: var(--c-track-dim); color: var(--c-track); border-color: var(--c-track-dim);">Tab · Green</span><span class="desc">Shot chart, zones, sessions</span></a>
+    <a class="card" href="coach-tab.html"><span class="num">Tab 3</span><span class="name">Coach</span><span class="pill tab" style="background: var(--c-coach-dim); color: var(--c-coach); border-color: var(--c-coach-dim);">Tab · Purple</span><span class="desc">AI verdict, drills, video briefing</span></a>
+    <a class="card" href="me-tab.html"><span class="num">Tab 4</span><span class="name">Me</span><span class="pill tab" style="background: var(--c-me-dim); color: var(--c-me); border-color: var(--c-me-dim);">Tab · Teal</span><span class="desc">Profile, trophies, shop, social</span></a>
+    <a class="card" href="camera-hud.html"><span class="num">Flow 1</span><span class="name">Camera HUD</span><span class="pill flow">Live Shot Tracking</span><span class="desc">Rim lock, real-time detection, zones</span></a>
+    <a class="card" href="post-session.html"><span class="num">Flow 2</span><span class="name">Post-Session</span><span class="pill flow">Session Recap</span><span class="desc">FG%, shot chart, verdict, XP earned</span></a>
+    <a class="card" href="onboarding.html"><span class="num">Flow 3</span><span class="name">Onboarding</span><span class="pill flow">7-Step Combine</span><span class="desc">Identity, position, scouting report</span></a>
+    <a class="card" href="drill-library.html"><span class="num">Feature</span><span class="name">Drill Library</span><span class="pill feature">Train Tab</span><span class="desc">Categories, plan builder, skill tree</span></a>
+    <a class="card" href="workout-player.html"><span class="num">Feature</span><span class="name">Workout Player</span><span class="pill feature">Train Tab</span><span class="desc">Video player, timer, rep counter</span></a>
+    <a class="card" href="avatar-customizer.html"><span class="num">Feature</span><span class="name">Avatar Customizer</span><span class="pill feature">Me Tab</span><span class="desc">Skin, jersey, gear, accessories</span></a>
+  </div>
+</div>
+</body>
+</html>
