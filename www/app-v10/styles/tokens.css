@@ -89,19 +89,24 @@ html, body {
   overscroll-behavior-y: none;
 }
 
-/* App scaffold — single-screen-per-tab on phones (no scroll) */
+/* App scaffold — HARD single-screen-per-tab: the page IS the viewport.
+   Every vertical cost below uses dvh-driven clamp() so short screens
+   compress typography/padding gracefully instead of scrolling. */
 #app {
   max-width: 480px;
   margin: 0 auto;
-  /* Top: 14px room above header pill, leaves space for Safari toolbar */
-  /* Bottom: nav (~46px) + 8px float + safe-bottom + 16px breathing gap */
-  padding: 14px var(--s-4) calc(70px + var(--safe-bottom));
-  min-height: 100dvh;     /* dynamic viewport for iOS Safari toolbar */
+  /* Top: room above header pill; Bottom: nav + float + safe-bottom */
+  padding: clamp(8px, 1.6dvh, 14px) var(--s-4) calc(64px + var(--safe-bottom));
+  height: 100dvh;         /* exactly one viewport — no page scroll */
+  overflow: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: 10px;              /* uniform vertical rhythm between sections */
+  gap: clamp(5px, 1dvh, 8px);   /* uniform vertical rhythm */
 }
+/* Sections keep their natural height — flex must never squash a card
+   and clip its content. Only the inline spacer (flex: 1 1 auto) gives. */
+#app > * { flex-shrink: 0; }
 #app > .v10-pill { margin-bottom: 2px; }      /* pill stays tight to top */
 /* The last interactive element (typically a CTA) reserves breathing space
    above the bottom nav so it never feels glued. */

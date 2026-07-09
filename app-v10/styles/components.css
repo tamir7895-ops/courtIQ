@@ -1342,3 +1342,75 @@ body::after {
   opacity: 0.16;
   pointer-events: none;
 }
+
+/* ═══════════════════════════════════════════════════════
+   v10.8 — FIT-TO-VIEWPORT
+   #app is locked to exactly 100dvh (tokens.css). Every
+   vertical cost here breathes with the screen: dvh-driven
+   clamp() lets tall phones keep the full magazine scale and
+   short screens compress type/padding instead of scrolling.
+   Later-in-file rules override the fixed values above.
+   ═══════════════════════════════════════════════════════ */
+
+/* Header pill */
+.v10-pill { padding: clamp(5px, 1dvh, 8px) 10px; }
+.v10-pill__logo   { width: clamp(26px, 4.2dvh, 32px); height: clamp(26px, 4.2dvh, 32px); }
+.v10-pill__avatar { width: clamp(30px, 5dvh, 38px);  height: clamp(30px, 5dvh, 38px); }
+
+/* Bento */
+.v10-bento { margin-bottom: clamp(4px, 0.8dvh, 8px); }
+.v10-bento__cell { padding: clamp(4px, 0.9dvh, 7px) 6px; }
+.v10-bento__icon { font-size: clamp(11px, 1.7dvh, 13px); margin-bottom: clamp(1px, 0.2dvh, 2px); }
+.v10-bento__num  { font-size: clamp(14px, 2.2dvh, 17px); }
+.v10-bento__num--mono { font-size: clamp(11px, 1.8dvh, 13px); }
+
+/* Hero */
+.v10-hero { padding: clamp(8px, 1.5dvh, 12px) 14px; margin-bottom: clamp(4px, 0.8dvh, 8px); }
+.v10-hero__num { font-size: clamp(40px, 7.2dvh, 58px); }
+.v10-hero__num-unit { font-size: clamp(16px, 2.8dvh, 22px); }
+.v10-hero__headline { font-size: clamp(20px, 3.4dvh, 26px); }
+.v10-hero__sub { margin-top: clamp(2px, 0.4dvh, 3px); font-size: clamp(10.5px, 1.5dvh, 12px); }
+.v10-hero__aside-num { font-size: clamp(20px, 3.4dvh, 26px); }
+.v10-hero__aside { padding: clamp(5px, 1dvh, 7px) 10px; }
+
+/* Week strip */
+.v10-week { margin: calc(-1 * clamp(3px, 0.6dvh, 5px)) 0 clamp(4px, 0.8dvh, 8px); }
+.v10-week__cell { padding: clamp(3px, 0.6dvh, 4px) 2px clamp(2px, 0.5dvh, 3px); }
+.v10-week__num { font-size: clamp(12px, 1.9dvh, 14px); }
+
+/* Ribbons */
+.v10-ribbon { margin: clamp(4px, 0.8dvh, 8px) 0 clamp(4px, 0.9dvh, 8px); padding: clamp(4px, 0.7dvh, 5px) 0; }
+
+/* Challenge cards */
+.v10-challenge { margin-bottom: clamp(5px, 0.9dvh, 7px); }
+.v10-challenge__badge { width: clamp(44px, 7.5dvh, 54px); }
+.v10-challenge__badge i { font-size: clamp(17px, 2.8dvh, 21px); }
+.v10-challenge__main { padding: clamp(6px, 1.1dvh, 8px) 12px clamp(5px, 1dvh, 7px); }
+.v10-challenge__title { font-size: clamp(14px, 2.3dvh, 16px); }
+.v10-challenge__sub { font-size: clamp(10px, 1.5dvh, 11px); }
+.v10-challenge__bar { margin-top: clamp(4px, 0.8dvh, 6px); height: clamp(8px, 1.2dvh, 10px); }
+.v10-challenge__meta { margin-top: clamp(3px, 0.7dvh, 5px); }
+
+/* Reels link */
+.v10-reels-link { padding: clamp(6px, 1.1dvh, 8px) 12px; margin-bottom: clamp(4px, 0.8dvh, 8px); }
+
+/* Coach pin (both sizes) */
+.v10-pin { margin: clamp(6px, 1.1dvh, 9px) 0 clamp(4px, 0.8dvh, 8px); }
+.v10-pin--lg { padding: clamp(10px, 1.8dvh, 13px) 16px clamp(8px, 1.4dvh, 11px); }
+.v10-pin--lg .v10-pin__body { font-size: clamp(13.5px, 2.1dvh, 15px); margin-top: clamp(5px, 0.9dvh, 7px); }
+.v10-pin--lg .v10-pin__footer { margin-top: clamp(6px, 1dvh, 8px); }
+.v10-pin--lg::after { font-size: clamp(60px, 9dvh, 76px); }
+
+/* CTA + tiles + rows */
+.v10-cta { padding: clamp(10px, 1.7dvh, 13px); font-size: clamp(13px, 2dvh, 15px); }
+.v10-tile { padding: clamp(7px, 1.4dvh, 10px); }
+.v10-row { padding: clamp(6px, 1.3dvh, 10px) 12px; }
+
+/* Court cards (track/post-session shot maps): cap the drawing so the
+   wood panel never forces a scroll — the SVG letterboxes inside. */
+.v10-court { padding: clamp(8px, 1.5dvh, 12px) 14px; margin-bottom: clamp(4px, 0.9dvh, 12px); }
+.v10-court svg { width: 100%; height: auto; max-height: clamp(150px, 30dvh, 300px); display: block; }
+
+/* Chips row */
+.v10-chips { margin-bottom: clamp(4px, 0.8dvh, 12px); }
+.v10-chip { padding: clamp(5px, 1.2dvh, 8px) 6px; }
