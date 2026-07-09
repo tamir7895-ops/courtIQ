@@ -1,0 +1,145 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ v10 — Design Tokens
+   Magazine / Scout's Brief aesthetic
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Local Barlow Condensed (sport headlines) */
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-Medium.ttf') format('truetype'); font-weight: 500; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-SemiBold.ttf') format('truetype'); font-weight: 600; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-Bold.ttf') format('truetype'); font-weight: 700; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype'); font-weight: 800; font-display: swap; }
+@font-face { font-family: 'Barlow Condensed'; src: url('../assets/fonts/BarlowCondensed-ExtraBold.ttf') format('truetype'); font-weight: 900; font-display: swap; }
+
+:root {
+  /* ─── 5-COLOR PALETTE ──────────────────────────────────── */
+  --cream:       #FBF5E8;   /* paper background */
+  --cream-deep:  #F0E8D8;   /* nested cards */
+  --ink:         #0A2850;   /* navy text + borders */
+  --orange:      #FF4F1F;   /* burnt orange — primary accent */
+  --sage:        #3D7A53;   /* trend up + secondary */
+  --mustard:     #E0A82E;   /* xp + tertiary accent */
+  --highlight:   #FFE873;   /* highlighter marker yellow */
+  --muted:       #6B5840;   /* warm brown muted text */
+  --dot:         rgba(10,40,80,0.06);  /* risograph dot */
+
+  /* Status semantics (mapped to palette) */
+  --made:        var(--sage);
+  --miss:        var(--orange);
+  --warn:        var(--mustard);
+
+  /* ─── SHADOWS (print offset) ───────────────────────────── */
+  --sh-orange:   3px 3px 0 var(--orange);
+  --sh-ink:      3px 3px 0 var(--ink);
+  --sh-sage:     2px 2px 0 var(--sage);
+  --sh-mustard:  2px 2px 0 var(--mustard);
+  --sh-orange-sm: 2px 2px 0 var(--orange);
+  --sh-ink-sm:    2px 2px 0 var(--ink);
+
+  /* ─── PARQUET WOOD COURT ───────────────────────────────── */
+  --wood:        #C8985B;
+  --wood-seam:   rgba(70, 40, 15, 0.38);
+  --wood-row:    rgba(70, 40, 15, 0.28);
+  --wood-grain:  rgba(245, 220, 180, 0.06);
+  --court-line:  #F0E6D2;
+
+  /* ─── TYPOGRAPHY ───────────────────────────────────────── */
+  --font-display: 'Barlow Condensed', 'Impact', sans-serif;
+  --font-body:    'Lora', Georgia, serif;
+  --font-mono:    'JetBrains Mono', 'SF Mono', ui-monospace, monospace;
+
+  /* ─── SPACING (8px grid) ───────────────────────────────── */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 20px;
+  --s-6: 24px;
+  --s-8: 32px;
+  --s-10: 40px;
+  --s-12: 48px;
+
+  /* ─── SAFE-AREA (Capacitor/iOS) ────────────────────────── */
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left:   env(safe-area-inset-left, 0px);
+  --safe-right:  env(safe-area-inset-right, 0px);
+
+  /* ─── MOTION ───────────────────────────────────────────── */
+  --t-fast: 0.15s cubic-bezier(0.4,0,0.2,1);
+  --t-base: 0.25s cubic-bezier(0.4,0,0.2,1);
+  --t-slow: 0.4s cubic-bezier(0.16,1,0.3,1);
+  /* Sport feel: springy overshoot for entrances/selections,
+     expo-out for reveals — one shared rhythm across the app. */
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── BASE / RESET ───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  background: var(--cream);
+  color: var(--ink);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  overflow-x: hidden;
+  overscroll-behavior-y: none;
+}
+
+/* App scaffold — single-screen-per-tab on phones (no scroll) */
+#app {
+  max-width: 480px;
+  margin: 0 auto;
+  /* Top: 14px room above header pill, leaves space for Safari toolbar */
+  /* Bottom: nav (~46px) + 8px float + safe-bottom + 16px breathing gap */
+  padding: 14px var(--s-4) calc(70px + var(--safe-bottom));
+  min-height: 100dvh;     /* dynamic viewport for iOS Safari toolbar */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;              /* uniform vertical rhythm between sections */
+}
+#app > .v10-pill { margin-bottom: 2px; }      /* pill stays tight to top */
+/* The last interactive element (typically a CTA) reserves breathing space
+   above the bottom nav so it never feels glued. */
+#app > *:last-child { margin-bottom: 4px; }
+#app::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 4px 4px;
+  pointer-events: none;
+  z-index: 0;
+}
+#app > * { position: relative; z-index: 1; }
+
+/* Common type roles (scoped — only used where explicitly applied) */
+.h-display {
+  font-family: var(--font-display);
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -1px;
+  text-transform: uppercase;
+}
+.eyebrow {
+  font-family: var(--font-display);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--orange);
+}
+.body-italic {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.35;
+}
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'tnum' 1;
+}

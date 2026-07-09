@@ -1,0 +1,993 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ v10 — Component Library
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── HEADER PILL ─────────────────────────────────────── */
+.v10-pill {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 8px 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  box-shadow: var(--sh-orange);
+  margin-bottom: var(--s-3);
+}
+.v10-pill__logo {
+  width: 32px; height: 32px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--orange);
+  display: flex; align-items: center; justify-content: center;
+}
+.v10-pill__logo svg { width: 100%; height: 100%; }
+.v10-pill__brand {
+  display: flex; flex-direction: column; justify-content: center;
+  border-left: 2px solid var(--ink);
+  padding-left: 10px;
+  min-width: 0;
+}
+.v10-pill__brand-name {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.5px;
+  text-transform: uppercase;
+}
+.v10-pill__brand-name em {
+  color: var(--orange);
+  font-style: normal;
+}
+.v10-pill__brand-meta {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 8px;
+  color: var(--muted);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  margin-top: 1px;
+}
+.v10-pill__spacer { flex: 1; }
+.v10-pill__avatar {
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, var(--orange) 0%, var(--mustard) 100%);
+  border: 2px solid var(--ink);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 900;
+  color: var(--cream);
+  letter-spacing: -1px;
+  cursor: pointer;
+}
+.v10-pill__name {
+  display: flex; flex-direction: column; align-items: flex-end;
+  min-width: 0;
+}
+.v10-pill__name-line {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.v10-pill__name-meta {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 9px;
+  color: var(--orange);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+/* ─── BENTO (4-cell quick stats) ──────────────────────── */
+.v10-bento {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+.v10-bento__cell {
+  background: var(--cream);
+  border: 1.5px solid var(--ink);
+  padding: 8px 6px;
+  text-align: center;
+  animation: v10BentoIn 280ms cubic-bezier(.4, 0, .2, 1) both;
+}
+.v10-bento__cell:nth-child(1) { animation-delay: 0ms; }
+.v10-bento__cell:nth-child(2) { animation-delay: 55ms; }
+.v10-bento__cell:nth-child(3) { animation-delay: 110ms; }
+.v10-bento__cell:nth-child(4) { animation-delay: 165ms; }
+.v10-bento__cell:nth-child(5) { animation-delay: 220ms; }
+.v10-bento__cell:nth-child(6) { animation-delay: 275ms; }
+.v10-bento__cell:nth-child(7) { animation-delay: 330ms; }
+@keyframes v10BentoIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.v10-bento__cell--orange  { background: var(--orange); color: var(--cream); }
+.v10-bento__cell--sage    { background: var(--sage);   color: var(--cream); }
+.v10-bento__cell--ink     { background: var(--ink);    color: var(--cream); }
+.v10-bento__cell--mustard { background: var(--mustard); color: var(--ink); }
+.v10-bento__icon { font-size: 14px; display: block; margin-bottom: 2px; }
+.v10-bento__num {
+  font-family: var(--font-display);
+  font-weight: 900;
+  font-size: 18px;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.v10-bento__num--mono {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 14px;
+  letter-spacing: -0.5px;
+}
+.v10-bento__label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 7px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.9;
+  margin-top: 1px;
+}
+
+/* ─── HERO CARD ───────────────────────────────────────── */
+.v10-hero {
+  background: var(--orange);
+  color: var(--cream);
+  padding: 14px;
+  transform: rotate(-0.5deg);
+  box-shadow: var(--sh-ink);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: var(--s-3);
+}
+.v10-hero--ink     { background: var(--ink); }
+.v10-hero--sage    { background: var(--sage); }
+.v10-hero--mustard { background: var(--mustard); color: var(--ink); }
+.v10-hero__main { flex: 1; }
+.v10-hero__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  opacity: 0.95;
+}
+.v10-hero__num {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -3px;
+  margin-top: 2px;
+}
+.v10-hero__num-unit { font-size: 24px; }
+.v10-hero__sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 12px;
+  margin-top: 4px;
+  opacity: 0.92;
+}
+.v10-hero__headline {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -0.6px;
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+.v10-hero__aside {
+  background: var(--ink);
+  color: var(--cream);
+  padding: 8px 10px;
+  text-align: center;
+  min-width: 60px;
+}
+.v10-hero__aside-lbl {
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.v10-hero__aside-num {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+/* ─── SECTION RIBBON ──────────────────────────────────── */
+.v10-ribbon {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1.5px solid var(--ink);
+  border-bottom: 1.5px solid var(--ink);
+  padding: 6px 0;
+  font-family: var(--font-display);
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--ink);
+  margin: var(--s-3) 0 10px;
+}
+.v10-ribbon__title { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.v10-ribbon__title i { font-size: 14px; color: var(--mustard); }
+.v10-ribbon__meta {
+  font-size: 9px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+/* ─── 2×2 GRID (no horizontal scroll) ─────────────────── */
+.v10-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+.v10-tile {
+  background: var(--cream);
+  border: 1.5px solid var(--ink);
+  padding: 10px;
+  cursor: pointer;
+  transition: transform var(--t-fast);
+}
+.v10-tile:nth-child(odd)  { transform: rotate(-0.3deg); }
+.v10-tile:nth-child(even) { transform: rotate(0.3deg); }
+.v10-tile:active { transform: scale(0.985); }
+.v10-tile--orange   { box-shadow: var(--sh-orange-sm); }
+.v10-tile--sage     { box-shadow: var(--sh-sage); }
+.v10-tile--mustard  { box-shadow: var(--sh-mustard); }
+.v10-tile--ink-fill {
+  background: var(--ink); color: var(--cream);
+  box-shadow: var(--sh-orange-sm);
+  display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+}
+.v10-tile__top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }
+.v10-tile__icon { font-size: 18px; }
+.v10-tile__icon--orange  { color: var(--orange); }
+.v10-tile__icon--sage    { color: var(--sage); }
+.v10-tile__icon--mustard { color: var(--mustard); }
+.v10-tile__num {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.v10-tile__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 900;
+  color: var(--ink);
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: -0.2px;
+}
+.v10-tile--ink-fill .v10-tile__title { color: var(--cream); }
+.v10-tile__meta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ─── PIN CARD (Coach's note) ─────────────────────────── */
+.v10-pin {
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  padding: 10px 12px;
+  position: relative;
+  margin: 10px 0 var(--s-3);
+}
+.v10-pin__tab {
+  position: absolute;
+  top: -10px;
+  left: 10px;
+  background: var(--ink);
+  color: var(--cream);
+  padding: 3px 10px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.v10-pin__body {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 13.5px;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-top: 6px;
+}
+.v10-pin__hl {
+  background: linear-gradient(180deg, transparent 60%, var(--highlight) 60%, var(--highlight) 92%, transparent 92%);
+  padding: 0 2px;
+}
+.v10-pin__strong {
+  color: var(--orange);
+  font-style: normal;
+  font-weight: 700;
+}
+.v10-pin__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 6px;
+}
+.v10-pin__sig {
+  font-family: var(--font-display);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  color: var(--sage);
+  text-transform: uppercase;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ─── CTA BUTTON ──────────────────────────────────────── */
+.v10-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  background: var(--ink);
+  color: var(--cream);
+  border: none;
+  padding: 14px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: var(--sh-orange);
+  text-decoration: none;
+  transition: filter var(--t-fast), transform var(--t-fast);
+}
+.v10-cta:hover  { filter: brightness(1.06); }
+.v10-cta:active { transform: translate(1px, 1px); box-shadow: 2px 2px 0 var(--orange); }
+.v10-cta--orange { background: var(--orange); color: var(--cream); box-shadow: 3px 3px 0 var(--ink); }
+.v10-cta--sage   { background: var(--sage);   color: var(--cream); box-shadow: 3px 3px 0 var(--ink); }
+.v10-cta--mustard{ background: var(--mustard); color: var(--ink);  box-shadow: 3px 3px 0 var(--ink); }
+.v10-cta--secondary { background: transparent; color: var(--ink); border: 1.5px solid var(--ink); box-shadow: none; }
+
+/* ─── BOTTOM NAV with sliding accent pill ────────────── */
+.v10-nav {
+  position: fixed;
+  bottom: max(8px, var(--safe-bottom));
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 28px);
+  max-width: 452px;
+  background: var(--ink);
+  padding: 6px 4px;
+  display: flex;
+  justify-content: space-around;
+  z-index: 50;
+  box-shadow: var(--sh-orange-sm);
+}
+
+/* The sliding accent pill (rendered first, sits behind tabs) */
+.v10-nav__pill {
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 4px;
+  width: 20%;        /* set by JS to 100/N */
+  background-color: var(--orange);
+  /* Transition only the slide — color flips instantly when the screen changes */
+  transition: transform 240ms cubic-bezier(.4, 0, .2, 1);
+  z-index: 0;
+  pointer-events: none;
+}
+[data-screen="track"] .v10-nav__pill { background-color: var(--sage); }
+[data-screen="train"] .v10-nav__pill { background-color: var(--mustard); }
+[data-screen="coach"] .v10-nav__pill { background-color: var(--cream); }
+[data-screen="me"]    .v10-nav__pill { background-color: var(--cream); }
+
+.v10-nav__item {
+  position: relative;
+  z-index: 1;
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  color: var(--cream);
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 8px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 200ms ease;
+}
+.v10-nav__item i {
+  font-size: 14px;
+  transition: transform 200ms cubic-bezier(.4, 0, .2, 1);
+}
+.v10-nav__item.is-active { color: var(--ink); font-weight: 800; }
+.v10-nav__item.is-active i { font-size: 16px; transform: scale(1.06); }
+
+[data-screen="track"] .v10-nav__item.is-active { color: var(--cream); }
+[data-screen="train"] .v10-nav__item.is-active { color: var(--ink); }
+[data-screen="coach"] .v10-nav__item.is-active { color: var(--ink); }
+[data-screen="me"]    .v10-nav__item.is-active { color: var(--ink); }
+
+/* Tap micro-bounce — happens on press */
+.v10-nav__item:active i { animation: v10IconBounce 220ms cubic-bezier(.4, 0, .2, 1); }
+@keyframes v10IconBounce {
+  0%   { transform: scale(1); }
+  45%  { transform: scale(1.28); }
+  100% { transform: scale(1.06); }
+}
+
+/* ─── PARQUET WOOD COURT ──────────────────────────────── */
+.v10-court {
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, transparent 39px, var(--wood-seam) 39px, var(--wood-seam) 40px),
+    repeating-linear-gradient(0deg,  transparent 0, transparent 79px, var(--wood-row) 79px, var(--wood-row) 80px),
+    repeating-linear-gradient(0deg,  var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px);
+  color: var(--cream);
+  border: 1.5px solid var(--ink);
+  padding: 12px 14px;
+  display: block;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: var(--s-3);
+  box-shadow: var(--sh-ink);
+}
+.v10-court__eyebrow {
+  color: rgba(251,245,232,0.95);
+  text-shadow: 0 1px 2px rgba(70,40,15,0.4);
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* ─── SUB-NAV CHIPS (Home Today/Log/Calendar etc.) ─────── */
+.v10-chips {
+  display: flex;
+  gap: 6px;
+  margin-bottom: var(--s-3);
+}
+.v10-chip {
+  flex: 1;
+  background: var(--cream);
+  border: 1.5px solid var(--ink);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 8px 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: background var(--t-fast);
+}
+.v10-chip.is-active { background: var(--ink); color: var(--cream); }
+
+/* ─── ACTIVITY ROW (e.g. session list) ────────────────── */
+.v10-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--cream);
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.v10-row__num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  min-width: 24px;
+}
+.v10-row__main { flex: 1; min-width: 0; }
+.v10-row__title {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--ink);
+  line-height: 1.1;
+  text-transform: uppercase;
+}
+.v10-row__sub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+/* ════════════════════════════════════════════════════════
+   CAMERA HUD — v10 chrome over the real ShotTrackingScreen
+   When body.v10-cam-active is set, hide the legacy debug HUD
+   + stat row + bug toggle, and overlay our own counters/court.
+   The video + canvas (model overlays) stay visible underneath.
+   ════════════════════════════════════════════════════════ */
+
+/* Hide noisy debug chrome the user doesn't need */
+body.v10-cam-active #st-debug-panel,
+body.v10-cam-active #st-debug-toggle,
+body.v10-cam-active .st-top-bar,
+body.v10-cam-active #st-status-badge,
+body.v10-cam-active #st-zone-badge,
+body.v10-cam-active #st-summary,
+body.v10-cam-active .st-summary-overlay,
+body.v10-cam-active #st-rim-indicator { display: none !important; }
+
+/* Keep END SESSION button visible but restyle to v10 */
+body.v10-cam-active #st-stop-btn {
+  font-family: var(--font-display);
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  background: var(--orange);
+  color: var(--cream);
+  border: 1.5px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  border-radius: 0;
+  padding: 12px 18px;
+}
+body.v10-cam-active .st-stop-icon { background: var(--cream) !important; }
+body.v10-cam-active .st-stop-text { color: var(--cream) !important; }
+body.v10-cam-active .st-bottom-bar { padding-bottom: calc(14px + var(--safe-bottom)); }
+
+/* ── v10 floating chrome (sibling of #shot-tracking-screen on body) ──
+   #shot-tracking-screen has z-index: 200002 — chrome MUST sit above. */
+#v10-cam-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 250000;
+}
+#v10-cam-layer > * { pointer-events: auto; }
+
+.v10-cam-counter {
+  position: fixed;
+  top: calc(var(--safe-top) + 14px);
+  right: 14px;
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--orange);
+  padding: 10px 12px;
+  min-width: 108px;
+  text-align: center;
+  z-index: 250001;
+  font-family: var(--font-display);
+}
+.v10-cam-counter__eyebrow {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.22em;
+  color: var(--orange);
+  margin-bottom: 4px;
+}
+.v10-cam-counter__num {
+  font-weight: 900;
+  font-size: 30px;
+  line-height: 0.9;
+  letter-spacing: -1px;
+  color: var(--ink);
+}
+.v10-cam-counter__sub {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  margin-top: 3px;
+}
+.v10-cam-counter__streak {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-weight: 900;
+  font-size: 13px;
+  color: var(--ink);
+}
+.v10-cam-counter__streak i { color: var(--orange); font-size: 14px; }
+
+.v10-cam-mini {
+  position: fixed;
+  right: 14px;
+  bottom: calc(96px + var(--safe-bottom));   /* clear of END SESSION button */
+  /* True half-court ratio: viewBox 500×350 → keep aspect-correct in 168×118 */
+  width: 168px;
+  height: 118px;
+  padding: 4px;
+  background-color: var(--wood);
+  background-image:
+    repeating-linear-gradient(90deg, transparent 0, transparent 39px, var(--wood-seam) 39px, var(--wood-seam) 40px),
+    repeating-linear-gradient(0deg,  transparent 0, transparent 79px, var(--wood-row) 79px, var(--wood-row) 80px),
+    repeating-linear-gradient(0deg,  var(--wood-grain) 0px, var(--wood-grain) 1px, transparent 1px, transparent 4px);
+  border: 1.5px solid var(--ink);
+  box-shadow: 3px 3px 0 var(--ink);
+  z-index: 250001;
+  overflow: hidden;
+}
+.v10-cam-mini__eyebrow {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-display);
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  color: var(--cream);
+  text-shadow: 0 1px 2px rgba(70,40,15,0.55);
+  z-index: 2;
+}
+.v10-cam-mini__eyebrow i { font-size: 10px; }
+.v10-cam-mini svg { padding-top: 12px; }
+
+/* Mini-court ripple when a shot dot lands */
+@keyframes v10MiniRipple {
+  0%   { transform: scale(0.4); opacity: 1; }
+  100% { transform: scale(4);   opacity: 0; }
+}
+
+/* v10 calibration banner — replaces canvas modal during preflight */
+.v10-cal-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(360px, calc(100% - 32px));
+  background: var(--cream);
+  border: 2px solid var(--ink);
+  box-shadow: 4px 4px 0 var(--orange);
+  padding: 22px 22px 18px;
+  z-index: 250002;
+  font-family: var(--font-display);
+  text-align: center;
+}
+.v10-cal-eyebrow {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.24em;
+  color: var(--orange);
+}
+.v10-cal-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ink);
+  letter-spacing: -0.5px;
+  margin-top: 2px;
+  line-height: 1;
+}
+.v10-cal-sub {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+  margin-bottom: 18px;
+}
+.v10-cal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--cream);
+  margin-bottom: 6px;
+  text-align: left;
+}
+.v10-cal-row i { font-size: 18px; color: var(--mustard); }
+.v10-cal-label {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: var(--ink);
+}
+.v10-cal-status {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--mustard);
+}
+.v10-cal-row.is-done { background: var(--sage); color: var(--cream); }
+.v10-cal-row.is-done i { color: var(--cream); }
+.v10-cal-row.is-done .v10-cal-label { color: var(--cream); }
+.v10-cal-row.is-done .v10-cal-status { color: var(--cream); }
+
+/* ─── ANIMATIONS — page choreography + streak flicker ── */
+
+/* Staggered section reveal on tab switch (class added by app.go).
+   Each direct child of #app rises in sequence — the page composes
+   itself like a magazine spread being laid down, 40ms per section. */
+.v10-tab-enter > * { animation: v10RiseIn 340ms var(--ease-out-expo) both; }
+.v10-tab-enter > *:nth-child(1) { animation-delay: 0ms; }
+.v10-tab-enter > *:nth-child(2) { animation-delay: 40ms; }
+.v10-tab-enter > *:nth-child(3) { animation-delay: 80ms; }
+.v10-tab-enter > *:nth-child(4) { animation-delay: 120ms; }
+.v10-tab-enter > *:nth-child(5) { animation-delay: 160ms; }
+.v10-tab-enter > *:nth-child(6) { animation-delay: 200ms; }
+.v10-tab-enter > *:nth-child(7) { animation-delay: 240ms; }
+.v10-tab-enter > *:nth-child(8) { animation-delay: 280ms; }
+.v10-tab-enter > *:nth-child(n+9) { animation-delay: 310ms; }
+@keyframes v10RiseIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+/* Heroes settle with a spring so the signature tilt lands with weight */
+.v10-tab-enter .v10-hero { animation: v10HeroSettle 480ms var(--ease-spring) both; }
+@keyframes v10HeroSettle {
+  from { opacity: 0; transform: rotate(-1.6deg) translateY(12px) scale(0.985); }
+  to   { opacity: 1; transform: rotate(-0.5deg) translateY(0) scale(1); }
+}
+
+/* Streak fire flicker — applied via iconExtra: 'v10-flicker' on bento cell */
+.v10-flicker {
+  animation: v10Flicker 1.6s ease-in-out infinite;
+  transform-origin: center 60%;
+  display: inline-block;
+}
+@keyframes v10Flicker {
+  0%, 100% { transform: scale(1)    rotate(-2deg); opacity: 0.96; }
+  20%      { transform: scale(1.06) rotate(2deg);  opacity: 1; }
+  45%      { transform: scale(0.97) rotate(-1deg); opacity: 0.92; }
+  70%      { transform: scale(1.04) rotate(3deg);  opacity: 1; }
+}
+
+/* Respect users who ask for less motion (iOS Accessibility setting) */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ─── (original .v10-row__right rules continue) ─────── */
+.v10-row__right {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--orange);
+  transition: transform var(--t-fast);
+}
+
+/* ═══════════════════════════════════════════════════════
+   v10.5 — WOW LAYER
+   Micro-interactions, basketball motion language, and
+   celebration pieces. Everything transform/opacity only.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── UNIVERSAL PRESS FEEDBACK (print-block "stamp") ────
+   Tappables press INTO the paper: tiny translate toward the
+   shadow + scale, 80ms in, spring back on release. */
+.v10-tile, .v10-row, .v10-chip, .v10-cta,
+.v10-pill__avatar, .v10-bento__cell, .v10-pin {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.v10-tile   { transition: transform 90ms var(--ease-in-out), box-shadow 90ms var(--ease-in-out); }
+.v10-tile:active  { transform: scale(0.965) !important; }
+.v10-row    { transition: transform 90ms var(--ease-in-out); }
+.v10-row:active   { transform: translate(1px, 1px) scale(0.988); }
+.v10-row:active .v10-row__right { transform: translateX(3px); }
+.v10-chip   { transition: background var(--t-fast), transform 90ms var(--ease-in-out); }
+.v10-chip:active  { transform: scale(0.94); }
+.v10-chip.is-active { animation: v10ChipPop 260ms var(--ease-spring); }
+@keyframes v10ChipPop {
+  0% { transform: scale(0.92); } 100% { transform: scale(1); }
+}
+.v10-pill__avatar { transition: transform 120ms var(--ease-spring); }
+.v10-pill__avatar:active { transform: scale(0.9) rotate(-4deg); }
+
+/* Keyboard / switch-control focus — offset ring in action orange */
+:focus-visible { outline: 2.5px solid var(--orange); outline-offset: 2px; }
+
+/* ── CTA: highlight sweep + icon dribble ───────────────
+   A skewed cream bar sweeps across on press (press-quality
+   feedback on mobile, hover on desktop); the leading icon
+   does one small dribble. */
+.v10-cta { position: relative; overflow: hidden; }
+.v10-cta::after {
+  content: '';
+  position: absolute;
+  top: 0; bottom: 0; left: -30%;
+  width: 24%;
+  background: rgba(251, 245, 232, 0.18);
+  transform: skewX(-18deg) translateX(-60px);
+  pointer-events: none;
+}
+.v10-cta:hover::after, .v10-cta:active::after {
+  animation: v10Sweep 550ms var(--ease-out-expo);
+}
+@keyframes v10Sweep {
+  from { transform: skewX(-18deg) translateX(-60px); }
+  to   { transform: skewX(-18deg) translateX(620%); }
+}
+.v10-cta i { transition: transform 150ms var(--ease-spring); }
+.v10-cta:active i { animation: v10Dribble 300ms var(--ease-in-out); }
+@keyframes v10Dribble {
+  0%   { transform: translateY(0); }
+  45%  { transform: translateY(3px) scaleY(0.92); }
+  100% { transform: translateY(0); }
+}
+
+/* ── HERO: halftone print corner ───────────────────────
+   Risograph halftone cluster bleeding off the top-right —
+   the "ink got heavy here" print artifact. */
+.v10-hero { position: relative; overflow: hidden; }
+.v10-hero::after {
+  content: '';
+  position: absolute;
+  right: -18px; top: -18px;
+  width: 84px; height: 84px;
+  background-image: radial-gradient(rgba(251,245,232,0.32) 1.4px, transparent 1.4px);
+  background-size: 7px 7px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+.v10-hero--mustard::after {
+  background-image: radial-gradient(rgba(10,40,80,0.18) 1.4px, transparent 1.4px);
+}
+
+/* ── NAV: springier pill + ball-roll on the active icon ── */
+.v10-nav__pill {
+  transition: transform 340ms var(--ease-spring);
+}
+.v10-nav__item.is-active i { animation: v10IconRoll 420ms var(--ease-spring); }
+@keyframes v10IconRoll {
+  from { transform: scale(0.8) rotate(-22deg); }
+  to   { transform: scale(1.06) rotate(0deg); }
+}
+
+/* ── LOGO: ball rolls in on every page compose ───────── */
+.v10-pill__logo svg { animation: v10BallRollIn 700ms 120ms var(--ease-out-expo) both; }
+@keyframes v10BallRollIn {
+  from { transform: rotate(-150deg) scale(0.7); opacity: 0; }
+  to   { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+
+/* ── CSS BASKETBALL (print-style glyph) ────────────────
+   Orange ball, ink seams: horizontal + vertical line via
+   layered gradients, side arcs via ::before/::after. */
+.v10-ball {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  background:
+    linear-gradient(var(--ink), var(--ink)) center / 100% 1.5px no-repeat,
+    linear-gradient(var(--ink), var(--ink)) center / 1.5px 100% no-repeat,
+    var(--orange);
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.v10-ball::before, .v10-ball::after {
+  content: '';
+  position: absolute;
+  width: 90%; height: 170%;
+  top: -35%;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+}
+.v10-ball::before { left: -55%; }
+.v10-ball::after  { right: -55%; }
+
+/* ── BOUNCING-BALL LOADER (squash & stretch + shadow) ── */
+.v10-ball-loader {
+  position: relative;
+  width: 64px; height: 60px;
+  margin: 0 auto;
+}
+.v10-ball-loader .v10-ball {
+  position: absolute;
+  left: 50%; top: 0;
+  width: 26px; height: 26px;
+  margin-left: -13px;
+  animation: v10BallBounce 640ms cubic-bezier(0.35, 0, 0.65, 1) infinite alternate;
+}
+.v10-ball-loader::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 50%;
+  width: 32px; height: 6px;
+  border-radius: 50%;
+  background: rgba(10, 40, 80, 0.28);
+  transform: translateX(-50%) scale(0.5);
+  animation: v10BallShadow 640ms cubic-bezier(0.35, 0, 0.65, 1) infinite alternate;
+}
+@keyframes v10BallBounce {
+  0%   { transform: translateY(0) scale(1, 1); }
+  88%  { transform: translateY(27px) scale(1, 1); }
+  100% { transform: translateY(29px) scale(1.18, 0.8); }
+}
+@keyframes v10BallShadow {
+  0%   { transform: translateX(-50%) scale(0.5);  opacity: 0.3; }
+  100% { transform: translateX(-50%) scale(1.05); opacity: 0.55; }
+}
+
+/* ── CONFETTI (post-session celebration, JS-driven) ──── */
+.v10-confetti-layer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 400000;
+  overflow: hidden;
+}
+.v10-confetti-piece {
+  position: absolute;
+  top: -4vh;
+  width: 8px; height: 12px;
+  will-change: transform, opacity;
+  /* Per-piece drift/spin via CSS vars set inline by V10UI.confetti */
+  animation: v10ConfettiFall var(--dur, 1200ms) cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+@keyframes v10ConfettiFall {
+  0%   { transform: translate(0, 0) rotate(var(--r0, 0deg)); opacity: 1; }
+  78%  { opacity: 1; }
+  100% { transform: translate(var(--dx, 0vw), 114vh) rotate(var(--r1, 360deg)); opacity: 0; }
+}
+
+/* ── SCORE POP — number lands with a punch (JS re-adds) ── */
+.v10-score-pop { animation: v10ScorePop 340ms var(--ease-spring); display: inline-block; }
+@keyframes v10ScorePop {
+  0%   { transform: scale(1.28); }
+  100% { transform: scale(1); }
+}
+
+/* ── RIBBON: mustard tip-off dot between title and meta ── */
+.v10-ribbon { position: relative; }
+.v10-ribbon::after {
+  content: '';
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 5px; height: 5px;
+  margin: -2.5px 0 0 -2.5px;
+  border-radius: 50%;
+  background: var(--mustard);
+  opacity: 0.85;
+}

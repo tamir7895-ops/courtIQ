@@ -304,7 +304,14 @@
     // onFrame; we draw the video with ball circles, the measured ring
     // line/span, player boxes, and pop MADE/MISS the moment each attempt
     // window closes (same classifyRange math as the final results).
-    var liveCanvas = h('canvas', { style: { width: '100%', display: 'block', borderRadius: '12px', border: '3px solid rgba(255,255,255,0.22)', background: '#000' } });
+    // Both max constraints so PORTRAIT videos stay inside the viewport
+    // (canvas keeps its intrinsic aspect; landscape unchanged at 560px).
+    var liveCanvas = h('canvas', { style: {
+      width: 'auto', height: 'auto', display: 'block',
+      maxWidth: 'min(92vw, 560px)', maxHeight: '44vh',
+      margin: '0 auto',
+      borderRadius: '12px', border: '3px solid rgba(255,255,255,0.22)', background: '#000'
+    } });
     liveCanvas.width = 640; liveCanvas.height = 360;
     var flashEl = h('div', {
       style: {
@@ -314,9 +321,13 @@
         opacity: '0', transition: 'opacity .25s ease', pointerEvents: 'none'
       }
     });
-    var liveWrap = h('div', { style: { position: 'relative', width: 'min(92vw, 560px)', margin: '12px 0 2px' } }, [liveCanvas, flashEl]);
+    var liveWrap = h('div', { style: { position: 'relative', maxWidth: 'min(92vw, 560px)', margin: '12px 0 2px' } }, [liveCanvas, flashEl]);
     var dotsEl = h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', margin: '10px 0 2px', minHeight: '13px' } });
     var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', opacity: '0.85', minHeight: '15px' }, text: '' });
+
+    // Bouncing basketball while models spin up; hides once frames flow
+    var loaderEl = h('div', { class: 'v10-ball-loader', style: { marginBottom: '6px' } },
+      [h('span', { class: 'v10-ball' })]);
 
     var overlay = h('div', {
       style: {
@@ -324,6 +335,7 @@
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '22px', textAlign: 'center'
       }
     }, [
+      loaderEl,
       h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '900', letterSpacing: '0.06em' }, text: 'ANALYZING VIDEO' }),
       liveWrap,
       dotsEl,
@@ -338,6 +350,7 @@
     var lctx = liveCanvas.getContext('2d');
     var lastShotCount = 0, lastShotSig = '', flashTimer = null, aspectSet = false;
     function drawLive(fd) {
+      if (loaderEl.style.display !== 'none') loaderEl.style.display = 'none';
       var W = liveCanvas.width, H = liveCanvas.height;
       if (!aspectSet && fd.video.videoWidth > 0) {
         liveCanvas.height = Math.round(640 * fd.video.videoHeight / fd.video.videoWidth);
