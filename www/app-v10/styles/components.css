@@ -979,15 +979,125 @@ body.v10-cam-active .st-bottom-bar { padding-bottom: calc(14px + var(--safe-bott
   100% { transform: scale(1); }
 }
 
-/* ── RIBBON: mustard tip-off dot between title and meta ── */
+/* ── RIBBON: center-court circle between title and meta ── */
 .v10-ribbon { position: relative; }
 .v10-ribbon::after {
   content: '';
   position: absolute;
   left: 50%; top: 50%;
-  width: 5px; height: 5px;
-  margin: -2.5px 0 0 -2.5px;
+  width: 10px; height: 10px;
+  margin: -5px 0 0 -5px;
   border-radius: 50%;
-  background: var(--mustard);
-  opacity: 0.85;
+  border: 1.5px solid var(--mustard);
+  background:
+    radial-gradient(circle, var(--orange) 0 2px, transparent 2.2px);
 }
+
+/* ═══════════════════════════════════════════════════════
+   v10.6 — COLOR & COURT LAYER
+   More ink on the page: riso color accents everywhere small,
+   and the court itself drawn into the design. All decorative
+   pieces keep AA contrast on functional text.
+   ═══════════════════════════════════════════════════════ */
+
+/* ── COURT WATERMARK on the paper itself ────────────────
+   Faint half-court plan (key, FT circle, 3PT arc, center
+   circle) printed under the content like a play diagram. */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 480 760' fill='none' stroke='%230A2850' stroke-width='2.5'%3E%3Ccircle cx='240' cy='40' r='86'/%3E%3Ccircle cx='240' cy='40' r='10'/%3E%3Cpath d='M 20 760 L 20 480 Q 240 300 460 480 L 460 760'/%3E%3Crect x='168' y='560' width='144' height='200'/%3E%3Ccircle cx='240' cy='560' r='62'/%3E%3Cpath d='M 200 726 L 280 726' stroke-width='5'/%3E%3C/svg%3E")
+    center bottom / min(480px, 100vw) auto no-repeat;
+  opacity: 0.055;
+}
+
+/* ── HEADER PILL: five-ink spine stripe + net hint ─────── */
+.v10-pill { position: relative; }
+.v10-pill::after {
+  content: '';
+  position: absolute;
+  left: -2px; right: -2px; bottom: -6px;
+  height: 4px;
+  background: linear-gradient(90deg,
+    var(--orange) 0 20%, var(--mustard) 20% 40%, var(--sage) 40% 60%,
+    var(--ink) 60% 80%, var(--highlight) 80% 100%);
+  border: 1px solid var(--ink);
+}
+
+/* ── HERO: ball-flight arc printed across the card ─────
+   Dashed trajectory rising toward the stat box, with the
+   ball mid-flight — the magazine "shot chart" doodle. */
+.v10-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 340 120' fill='none'%3E%3Cpath d='M 8 112 Q 150 -28 316 84' stroke='%23FBF5E8' stroke-width='2.5' stroke-dasharray='2 9' stroke-linecap='round'/%3E%3Ccircle cx='236' cy='22' r='9' fill='%23FBF5E8' fill-opacity='0.28' stroke='%23FBF5E8' stroke-width='2'/%3E%3Cpath d='M 227 22 L 245 22 M 236 13 L 236 31' stroke='%23FBF5E8' stroke-width='1.6'/%3E%3C/svg%3E")
+    right 8px center / 78% auto no-repeat;
+  opacity: 0.4;
+}
+.v10-hero--mustard::before { opacity: 0.5; }
+
+/* ── BENTO: rotating ink bands on plain cells ──────────
+   Cells without a --variant get a colored press-bar on top
+   so no row of stats ever reads flat cream. */
+.v10-bento__cell:not([class*='--']) { border-top: 3.5px solid var(--orange); }
+.v10-bento__cell:not([class*='--']):nth-child(2n) { border-top-color: var(--sage); }
+.v10-bento__cell:not([class*='--']):nth-child(3n) { border-top-color: var(--mustard); }
+.v10-bento__cell:not([class*='--']):nth-child(4n) { border-top-color: var(--ink); }
+.v10-bento__cell:not([class*='--']) .v10-bento__icon { color: var(--orange); }
+.v10-bento__cell:not([class*='--']):nth-child(2n) .v10-bento__icon { color: var(--sage); }
+.v10-bento__cell:not([class*='--']):nth-child(3n) .v10-bento__icon { color: var(--mustard); }
+.v10-bento__cell:not([class*='--']):nth-child(4n) .v10-bento__icon { color: var(--ink); }
+
+/* ── RIBBON TITLE: highlighter marker sweep ───────────── */
+.v10-ribbon__hl {
+  background: linear-gradient(180deg, transparent 55%, var(--highlight) 55%, var(--highlight) 94%, transparent 94%);
+  padding: 0 3px;
+}
+
+/* ── CHIPS: mustard game-on active state ──────────────── */
+.v10-chip.is-active {
+  background: var(--mustard);
+  color: var(--ink);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+/* ── ROWS: numbered jersey badges (rotating inks) ──────── */
+.v10-row__num {
+  min-width: 26px;
+  width: 26px; height: 26px;
+  border: 1.5px solid var(--ink);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  background: var(--mustard);
+  color: var(--ink);
+}
+.v10-row:nth-child(3n+2) .v10-row__num { background: var(--sage); color: var(--cream); }
+.v10-row:nth-child(3n)   .v10-row__num { background: var(--ink);  color: var(--cream); }
+
+/* ── TILES: colored index-tab spines ───────────────────── */
+.v10-tile { border-left-width: 4px; }
+.v10-tile:nth-child(4n+1) { border-left-color: var(--orange); }
+.v10-tile:nth-child(4n+2) { border-left-color: var(--sage); }
+.v10-tile:nth-child(4n+3) { border-left-color: var(--mustard); }
+.v10-tile:nth-child(4n)   { border-left-color: var(--ink); }
+
+/* ── CTA: riso double-pass shadow (misregistration) ───── */
+.v10-cta { box-shadow: 3px 3px 0 var(--orange), 6px 6px 0 rgba(224, 168, 46, 0.5); }
+.v10-cta:active { box-shadow: 2px 2px 0 var(--orange), 4px 4px 0 rgba(224, 168, 46, 0.5); }
+.v10-cta--orange  { box-shadow: 3px 3px 0 var(--ink), 6px 6px 0 rgba(224, 168, 46, 0.55); }
+.v10-cta--orange:active { box-shadow: 2px 2px 0 var(--ink), 4px 4px 0 rgba(224, 168, 46, 0.55); }
+.v10-cta--sage    { box-shadow: 3px 3px 0 var(--ink), 6px 6px 0 rgba(255, 79, 31, 0.35); }
+.v10-cta--mustard { box-shadow: 3px 3px 0 var(--ink), 6px 6px 0 rgba(255, 79, 31, 0.35); }
+
+/* ── PIN CARD: highlighter sticky shadow ──────────────── */
+.v10-pin { box-shadow: 3px 3px 0 var(--highlight); }

@@ -132,7 +132,7 @@
     return h('div', { class: 'v10-ribbon' }, [
       h('div', { class: 'v10-ribbon__title' }, [
         opts.icon ? icon(opts.icon) : null,
-        h('span', { text: opts.title || '' })
+        h('span', { class: 'v10-ribbon__hl', text: opts.title || '' })
       ]),
       opts.meta ? h('span', { class: 'v10-ribbon__meta', text: opts.meta }) : null
     ]);
