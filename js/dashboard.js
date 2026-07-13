@@ -151,7 +151,7 @@
 
     // Listen for session expiry
     sb.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_OUT' && !window.__PREVIEW_MODE__) {
         window.location.href = 'index.html';
       }
     });
@@ -232,7 +232,7 @@
 
       // ── Onboarding check ─────────────────────────────────
       const onboardingDone = localStorage.getItem('courtiq-onboarding-complete');
-      if (!onboardingDone && typeof Onboarding !== 'undefined') {
+      if (!onboardingDone && !window.__PREVIEW_MODE__ && typeof Onboarding !== 'undefined') {
         Onboarding.launch();
         return;
       }
@@ -1007,7 +1007,10 @@
   /* ── helper: get auth header for API calls ── */
   async function getAuthHeaders() {
     const { data: { session } } = await sb.auth.getSession();
-    if (!session) { window.location.href = 'index.html'; return {}; }
+    if (!session) {
+      if (!window.__PREVIEW_MODE__) window.location.href = 'index.html';
+      return {};
+    }
     return {
       'Content-Type': 'application/json',
       'Authorization': 'Bearer ' + session.access_token,

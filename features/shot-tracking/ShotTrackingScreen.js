@@ -44,10 +44,21 @@
   // Time after the first auto-lock before the state machine is allowed
   // to count shots. The rim is still drifting toward its true position
   // during this window.
-  var RIM_STABILIZATION_MS  = 2000;
+  // L31: 2000 → 1200. With the orange-snapped (colorRefined) cluster lock
+  // the position is already exact at lock time — eval locks landed within
+  // 0.01 of ground truth in <1s. The 2s window blinded the engine to
+  // shots in the first ~2.5s of every session (eval v3 lost its opening
+  // put-back to it).
+  var RIM_STABILIZATION_MS  = 1200;
   // No hoop detection for this long → rim is "lost", state machine is
   // re-gated until detections resume. ~10 frames at 5Hz.
   var HOOP_LOST_MS          = 2000;
+  // L32: with camera-motion compensation the locked rim stays valid
+  // through detection droughts (pans, occlusion), so "lost" no longer
+  // gates counting immediately — only a HARD drought does. Eval v1 spent
+  // ~37% of the video gated by the old 2s rule and missed every shot
+  // inside those windows.
+  var HOOP_LOST_HARD_MS     = 5000;
   // No auto-lock within this window → reveal the manual-tap fallback UI.
   var MANUAL_FALLBACK_MS    = 5000;
 
@@ -75,6 +86,25 @@
   var savedFallbackUsed   = false;  // true when watchdog auto-promoted saved calibration to locked
   var lockToastT          = null;   // setTimeout for "Hoop locked!" toast → "Tracking" transition
   var firstColorRefinedAt = 0;      // L19: timestamp of first color-refined hoop lock → freeze threshold
+
+  // Phase 8: latest precise rim contour (orange polylines, normalized
+  // coords). Updated on every colorRefined detection, consumed by the
+  // draw loop. MUST be module-scoped — was declared inside
+  // enterTrackingPhase, but draw() lives in startOverlayLoop (a
+  // sibling function), so every rAF frame threw
+  // "latestRimContour is not defined" (p9r: 519 exceptions per session
+  // in browser console). That killed EVERY overlay after the throw
+  // (rim polyline, ball dot, pose skeleton). Root cause of "עדיין
+  // לא רואים כלום".
+  var latestRimContour     = null;
+  var latestRimContourAt   = 0;
+  var RIM_CONTOUR_FRESH_MS = 2000;
+  // p10b: the rim center this contour was captured against. The draw loop
+  // re-anchors the cached contour to the CURRENT (EMA-tracked) rim center
+  // every frame, so the green silhouette stays glued to the rim as it
+  // moves — persistent at the 60fps rAF cadence instead of flickering to
+  // the plain ellipse whenever an orange refinement is a frame late.
+  var latestRimContourAnchor = null;
 
   // 3PT calibration state
   var threePtPoint = null;    // { x, y } normalized — user-tapped 3PT line point
@@ -314,6 +344,17 @@
     streak = 0;
     maxStreak = 0;
 
+    // L34: PRELOAD the YOLOX model the instant the screen opens, so the
+    // heavy ONNX + WebGPU/WASM warmup (a few seconds on first run with the
+    // webgpu bundle) overlaps with the user granting camera / picking a
+    // video / the rim calibrating — instead of blocking the first shots.
+    // Reported symptom: "until the model loaded the video ran a bit and
+    // missed a few shots." init() is deduped (L34) so the later
+    // startTracking() init() call just rides this same load.
+    if (window.ShotDetectionEngine && typeof window.ShotDetectionEngine.preloadModel === 'function') {
+      try { window.ShotDetectionEngine.preloadModel(); } catch (e) { /* non-fatal */ }
+    }
+
     // Reset rim/3PT state
     rimCenter = null;
     rimLocked = false;
@@ -357,6 +398,13 @@
     els.summary.classList.remove('active');
 
     startCamera();
+
+    // Phase 9d: start the overlay loop IMMEDIATELY so the diagnostic
+    // HUD is visible even if engine.init() fails / delays. Previously
+    // startOverlayLoop was only invoked from inside the Promise.all
+    // callback (~2s after openScreen), which meant nothing drew until
+    // then — and if the promise rejected, the loop never started at all.
+    if (!overlayAnimFrame) startOverlayLoop();
 
     // Go straight to tracking phase (auto-detect hoop via YOLOX)
     setTimeout(function () {
@@ -538,8 +586,19 @@
       canvasEl.style.width  = dW + 'px';
       canvasEl.style.height = dH + 'px';
     } else {
-      canvasEl.width = containerW || vidW;
-      canvasEl.height = containerH || vidH;
+      // Phase 9d: fallback branch was setting width/height but NOT
+      // position/left/top. With CSS `.st-video-wrap canvas { position:
+      // absolute }` and no inline offsets, the canvas defaulted to its
+      // static-flow position — placed BELOW the 100%-tall video, which
+      // sent every overlay 100vh offscreen. That's why nothing rendered
+      // (not the rim contour, not the pose skeleton, not the ball dot,
+      // not even the diagnostic HUD) when the video was uploaded before
+      // its metadata loaded.
+      canvasEl.width  = containerW || vidW || 400;
+      canvasEl.height = containerH || vidH || 300;
+      canvasEl.style.position = 'absolute';
+      canvasEl.style.left = '0';
+      canvasEl.style.top  = '0';
       canvasEl.style.width  = canvasEl.width + 'px';
       canvasEl.style.height = canvasEl.height + 'px';
     }
@@ -766,11 +825,25 @@
     engine.onBallUpdate   = onBallUpdate;
     engine.onStatusChange = onDetectionStatus;
     engine.onDebugFrame   = function (data) { debugData = data; };
+    // L37.4 (rim revert): L32 global-motion compensator REMOVED. It was an
+    // open-loop SAD shift integrated every tick with no resync, and on
+    // static-camera footage the sub-pixel noise integrated into a steady
+    // drift off the ring. The orange-refined EMA below (L11.2) re-snaps
+    // to the actual ring every YOLOX detection, so drift correction is
+    // already covered for any frame where the hoop is detected.
+    engine.onGlobalMotion = null;
 
     // Auto-detect hoop from YOLOX + continuous re-anchoring
     // Smoothing buffer: accumulate detections before locking/re-anchoring
     var hoopBuffer = [];
     var HOOP_BUFFER_SIZE = 5;
+
+    // (p9r) latestRimContour / latestRimContourAt / RIM_CONTOUR_FRESH_MS
+    // were hoisted to the module scope — see the block near the top of
+    // the file. Reset here for a clean session.
+    latestRimContour   = null;
+    latestRimContourAt = 0;
+    latestRimContourAnchor = null;
 
     // The detected hoop bbox: with the v71 2-class model the hoop
     // annotations frequently covered the full backboard, so a 0.25
@@ -784,22 +857,29 @@
     // crossing fired below the actual rim. 0.10 keeps a small downward
     // bias (so we never lock ABOVE the rim) without overshooting.
     //
-    // L11: Aspect-ratio-aware offset. Different setups produce different
-    // YOLOX bboxes:
-    //   • Outdoor rim with no backboard visible → bbox tight on the orange
-    //     ring, aspect ratio 3.5+ (wide-flat). Offset 0.10 lands ON the rim.
-    //   • Indoor gym with backboard included → bbox covers backboard+ring,
-    //     aspect ratio 1.5-2 (squarer). Offset 0.10 lands ABOVE the rim
-    //     (in the middle of the backboard) — user-visible bug: makes get
-    //     classified as miss because the trajectory crosses a phantom rim
-    //     line above the real one.
-    // Linear interpolation between aspect 1.5 (offset 0.40) and 3.5 (offset
-    // 0.10). Clamped at both ends.
+    // L11: Aspect-ratio-aware offset (fraction of bbox HEIGHT added to bbox
+    // CENTER cy; negative = rim is ABOVE the box center).
+    //
+    // L30 rewrite — measured against frame-level ground truth on eval
+    // footage (scratch/gt/ground_truth.json):
+    //   • Square-ish bbox (aspect ≤1.3) = rim+NET boxed together. The net
+    //     hangs BELOW the ring, so the ring sits at the TOP edge of the box:
+    //     measured rim line at 0.061 of box height from the top (n=289,
+    //     IQR 0.055-0.067) → offset from center = 0.061 - 0.5 ≈ -0.44.
+    //     The old mapping returned +0.40 here — the OPPOSITE direction,
+    //     placing the rim deep inside the net. (That branch was tuned for
+    //     v71-era backboard+rim boxes, which the v6_polished training set
+    //     no longer produces — Phase G dropped backboard-tagged hoops.)
+    //   • Wide-flat bbox (aspect ≥3.5) = rim-only, ring ≈ box center.
+    //     Offset +0.10 validated on a real device — keep.
+    // Linear interpolation between the two anchors. In practice the orange
+    // color refinement (colorRefined → offset 0) dominates; this mapping is
+    // the fallback for no-orange conditions (dark gyms, B&W footage).
     function computeRimOffsetFrac(bw, bh) {
       var aspect = bw / Math.max(0.001, bh);
       if (aspect >= 3.5) return 0.10;
-      if (aspect <= 1.5) return 0.40;
-      return 0.40 - (aspect - 1.5) * 0.15;
+      if (aspect <= 1.3) return -0.44;
+      return -0.44 + (aspect - 1.3) * (0.54 / 2.2);
     }
     // Kept for the warm-start path below (saved-calibration restore) which
     // doesn't have the live bbox dimensions. Effectively a fallback.
@@ -821,14 +901,35 @@
       lastHoopDetectAt = Date.now();
       lastHoopConfidence = hoop.score;
 
-      // Recovery from a previous "lost" period — re-enable counting
-      // immediately. The rim was already calibrated; brief occlusions
-      // (player crossing in front, etc.) shouldn't force re-stabilization.
+      // Phase 8: cache the precise contour when one accompanied this
+      // detection. The draw loop will read this and trace the rim as a
+      // closed polyline instead of falling back to the ellipse.
+      if (hoop.rimContour && hoop.rimContour.top && hoop.rimContour.bot) {
+        latestRimContour = hoop.rimContour;
+        latestRimContourAt = Date.now();
+        // p10b: remember the rim center this silhouette belongs to, so the
+        // draw loop can slide the cached contour to wherever the EMA rim
+        // is now (keeps the green outline glued to the rim between/through
+        // detection gaps and small camera motion).
+        latestRimContourAnchor = { x: hoop.cx, y: hoop.cy };
+      }
+
+      // L37.4 (rim revert): on recovery from a HOOP_LOST_MS=2s drought,
+      // always restart clustering from scratch. The previous L31 distance-
+      // based "re-lock if >0.06 else snap-back" was tightly coupled to the
+      // L19 freeze (recovery had to un-freeze AND decide whether to relock,
+      // dependent on the frozen value). Without the freeze, recovery is
+      // simple: the EMA below will re-converge from the next 3+ detections.
+      // 2s of no hoop detection is long enough that "camera definitely moved"
+      // is a better default than "trust the stale lock".
       if (hoopLost) {
         hoopLost = false;
         if (rimLocked && rimAutoMode) {
-          engine.setRimStabilized(true);
-          setAutoStatus('Tracking', 'tracking');
+          rimLocked = false;
+          hoopBuffer.length = 0;
+          firstColorRefinedAt = 0;
+          engine.setRimStabilized(false);
+          setAutoStatus('Re-locking…', 'searching');
         }
       }
 
@@ -839,8 +940,47 @@
       // we EMA on every accepted detection for smooth tracking. Buffer
       // is enlarged so the clustering pass has more data to work with.
       if (!rimLocked) {
-        hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score, colorRefined: !!hoop.colorRefined });
+        hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score, colorRefined: !!hoop.colorRefined, colorMass: hoop.colorMass || 0 });
         if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
+
+        // Phase 7: FAST PATH — if this detection is strongly orange-refined
+        // (≥ 15 orange pixels found, refined cy/cx/bw/bh come from the
+        // actual ring), lock IMMEDIATELY without waiting for 3 detections.
+        // The orange ring is unforgeable ground truth: nothing else in a
+        // basketball-court scene produces a thin saturated-orange band
+        // inside a YOLO hoop bbox. The 3-detection cluster requirement
+        // existed to filter out spurious YOLO detections that lack any
+        // colour signal; with a strong orange signal that filter is
+        // already satisfied by ONE good frame, and we save 0.5-1.5 s of
+        // calibration delay every session.
+        if (hoop.colorRefined && (hoop.colorMass || 0) >= 15) {
+          rimCenter = { x: hoop.cx, y: hoop.cy };
+          rimSize   = {
+            w: Math.min(Math.max(hoop.bw, 0.08), 0.25),
+            h: Math.min(Math.max(hoop.bh, 0.02), 0.15)
+          };
+          rimLocked   = true;
+          rimLockedAt = Date.now();
+          savedFallbackUsed = true;
+          firstColorRefinedAt = Date.now();
+          engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+          onDetectionStatus('detecting');
+          setAutoStatus('Hoop locked!', 'found');
+          if (rimStabilizationT) clearTimeout(rimStabilizationT);
+          rimStabilizationT = setTimeout(function () {
+            if (rimLocked && rimAutoMode && !hoopLost) {
+              engine.setRimStabilized(true);
+              setAutoStatus('Tracking', 'tracking');
+            }
+          }, RIM_STABILIZATION_MS);
+          saveCalibration();
+          console.log('[ShotTracker] FAST-lock (orange-refined, colorMass=' +
+            hoop.colorMass + ') at (' + rimCenter.x.toFixed(3) + ',' +
+            rimCenter.y.toFixed(3) + ') bw=' + rimSize.w.toFixed(3) +
+            ' bh=' + rimSize.h.toFixed(3));
+          return;
+        }
+
         if (hoopBuffer.length < 3) return;
 
         // ── Cluster detections ────────────────────────────────────
@@ -950,56 +1090,56 @@
         console.log('[ShotTracker] Auto-lock at (' + rimCenter.x.toFixed(3) + ',' + rimCenter.y.toFixed(3) +
           ') [bbox cy=' + avgCY.toFixed(3) + ', offset=' + lockOffsetFrac.toFixed(2) +
           ' (aspect=' + (avgBW / Math.max(0.001, avgBH)).toFixed(2) + ')' +
-          ', shift=+' + (avgBH * lockOffsetFrac).toFixed(3) +
+          ', shift=' + (avgBH * lockOffsetFrac >= 0 ? '+' : '') + (avgBH * lockOffsetFrac).toFixed(3) +
           '] from ' + hoopBuffer.length + ' detections');
         return;
       }
 
-      // Already locked + auto mode: continuous EMA on every detection.
+      // Already locked + auto mode: continuous EMA — but ONLY on
+      // color-refined detections (the orange-ring snap from L11.2).
       // FREEZE during active shot states — the ball can occlude the rim,
-      // shifting the bbox; updating mid-flight would skew the near_hoop
-      // zone the state machine is using to judge make/miss.
+      // shifting the YOLOX bbox; updating mid-flight would skew the
+      // near_hoop zone the state machine is using to judge make/miss.
       var st = engine._shotState;
       if (st === 'shot_started' || st === 'near_hoop') return;
 
-      // L19: FREEZE the rim entirely once we've had a stable color-refined
-      // lock. The rim doesn't move physically — every EMA update from a
-      // non-color-refined detection (e.g. YOLOX bbox on the backboard top
-      // instead of the orange ring) drifts the rim away from its true
-      // position. User-visible: starts perfectly locked, slides off the
-      // rim over the course of the session, misclassifies real makes.
-      if (!firstColorRefinedAt && hoop.colorRefined) {
-        firstColorRefinedAt = Date.now();
-      }
-      // If we've had at least 2s of color-refined locking, freeze updates
-      // entirely. Otherwise allow a very SLOW drift toward color-refined
-      // detections only.
-      if (firstColorRefinedAt && (Date.now() - firstColorRefinedAt) > 2000) {
-        return;
-      }
+      // L37.4 (rim revert): EMA ONLY on colorRefined detections. This is
+      // the one-line fix L19 was trying to be — non-color-refined YOLOX
+      // hits land on the backboard top or wherever the bbox happens to
+      // include and pull the lock away from the actual ring. With the
+      // orange-snap-only EMA, every accepted update is exact on the ring,
+      // so there's no drift to freeze against. L19's 2-second freeze +
+      // L32's open-loop pan compensator + L31's distance-based recovery
+      // were all symptoms of NOT applying this single filter here. Eval
+      // memory confirmed the orange snap lands within 0.01 of GT — the
+      // dominant signal is the snap, not the YOLOX center.
       if (!hoop.colorRefined) return;
 
-      // L11: live EMA also uses aspect-aware offset, so per-frame bbox
-      // shape changes (e.g. ball briefly inside the rim) tighten/loosen
-      // the anchor toward the real ring. L11.2: skip offset when the
-      // engine already snapped cy to the orange ring.
-      var emaOffsetFrac = hoop.colorRefined ? 0 : computeRimOffsetFrac(hoop.bw, hoop.bh);
-      var anchoredCYNew = hoop.cy + hoop.bh * emaOffsetFrac;
+      // Color-refined: cy is already snapped to the orange ring, so the
+      // aspect-aware offset is NOT applied (would push below the ring).
       var newW = Math.min(Math.max(hoop.bw, 0.08), 0.25);
       var newH = Math.min(Math.max(hoop.bh, 0.03), 0.15);
-      // L19: slower alpha for pre-freeze drift correction
-      var a = Math.min(RIM_EMA_ALPHA, 0.05);
+      var a = RIM_EMA_ALPHA;
       rimCenter.x = (1 - a) * rimCenter.x + a * hoop.cx;
-      rimCenter.y = (1 - a) * rimCenter.y + a * anchoredCYNew;
+      rimCenter.y = (1 - a) * rimCenter.y + a * hoop.cy;
       rimSize.w   = (1 - a) * rimSize.w   + a * newW;
       rimSize.h   = (1 - a) * rimSize.h   + a * newH;
       engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
     };
 
-    // Initialize adaptive learning system
-    var learningReady = window.AdaptiveLearning
+    // Initialize adaptive learning system. Phase 9d: swallow any
+    // AdaptiveLearning failure so it can NEVER take down the promise
+    // chain. Previously a throw in adaptiveLearning.init() would
+    // reject Promise.all below, which meant the `.then` never ran and
+    // `startOverlayLoop()` was never called — every overlay stayed
+    // blank because a completely unrelated subsystem died.
+    var learningReady = (window.AdaptiveLearning
       ? window.AdaptiveLearning.init()
-      : Promise.resolve();
+      : Promise.resolve()
+    ).catch(function (err) {
+      console.warn('[ShotTracker] AdaptiveLearning failed — ignoring:', err && err.message);
+      return null;
+    });
 
     // Initialize and start
     Promise.all([engine.init(), learningReady]).then(function (results) {
@@ -1240,20 +1380,49 @@
 
   function startOverlayLoop() {
     function draw() {
-      if (phase !== 'tracking') return;
+      // Phase 9c: DO NOT return before scheduling next frame — the loop
+      // previously died the moment phase != 'tracking' for one frame,
+      // and never restarted. That silenced the entire canvas overlay
+      // (rim contour, ball dot, pose skeleton) when phase glitched
+      // during video-file upload transitions.
       overlayAnimFrame = requestAnimationFrame(draw);
+
+      // Phase 9g: ensure canvas has SOME dimensions if not yet resized.
+      // This is the essential proof-of-life for the layer.
+      if (canvasEl && (canvasEl.width === 0 || canvasEl.height === 0)) {
+        var wrap0 = canvasEl.parentNode;
+        var fw0 = (wrap0 && wrap0.clientWidth) || 400;
+        var fh0 = (wrap0 && wrap0.clientHeight) || 300;
+        canvasEl.width = fw0;
+        canvasEl.height = fh0;
+        canvasEl.style.position = 'absolute';
+        canvasEl.style.left = '0';
+        canvasEl.style.top = '0';
+        canvasEl.style.width = fw0 + 'px';
+        canvasEl.style.height = fh0 + 'px';
+      }
+
+      if (phase !== 'tracking') return;
 
       // ── Auto-tracking watchdog ───────────────────────────────
       // Runs at the rAF cadence (~60Hz); both checks are time-based,
       // so the cost is just two timestamp comparisons per frame.
       var nowTs = Date.now();
       var engRef = window.ShotDetectionEngine;
-      // Hoop lost — gate the state machine until we see it again.
+      // Hoop lost — flag + status at 2s, but keep COUNTING alive: the
+      // L32 motion compensation keeps the locked rim riding the scene.
       if (rimLocked && rimAutoMode && lastHoopDetectAt > 0 && !hoopLost &&
           (nowTs - lastHoopDetectAt > HOOP_LOST_MS)) {
         hoopLost = true;
-        if (engRef) engRef.setRimStabilized(false);
         setAutoStatus('Searching for hoop...', 'lost');
+      }
+      // HARD drought — now the rim really might be gone (left the frame,
+      // scene change). Gate the state machine until detections resume.
+      if (rimLocked && rimAutoMode && hoopLost && lastHoopDetectAt > 0 &&
+          (nowTs - lastHoopDetectAt > HOOP_LOST_HARD_MS)) {
+        if (engRef && engRef._rimStabilized) {
+          engRef.setRimStabilized(false);
+        }
       }
       // Auto-fallback — YOLOX hasn't locked the rim within the window.
       // Two paths:
@@ -1288,6 +1457,33 @@
 
       canvasCtx.clearRect(0, 0, cw, ch);
 
+      // Phase 9c: PERMANENT diagnostic HUD in the top-left corner. Lets
+      // us see at a glance whether the canvas is drawing, whether the
+      // engine is emitting detections, and whether pose is ready — even
+      // when the "real" overlays haven't landed yet. If this bar
+      // disappears, the canvas overlay loop itself is dead. If it
+      // shows but rim/ball/pose stay blank, the engine callbacks are
+      // silent (real detection isn't happening).
+      try {
+        var engHUD = window.ShotDetectionEngine;
+        var poseReady = window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady();
+        var ballTxt = currentBall ? currentBall.source[0].toUpperCase() : '-';
+        var rimTxt  = rimLocked ? 'L' : (rimCenter ? 'W' : '-');
+        var running = engHUD && engHUD.isRunning ? 'ON' : 'off';
+        var hud = 'ENG:' + running +
+                  ' RIM:' + rimTxt +
+                  ' POSE:' + (poseReady ? 'RDY' : '-') +
+                  ' BALL:' + ballTxt;
+        canvasCtx.save();
+        canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+        canvasCtx.fillRect(6, 6, 220, 22);
+        canvasCtx.fillStyle = '#00ff88';
+        canvasCtx.font = 'bold 12px monospace';
+        canvasCtx.textBaseline = 'top';
+        canvasCtx.fillText(hud, 12, 10);
+        canvasCtx.restore();
+      } catch (hudErr) { /* never fail the loop */ }
+
       // Draw rim zone indicator (dashed ring)
       // States:
       //   - rimLocked false: dashed grey ring (warm-start / searching)
@@ -1321,16 +1517,58 @@
           canvasCtx.setLineDash([8, 6]);
         }
 
-        canvasCtx.beginPath();
-        canvasCtx.ellipse(rcx, rcy, rx, ry, 0, 0, Math.PI * 2);
-        canvasCtx.stroke();
+        // Phase 8 / p10b: trace the actual orange-ring silhouette as a
+        // closed polyline (top edge forward → bottom edge backward).
+        //
+        // p10b PERSISTENCE: the contour is drawn as long as the rim is
+        // LOCKED and we have ever captured one — NOT only while it is
+        // <2s "fresh". Requiring freshness made the green outline flicker
+        // to the plain ellipse every time an orange refinement was a
+        // frame late (the user asked for the green silhouette to be there
+        // every single frame, 60fps). To keep it accurate while it
+        // persists, each point is slid by (currentRimCenter − captureAnchor)
+        // so the cached silhouette rides the EMA rim through detection
+        // gaps and small camera motion instead of lagging at its old spot.
+        var haveContour =
+          rimLocked && latestRimContour &&
+          latestRimContour.top && latestRimContour.top.length >= 3;
+        // Offset that re-anchors the cached silhouette onto the live rim.
+        var cdx = 0, cdy = 0;
+        if (haveContour && latestRimContourAnchor && rimCenter) {
+          cdx = (rimCenter.x - latestRimContourAnchor.x) * cw;
+          cdy = (rimCenter.y - latestRimContourAnchor.y) * ch;
+        }
 
-        // Light fill (skip when in pulse — the halo provides the wash)
-        if (!inPulse) {
-          canvasCtx.fillStyle = rimLocked
-            ? 'rgba(245,166,35,0.06)'
-            : 'rgba(160,160,160,0.04)';
-          canvasCtx.fill();
+        if (haveContour) {
+          var topPts = latestRimContour.top;
+          var botPts = latestRimContour.bot;
+          canvasCtx.beginPath();
+          // Trace the upper edge left → right (re-anchored to live rim)
+          canvasCtx.moveTo(topPts[0].x * cw + cdx, topPts[0].y * ch + cdy);
+          for (var p = 1; p < topPts.length; p++) {
+            canvasCtx.lineTo(topPts[p].x * cw + cdx, topPts[p].y * ch + cdy);
+          }
+          // Trace the lower edge right → left to close the polyline
+          for (var q = botPts.length - 1; q >= 0; q--) {
+            canvasCtx.lineTo(botPts[q].x * cw + cdx, botPts[q].y * ch + cdy);
+          }
+          canvasCtx.closePath();
+          canvasCtx.stroke();
+          if (!inPulse) {
+            canvasCtx.fillStyle = 'rgba(245,166,35,0.08)';
+            canvasCtx.fill();
+          }
+        } else {
+          // Fallback: ellipse approximation from rim bbox.
+          canvasCtx.beginPath();
+          canvasCtx.ellipse(rcx, rcy, rx, ry, 0, 0, Math.PI * 2);
+          canvasCtx.stroke();
+          if (!inPulse) {
+            canvasCtx.fillStyle = rimLocked
+              ? 'rgba(245,166,35,0.06)'
+              : 'rgba(160,160,160,0.04)';
+            canvasCtx.fill();
+          }
         }
 
         // Expanding halo for the first 1.5s after lock — gives the user
@@ -1390,6 +1628,13 @@
       // Without the crop step the boxes drift on screen-recorded sources
       // that have UI chrome cropped out. Engine fields fall back to safe
       // defaults so older payloads (no crop info) still render reasonably.
+      //
+      // v10: surface preflight state on EVERY frame (not gated on debugMode)
+      // so the HTML-layer v10 calibration banner updates even if the user
+      // toggles the debug bug off. Engine emits onDebugFrame regardless.
+      if (debugData && document.body.classList.contains('v10-cam-active') && debugData.preflight) {
+        window.__lastPreflight = debugData.preflight;
+      }
       if (debugMode && debugData) {
         var dd        = debugData;
         var fullVw    = dd.videoW || (dd.procW || cw);
@@ -1408,13 +1653,15 @@
         var toDispW = function (bw) { return bw * cropSX * displaySX; };
         var toDispH = function (bh) { return bh * cropSY * displaySY; };
 
+        // v10: detect early so we can gate the hoop bbox too — the user
+        // reported its bounding box "feels off" while ball + pose are fine.
+        // The green rim crosshair drawn ~30 lines below is the actual
+        // computed rim center, which is more accurate than the bbox.
+        var V10_HIDE_DEV_LABELS = document.body.classList.contains('v10-cam-active');
+
         // Draw hoop detections — BLUE bbox = what the model returned.
-        // The engine emits ALL post-NMS hoop candidates above the 10%
-        // confidence floor, which can be 20+ overlapping boxes on a noisy
-        // frame. The state machine only ever uses hoops[0] (highest score),
-        // so the overlay only renders the TOP-3 — anything else is visual
-        // noise that obscures the actual best candidate.
-        if (dd.hoops && dd.hoops.length) {
+        // Hidden in v10 mode (user explicitly noted bbox accuracy concerns).
+        if (dd.hoops && dd.hoops.length && !V10_HIDE_DEV_LABELS) {
           var hoopsTop = dd.hoops.slice().sort(function(a,b){ return b.score - a.score; }).slice(0, 3);
           for (var hi = 0; hi < hoopsTop.length; hi++) {
             var h = hoopsTop[hi];
@@ -1440,7 +1687,8 @@
         }
 
         // ── State machine badge (top-left corner) ──
-        if (dd.shotState) {
+        // v10: hide STATE: label — user sees v10 chrome instead.
+        if (dd.shotState && !V10_HIDE_DEV_LABELS) {
           var stColor = dd.shotState === 'idle' ? '#888' :
                         dd.shotState === 'shot_started' ? '#ffaa00' :
                         dd.shotState === 'near_hoop' ? '#facc15' :
@@ -1470,71 +1718,92 @@
           var rimDH = rimZ.height * ch;
           canvasCtx.save();
 
-          // Estimated rim line — solid red horizontal line at rim.centerY
-          // (or grey-dashed if the EMA is currently frozen during a shot,
-          //  since the rim won't move until the shot resolves).
-          var rimFrozen = (dd.shotState === 'shot_started' || dd.shotState === 'near_hoop');
-          canvasCtx.strokeStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
-          canvasCtx.lineWidth = 2;
-          if (rimFrozen) canvasCtx.setLineDash([4, 4]);
-          canvasCtx.beginPath();
-          canvasCtx.moveTo(0, rimDY);
-          canvasCtx.lineTo(cw, rimDY);
-          canvasCtx.stroke();
-          canvasCtx.setLineDash([]);
-          canvasCtx.font = 'bold 11px monospace';
-          // Compose the rim label: mode + confidence (auto only) + FROZEN
-          var rimLbl = 'RIM ' + (rimAutoMode ? 'AUTO' : 'MANUAL');
-          if (rimAutoMode && lastHoopConfidence > 0) {
-            rimLbl += ' ' + (lastHoopConfidence * 100).toFixed(0) + '%';
+          if (!V10_HIDE_DEV_LABELS) {
+            // ─── DEV-ONLY rim-zone overlay ────────────────────────
+            // Red rim line + yellow NEAR_HOOP rect + green MADE bracket
+            // are useful when tuning the engine; hidden in the user-facing
+            // v10 mode to keep the camera view clean. The v10 LIVE COUNT
+            // card + mini-court already report the same information in a
+            // polished form.
+            var rimFrozen = (dd.shotState === 'shot_started' || dd.shotState === 'near_hoop');
+            canvasCtx.strokeStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
+            canvasCtx.lineWidth = 2;
+            if (rimFrozen) canvasCtx.setLineDash([4, 4]);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(0, rimDY);
+            canvasCtx.lineTo(cw, rimDY);
+            canvasCtx.stroke();
+            canvasCtx.setLineDash([]);
+            canvasCtx.font = 'bold 11px monospace';
+            var rimLbl = 'RIM ' + (rimAutoMode ? 'AUTO' : 'MANUAL');
+            if (rimAutoMode && lastHoopConfidence > 0) {
+              rimLbl += ' ' + (lastHoopConfidence * 100).toFixed(0) + '%';
+            }
+            if (rimFrozen) rimLbl += ' [FROZEN]';
+            canvasCtx.fillStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
+            canvasCtx.fillText(rimLbl, 6, rimDY - 4);
+
+            var madeThresh = rimDW * 1.0;
+            canvasCtx.save();
+            canvasCtx.strokeStyle = '#00ff88';
+            canvasCtx.lineWidth = 3;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(rimDX - 14, rimDY - 14);
+            canvasCtx.lineTo(rimDX + 14, rimDY + 14);
+            canvasCtx.moveTo(rimDX + 14, rimDY - 14);
+            canvasCtx.lineTo(rimDX - 14, rimDY + 14);
+            canvasCtx.stroke();
+            canvasCtx.strokeStyle = 'rgba(0,255,136,0.6)';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.setLineDash([3, 3]);
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(rimDX - madeThresh, rimDY - 30);
+            canvasCtx.lineTo(rimDX - madeThresh, rimDY + 30);
+            canvasCtx.moveTo(rimDX + madeThresh, rimDY - 30);
+            canvasCtx.lineTo(rimDX + madeThresh, rimDY + 30);
+            canvasCtx.stroke();
+            canvasCtx.setLineDash([]);
+            canvasCtx.fillStyle = '#00ff88';
+            canvasCtx.font = 'bold 10px monospace';
+            canvasCtx.fillText('MADE ZONE', rimDX - madeThresh, rimDY - 34);
+            canvasCtx.restore();
+
+            var nzW = rimDW * 3.0;
+            var nzH = rimDH * 5.0;
+            canvasCtx.strokeStyle = '#facc15';
+            canvasCtx.lineWidth = 2;
+            canvasCtx.setLineDash([6, 4]);
+            canvasCtx.strokeRect(rimDX - nzW / 2, rimDY - nzH / 2, nzW, nzH);
+            canvasCtx.setLineDash([]);
+            canvasCtx.fillStyle = '#facc15';
+            canvasCtx.fillText('NEAR_HOOP', rimDX - nzW / 2 + 4, rimDY - nzH / 2 - 4);
           }
-          if (rimFrozen) rimLbl += ' [FROZEN]';
-          canvasCtx.fillStyle = rimFrozen ? '#9ca3af' : '#ff3b3b';
-          canvasCtx.fillText(rimLbl, 6, rimDY - 4);
 
-          // L9.3: BIG rim-center X marker + made-threshold bracket so the user
-          // can see exactly where the algorithm thinks the rim center is and
-          // how wide the "made" zone is. Without this, off-center rim auto-
-          // lock looks identical to a real miss.
-          var madeThresh = rimDW * 1.0; // displayed as 2.0×rimHalfW = 1.0×rimDW
-          canvasCtx.save();
-          canvasCtx.strokeStyle = '#00ff88';
-          canvasCtx.lineWidth = 3;
-          // Crosshair at rim center
-          canvasCtx.beginPath();
-          canvasCtx.moveTo(rimDX - 14, rimDY - 14);
-          canvasCtx.lineTo(rimDX + 14, rimDY + 14);
-          canvasCtx.moveTo(rimDX + 14, rimDY - 14);
-          canvasCtx.lineTo(rimDX - 14, rimDY + 14);
-          canvasCtx.stroke();
-          // Made-threshold bracket — vertical lines at ±madeThresh
-          canvasCtx.strokeStyle = 'rgba(0,255,136,0.6)';
-          canvasCtx.lineWidth = 2;
-          canvasCtx.setLineDash([3, 3]);
-          canvasCtx.beginPath();
-          canvasCtx.moveTo(rimDX - madeThresh, rimDY - 30);
-          canvasCtx.lineTo(rimDX - madeThresh, rimDY + 30);
-          canvasCtx.moveTo(rimDX + madeThresh, rimDY - 30);
-          canvasCtx.lineTo(rimDX + madeThresh, rimDY + 30);
-          canvasCtx.stroke();
-          canvasCtx.setLineDash([]);
-          canvasCtx.fillStyle = '#00ff88';
-          canvasCtx.font = 'bold 10px monospace';
-          canvasCtx.fillText('MADE ZONE', rimDX - madeThresh, rimDY - 34);
-          canvasCtx.restore();
-
-          // near_hoop zone — dashed yellow rectangle centred on rim
-          // (matches the state-machine geometry: ±1.5 rim widths
-          // horizontally, ±2.5 rim heights vertically)
-          var nzW = rimDW * 3.0;
-          var nzH = rimDH * 5.0;
-          canvasCtx.strokeStyle = '#facc15';
-          canvasCtx.lineWidth = 2;
-          canvasCtx.setLineDash([6, 4]);
-          canvasCtx.strokeRect(rimDX - nzW / 2, rimDY - nzH / 2, nzW, nzH);
-          canvasCtx.setLineDash([]);
-          canvasCtx.fillStyle = '#facc15';
-          canvasCtx.fillText('NEAR_HOOP', rimDX - nzW / 2 + 4, rimDY - nzH / 2 - 4);
+          // v10: perspective-correct rim marker — draws an ELLIPSE matching
+          // the YOLOX hoop-bbox aspect ratio. Real rims viewed from camera
+          // angles below-and-behind the player appear as horizontal
+          // ellipses (foreshortened depth), not as circles. Drawing a true
+          // circle here looked obviously wrong to the user. We honour the
+          // detected hoop bbox dimensions directly so the marker hugs the
+          // visible rim ring whatever the camera angle.
+          if (V10_HIDE_DEV_LABELS) {
+            var rmRx = Math.max(10, rimDW * 0.55);
+            var rmRy = Math.max(3,  rimDH * 0.55);
+            canvasCtx.strokeStyle = '#FF4F1F';
+            canvasCtx.lineWidth = 2.5;
+            canvasCtx.beginPath();
+            canvasCtx.ellipse(rimDX, rimDY, rmRx, rmRy, 0, 0, Math.PI * 2);
+            canvasCtx.stroke();
+            // Inner highlight stripe — the actual front-of-rim line.
+            // Visually anchors the ellipse on small/distant rims where
+            // the ring alone reads as a smudge.
+            canvasCtx.strokeStyle = 'rgba(255,79,31,0.55)';
+            canvasCtx.lineWidth = 1.5;
+            canvasCtx.beginPath();
+            canvasCtx.moveTo(rimDX - rmRx, rimDY);
+            canvasCtx.lineTo(rimDX + rmRx, rimDY);
+            canvasCtx.stroke();
+          }
 
           canvasCtx.restore();
         }
@@ -1582,8 +1851,14 @@
             var leftArmOk  = pvis(11) >= 0.5 && pvis(13) >= 0.5 && pvis(15) >= 0.5;
             var rightArmOk = pvis(12) >= 0.5 && pvis(14) >= 0.5 && pvis(16) >= 0.5;
             var poseGood = noseOk && (leftArmOk || rightArmOk);
+            // VISUALIZATION threshold is intentionally lower than the
+            // shot-detection gate: as long as ≥3 key joints are visible
+            // we draw the skeleton, so the user always sees that the model
+            // is tracking them. Hallucinated single-joint poses still get
+            // the "rejected" label.
+            var drawPose = poseGood || goodJoints >= 3;
 
-            if (poseGood) {
+            if (drawPose) {
               // MediaPipe Pose connection pairs (upper body + legs)
               var bones = [
                 [11,12],[11,13],[13,15],[12,14],[14,16],     // arms + shoulders
@@ -1632,14 +1907,18 @@
                 labelX = (pdx(11) + pdx(12)) / 2;
                 labelY = (pdy(11) + pdy(12)) / 2 - 30;
               }
-              var poseLbl = 'POSE ' + goodJoints + '/' + KEY_JOINTS.length +
-                ' avgVis=' + (avgVis * 100).toFixed(0) + '%';
-              canvasCtx.font = 'bold 11px monospace';
-              var plW = canvasCtx.measureText(poseLbl).width + 8;
-              canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
-              canvasCtx.fillRect(labelX - plW / 2, labelY - 14, plW, 16);
-              canvasCtx.fillStyle = '#00e5ff';
-              canvasCtx.fillText(poseLbl, labelX - plW / 2 + 4, labelY - 2);
+              // v10: skip the diagnostic POSE 8/11 avgVis=73% label — the
+              // user sees the skeleton itself and the v10 LIVE COUNT card.
+              if (!V10_HIDE_DEV_LABELS) {
+                var poseLbl = 'POSE ' + goodJoints + '/' + KEY_JOINTS.length +
+                  ' avgVis=' + (avgVis * 100).toFixed(0) + '%';
+                canvasCtx.font = 'bold 11px monospace';
+                var plW = canvasCtx.measureText(poseLbl).width + 8;
+                canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+                canvasCtx.fillRect(labelX - plW / 2, labelY - 14, plW, 16);
+                canvasCtx.fillStyle = '#00e5ff';
+                canvasCtx.fillText(poseLbl, labelX - plW / 2 + 4, labelY - 2);
+              }
               canvasCtx.restore();
             } else {
               // Low-quality pose — draw a small indicator at top-left of canvas
@@ -1696,10 +1975,11 @@
           }
         }
 
-        // Draw player detections (cyan boxes) — only added for the 3-class
+        // Draw player detections (cyan boxes) — hidden when v10 active
+        // (MediaPipe pose skeleton already shows the player clearly).
         // v6_polished model. Cap to top-3 so even crowded NBA-style frames
         // don't get cluttered.
-        if (dd.players && dd.players.length) {
+        if (dd.players && dd.players.length && !V10_HIDE_DEV_LABELS) {
           var PLAYER_OVERLAY_MIN = 0.35;
           var PLAYER_OVERLAY_TOPN = 3;
           var playersTop = dd.players
@@ -1760,7 +2040,12 @@
         // covers the canvas with a progress checklist. The engine refuses
         // to count shots while this is showing — guarantees we don't spam
         // wrong misses on top of a half-calibrated rim position.
-        if (dd.preflight && !dd.preflight.ready) {
+        // v10: when the app is in v10 camera-hud mode, an HTML-layer
+        // calibration banner is rendered instead — skip the canvas one.
+        var V10_ACTIVE = document.body.classList.contains('v10-cam-active');
+        // Surface preflight state to v10 layer so it can render its own banner
+        if (V10_ACTIVE && dd.preflight) window.__lastPreflight = dd.preflight;
+        if (dd.preflight && !dd.preflight.ready && !V10_ACTIVE) {
           canvasCtx.save();
           // Background tint over the whole canvas
           canvasCtx.fillStyle = 'rgba(8, 12, 24, 0.78)';
@@ -2269,10 +2554,23 @@
         if (ok) {
           saveBtn.textContent = '\u2713 Saved';
           saveBtn.classList.add('saved');
+          // v10: skip the old summary screen \u2014 auto-close after save so the
+          // user lands on the v10 post-session recap.
+          if (document.body.classList.contains('v10-cam-active')) {
+            setTimeout(function () { closeScreen(); }, 600);
+          }
         } else {
           saveBtn.textContent = 'Save Failed \u2014 Retry';
           saveBtn.disabled = false;
           isSaving = false;
+          // v10: summary is hidden via CSS, so the user can't see "Retry".
+          // Close anyway so they're not stranded on a black screen \u2014 the
+          // v10 post-session recap will show the latest server-side row
+          // (which won't include this failed save, but that's better than
+          // a soft lock).
+          if (document.body.classList.contains('v10-cam-active')) {
+            setTimeout(function () { closeScreen(); }, 600);
+          }
         }
       });
     });
@@ -2280,6 +2578,19 @@
     doneBtn.addEventListener('click', function () {
       closeScreen();
     });
+
+    // v10: the summary overlay is hidden via CSS (body.v10-cam-active
+    // #st-summary { display:none }), so the user never sees the Save button
+    // to click. Auto-trigger save \u2014 on success or failure, closeScreen()
+    // fires which the V10Data MutationObserver picks up and routes to
+    // #post-session. Without this auto-click the v10 flow soft-locks
+    // after "End Session" with the camera still streaming behind the
+    // hidden summary.
+    if (document.body.classList.contains('v10-cam-active')) {
+      setTimeout(function () {
+        if (saveBtn && !isSaving) saveBtn.click();
+      }, 50);
+    }
   }
 
   /* ── Save to Supabase ───────────────────────────────────────── */
@@ -2319,6 +2630,64 @@
         summary.xpEarned,
         'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
       );
+
+      /* ── v10 wire-up: local gamification, streak, badges ─────
+         Each call is wrapped in its own try/catch so a missing
+         module never blocks the Supabase save from being reported
+         as successful. */
+      try {
+        if (window.XPSystem && typeof window.XPSystem.grantXP === 'function' && summary.xpEarned) {
+          window.XPSystem.grantXP(
+            summary.xpEarned,
+            'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
+          );
+        }
+      } catch (e) { console.warn('[v10] XPSystem.grantXP failed:', e); }
+
+      try {
+        // streak.js auto-checks-in on init each day; trigger a re-check now
+        // so today's training counts toward the streak even if the user
+        // opened the app earlier without training.
+        if (window.StreakSystem) {
+          if (typeof window.StreakSystem.checkIn === 'function') {
+            window.StreakSystem.checkIn();
+          }
+          if (typeof window.StreakSystem.render === 'function') {
+            window.StreakSystem.render();
+          }
+          if (window.BadgeSystem && typeof window.BadgeSystem.checkStreakBadges === 'function') {
+            var s = (typeof window.StreakSystem.get === 'function') ? window.StreakSystem.get() : 0;
+            window.BadgeSystem.checkStreakBadges(s);
+          }
+        }
+      } catch (e) { console.warn('[v10] StreakSystem hook failed:', e); }
+
+      try {
+        if (window.BadgeSystem) {
+          // Bump activity counters (first-AI-session, sessions-this-week)
+          if (typeof window.BadgeSystem.incrementCounter === 'function') {
+            window.BadgeSystem.incrementCounter('totalAISessions', 1);
+            window.BadgeSystem.incrementCounter('sessionsThisWeek', 1);
+            if (summary.xpEarned) {
+              window.BadgeSystem.incrementCounter('totalXP', summary.xpEarned);
+            }
+          }
+          // Per-session badge checks (hot-hand, sniper, lifetime threes/shots)
+          if (typeof window.BadgeSystem.checkShotBadges === 'function') {
+            var zonesForBadges = (typeof categorizeShotsByZone === 'function')
+              ? categorizeShotsByZone(summary.shots || [])
+              : null;
+            window.BadgeSystem.checkShotBadges({
+              made:       summary.totalMade,
+              attempts:   summary.totalAttempts,
+              threesMade: zonesForBadges ? (zonesForBadges.threePoint && zonesForBadges.threePoint.made) || 0 : 0
+            });
+          }
+          if (typeof window.BadgeSystem.checkAll === 'function') {
+            window.BadgeSystem.checkAll();
+          }
+        }
+      } catch (e) { console.warn('[v10] BadgeSystem hook failed:', e); }
 
       return true;
     } catch (err) {

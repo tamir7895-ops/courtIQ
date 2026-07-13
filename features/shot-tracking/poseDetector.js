@@ -25,6 +25,85 @@
   var DEBUG = (typeof window !== 'undefined' && window.PoseDetectorDebug === true);
   function dlog() { if (!DEBUG) return; console.log.apply(console, arguments); }
 
+  /* ── One-Euro Filter ─────────────────────────────────────────
+     Adaptive low-pass smoothing per landmark coord. Eliminates the
+     "jittery skeleton" on iPhone video: stationary joints stop
+     vibrating, fast motions still pass through (the cutoff frequency
+     rises with measured speed). Reference:
+       Casiez et al., "1€ Filter" (CHI 2012)
+       https://gery.casiez.net/1euro/
+     Default params are the paper's recommended baseline for human
+     motion at ~30 Hz video; minCutoff caps how slow the smoother
+     gets at rest, beta controls how aggressively it adapts to speed.
+   ─────────────────────────────────────────────────────────── */
+  function OneEuro(minCutoff, beta, dCutoff) {
+    this.minCutoff = minCutoff || 1.0;
+    this.beta      = beta      || 0.007;
+    this.dCutoff   = dCutoff   || 1.0;
+    this.lastVal   = null;
+    this.lastDv    = 0;
+    this.lastTs    = 0;
+  }
+  OneEuro.prototype._alpha = function (cutoff, dt) {
+    var tau = 1 / (2 * Math.PI * cutoff);
+    return 1 / (1 + tau / dt);
+  };
+  OneEuro.prototype.filter = function (val, tsMs) {
+    if (this.lastVal === null) {
+      this.lastVal = val; this.lastDv = 0; this.lastTs = tsMs;
+      return val;
+    }
+    var dt = (tsMs - this.lastTs) / 1000;
+    if (dt <= 0 || dt > 1) {        // gap > 1 s — treat as reset
+      this.lastVal = val; this.lastDv = 0; this.lastTs = tsMs;
+      return val;
+    }
+    var dv = (val - this.lastVal) / dt;
+    var aD = this._alpha(this.dCutoff, dt);
+    var edv = aD * dv + (1 - aD) * this.lastDv;
+    var cutoff = this.minCutoff + this.beta * Math.abs(edv);
+    var a = this._alpha(cutoff, dt);
+    var out = a * val + (1 - a) * this.lastVal;
+    this.lastVal = out; this.lastDv = edv; this.lastTs = tsMs;
+    return out;
+  };
+  OneEuro.prototype.reset = function () {
+    this.lastVal = null; this.lastDv = 0; this.lastTs = 0;
+  };
+
+  // 33 landmarks × {x,y} = 66 filters. Cheap (~1µs/landmark).
+  var _filtersX = [];
+  var _filtersY = [];
+  for (var _fi = 0; _fi < 33; _fi++) {
+    _filtersX.push(new OneEuro(1.0, 0.007, 1.0));
+    _filtersY.push(new OneEuro(1.0, 0.007, 1.0));
+  }
+  var _lastSmoothTs = 0;
+
+  function smoothLandmarks(landmarks, tsMs) {
+    if (!landmarks || !landmarks.length) return landmarks;
+    // Reset all filters if gap > 500ms — the pose just re-appeared
+    // (e.g. shooter walked out of frame) and we shouldn't lerp.
+    if (_lastSmoothTs && tsMs - _lastSmoothTs > 500) {
+      for (var i = 0; i < _filtersX.length; i++) {
+        _filtersX[i].reset(); _filtersY[i].reset();
+      }
+    }
+    _lastSmoothTs = tsMs;
+    var out = new Array(landmarks.length);
+    for (var k = 0; k < landmarks.length; k++) {
+      var lm = landmarks[k];
+      if (!lm) { out[k] = lm; continue; }
+      out[k] = {
+        x: _filtersX[k].filter(lm.x, tsMs),
+        y: _filtersY[k].filter(lm.y, tsMs),
+        z: lm.z,
+        visibility: lm.visibility
+      };
+    }
+    return out;
+  }
+
   /* ── State ─────────────────────────────────────────────────── */
   var _landmarker  = null;
   var _initPromise = null;
@@ -36,11 +115,20 @@
   /* ── Config ────────────────────────────────────────────────── */
   var MP_VERSION   = '0.10.14';
   var WASM_BASE    = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + MP_VERSION + '/wasm';
-  // L8.7: Lite returns candidateCount=1 even with numPoses=3 — strong single-
-  // person bias. FULL (~6MB vs Lite ~3MB) is more willing to find multiple
-  // people, important for outdoor courts with 2-3 visible players. Cost: ~2×
-  // inference latency on WebGPU but still well under the 33ms budget.
-  // Switch back to *_lite.task if perf becomes an issue.
+  // L37.5 (pose recovery): Lite → Full. The L8.7 reason for switching to
+  // Lite ("delay following the player") was an inference-cost problem at
+  // a time pose ran on every frame; the loop is now throttled to 33ms
+  // cadence with a shared per-frame inference cache and no rAF doubling.
+  // Per the post-L36.6 audit, pose is now ONLY a trigger — L31/L33
+  // decoupled it from MADE/MISS counting entirely, so accuracy AT THE
+  // TRIGGER MOMENT is the only thing that matters. Lite's jitter on
+  // distance shots, fadeaways, and partial occlusion was producing both
+  // false positives (dribble + hand-near-head = "shot") and false
+  // negatives (step-back, layup, sideways release). Full keeps the same
+  // 33-LM schema, so the entire heuristic survives unchanged; visibility
+  // floor in detectShootingMotion is raised below now that the model is
+  // confident enough to rely on it. Trade-off: ~2-3× inference cost on
+  // iPhone, acceptable since pose no longer drives counting.
   var MODEL_URL    = 'https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task';
   var MP_BRIDGE_WAIT_MS = 10000;  // how long to wait for the ESM bridge in dashboard.html
 
@@ -56,17 +144,25 @@
      Tunables are exposed via window.PoseDetector.tune({ ... }).
    ──────────────────────────────────────────────────────────── */
   var TUNE = {
-    visibilityMin:     0.15,   // shooter often partly occluded by defender / equipment
-    armExtensionMin:   0.50,   // wrist-to-shoulder dist / shoulder-to-hip dist
-    belowLookbackMs:   150,    // L20: was 200 — fast releases reach peak sooner
-    peakWindowMs:      350,    // L20: was 200 — slow scrub/fast shots need a
-                               // wider window to find ≥1 prior peak sample
-    peakToleranceNorm: 0.04,   // L20: was 0.025 — step-back shots have the
-                               // wrist Y oscillating from body translation;
-                               // tighter tolerance was rejecting real peaks
-    cooldownMs:        250,    // L15: was 400 — pull-up workouts have shots
-                               // even closer than 2s sometimes. 250ms still
-                               // rejects within-shot wrist-bounce peaks.
+    // Phase 9p: reverted to the balanced p9m settings. Very-loose gates
+    // (armMin=0.30, tol=0.08, visibility=0.08) caused MORE false-early
+    // triggers on non-shot arm swings, which then blocked subsequent
+    // pose triggers for the real shot. Net recall DROPPED from 4→2.
+    visibilityMin:     0.15,
+    // p9x: 0.50 → 0.42. "arm-not-extended" was the single biggest reject
+    // reason (33/111 frames on the Dr.Dish clip). A fast catch-and-shoot
+    // release from distance peaks with the arm ~85% extended, not fully
+    // straight, so 0.50 rejected the release frame of real shots. Safe to
+    // loosen now that the pose loop samples at ~14-22 Hz (p9u) instead of
+    // the old 3.8 Hz — the extra samples mean the genuine peak frame is
+    // almost always seen, so a slightly looser gate adds real shots
+    // without inviting the mid-dribble false triggers that a loose gate
+    // caused at the old sparse sample rate.
+    armExtensionMin:   0.42,
+    belowLookbackMs:   150,
+    peakWindowMs:      350,
+    peakToleranceNorm: 0.04,
+    cooldownMs:        400,
     historyMs:         1500,   // how much pose history to retain
     setpointLookbackMs: 700,   // L23: how far back to look for "wrist was
                                // below shoulder" when validating a set-point
@@ -81,7 +177,14 @@
     //   noseSlackNorm: 0.05 ≈ 5% of frame height (~54px on 1080p).
     //   L15: bumped default 0.0 → 0.08 because fast pull-up release shots
     //   often peak with wrist at eye/forehead level, not fully above nose.
-    noseSlackNorm:     0.08
+    noseSlackNorm:     0.13    // p9x: 0.08 → 0.13. "wrist-not-above-nose"
+                               // was the 2nd-biggest reject (28/111). A set
+                               // shot / quick pull-up from distance peaks
+                               // with the wrist at forehead-to-eye level,
+                               // ~0.10-0.13 of frame height below the nose
+                               // landmark. 0.13 catches those without
+                               // accepting a hand merely raised to the chest
+                               // (which sits ≥0.20 below the nose).
   };
 
   function tune(patch) {
@@ -137,9 +240,22 @@
       wristAboveNose:     wrist.y < nose.y + TUNE.noseSlackNorm,
       wristAboveShoulder: wrist.y < sh.y,
       armExtension:       _dist(wrist, shoulder) / bodyHeight,
-      visibility:         (wrist.visibility    || 0)
-                        * (elbow.visibility    || 0)
-                        * (shoulder.visibility || 0),
+      // p9v: MIN of the three joint visibilities, not the PRODUCT.
+      // The product structurally under-reports: three legitimate 0.5
+      // detections multiply to 0.125, below the 0.15 visibilityMin gate,
+      // so a clearly-visible distant shooter was rejected as
+      // "low-visibility" on ~⅓ of frames (36/111 measured on the
+      // Dr.Dish clip). The three joints are on ONE arm — if the wrist is
+      // visible the elbow/shoulder almost always are too, so the product
+      // punishes redundantly. MIN asks the honest question ("is the
+      // least-visible joint of the arm still visible enough?") and the
+      // outer quality gate (visEnough ≥0.30 on each joint) already blocks
+      // hallucinated skeletons upstream.
+      visibility:         Math.min(
+                            (wrist.visibility    || 0),
+                            (elbow.visibility    || 0),
+                            (shoulder.visibility || 0)
+                          ),
       bodyHeight:         bodyHeight,
       shootingHand:       shootingLeft ? 'L' : 'R'
     };
@@ -254,12 +370,17 @@
     var lw  = lm[L.LWR], rw  = lm[L.RWR];
     if (!nose || !lsh || !rsh || !lw || !rw) return { isShot: false, reason: 'missing-landmarks' };
 
-    // Visibility — head + at least one wrist
+    // Visibility — head + at least one wrist.
+    // L30: floors raised 0.30/0.20 → 0.50/0.50. The set-point heuristic has
+    // no other confidence gate and was firing on hallucinated poses with
+    // visibility products as low as 0.03 (phantom shot_started triggers in
+    // verified-empty footage spans). MediaPipe emits 33 landmarks even on
+    // an empty court; real shooters at sane framing score well above 0.5.
     var noseVis = nose.visibility || 0;
     var lwVis = lw.visibility || 0;
     var rwVis = rw.visibility || 0;
-    if (noseVis < 0.30) return { isShot: false, reason: 'nose-not-visible' };
-    if (Math.max(lwVis, rwVis) < 0.20) return { isShot: false, reason: 'wrists-not-visible' };
+    if (noseVis < 0.50) return { isShot: false, reason: 'nose-not-visible' };
+    if (Math.max(lwVis, rwVis) < 0.50) return { isShot: false, reason: 'wrists-not-visible' };
 
     // Head region radius — scaled to shoulder-to-shoulder span so it
     // adapts to distance/zoom. Fallback if shoulders look degenerate.
@@ -296,13 +417,18 @@
     }
     if (!startedBelow) return { isShot: false, reason: 'setpoint-no-prior-low' };
 
+    // L30: combined-confidence floor — belt and braces over the per-joint
+    // floors above. A set-point trigger this weak is noise, not a shot.
+    var spConfidence = Math.min(1, wristVis * (noseVis || 0.5) * 1.3);
+    if (spConfidence < 0.30) return { isShot: false, reason: 'setpoint-low-confidence' };
+
     _lastShotReleaseTs = tsMs;
     var hipCenterX = (lm[L.LHIP].x + lm[L.RHIP].x) * 0.5;
     var hipCenterY = (lm[L.LHIP].y + lm[L.RHIP].y) * 0.5;
     return {
       isShot: true,
       releaseTs:         tsMs,
-      releaseConfidence: Math.min(1, wristVis * (noseVis || 0.5) * 1.3),
+      releaseConfidence: spConfidence,
       shooterCenterX:    hipCenterX,
       shooterCenterY:    hipCenterY,
       shootingHand:      shootingHand,
@@ -417,7 +543,14 @@
             }
           }
         }
-        _lastResult = { landmarks: picked, ts: videoFrameKey, candidateCount: raw.landmarks.length };
+        // One-Euro smoothing pass — kills MediaPipe jitter without
+        // sacrificing responsiveness to fast shooting motion. The
+        // shooting-motion heuristic (detectShootingMotion) and the
+        // canvas pose-skeleton overlay both consume this same output,
+        // so the visible skeleton AND the wrist-velocity calculation
+        // benefit from one shared smoothing pass.
+        var smoothed = smoothLandmarks(picked, nowTs);
+        _lastResult = { landmarks: smoothed, ts: videoFrameKey, candidateCount: raw.landmarks.length };
       } else {
         _lastResult = null;
       }
