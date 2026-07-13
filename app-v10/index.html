@@ -16,11 +16,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=2026-07-09-p20" />
-<link rel="stylesheet" href="styles/components.css?v=2026-07-09-p20" />
+<link rel="stylesheet" href="styles/tokens.css?v=dev" />
+<link rel="stylesheet" href="styles/components.css?v=dev" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="/features/shot-tracking/shot-tracking.css?v=2026-07-09-p20" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=dev" />
 </head>
 <body>
 
@@ -36,19 +36,20 @@
 <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
 
 <!-- ג”€ג”€ג”€ Engine: CourtIQ data + auth services ג”€ג”€ג”€ -->
-<script src="/js/utils.js"></script>
-<script src="/js/supabase-client.js"></script>
-<script src="/js/data-service.js"></script>
-<script src="/js/ai-coach.js"></script>
-<script src="/js/drill-engine.js"></script>
-<script src="/js/gamification.js"></script>
-<script src="/js/streak.js"></script>
-<script src="/js/badges.js"></script>
-<script src="/js/avatar-shop.js"></script>
-<script src="/js/avatar-customizer.js"></script>
-<script src="/js/daily-challenge.js"></script>
-<script src="/js/daily-workout.js"></script>
-<script src="/js/shot-analysis.js"></script>
+<script src="../js/env.js"></script>
+<script src="../js/utils.js"></script>
+<script src="../js/supabase-client.js"></script>
+<script src="../js/data-service.js"></script>
+<script src="../js/ai-coach.js"></script>
+<script src="../js/drill-engine.js"></script>
+<script src="../js/gamification.js"></script>
+<script src="../js/streak.js"></script>
+<script src="../js/badges.js"></script>
+<script src="../js/avatar-shop.js"></script>
+<script src="../js/avatar-customizer.js"></script>
+<script src="../js/daily-challenge.js"></script>
+<script src="../js/daily-workout.js"></script>
+<script src="../js/shot-analysis.js"></script>
 
 <!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection) -->
 <script type="module">
@@ -57,13 +58,13 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="/features/shot-tracking/v2/config.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/adaptiveLearning.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/poseDetector.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/shotDetection.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/offlineProcessor.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/shotService.js?v=2026-07-09-p20"></script>
-<script src="/features/shot-tracking/ShotTrackingScreen.js?v=2026-07-09-p20"></script>
+<script src="../features/shot-tracking/v2/config.js?v=dev"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=dev"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=dev"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=dev"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=dev"></script>
+<script src="../features/shot-tracking/shotService.js?v=dev"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=dev"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -82,24 +83,24 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=2026-07-09-p20"></script>
-<script src="lib/data.js?v=2026-07-09-p20"></script>
-<script src="lib/nav.js?v=2026-07-09-p20"></script>
-<script src="app.js?v=2026-07-09-p20"></script>
+<script src="lib/ui.js?v=dev"></script>
+<script src="lib/data.js?v=dev"></script>
+<script src="lib/nav.js?v=dev"></script>
+<script src="app.js?v=dev"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/home.js?v=2026-07-09-p20"></script>
-<script src="screens/track.js?v=2026-07-09-p20"></script>
-<script src="screens/train.js?v=2026-07-09-p20"></script>
-<script src="screens/coach.js?v=2026-07-09-p20"></script>
-<script src="screens/me.js?v=2026-07-09-p20"></script>
-<script src="screens/camera-hud.js?v=2026-07-09-p20"></script>
-<script src="screens/post-session.js?v=2026-07-09-p20"></script>
-<script src="screens/onboarding.js?v=2026-07-09-p20"></script>
-<script src="screens/drill-library.js?v=2026-07-09-p20"></script>
-<script src="screens/workout-player.js?v=2026-07-09-p20"></script>
-<script src="screens/avatar-customizer.js?v=2026-07-09-p20"></script>
-<script src="screens/notifications.js?v=2026-07-09-p20"></script>
+<script src="screens/home.js?v=dev"></script>
+<script src="screens/track.js?v=dev"></script>
+<script src="screens/train.js?v=dev"></script>
+<script src="screens/coach.js?v=dev"></script>
+<script src="screens/me.js?v=dev"></script>
+<script src="screens/camera-hud.js?v=dev"></script>
+<script src="screens/post-session.js?v=dev"></script>
+<script src="screens/onboarding.js?v=dev"></script>
+<script src="screens/drill-library.js?v=dev"></script>
+<script src="screens/workout-player.js?v=dev"></script>
+<script src="screens/avatar-customizer.js?v=dev"></script>
+<script src="screens/notifications.js?v=dev"></script>
 
 <script>
   // Bootstrap after all scripts load

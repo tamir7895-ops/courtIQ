@@ -8,9 +8,18 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 
 const SRC = __dirname;
 const DEST = path.join(__dirname, 'www');
+
+// Cache-bust stamp: git short hash (falls back to timestamp outside git)
+let STAMP;
+try {
+  STAMP = execSync('git rev-parse --short HEAD', { cwd: SRC }).toString().trim();
+} catch (e) {
+  STAMP = Date.now().toString(36);
+}
 
 // Files and folders to copy into www/
 const COPY_TARGETS = [
@@ -52,6 +61,40 @@ for (const target of COPY_TARGETS) {
   copyRecursive(srcPath, path.join(DEST, target));
   console.log(`✓ Copied ${target}`);
 }
+
+// Cache-bust: stamp every ?v=... asset URL in the built app-v10/index.html
+// with the current git hash. The SOURCE file keeps a literal '?v=dev' —
+// nobody hand-bumps versions anymore (p15→p20 was done by hand five times
+// in one session before this existed).
+const builtIndex = path.join(DEST, 'app-v10', 'index.html');
+if (fs.existsSync(builtIndex)) {
+  const html = fs.readFileSync(builtIndex, 'utf8').replace(/\?v=[\w.-]+/g, '?v=' + STAMP);
+  fs.writeFileSync(builtIndex, html);
+  console.log(`✓ Stamped app-v10/index.html assets with ?v=${STAMP}`);
+}
+
+// Legacy-PWA kill switch. Two jobs:
+// 1. The deploy workflow runs `sed` on www/sw.js — the file must exist or
+//    CI fails (it HAS failed since the PWA cleanup removed sw.js; the
+//    workflow file itself can't be edited with the current credential).
+// 2. Phones that installed the old PWA still hold a service worker that
+//    serves the cached June app forever. Shipping this self-destructing
+//    sw.js at the same URL makes those clients drop caches + unregister.
+const killSwitchSW = `/* Legacy-PWA kill switch — CourtIQ moved to Capacitor. */
+const CACHE_VERSION = '${STAMP}';
+self.addEventListener('install', (e) => { self.skipWaiting(); });
+self.addEventListener('activate', (e) => {
+  e.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((k) => caches.delete(k)));
+    await self.registration.unregister();
+    const clients = await self.clients.matchAll({ type: 'window' });
+    clients.forEach((c) => c.navigate(c.url));
+  })());
+});
+`;
+fs.writeFileSync(path.join(DEST, 'sw.js'), killSwitchSW);
+console.log('✓ Created www/sw.js (legacy-PWA kill switch)');
 
 // Create www/index.html redirect (GitHub Pages + Capacitor entry point) → app-v10
 if (process.env.BUILD_TARGET === 'mobile-only') {

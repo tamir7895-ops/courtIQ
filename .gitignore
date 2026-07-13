@@ -17,10 +17,11 @@ node_modules/
 dist/
 
 # ── Large binary models ──
-# Root models/ is for local training — not tracked
-models/
-# www/models/ IS tracked — needed for GitHub Pages deploy
-# Only the production v6 model is force-added (see git add -f)
+# models/ holds local training outputs — untracked EXCEPT the one
+# production model, which must live in the repo so CI can build www/
+# (www/ itself is generated and untracked).
+models/*
+!models/basketball_yolox_tiny_v6_polished.onnx
 *.onnx.data
 
 # ── Training data & videos (local-only) ──
@@ -47,9 +48,7 @@ android/.gradle/
 scratch/
 
 # Local test videos served via tunnel, not for the repo
-www/_test_video.mp4
-www/_pullups.mp4
-www/_test2.mp4
 
 # Workflow edits need a token with workflow scope — keep local tweaks untracked
 .github/workflows/*.disabled
+www/
