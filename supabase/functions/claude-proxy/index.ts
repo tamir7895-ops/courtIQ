@@ -4,7 +4,7 @@ const ANTHROPIC_API_URL = 'https://api.anthropic.com/v1/messages';
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey, x-client-info',
 };
 
 Deno.serve(async (req: Request) => {

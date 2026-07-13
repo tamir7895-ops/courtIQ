@@ -29,6 +29,15 @@
   var XP_PER_MADE   = 10;
   var XP_PER_ATTEMPT = 2;
 
+  /* LIVE = attempt counter only (M3). Real-time footage has no reliable
+     through-rim signal (the L1-L36 lesson) — made/miss verdicts belong to
+     the upload analyzer. The engine still classifies internally; this
+     screen just refuses to SHOW or PERSIST live verdicts. M8 flips the
+     env flag back once the retrained model + live eval harness exist. */
+  function counterMode() {
+    return !window.COURTIQ_ENV || window.COURTIQ_ENV.LIVE_COUNTER_ONLY !== false;
+  }
+
   /* ── Half-court SVG dimensions (for shot chart) ─────────────── */
   var COURT_W = 500;
   var COURT_H = 470;
@@ -1284,7 +1293,7 @@
     shots.push({
       session_id:  sessionId,
       user_id:     userId,
-      shot_result: data.result,
+      shot_result: counterMode() ? null : data.result,
       shot_x:      data.shotX,
       shot_y:      data.shotY,
       launch_x:    data.launchPoint ? data.launchPoint.x : data.shotX,
@@ -1300,36 +1309,42 @@
     // Save shot position for heatmap
     if (typeof CourtHeatmap !== 'undefined') CourtHeatmap.savePosition(data);
 
-    // Streak
-    if (isMade) {
-      streak++;
-      if (streak > maxStreak) maxStreak = streak;
-    } else {
-      streak = 0;
+    // Streak (verdict-based — meaningless in counter mode)
+    if (!counterMode()) {
+      if (isMade) {
+        streak++;
+        if (streak > maxStreak) maxStreak = streak;
+      } else {
+        streak = 0;
+      }
     }
 
     // Update UI
     var engine = window.ShotDetectionEngine;
-    els.made.textContent = engine.stats.made;
     els.attempts.textContent = engine.stats.attempts;
-    var pct = engine.stats.attempts > 0
-      ? Math.round((engine.stats.made / engine.stats.attempts) * 100)
-      : 0;
-    els.accuracy.textContent = pct + '%';
-    els.accuracy.style.color = getAccuracyColor(pct);
+    if (counterMode()) {
+      els.made.textContent = '—';
+      els.accuracy.textContent = '—';
+    } else {
+      els.made.textContent = engine.stats.made;
+      var pct = engine.stats.attempts > 0
+        ? Math.round((engine.stats.made / engine.stats.attempts) * 100)
+        : 0;
+      els.accuracy.textContent = pct + '%';
+      els.accuracy.style.color = getAccuracyColor(pct);
+    }
 
     // Zone badge
     showZoneBadge(data.shotZone || 'midrange');
 
-    // Flash
-    showFlash(isMade ? 'made' : 'missed');
-
-    // Result text
-    showResultText(isMade ? 'SWISH!' : 'MISS', isMade ? 'made' : 'missed');
-
-    // Haptic (if available)
-    if (navigator.vibrate) {
-      navigator.vibrate(isMade ? [50, 30, 50] : [100]);
+    if (counterMode()) {
+      // Neutral acknowledgement — the shot was SEEN, no verdict claimed.
+      showResultText('SHOT ' + engine.stats.attempts, 'made');
+      if (navigator.vibrate) navigator.vibrate([40]);
+    } else {
+      showFlash(isMade ? 'made' : 'missed');
+      showResultText(isMade ? 'SWISH!' : 'MISS', isMade ? 'made' : 'missed');
+      if (navigator.vibrate) navigator.vibrate(isMade ? [50, 30, 50] : [100]);
     }
   }
 
@@ -2125,16 +2140,18 @@
             var bFade = bSince < 1000 ? 1 : (1 - (bSince - 1000) / 200);
             var bMade = lastShotBanner.result === 'made';
             canvasCtx.save();
-            // Background bar — green for made, red for miss
-            canvasCtx.fillStyle = (bMade ? 'rgba(0,200,100,' : 'rgba(220,40,40,') + (bFade * 0.85).toFixed(2) + ')';
+            // Counter mode: neutral navy bar, no verdict claimed
+            canvasCtx.fillStyle = counterMode()
+              ? 'rgba(10,40,80,' + (bFade * 0.85).toFixed(2) + ')'
+              : (bMade ? 'rgba(0,200,100,' : 'rgba(220,40,40,') + (bFade * 0.85).toFixed(2) + ')';
             canvasCtx.fillRect(0, 0, cw, 64);
             // Big main label
             canvasCtx.fillStyle = 'rgba(255,255,255,' + bFade.toFixed(2) + ')';
             canvasCtx.font = 'bold 32px monospace';
             canvasCtx.textAlign = 'center';
-            canvasCtx.fillText(bMade ? '✓ MADE' : '✗ MISSED', cw / 2, 38);
+            canvasCtx.fillText(counterMode() ? '● SHOT DETECTED' : (bMade ? '✓ MADE' : '✗ MISSED'), cw / 2, 38);
             // Sub-line with dist/thresh — only if we have the numbers
-            if (lastShotBanner.dist != null && lastShotBanner.thresh != null) {
+            if (!counterMode() && lastShotBanner.dist != null && lastShotBanner.thresh != null) {
               canvasCtx.font = 'bold 14px monospace';
               var pct = (lastShotBanner.ratio * 100).toFixed(0);
               var sub = 'dist=' + (lastShotBanner.dist * 100).toFixed(1) + '% ' +
@@ -2254,14 +2271,16 @@
     els.summary.classList.add('active');
 
     var engine = window.ShotDetectionEngine;
-    var totalMade     = engine.stats.made;
+    var isCounter     = counterMode();
+    var totalMade     = isCounter ? null : engine.stats.made;
     var totalAttempts = engine.stats.attempts;
-    var accuracy      = totalAttempts > 0 ? Math.round((totalMade / totalAttempts) * 1000) / 10 : 0;
+    var accuracy      = (!isCounter && totalAttempts > 0)
+      ? Math.round((engine.stats.made / totalAttempts) * 1000) / 10 : (isCounter ? null : 0);
     var durationMs    = Date.now() - sessionStart;
     var durationFmt   = formatDuration(durationMs);
 
-    // XP calculation (per spec: 10 per made, 2 per attempt)
-    var xpMade    = totalMade * XP_PER_MADE;
+    // XP calculation (10 per made, 2 per attempt; counter mode = attempts only)
+    var xpMade    = isCounter ? 0 : engine.stats.made * XP_PER_MADE;
     var xpAttempt = totalAttempts * XP_PER_ATTEMPT;
     var xpTotal   = xpMade + xpAttempt;
     var xpBreakdown = [];
@@ -2274,10 +2293,11 @@
       startTime:      new Date(sessionStart).toISOString(),
       durationMs:     durationMs,
       durationFmt:    durationFmt,
+      counterMode:    isCounter,
       totalMade:      totalMade,
       totalAttempts:  totalAttempts,
       accuracy:       accuracy,
-      maxStreak:      maxStreak,
+      maxStreak:      isCounter ? null : maxStreak,
       xpEarned:       xpTotal,
       xpBreakdown:    xpBreakdown,
       shots:          shots
@@ -2603,24 +2623,27 @@
   async function saveSessionData(summary) {
     try {
       var zones = categorizeShotsByZone(summary.shots);
+      var counter = !!summary.counterMode;
 
       var sessionPayload = {
         id:             summary.sessionId,
         user_id:        summary.userId,
         session_date:   summary.startTime,
-        session_type:   'ai_tracking',
+        // live_counter = attempts + zones only, no verdicts; history and
+        // stats screens must not fold these rows into accuracy math.
+        session_type:   counter ? 'live_counter' : 'ai_tracking',
         duration_ms:    summary.durationMs,
         total_attempts: summary.totalAttempts,
         total_made:     summary.totalMade,
         accuracy:       summary.accuracy,
         max_streak:     summary.maxStreak,
         xp_earned:      summary.xpEarned,
-        fg_made:        zones.midrange.made,
-        fg_missed:      zones.midrange.missed,
-        three_made:     zones.threePoint.made,
-        three_missed:   zones.threePoint.missed,
-        ft_made:        (zones.paint.made || 0) + (zones.freeThrow.made || 0),
-        ft_missed:      (zones.paint.missed || 0) + (zones.freeThrow.missed || 0)
+        fg_made:        counter ? null : zones.midrange.made,
+        fg_missed:      counter ? null : zones.midrange.missed,
+        three_made:     counter ? null : zones.threePoint.made,
+        three_missed:   counter ? null : zones.threePoint.missed,
+        ft_made:        counter ? null : (zones.paint.made || 0) + (zones.freeThrow.made || 0),
+        ft_missed:      counter ? null : (zones.paint.missed || 0) + (zones.freeThrow.missed || 0)
       };
 
       await window.ShotService.saveSessionAtomic(sessionPayload, summary.shots);
@@ -2628,7 +2651,9 @@
       await window.ShotService.grantXP(
         summary.userId,
         summary.xpEarned,
-        'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
+        counter
+          ? 'Live Counter Session: ' + summary.totalAttempts + ' shots'
+          : 'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
       );
 
       /* ── v10 wire-up: local gamification, streak, badges ─────
