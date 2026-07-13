@@ -179,6 +179,71 @@
         if (chip) chip.click();
       }
     }));
+
+    host.appendChild(buildAccountSection(ctx));
+  }
+
+  /* ── ACCOUNT (M3): sign in/out + App-Store-required deletion ── */
+  function accountRow(opts) {
+    return h('div', {
+      class: 'v10-row',
+      style: Object.assign({ boxShadow: '2px 2px 0 var(--ink)', cursor: opts.onclick ? 'pointer' : 'default' }, opts.style || {}),
+      onclick: opts.onclick
+    }, [
+      h('div', { class: 'v10-row__num' }, [icon(opts.icon)]),
+      h('div', { class: 'v10-row__main' }, [
+        h('div', { class: 'v10-row__title', text: opts.title }),
+        opts.sub ? h('div', { class: 'v10-row__sub', text: opts.sub }) : null
+      ].filter(Boolean)),
+      opts.onclick ? h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')]) : null
+    ].filter(Boolean));
+  }
+
+  function buildAccountSection(ctx) {
+    var wrap = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' } });
+    wrap.appendChild(ctx.ui.ribbon({ icon: 'ph-user-circle', title: 'ACCOUNT', meta: '' }));
+
+    var user = window.V10Auth && window.V10Auth.user();
+    if (!user) {
+      wrap.appendChild(accountRow({
+        icon: 'ph-sign-in',
+        title: 'SIGN IN / CREATE ACCOUNT',
+        sub: 'Sync sessions, XP and streaks across devices',
+        onclick: function () { ctx.go('auth'); }
+      }));
+      return wrap;
+    }
+
+    wrap.appendChild(accountRow({
+      icon: 'ph-envelope-simple',
+      title: (user.email || 'SIGNED IN').toUpperCase(),
+      sub: 'Signed in'
+    }));
+    wrap.appendChild(accountRow({
+      icon: 'ph-sign-out',
+      title: 'SIGN OUT',
+      onclick: function () {
+        window.V10Auth.signOut().then(function () { ctx.go('me'); });
+      }
+    }));
+    wrap.appendChild(accountRow({
+      icon: 'ph-trash',
+      title: 'DELETE ACCOUNT',
+      sub: 'Permanently erases your account and all data',
+      style: { background: 'rgba(255,79,31,0.08)' },
+      onclick: function () {
+        // Two explicit confirmations — deletion is irreversible.
+        if (!window.confirm('Delete your CourtIQ account?\n\nThis permanently erases your profile, sessions, shots and XP. There is no undo.')) return;
+        if (!window.confirm('Last check — really delete everything?')) return;
+        window.V10Auth.deleteAccount().then(function () {
+          alert('Your account was deleted.');
+          ctx.go('home');
+        }).catch(function (e) {
+          alert('Deletion failed: ' + ((e && e.message) || 'network error') + '\nPlease try again.');
+        });
+      }
+    }));
+    return wrap;
   }
 
   /* ── Trophy catalog (mirrors BADGES in js/badges.js) ─────

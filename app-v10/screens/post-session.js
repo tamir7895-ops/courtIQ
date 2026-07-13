@@ -36,9 +36,18 @@
 
   function acc(z) { return (z && z.att) ? z.made / z.att : 0; }
 
-  function zoneFill(key, z) {
-    var a = acc(z);
+  /* Counter sessions (live camera, M3) have no verdicts — zones are
+     shaded by VOLUME instead of accuracy. */
+  function zoneFill(key, z, counter) {
     var isThree = !!THREE_PT[key];
+    if (counter) {
+      if (z && z.att > 0) {
+        var heat = Math.min(1, z.att / 6);
+        return 'rgba(224, 168, 46, ' + (0.28 + heat * 0.5).toFixed(2) + ')';
+      }
+      return 'rgba(251, 245, 232, 0.10)';
+    }
+    var a = acc(z);
     if (z && z.att > 0) {
       if (a >= 0.55) {
         return isThree ? 'rgba(255, 79, 31, 0.92)' : 'rgba(255, 79, 31, 0.62)';
@@ -72,14 +81,14 @@
     return z;
   }
 
-  function buildShotMap(zones) {
+  function buildShotMap(zones, counter) {
     var children = [];
 
     Object.keys(ZONE_PATHS).forEach(function (key) {
       var z = zones[key];
       children.push(svg('path', {
         d: ZONE_PATHS[key],
-        fill: zoneFill(key, z),
+        fill: zoneFill(key, z, counter),
         stroke: '#F0E6D2',
         'stroke-width': 1.4
       }));
@@ -121,11 +130,20 @@
       fill: '#FF4F1F', stroke: '#0A2850', 'stroke-width': 2
     }));
 
-    // Per-zone X/Y · NN% label
+    // Per-zone label: verdict mode = X/Y · NN%, counter mode = attempt count
     Object.keys(ZONE_CENTER).forEach(function (key) {
       var z = zones[key];
       if (!z || !z.att) return;
       var c = ZONE_CENTER[key];
+      if (counter) {
+        children.push(svg('text', {
+          x: c.x, y: c.y + 4,
+          'text-anchor': 'middle',
+          'font-family': 'Barlow Condensed, Impact, sans-serif',
+          'font-weight': 900, 'font-size': 24, fill: '#0A2850'
+        }, [String(z.att)]));
+        return;
+      }
       var color = zoneTextColor(z);
       var pct = Math.round((z.made / z.att) * 100);
       children.push(svg('text', {
@@ -173,7 +191,9 @@
           var lateral = (s.feetXNorm - 0.5) * 80;
           cx = Math.max(20, Math.min(480, center.x + lateral));
         }
-        var fill = s.made ? '#3D7A53' : '#FF4F1F';
+        var fill = (s.made === null || s.made === undefined)
+          ? '#E0A82E'
+          : (s.made ? '#3D7A53' : '#FF4F1F');
         // Ripple ring
         var ring = svg('circle', {
           cx: cx, cy: cy, r: 8, fill: 'none',
@@ -221,7 +241,20 @@
     return Math.round((a - 0.5) * 100);
   }
 
-  function zoneTile(key, z) {
+  function zoneTile(key, z, counter) {
+    if (counter) {
+      return h('div', {
+        class: 'v10-tile v10-tile--' + (z.att > 0 ? 'mustard' : 'sage'),
+        style: { flex: '0 0 auto', minWidth: '108px' }
+      }, [
+        h('div', { class: 'v10-tile__top' }, [
+          h('div', { class: 'v10-tile__title', text: (z.label || key).toUpperCase() }),
+          h('i', { class: 'ph-bold ph-basketball v10-tile__icon v10-tile__icon--mustard' })
+        ]),
+        h('div', { class: 'v10-tile__num', text: String(z.att || 0) }),
+        h('div', { class: 'v10-tile__meta', text: 'SHOTS' })
+      ]);
+    }
     var d = zoneDelta(z);
     var up = d >= 0;
     var variant = z && z.att > 0
@@ -240,11 +273,11 @@
     ]);
   }
 
-  function zoneStrip(zones) {
+  function zoneStrip(zones, counter) {
     var order = ['pnt', 'ml', 'mr', 'lw', 'top', 'rw', 'lc'];
     var tiles = order.map(function (k) {
       var z = zones[k] || { made: 0, att: 0, label: k };
-      return zoneTile(k, z);
+      return zoneTile(k, z, counter);
     });
     return h('div', {
       style: {
@@ -288,6 +321,8 @@
     // session — not the historical 7-day zone aggregate.
     var sessionShots = (window.__v10SessionShots || []).slice();
     var zones = aggregateSessionZones(sessionShots);
+    // Live counter sessions (M3) have no verdicts — different recap.
+    var counter = window.__v10SessionMode === 'counter';
 
     Promise.all([
       ctx.data.getProfile(),
@@ -306,7 +341,7 @@
       ]);
       host.appendChild(h('section', { class: 'v10-court' }, [
         eyebrow,
-        buildShotMap(zones)
+        buildShotMap(zones, counter)
       ]));
 
       // Reveal shot dots one-by-one after the SVG mounts.
@@ -317,7 +352,7 @@
       var att  = sessionShots.length;
       var pct  = att ? Math.round(made * 100 / att) : 0;
       // Celebration: palette-paper confetti, scaled to the performance
-      if (made > 0 && ctx.ui.confetti) {
+      if (!counter && made > 0 && ctx.ui.confetti) {
         setTimeout(function () {
           ctx.ui.confetti({ count: Math.min(32, 10 + made * 2) });
         }, 420);
@@ -337,17 +372,40 @@
       var today = { made: made, attempted: att };
       var latest = null;
 
-      host.appendChild(ctx.ui.bento([
-        { variant: 'orange',  icon: 'ph-check',  value: made + ' / ' + att, label: pct + '% MADE' },
-        { variant: 'sage',    icon: 'ph-target', value: threeAtt ? (threeMade + '/' + threeAtt) : '—', label: '3PT' },
-        {
-          variant: 'mustard',
-          icon: 'ph-fire',
-          iconExtra: streak >= 3 ? 'v10-flicker' : undefined,
-          value: String(streak),
-          label: 'BEST RUN'
-        }
-      ]));
+      if (counter) {
+        // Counter recap: volume stats only — no made/miss claims.
+        var zonesUsed = Object.keys(zones).filter(function (k) { return zones[k].att > 0; }).length;
+        host.appendChild(ctx.ui.bento([
+          { variant: 'orange',  icon: 'ph-basketball', value: String(att), label: 'SHOTS' },
+          { variant: 'sage',    icon: 'ph-target',     value: String(threeAtt), label: 'FROM 3PT RANGE' },
+          { variant: 'mustard', icon: 'ph-map-pin',    value: String(zonesUsed), label: 'ZONES USED' }
+        ]));
+        // Explain where verdicts live — one tap to the upload flow.
+        host.appendChild(h('div', {
+          class: 'v10-row',
+          style: { boxShadow: '2px 2px 0 var(--ink)', cursor: 'pointer', marginBottom: 'var(--s-3)' },
+          onclick: function () { ctx.go('track'); }
+        }, [
+          h('div', { class: 'v10-row__num' }, [icon('ph-film-slate')]),
+          h('div', { class: 'v10-row__main' }, [
+            h('div', { class: 'v10-row__title', text: 'WANT MADE/MISS?' }),
+            h('div', { class: 'v10-row__sub', text: 'Record your session and upload the video — the analyzer scores every shot.' })
+          ]),
+          h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')])
+        ]));
+      } else {
+        host.appendChild(ctx.ui.bento([
+          { variant: 'orange',  icon: 'ph-check',  value: made + ' / ' + att, label: pct + '% MADE' },
+          { variant: 'sage',    icon: 'ph-target', value: threeAtt ? (threeMade + '/' + threeAtt) : '—', label: '3PT' },
+          {
+            variant: 'mustard',
+            icon: 'ph-fire',
+            iconExtra: streak >= 3 ? 'v10-flicker' : undefined,
+            value: String(streak),
+            label: 'BEST RUN'
+          }
+        ]));
+      }
 
       // BY ZONE ribbon + tile strip
       host.appendChild(ctx.ui.ribbon({
@@ -355,7 +413,7 @@
         title: 'BY ZONE',
         meta: 'SCROLL →'
       }));
-      host.appendChild(zoneStrip(zones || {}));
+      host.appendChild(zoneStrip(zones || {}, counter));
 
       // DRILLS ribbon — clickable rows go to workout-player; "View all" chip goes to drill-library
       host.appendChild(ctx.ui.ribbon({

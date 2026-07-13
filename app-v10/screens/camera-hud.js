@@ -91,8 +91,10 @@
       cx = Math.max(20, Math.min(480, center.x + lateral));
     }
 
-    var made = !!detail.made;
-    var fill = made ? '#3D7A53' : '#FF4F1F';
+    // Counter mode (live): no verdict — neutral mustard dot marks the zone.
+    var fill = (detail.made === null || detail.made === undefined)
+      ? '#E0A82E'
+      : (detail.made ? '#3D7A53' : '#FF4F1F');
 
     // Outer ripple ring (animation)
     var ring = svg('circle', {
@@ -115,15 +117,17 @@
     setTimeout(function () { if (ring.parentNode) ring.parentNode.removeChild(ring); }, 800);
   }
 
-  /* ── LIVE COUNT card (top-right) ───────────────────────────────── */
+  /* ── LIVE COUNT card (top-right) ─────────────────────────────────
+     Counter mode (M3): live counts ATTEMPTS only — verdicts come from
+     the upload analyzer. Big number = shots detected. */
   function counterCard() {
     return h('div', { id: 'v10-cam-counter', class: 'v10-cam-counter' }, [
       h('div', { class: 'v10-cam-counter__eyebrow', text: 'LIVE COUNT' }),
-      h('div', { class: 'v10-cam-counter__num', id: 'v10-cam-num', text: '0/0' }),
-      h('div', { class: 'v10-cam-counter__sub', text: 'MADE / ATT' }),
+      h('div', { class: 'v10-cam-counter__num', id: 'v10-cam-num', text: '0' }),
+      h('div', { class: 'v10-cam-counter__sub', text: 'SHOTS DETECTED' }),
       h('div', { class: 'v10-cam-counter__streak' }, [
-        h('i', { class: 'ph-bold ph-fire' }),
-        h('span', { id: 'v10-cam-streak', text: 'STREAK 0' })
+        h('i', { class: 'ph-bold ph-film-slate' }),
+        h('span', { id: 'v10-cam-streak', text: 'UPLOAD FOR MADE/MISS' })
       ])
     ]);
   }
@@ -183,16 +187,10 @@
 
   function startPolling() {
     if (pollHandle) clearInterval(pollHandle);
-    var prevMade = 0, streak = 0;
     pollHandle = setInterval(function () {
       var s = readEngineStats();
       var numEl = document.getElementById('v10-cam-num');
-      if (numEl) numEl.textContent = s.made + '/' + s.att;
-      if (s.made > prevMade) streak += (s.made - prevMade);
-      else if (s.att > prevMade && s.made === prevMade) streak = 0;
-      prevMade = s.made;
-      var sEl = document.getElementById('v10-cam-streak');
-      if (sEl) sEl.textContent = 'STREAK ' + streak;
+      if (numEl) numEl.textContent = String(s.att);
       updateCalibration();
     }, 500);
   }
@@ -217,18 +215,22 @@
     // with ONLY this session's shots (not historical zone aggregates).
     // Reset at session start; append on every shot fire.
     window.__v10SessionShots = [];
+    // LIVE sessions are counter-only (M3): made stays null everywhere,
+    // and post-session renders the counter recap variant.
+    window.__v10SessionMode = 'counter';
 
     // Live shot-zone push — engine dispatches 'v10:shot' on every shot finalisation
     v10ShotListener = function (ev) {
       if (!ev || !ev.detail) return;
-      pushShotToMiniCourt(ev.detail);
+      var detail = Object.assign({}, ev.detail, { made: null });
+      pushShotToMiniCourt(detail);
       // Persist for post-session view
       window.__v10SessionShots.push({
-        made:       !!ev.detail.made,
-        v10Zone:    ev.detail.v10Zone || 'top',
-        feetXNorm:  ev.detail.feetXNorm,
-        feetYNorm:  ev.detail.feetYNorm,
-        ts:         ev.detail.ts || Date.now()
+        made:       null,
+        v10Zone:    detail.v10Zone || 'top',
+        feetXNorm:  detail.feetXNorm,
+        feetYNorm:  detail.feetYNorm,
+        ts:         detail.ts || Date.now()
       });
     };
     document.body.addEventListener('v10:shot', v10ShotListener);
@@ -485,6 +487,7 @@
       }
       // Post-session renders ONLY window.__v10SessionShots — populate it
       // from the offline results exactly like the real-time listener does.
+      window.__v10SessionMode = 'verdict';   // upload = full made/miss recap
       window.__v10SessionShots = (res.shots || []).map(function (s) {
         return {
           made:      s.result === 'made',

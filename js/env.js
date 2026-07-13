@@ -11,6 +11,11 @@
    entry point, before supabase-client.js.
    ══════════════════════════════════════════════════════════════ */
 window.COURTIQ_ENV = {
+  // LIVE camera counts attempts only — made/miss verdicts come from the
+  // upload analyzer, the only path with frame-accurate through-rim
+  // evidence. Live verdicts return in M8 (live v2) on the retrained
+  // model; flip to false to re-enable the old behavior for experiments.
+  LIVE_COUNTER_ONLY: true,
   SUPABASE_URL: 'https://txnsuzlgfafjdipfqkqe.supabase.co',
   // Modern publishable key (sb_publishable_*) — rotatable from the
   // Supabase dashboard at any time without invalidating user sessions.
