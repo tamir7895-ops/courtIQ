@@ -154,15 +154,21 @@
     // Hero with big avatar (clickable → avatar-customizer)
     host.appendChild(buildHero(profile, ctx));
 
-    // 4-bento — streak fire flickers when >= 3
-    var streakVal = profile.streak || 7;
-    host.appendChild(ctx.ui.bento([
-      {                    icon: 'ph-flag',   value: 47,    label: 'SESSIONS' },
-      { variant: 'orange', icon: 'ph-trophy', value: 12,    label: 'BADGES' },
-      { variant: 'mustard',icon: 'ph-medal',  value: '#42', label: 'RANK' },
-      { variant: 'sage',   icon: 'ph-fire',   value: streakVal, label: 'STREAK',
-        iconExtra: streakVal >= 3 ? 'v10-flicker' : '' }
-    ]));
+    // 4-bento — every number real (merged sessions + earned badges)
+    var streakVal = profile.streak || 0;
+    var earned = loadEarnedMap();
+    var badgeCount = TROPHY_CATALOG.filter(function (b) { return !!earned[b.id]; }).length;
+    var bentoHost = h('div');
+    host.appendChild(bentoHost);
+    ctx.data.getTotals().then(function (t) {
+      bentoHost.appendChild(ctx.ui.bento([
+        {                    icon: 'ph-flag',       value: t.sessions, label: 'SESSIONS' },
+        { variant: 'orange', icon: 'ph-trophy',     value: badgeCount, label: 'BADGES' },
+        { variant: 'mustard',icon: 'ph-basketball', value: t.shots,    label: 'SHOTS' },
+        { variant: 'sage',   icon: 'ph-fire',       value: streakVal,  label: 'STREAK',
+          iconExtra: streakVal >= 3 ? 'v10-flicker' : '' }
+      ]));
+    });
 
     // Spacer
     host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
@@ -443,14 +449,18 @@
     host.appendChild(ctx.ui.ribbon({
       icon: 'ph-chat-circle',
       title: 'TEAMMATES',
-      meta: '8 ONLINE'
+      meta: 'SOON'
     }));
-    var friends = [
-      { n: '01', t: 'Jordan M.',  s: 'LV 16 · Guard · 81% today',   r: 'LIVE' },
-      { n: '02', t: 'Taylor R.',  s: 'LV 12 · Wing · 64% today',    r: '' },
-      { n: '03', t: 'Casey K.',   s: 'LV 18 · Center · 72% today',  r: 'LIVE' },
-      { n: '04', t: 'Morgan T.',  s: 'LV 10 · Guard · 58% today',   r: '' }
-    ];
+    // Honest gate (M4): team features ship with the squad beta — no fake
+    // friends list until real teammates exist.
+    host.appendChild(h('div', { class: 'v10-row', style: { boxShadow: '2px 2px 0 var(--ink)' } }, [
+      h('div', { class: 'v10-row__num' }, [icon('ph-users-three')]),
+      h('div', { class: 'v10-row__main' }, [
+        h('div', { class: 'v10-row__title', text: 'SQUAD MODE IS COMING' }),
+        h('div', { class: 'v10-row__sub', text: 'Team leaderboards and live sessions land with the squad beta. Your stats already count.' })
+      ])
+    ]));
+    var friends = [];
     friends.forEach(function (f) {
       host.appendChild(h('div', { class: 'v10-row' }, [
         h('div', { class: 'v10-row__num', text: f.n }),

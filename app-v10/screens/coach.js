@@ -61,37 +61,59 @@
 
   function heroVerdict(coach, week) {
     var eyebrowText = 'TODAY VERDICT · ' + ((week && week.sessions) || 0) + ' SESSIONS';
-    var headline = (coach && coach.highlight)
-      ? coach.highlight.toUpperCase()
-      : 'YOUR LEFT WING IS LEAKING.';
-    var sub = (coach && coach.verdict && coach.verdict !== coach.highlight)
-      ? coach.verdict
-      : 'Time to plug it. — Coach';
+    if (!coach || !coach.verdict) {
+      return h('div', { class: 'v10-hero v10-hero--ink' }, [
+        h('div', { class: 'v10-hero__main' }, [
+          h('div', { class: 'v10-hero__eyebrow' }, [
+            icon('ph-brain'),
+            h('span', { text: eyebrowText })
+          ]),
+          h('div', { class: 'v10-hero__headline', text: 'NO VERDICT YET.' }),
+          h('div', { class: 'v10-hero__sub', text: 'Upload a scored session — the coach only talks about shots that really happened.' })
+        ])
+      ]);
+    }
     return h('div', { class: 'v10-hero v10-hero--ink' }, [
       h('div', { class: 'v10-hero__main' }, [
         h('div', { class: 'v10-hero__eyebrow' }, [
           icon('ph-brain'),
           h('span', { text: eyebrowText })
         ]),
-        h('div', { class: 'v10-hero__headline', text: headline }),
-        h('div', { class: 'v10-hero__sub', text: sub })
+        h('div', { class: 'v10-hero__headline', text: coach.highlight.toUpperCase() }),
+        h('div', { class: 'v10-hero__sub', text: coach.verdict })
       ])
     ]);
   }
 
-  function bentoRow(today, week, profile) {
-    var trend  = (today && today.trend != null) ? today.trend : 6;
-    var trendStr = (trend >= 0 ? '+' : '') + trend + '%';
-    var sessions = (week && week.sessions != null) ? week.sessions : 3;
+  // Best / worst zones with real verdict evidence (≥4 scored shots).
+  function extremeZones(zones) {
+    var best = null, worst = null;
+    if (zones) {
+      Object.keys(zones).forEach(function (k) {
+        var z = zones[k];
+        if (!z || z.vatt < 4) return;
+        var pct = z.made / z.vatt;
+        if (!best || pct > best.pct) best = { pct: pct, label: z.label };
+        if (!worst || pct < worst.pct) worst = { pct: pct, label: z.label };
+      });
+    }
+    return { best: best, worst: worst };
+  }
+
+  function bentoRow(today, week, profile, zones) {
+    var ex = extremeZones(zones);
     var streak = (profile && profile.streak) || 0;
-    // streak fire icon: flicker when streak >= 3 (the HOT cell doubles as a streak indicator)
-    var hotCell = { variant: 'orange',  icon: 'ph-fire',             value: 'R-WING', label: 'HOT' };
+    var hotCell = {
+      variant: 'orange', icon: 'ph-fire',
+      value: ex.best ? ex.best.label.toUpperCase().slice(0, 8) : '—',
+      label: 'HOT'
+    };
     if (streak >= 3) hotCell.iconExtra = 'v10-flicker';
     return window.V10UI.bento([
-      { variant: 'sage',    icon: 'ph-trend-up',         value: trendStr,    label: 'TREND' },
+      { variant: 'sage',    icon: 'ph-basketball',       value: (week && week.attempts) || 0, label: 'SHOTS · WK' },
       hotCell,
-      { variant: 'mustard', icon: 'ph-crosshair-simple', value: 'L-WING',    label: 'COLD' },
-      { variant: 'ink',     icon: 'ph-flag',             value: sessions,    label: 'SESSIONS' }
+      { variant: 'mustard', icon: 'ph-crosshair-simple', value: ex.worst ? ex.worst.label.toUpperCase().slice(0, 8) : '—', label: 'COLD' },
+      { variant: 'ink',     icon: 'ph-flag',             value: (week && week.sessions) || 0, label: 'SESSIONS' }
     ]);
   }
 
@@ -126,7 +148,7 @@
 
   function renderVerdict(host, ctx, bundle, switchSub) {
     host.appendChild(heroVerdict(bundle.coach, bundle.week));
-    host.appendChild(bentoRow(bundle.today, bundle.week, bundle.profile));
+    host.appendChild(bentoRow(bundle.today, bundle.week, bundle.profile, bundle.zones));
 
     // Ribbon is tappable: jumps to the Briefings sub-tab.
     var thisWeek = window.V10UI.ribbon({
@@ -141,12 +163,14 @@
 
     host.appendChild(drillGrid(bundle.drills, ctx));
 
-    host.appendChild(window.V10UI.pinCard({
-      tab:  'DEEPER LOOK',
-      body: 'Compared to your last 5 sessions, paint efficiency held but your three-point split widened. Triage left wing first.',
-      highlight: 'three-point split widened',
-      sig:  'AI SCOUT'
-    }));
+    if (bundle.coach && bundle.coach.verdict) {
+      host.appendChild(window.V10UI.pinCard({
+        tab:  'DEEPER LOOK',
+        body: bundle.coach.verdict,
+        highlight: bundle.coach.highlight,
+        sig:  'AI SCOUT'
+      }));
+    }
 
     host.appendChild(spacer());
 
@@ -178,33 +202,54 @@
     }));
   }
 
+  // Real per-week rollups from the merged session store.
   function renderBriefings(host, ctx, switchSub) {
     host.appendChild(window.V10UI.ribbon({
       icon: 'ph-flag',
       title: 'BRIEFINGS',
       meta: 'PAST WEEKS'
     }));
-    var rows = [
-      { num: 'W18', title: 'Mid-range on fire',  sub: 'MAY 4 · 3 sessions',  right: '78' },
-      { num: 'W17', title: 'Defense sharpened',  sub: 'APR 27 · 4 sessions', right: '72' },
-      { num: 'W16', title: 'Cuts without ball',  sub: 'APR 20 · 3 sessions', right: '69' }
-    ];
-    rows.forEach(function (r) {
-      var row = h('div', {
-        class: 'v10-row',
-        role: 'button',
-        tabindex: '0',
-        onclick: function () { ctx.go('post-session'); }
-      }, [
-        h('div', { class: 'v10-row__num', text: r.num }),
-        h('div', { class: 'v10-row__main' }, [
-          h('div', { class: 'v10-row__title', text: r.title }),
-          h('div', { class: 'v10-row__sub',   text: r.sub })
-        ]),
-        h('div', { class: 'v10-row__right', text: r.right })
-      ]);
-      row.style.cursor = 'pointer';
-      host.appendChild(row);
+
+    var listWrap = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+    host.appendChild(listWrap);
+
+    ctx.data.getSessions(100).then(function (rows) {
+      var weeks = {};   // monday-ISO → { att, made, vatt, n, t }
+      (rows || []).forEach(function (s) {
+        var d = new Date(s.session_date || s.created_at || 0);
+        if (isNaN(d)) return;
+        var monday = new Date(d);
+        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+        var key = monday.toISOString().slice(0, 10);
+        var w = (weeks[key] = weeks[key] || { att: 0, made: 0, vatt: 0, n: 0, t: monday });
+        w.n += 1;
+        w.att += s.total_attempts || 0;
+        if (s.total_made != null) { w.vatt += s.total_attempts || 0; w.made += s.total_made || 0; }
+      });
+      var keys = Object.keys(weeks).sort().reverse().slice(0, 4);
+      if (!keys.length) {
+        listWrap.appendChild(h('div', { class: 'v10-row', style: { boxShadow: '2px 2px 0 var(--ink)' } }, [
+          h('div', { class: 'v10-row__num' }, [icon('ph-flag')]),
+          h('div', { class: 'v10-row__main' }, [
+            h('div', { class: 'v10-row__title', text: 'NO BRIEFINGS YET' }),
+            h('div', { class: 'v10-row__sub', text: 'Weekly rollups appear after your first sessions.' })
+          ])
+        ]));
+        return;
+      }
+      keys.forEach(function (k, i) {
+        var w = weeks[k];
+        var right = w.vatt ? Math.round(w.made * 100 / w.vatt) + '%' : String(w.att);
+        var label = w.t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
+        listWrap.appendChild(h('div', { class: 'v10-row' }, [
+          h('div', { class: 'v10-row__num', text: 'W' + (keys.length - i) }),
+          h('div', { class: 'v10-row__main' }, [
+            h('div', { class: 'v10-row__title', text: 'WEEK OF ' + label }),
+            h('div', { class: 'v10-row__sub',   text: w.n + ' sessions · ' + w.att + ' shots' })
+          ]),
+          h('div', { class: 'v10-row__right', text: right })
+        ]));
+      });
     });
 
     host.appendChild(spacer());
@@ -235,14 +280,16 @@
         ctx.data.getTodayStats(),
         ctx.data.getWeekStats(),
         ctx.data.getCoachVerdict(),
-        ctx.data.getDrills()
+        ctx.data.getDrills(),
+        ctx.data.getZones()
       ]).then(function (results) {
         var bundle = {
           profile: results[0] || {},
           today:   results[1] || {},
           week:    results[2] || {},
-          coach:   results[3] || {},
-          drills:  drillsFromData(results[4])
+          coach:   results[3],          // null until real zone evidence exists
+          drills:  drillsFromData(results[4]),
+          zones:   results[5]
         };
         host.appendChild(ctx.ui.headerPill({ profile: bundle.profile }));
         host.appendChild(chips(sub, switchSub));

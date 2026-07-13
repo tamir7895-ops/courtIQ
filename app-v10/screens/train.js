@@ -28,28 +28,29 @@
     return row;
   }
 
-  function heroForYou(firstDrill) {
+  function heroForYou(firstDrill, drillsTotal) {
     var name = (firstDrill && firstDrill.name) ? firstDrill.name.toUpperCase() : 'FORM SHOOTING';
     var reps = (firstDrill && firstDrill.reps) ? firstDrill.reps : 50;
     var mins = (firstDrill && firstDrill.mins) ? firstDrill.mins : 8;
+    var focus = (firstDrill && firstDrill.focus) ? firstDrill.focus.toUpperCase() : 'SHOOTING';
     return h('div', { class: 'v10-hero v10-hero--mustard' }, [
       h('div', { class: 'v10-hero__main' }, [
         h('div', { class: 'v10-hero__eyebrow' }, [
           icon('ph-barbell'),
-          h('span', { text: 'DRILL 1 OF 5 · ' + reps + ' REPS' })
+          h('span', { text: 'DRILL 1 OF ' + (drillsTotal || 3) + ' · ' + reps + ' REPS' })
         ]),
         h('div', { class: 'v10-hero__headline', text: name + ' /' }),
-        h('div', { class: 'v10-hero__headline', text: 'LEFT WING' }),
-        h('div', { class: 'v10-hero__sub', text: 'Est. ' + mins + ' min · Light intensity' })
+        h('div', { class: 'v10-hero__headline', text: focus }),
+        h('div', { class: 'v10-hero__sub', text: 'Est. ' + mins + ' min' })
       ])
     ]);
   }
 
   function bentoRow(opts) {
     opts = opts || {};
-    var streak = opts.streak != null ? opts.streak : 7;
-    var week = opts.week != null ? opts.week : 12;
-    var drillsTotal = opts.drillsTotal != null ? opts.drillsTotal : 5;
+    var streak = opts.streak || 0;
+    var week = opts.week || 0;
+    var drillsTotal = opts.drillsTotal != null ? opts.drillsTotal : 3;
     return window.V10UI.bento([
       { variant: 'mustard', icon: 'ph-barbell',   value: '1/' + drillsTotal,  label: 'DRILLS' },
       { variant: 'orange',  icon: 'ph-flag',      value: week,     label: 'THIS WEEK' },
@@ -143,26 +144,29 @@
       var coach   = results[3] || {};
 
       var firstDrill = drills[0] || null;
-      var drillsTotal = Math.max(drills.length || 0, 5);
+      var drillsTotal = drills.length || 3;
+      var planMins = (drills || []).reduce(function (n, d) { return n + (d.mins || 6); }, 0) || 20;
 
-      host.appendChild(heroForYou(firstDrill));
+      host.appendChild(heroForYou(firstDrill, drillsTotal));
       host.appendChild(bentoRow({
         streak: profile.streak,
-        week: week.sessions != null ? week.sessions : 12,
+        week: week.sessions || 0,
         drillsTotal: drillsTotal
       }));
       host.appendChild(window.V10UI.ribbon({
         icon: 'ph-barbell',
         title: 'WORKOUT PLAN',
-        meta: drillsTotal + ' DRILLS · 28 MIN'
+        meta: drillsTotal + ' DRILLS · ' + planMins + ' MIN'
       }));
       host.appendChild(drillGrid(drills, ctx, switchTo));
-      host.appendChild(window.V10UI.pinCard({
-        tab:  'COACH NOTE',
-        body: coach.verdict || 'Press your release a tick later. Last week your wrist was rushing.',
-        highlight: coach.highlight || 'release a tick later',
-        sig:  'COACH'
-      }));
+      if (coach && coach.verdict) {
+        host.appendChild(window.V10UI.pinCard({
+          tab:  'COACH NOTE',
+          body: coach.verdict,
+          highlight: coach.highlight,
+          sig:  'COACH'
+        }));
+      }
 
       // Flex spacer pushes the CTA toward the bottom of the viewport.
       host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
