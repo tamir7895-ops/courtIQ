@@ -1,170 +1,308 @@
-/* CourtIQ v10 — Data Bridge
-   Thin wrapper around existing engine services. Each method returns a Promise.
-   Falls back to FIXTURE when a service is missing or throws.
+/* CourtIQ v10 — Data Bridge (M4 rewrite)
+   Every number on screen is REAL or absent — never a fixture.
+
+   Sources, merged everywhere:
+   - Signed-in: Supabase rows (ai_shot_sessions / ai_shots / profiles).
+   - Always:    localStorage offline records (anonymous sessions land in
+                'courtiq-ai-sessions-offline' / 'courtiq-ai-shots-offline'),
+                local XP ('courtiq-xp' via XPSystem) and streak (StreakSystem).
+
+   session_type awareness: 'live_counter' rows carry total_made=null —
+   they count toward attempts/volume but NEVER toward accuracy math.
    ============================================================ */
 (function () {
   'use strict';
 
-  // ─── helpers ────────────────────────────────────────────
-  function safe(fn) {
+  var LS_SESSIONS = 'courtiq-ai-sessions-offline';
+  var LS_SHOTS    = 'courtiq-ai-shots-offline';
+
+  function safe(fn, fallback) {
     try {
       var r = fn();
       if (r && typeof r.then === 'function') {
-        return r.catch(function () { return null; });
+        return r.catch(function () { return fallback !== undefined ? fallback : null; });
       }
       return Promise.resolve(r);
     } catch (e) {
-      return Promise.resolve(null);
+      return Promise.resolve(fallback !== undefined ? fallback : null);
     }
   }
 
-  // Services declared with `const`/`let` at script top-level live in script
-  // scope (shared across classic scripts) — accessible by bare name, not via
-  // `window.X`. `typeof` on an undeclared identifier returns 'undefined'
-  // without throwing, so we can probe safely.
-  function getDataService() {
-    return (typeof DataService !== 'undefined') ? DataService : null;
-  }
-  function getAICoach() {
-    return (typeof AICoach !== 'undefined') ? AICoach : null;
-  }
-  function getDrillEngine() {
-    return (typeof DrillEngine !== 'undefined') ? DrillEngine : null;
-  }
-  function getDrillsDB() {
-    return (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : null;
+  function readLS(key) {
+    try {
+      var raw = localStorage.getItem(key);
+      var arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) { return []; }
   }
 
-  // ─── fixture (fallback) ─────────────────────────────────
-  var FIXTURE = {
-    profile: {
-      name: 'Alex Rivera',
-      initial: 'A',
-      position: 'SNIPER',
-      level: 14,
-      xp: 11200,
-      xpNext: 15000,
-      streak: 7,
-      avatarUrl: null
-    },
-    today:  { shootingPct: 76, made: 23, attempted: 30, threePt: 42, trend: 6 },
-    week:   { sessions: 3, goal: 5 },
-    coach:  {
-      verdict: 'Your left wing is leaking. Spend 50 reps there today.',
-      highlight: 'Your left wing is leaking.',
-      projection: '+3%'
-    },
-    drills: [
-      { id: 'form-shoot',  name: 'Form Shooting', reps: 50, mins: 8, accent: 'orange'  },
-      { id: 'catch-shoot', name: 'Catch & Shoot', reps: 30, mins: 6, accent: 'sage'    },
-      { id: 'quick-draw',  name: 'Quick Draw',    reps: 20, mins: 4, accent: 'mustard' }
-    ],
-    zones: {
-      lc:     { made: 2, att: 2,  label: 'L Corner 3' },
-      lw:     { made: 2, att: 4,  label: 'L Wing 3' },
-      top:    { made: 3, att: 4,  label: 'Top 3' },
-      rw:     { made: 7, att: 9,  label: 'R Wing 3' },
-      rc:     { made: 1, att: 2,  label: 'R Corner 3' },
-      ml:     { made: 1, att: 3,  label: 'Mid L' },
-      mr:     { made: 1, att: 2,  label: 'Mid R' },
-      topmid: { made: 0, att: 0,  label: 'Top Mid' },
-      pnt:    { made: 5, att: 7,  label: 'Paint' }
+  // ─── sessions (merged remote + local) ────────────────────
+  function getSessions(limit) {
+    limit = limit || 50;
+    var locals = readLS(LS_SESSIONS);
+    var remoteP = Promise.resolve([]);
+    if (window.currentUser && window.ShotService && window.ShotService.fetchSessions) {
+      remoteP = safe(function () {
+        return window.ShotService.fetchSessions(window.currentUser.id, limit);
+      }, []);
     }
+    return remoteP.then(function (remote) {
+      var seen = {};
+      var all = [];
+      (remote || []).concat(locals).forEach(function (s) {
+        if (!s || !s.id || seen[s.id]) return;
+        seen[s.id] = 1;
+        all.push(s);
+      });
+      all.sort(function (a, b) {
+        return new Date(b.session_date || b.created_at || 0) - new Date(a.session_date || a.created_at || 0);
+      });
+      return all.slice(0, limit);
+    });
+  }
+
+  function isCounterSession(s) {
+    return s && (s.session_type === 'live_counter' || s.total_made == null);
+  }
+  function sAtt(s)  { return s.total_attempts != null ? s.total_attempts : 0; }
+  function sMade(s) { return isCounterSession(s) ? null : (s.total_made || 0); }
+
+  // ─── shots (merged, for zone maps) ───────────────────────
+  var V10_ZONES = { lc:1, rc:1, ml:1, mr:1, topmid:1, lw:1, rw:1, top:1, pnt:1 };
+  var LEGACY_ZONE_MAP = { paint: 'pnt', freeThrow: 'pnt', midrange: 'topmid', threePoint: 'top' };
+
+  function normZone(z) {
+    if (!z) return null;
+    if (V10_ZONES[z]) return z;
+    return LEGACY_ZONE_MAP[z] || null;
+  }
+
+  function getShots(days) {
+    days = days || 30;
+    var cutoff = Date.now() - days * 86400000;
+    var locals = readLS(LS_SHOTS).filter(function (s) {
+      var t = new Date(s.timestamp || 0).getTime();
+      return !t || t >= cutoff;
+    });
+    var remoteP = Promise.resolve([]);
+    if (window.currentUser && typeof sb !== 'undefined' && sb.from) {
+      remoteP = safe(function () {
+        return sb.from('ai_shots')
+          .select('shot_zone, shot_result, timestamp')
+          .eq('user_id', window.currentUser.id)
+          .gte('timestamp', new Date(cutoff).toISOString())
+          .limit(2000)
+          .then(function (res) { return res.data || []; });
+      }, []);
+    }
+    return remoteP.then(function (remote) {
+      return (remote || []).concat(locals);
+    });
+  }
+
+  /* Zones: att = every shot, made/vatt = verdict shots only (upload
+     analysis). Counter shots grow the bubbles, not the percentages. */
+  var ZONE_LABELS = {
+    lc: 'L Corner 3', rc: 'R Corner 3', lw: 'L Wing 3', rw: 'R Wing 3',
+    top: 'Top 3', topmid: 'Top Mid', ml: 'Mid L', mr: 'Mid R', pnt: 'Paint'
   };
 
+  function getZones(days) {
+    return safe(function () {
+      return getShots(days || 30).then(function (shots) {
+        var zones = {};
+        Object.keys(V10_ZONES).forEach(function (k) {
+          zones[k] = { made: 0, att: 0, vatt: 0, label: ZONE_LABELS[k] };
+        });
+        shots.forEach(function (s) {
+          var k = normZone(s.shot_zone);
+          if (!k) return;
+          zones[k].att += 1;
+          if (s.shot_result === 'made' || s.shot_result === 'missed') {
+            zones[k].vatt += 1;
+            if (s.shot_result === 'made') zones[k].made += 1;
+          }
+        });
+        return zones;
+      });
+    }, null);
+  }
+
   // ─── profile ────────────────────────────────────────────
+  function localXP() {
+    try {
+      var d = (window.XPSystem && window.XPSystem.load) ? window.XPSystem.load() : null;
+      return d && typeof d.xp === 'number' ? d.xp : 0;
+    } catch (e) { return 0; }
+  }
+  function localStreak() {
+    try { return (window.StreakSystem && window.StreakSystem.get) ? window.StreakSystem.get() : 0; }
+    catch (e) { return 0; }
+  }
+  function levelOf(xp) {
+    try {
+      if (window.XPSystem && window.XPSystem.getLevel) {
+        var l = window.XPSystem.getLevel(xp);
+        return (l && l.level) || (typeof l === 'number' ? l : 1);
+      }
+    } catch (e) {}
+    return 1;
+  }
+
+  function guestProfile() {
+    var name = '';
+    try { name = localStorage.getItem('courtiq_profile_name') || ''; } catch (e) {}
+    var pos = '';
+    try { pos = localStorage.getItem('courtiq_profile_position') || ''; } catch (e) {}
+    var xp = localXP();
+    var lvl = levelOf(xp);
+    var avatarUrl = null;
+    try { avatarUrl = localStorage.getItem('courtiq_avatar_url') || null; } catch (e) {}
+    return {
+      name:     name || 'Rookie',
+      initial:  ((name || 'R')[0] || 'R').toUpperCase(),
+      position: (pos || 'PLAYER').toUpperCase(),
+      level:    lvl,
+      xp:       xp,
+      xpNext:   null,
+      streak:   localStreak(),
+      avatarUrl: avatarUrl,
+      guest:    true
+    };
+  }
+
   function getProfile() {
     return safe(function () {
-      var DS = getDataService();
+      var DS = (typeof DataService !== 'undefined') ? DataService : null;
       if (DS && DS.getProfile && window.currentUser) {
         return DS.getProfile().then(function (p) {
-          if (!p) return FIXTURE.profile;
-          var pos = (p.position || FIXTURE.profile.position).toUpperCase();
-          // user_data is a JSONB blob — XP / streak may live there if the
-          // top-level columns aren't populated yet on legacy rows.
+          if (!p) return guestProfile();
           var ud = p.user_data || {};
           var xpData = (ud && ud.xp_data) || {};
+          var xp = xpData.xp || ud.xp || localXP() || 0;
           return {
-            name:     p.first_name || p.full_name || FIXTURE.profile.name,
-            initial:  ((p.first_name || p.full_name || 'A')[0] || 'A').toUpperCase(),
-            position: pos,
-            level:    p.level || ud.level || FIXTURE.profile.level,
-            xp:       p.xp || xpData.xp || ud.xp || FIXTURE.profile.xp,
-            xpNext:   p.xp_next || ud.xp_next || FIXTURE.profile.xpNext,
-            streak:   p.streak_days || ud.streak_days || FIXTURE.profile.streak,
-            avatarUrl: p.dicebear_avatar_url || ud.dicebear_avatar_url || null
+            name:     p.first_name || (window.currentUser.email || '').split('@')[0] || 'Player',
+            initial:  ((p.first_name || window.currentUser.email || 'P')[0] || 'P').toUpperCase(),
+            position: (p.position || 'PLAYER').toUpperCase(),
+            level:    ud.level || levelOf(xp),
+            xp:       xp,
+            xpNext:   ud.xp_next || null,
+            streak:   p.streak != null ? p.streak : localStreak(),
+            avatarUrl: ud.dicebear_avatar_url || null,
+            guest:    false
           };
-        });
+        }).catch(function () { return guestProfile(); });
       }
-      return FIXTURE.profile;
-    });
+      return guestProfile();
+    }, guestProfile());
   }
 
-  // ─── today's stats ──────────────────────────────────────
+  // ─── today ──────────────────────────────────────────────
+  function aggregate(sessions) {
+    var att = 0, made = 0, vatt = 0, threeMade = 0, threeAtt = 0;
+    sessions.forEach(function (s) {
+      att += sAtt(s);
+      if (!isCounterSession(s)) {
+        vatt += sAtt(s);
+        made += sMade(s) || 0;
+        threeMade += (s.three_made || 0);
+        threeAtt  += (s.three_made || 0) + (s.three_missed || 0);
+      }
+    });
+    return {
+      attempted:   att,
+      made:        vatt ? made : null,
+      shootingPct: vatt ? Math.round(made * 100 / vatt) : null,
+      verdictAtt:  vatt,
+      threePt:     threeAtt ? Math.round(threeMade * 100 / threeAtt) : null,
+      threeMade:   threeMade,
+      sessions:    sessions.length
+    };
+  }
+
   function getTodayStats() {
     return safe(function () {
-      var ST = window.ShotService;
-      if (ST && ST.fetchSessions && window.currentUser) {
-        return ST.fetchSessions(50).then(function (rows) {
-          if (!rows || !rows.length) return FIXTURE.today;
-          var today = new Date().toISOString().slice(0, 10);
-          var todays = rows.filter(function (r) {
-            return (r.session_date || '').slice(0, 10) === today;
-          });
-          if (!todays.length) return FIXTURE.today;
-          var made = 0, att = 0;
-          todays.forEach(function (s) {
-            made += (s.made_count || 0);
-            att  += (s.shot_count || (s.made_count || 0) + (s.miss_count || 0));
-          });
-          var pct = att ? Math.round(made * 100 / att) : 0;
-          return { shootingPct: pct, made: made, attempted: att, threePt: FIXTURE.today.threePt, trend: 0 };
+      return getSessions(50).then(function (rows) {
+        var today = new Date().toISOString().slice(0, 10);
+        var todays = rows.filter(function (r) {
+          return (r.session_date || r.created_at || '').slice(0, 10) === today;
         });
-      }
-      return FIXTURE.today;
-    });
+        return aggregate(todays);
+      });
+    }, aggregate([]));
   }
 
-  // ─── week / streak ──────────────────────────────────────
+  // ─── week (strip + challenges) ──────────────────────────
   function getWeekStats() {
     return safe(function () {
-      var ST = window.ShotService;
-      if (ST && ST.fetchSessions && window.currentUser) {
-        return ST.fetchSessions(50).then(function (rows) {
-          if (!rows) return FIXTURE.week;
-          var weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
-          var n = rows.filter(function (r) {
-            return new Date(r.session_date || r.created_at).getTime() >= weekAgo;
-          }).length;
-          return { sessions: n, goal: 5 };
+      return getSessions(100).then(function (rows) {
+        var weekAgo = Date.now() - 7 * 86400000;
+        var weekRows = rows.filter(function (r) {
+          return new Date(r.session_date || r.created_at || 0).getTime() >= weekAgo;
         });
-      }
-      return FIXTURE.week;
-    });
+        var days = {};   // 'YYYY-MM-DD' → aggregate
+        weekRows.forEach(function (r) {
+          var d = (r.session_date || r.created_at || '').slice(0, 10);
+          if (!d) return;
+          (days[d] = days[d] || []).push(r);
+        });
+        Object.keys(days).forEach(function (d) { days[d] = aggregate(days[d]); });
+        var agg = aggregate(weekRows);
+        var hot = weekRows.filter(function (r) {
+          return !isCounterSession(r) && sAtt(r) >= 5 && (r.accuracy != null ? r.accuracy : 0) >= 70;
+        }).length;
+        return {
+          sessions: weekRows.length,
+          goal: 5,
+          days: days,
+          attempts: agg.attempted,
+          threes: agg.threeMade,
+          hotSessions: hot
+        };
+      });
+    }, { sessions: 0, goal: 5, days: {}, attempts: 0, threes: 0, hotSessions: 0 });
   }
 
-  // ─── coach verdict ──────────────────────────────────────
+  // ─── lifetime totals (me screen) ────────────────────────
+  function getTotals() {
+    return safe(function () {
+      return getSessions(200).then(function (rows) {
+        var agg = aggregate(rows);
+        return { sessions: rows.length, shots: agg.attempted };
+      });
+    }, { sessions: 0, shots: 0 });
+  }
+
+  // ─── coach verdict (derived from REAL zone data) ────────
   function getCoachVerdict() {
     return safe(function () {
-      var AI = getAICoach();
-      if (AI && AI.getDailyVerdict) {
-        var v = AI.getDailyVerdict();
-        if (v) return v;
-      }
-      return FIXTURE.coach;
-    });
+      return getZones(30).then(function (zones) {
+        if (!zones) return null;
+        var worst = null;
+        Object.keys(zones).forEach(function (k) {
+          var z = zones[k];
+          if (z.vatt < 4) return;   // not enough evidence to nag about
+          var pct = z.made / z.vatt;
+          if (!worst || pct < worst.pct) worst = { key: k, pct: pct, z: z };
+        });
+        if (!worst) return null;
+        var pctStr = Math.round(worst.pct * 100) + '%';
+        return {
+          verdict: 'Your ' + worst.z.label.toLowerCase() + ' sits at ' + pctStr +
+                   ' (' + worst.z.made + '/' + worst.z.vatt + '). Spend 30 reps there today.',
+          highlight: 'Your ' + worst.z.label.toLowerCase(),
+          projection: null
+        };
+      });
+    }, null);
   }
 
-  // ─── drills ─────────────────────────────────────────────
-  // DrillEngine.suggestPlan() doesn't exist in the legacy engine.
-  // Sample 3 drills directly from _DRILLS_DB (200 drills available)
-  // and map to the V10 tile shape. Vary the accent color per slot.
+  // ─── drills (real content DB — 200 drills) ──────────────
   function getDrills() {
     return safe(function () {
-      var DB = getDrillsDB();
+      var DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : null;
       if (DB && DB.length) {
         var accents = ['orange', 'sage', 'mustard'];
-        // Pick 3 distinct drills, biased toward Shooting + Ball Handling.
         var preferred = DB.filter(function (d) {
           return d && (d.focus_area === 'Shooting' || d.focus_area === 'Ball Handling');
         });
@@ -186,28 +324,37 @@
         }
         if (picks.length) return picks;
       }
-      return FIXTURE.drills;
-    });
+      return [];
+    }, []);
   }
 
-  // ─── zone history ───────────────────────────────────────
-  function getZones() {
+  // ─── latest session ─────────────────────────────────────
+  function getLatestSession() {
     return safe(function () {
-      var ST = window.ShotService;
-      if (ST && ST.fetchZoneHistory && window.currentUser) {
-        return ST.fetchZoneHistory({ days: 30 }).then(function (z) {
-          if (!z) return FIXTURE.zones;
-          return Object.assign({}, FIXTURE.zones, z);
-        });
-      }
-      return FIXTURE.zones;
-    });
+      return getSessions(1).then(function (rows) {
+        if (!rows || !rows.length) return null;
+        var s = rows[0];
+        var counter = isCounterSession(s);
+        var made = sMade(s);
+        var att  = sAtt(s);
+        return {
+          id:          s.id,
+          counter:     counter,
+          made:        made,
+          attempted:   att,
+          accuracy:    counter ? null
+                       : (s.accuracy != null ? Math.round(s.accuracy)
+                          : (att ? Math.round((made || 0) * 100 / att) : 0)),
+          maxStreak:   s.max_streak || 0,
+          durationMs:  s.duration_ms || 0,
+          sessionDate: s.session_date || s.created_at,
+          xpEarned:    s.xp_earned || 0
+        };
+      });
+    }, null);
   }
 
-  // ─── shot tracking ──────────────────────────────────────
-  // Observe the #shot-tracking-screen overlay; when its .active class
-  // disappears (engine auto-closed after save, or user clicked Done/X),
-  // route to v10 post-session for the recap.
+  // ─── shot tracking (unchanged plumbing) ─────────────────
   function watchTrackerClose() {
     setTimeout(function () {
       var screen = document.getElementById('shot-tracking-screen');
@@ -217,7 +364,6 @@
         var isActive = screen.classList.contains('active');
         if (wasActive && !isActive) {
           obs.disconnect();
-          // Briefly defer so any save IO completes
           setTimeout(function () {
             if (window.app && window.app.go) window.app.go('post-session');
           }, 150);
@@ -253,18 +399,10 @@
     return false;
   }
 
-  // Show a video file picker, then navigate to the camera-hud screen so
-  // the v10 chrome (LIVE COUNT card + mini-court) mounts around the
-  // engine — same as the normal camera flow, just fed by an uploaded
-  // file instead of the live webcam. The camera-hud render reads
-  // window.__v10PendingVideoFile and prefers it over startShotTracking()
-  // when present.
   function pickAndOpenFile() {
     var input = document.createElement('input');
     input.type = 'file';
     input.accept = 'video/*';
-    // hidden but attached — some mobile browsers require the element be
-    // in the DOM before .click() will show the picker
     input.style.position = 'fixed';
     input.style.left = '-9999px';
     input.style.top = '-9999px';
@@ -276,7 +414,6 @@
       if (window.app && window.app.go) {
         window.app.go('camera-hud');
       } else {
-        // fallback: no router available — open directly
         openFromFile(file);
       }
     });
@@ -284,58 +421,8 @@
     input.click();
   }
 
-  // ─── latest session (for post-session recap) ────────────
-  function getLatestSession() {
-    return safe(function () {
-      var ST = window.ShotService;
-      if (ST && ST.fetchSessions && window.currentUser) {
-        return ST.fetchSessions(1).then(function (rows) {
-          if (!rows || !rows.length) return null;
-          var s = rows[0];
-          var made = s.total_made != null ? s.total_made : (s.made_count || 0);
-          var att  = s.total_attempts != null ? s.total_attempts : (made + (s.miss_count || 0));
-          return {
-            id:         s.id,
-            made:       made,
-            attempted:  att,
-            accuracy:   s.accuracy != null ? Math.round(s.accuracy * 100) : (att ? Math.round(made * 100 / att) : 0),
-            maxStreak:  s.max_streak || 0,
-            durationMs: s.duration_ms || 0,
-            sessionDate: s.session_date || s.created_at,
-            xpEarned:   s.xp_earned || 0,
-            threeMade:  s.three_made || 0,
-            threeMissed: s.three_missed || 0,
-            fgMade:     s.fg_made || 0,
-            fgMissed:   s.fg_missed || 0,
-            ftMade:     s.ft_made || 0,
-            ftMissed:   s.ft_missed || 0
-          };
-        });
-      }
-      return null;
-    });
-  }
-
-  // ─── auth helpers ──────────────────────────────────────
+  // ─── auth passthrough (V10Auth owns auth since M3) ──────
   function isSignedIn() { return !!window.currentUser; }
-
-  function signIn(email, password) {
-    if (typeof sb === 'undefined' || !sb.auth) return Promise.reject(new Error('sb not loaded'));
-    return sb.auth.signInWithPassword({ email: email, password: password }).then(function (res) {
-      if (res.error) throw res.error;
-      window.currentUser = res.data.user;
-      window.__PREVIEW_MODE__ = false;
-      return res.data.user;
-    });
-  }
-
-  function signOut() {
-    if (typeof sb === 'undefined' || !sb.auth) return Promise.reject(new Error('sb not loaded'));
-    return sb.auth.signOut().then(function () {
-      window.currentUser = null;
-      window.__PREVIEW_MODE__ = true;
-    });
-  }
 
   window.V10Data = {
     getProfile:        getProfile,
@@ -344,13 +431,12 @@
     getCoachVerdict:   getCoachVerdict,
     getDrills:         getDrills,
     getZones:          getZones,
+    getSessions:       getSessions,
+    getTotals:         getTotals,
     getLatestSession:  getLatestSession,
     startShotTracking: startShotTracking,
     openFromFile:      openFromFile,
     pickAndOpenFile:   pickAndOpenFile,
-    isSignedIn:        isSignedIn,
-    signIn:            signIn,
-    signOut:           signOut,
-    FIXTURE:           FIXTURE
+    isSignedIn:        isSignedIn
   };
 })();

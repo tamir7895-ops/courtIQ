@@ -46,10 +46,13 @@
     pnt: { x: 140, y: 40  }
   };
 
+  // Accuracy over VERDICT shots only (vatt) — live-counter shots grow the
+  // bubbles but never fabricate a percentage.
   function zoneAcc(z) {
-    if (!z || !z.att) return 0;
-    return z.made / z.att;
+    if (!z || !z.vatt) return 0;
+    return z.made / z.vatt;
   }
+  function hasVerdicts(z) { return z && z.vatt > 0; }
 
   function bubbleFill(acc) {
     if (acc >= 0.55) return '#FF4F1F'; // hot — orange
@@ -106,9 +109,10 @@
       var pos = ZONE_POS[key];
       var acc = zoneAcc(z);
       var r = z.att > 0 ? Math.max(10, Math.min(18, 8 + z.att * 1.4)) : 9;
+      // Zones with only counter shots stay neutral — volume, no verdict.
       bubbles.push(svg('circle', {
         cx: pos.x, cy: pos.y, r: r,
-        fill: bubbleFill(acc),
+        fill: hasVerdicts(z) ? bubbleFill(acc) : '#FBF5E8',
         'fill-opacity': z.att > 0 ? 0.92 : 0.45,
         stroke: bubbleStroke(acc),
         'stroke-width': 1.6
@@ -120,8 +124,8 @@
           'font-family': 'Barlow Condensed, Impact, sans-serif',
           'font-weight': 800,
           'font-size': 12,
-          fill: bubbleTextColor(acc)
-        }, [String(z.made)]));
+          fill: hasVerdicts(z) ? bubbleTextColor(acc) : '#0A2850'
+        }, [String(hasVerdicts(z) ? z.made : z.att)]));
       }
     });
 
@@ -156,19 +160,25 @@
   }
 
   function pctText(z) {
-    return z.att > 0 ? Math.round((z.made / z.att) * 100) + '%' : '—';
+    return hasVerdicts(z) ? Math.round((z.made / z.vatt) * 100) + '%' : '—';
   }
 
-  // Aggregate zones into PAINT / MID / 3PT buckets and return integer pct.
+  // Aggregate zones into PAINT / MID / 3PT buckets over VERDICT shots.
   function bucketPct(zones, keys) {
-    var made = 0, att = 0;
+    var made = 0, vatt = 0;
     keys.forEach(function (k) {
       var z = zones[k];
       if (!z) return;
       made += z.made || 0;
-      att  += z.att  || 0;
+      vatt += z.vatt || 0;
     });
-    return att > 0 ? Math.round(made * 100 / att) : 0;
+    return vatt > 0 ? Math.round(made * 100 / vatt) + '%' : '—';
+  }
+
+  function totalAttempts(zones) {
+    return Object.keys(zones).reduce(function (n, k) {
+      return n + ((zones[k] && zones[k].att) || 0);
+    }, 0);
   }
 
   function renderOverview(host, ctx, zones, today) {
@@ -182,18 +192,27 @@
       buildCourtSvg(zones)
     ]));
 
-    // 4-bento — real numbers from zones / today stats
-    var paintPct = bucketPct(zones, ['pnt']);
-    var midPct   = bucketPct(zones, ['ml', 'mr', 'topmid']);
-    var threePct = bucketPct(zones, ['lc', 'lw', 'top', 'rw', 'rc']);
-    var trendVal = (today && today.trend != null) ? today.trend : 6;
-    var trendStr = (trendVal >= 0 ? '+' : '') + trendVal + 'pp';
+    // 4-bento — verdict accuracies per range + real 30-day volume
     host.appendChild(window.V10UI.bento([
-      { variant: 'orange',  icon: 'ph-target',   value: paintPct + '%', label: 'PAINT' },
-      { variant: null,      icon: 'ph-target',   value: midPct   + '%', label: 'MID' },
-      { variant: 'ink',     icon: 'ph-target',   value: threePct + '%', label: '3PT' },
-      { variant: 'sage',    icon: 'ph-trend-up', value: trendStr,       label: 'TREND' }
+      { variant: 'orange',  icon: 'ph-target',     value: bucketPct(zones, ['pnt']), label: 'PAINT' },
+      { variant: null,      icon: 'ph-target',     value: bucketPct(zones, ['ml', 'mr', 'topmid']), label: 'MID' },
+      { variant: 'ink',     icon: 'ph-target',     value: bucketPct(zones, ['lc', 'lw', 'top', 'rw', 'rc']), label: '3PT' },
+      { variant: 'sage',    icon: 'ph-basketball', value: String(totalAttempts(zones)), label: 'SHOTS · 30D' }
     ]));
+
+    // First-run: nothing tracked yet — say so instead of an empty court.
+    if (!totalAttempts(zones)) {
+      host.appendChild(h('div', {
+        class: 'v10-row',
+        style: { boxShadow: '2px 2px 0 var(--ink)' }
+      }, [
+        h('div', { class: 'v10-row__num' }, [icon('ph-crosshair-simple')]),
+        h('div', { class: 'v10-row__main' }, [
+          h('div', { class: 'v10-row__title', text: 'YOUR SHOT MAP IS EMPTY' }),
+          h('div', { class: 'v10-row__sub', text: 'Track a session or upload a video — every shot lands on this court.' })
+        ])
+      ]));
+    }
 
     // HOT ZONES ribbon + 3 zone chips (single row, compact)
     var top = topZones(zones);
@@ -223,7 +242,7 @@
             fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: '20px',
             color: 'var(--ink)', lineHeight: '0.9'
           },
-          text: t.z.made + '/' + t.z.att
+          text: hasVerdicts(t.z) ? (t.z.made + '/' + t.z.vatt) : String(t.z.att)
         }),
         h('div', {
           style: {
@@ -277,7 +296,9 @@
         h('div', { class: 'v10-row__num', text: '0' + (i + 1) }),
         h('div', { class: 'v10-row__main' }, [
           h('div', { class: 'v10-row__title', text: (t.z.label || t.key).toUpperCase() }),
-          h('div', { class: 'v10-row__sub', text: t.z.made + ' of ' + t.z.att + ' shots' })
+          h('div', { class: 'v10-row__sub', text: hasVerdicts(t.z)
+            ? t.z.made + ' of ' + t.z.vatt + ' scored shots'
+            : t.z.att + ' shots counted' })
         ]),
         h('div', { class: 'v10-row__right', text: pctText(t.z) })
       ]));
@@ -295,53 +316,63 @@
     host.appendChild(uploadCta(ctx));
   }
 
-  // SESSIONS — list view; clicking a row goes to post-session recap.
+  // SESSIONS — real history: merged remote + local, counter-aware.
+  function sessionDateLabel(iso) {
+    try {
+      var d = new Date(iso);
+      var today = new Date().toDateString();
+      var yest = new Date(Date.now() - 86400000).toDateString();
+      if (d.toDateString() === today) return 'Today';
+      if (d.toDateString() === yest) return 'Yesterday';
+      return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    } catch (e) { return ''; }
+  }
+
   function renderSessions(host, ctx) {
     host.appendChild(window.V10UI.ribbon({
       icon: 'ph-flag',
       title: 'SESSION HISTORY',
-      meta: 'LAST 7 DAYS'
+      meta: 'RECENT'
     }));
 
-    var sessions = [
-      { n: '01', t: 'Form Shooting',  s: 'Today · 76% · 30 shots',     r: '76%' },
-      { n: '02', t: 'Catch & Shoot',  s: 'Yesterday · 68% · 25 shots', r: '68%' },
-      { n: '03', t: 'Quick Draw',     s: 'Mon · 71% · 20 shots',       r: '71%' },
-      { n: '04', t: '3PT Drill',      s: 'Sun · 42% · 18 shots',       r: '42%' }
-    ];
+    var listWrap = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } });
+    host.appendChild(listWrap);
 
-    // Try to use the latest real session at the top if signed in
-    ctx.data.getLatestSession().then(function (latest) {
-      if (latest && latest.attempted) {
-        var row = h('div', {
+    ctx.data.getSessions(12).then(function (rows) {
+      if (!rows || !rows.length) {
+        listWrap.appendChild(h('div', {
           class: 'v10-row',
-          onclick: function () { ctx.go('post-session'); }
+          style: { boxShadow: '2px 2px 0 var(--ink)' }
         }, [
-          h('div', { class: 'v10-row__num', text: '01' }),
+          h('div', { class: 'v10-row__num' }, [icon('ph-flag')]),
           h('div', { class: 'v10-row__main' }, [
-            h('div', { class: 'v10-row__title', text: 'LATEST SESSION' }),
-            h('div', { class: 'v10-row__sub',   text: latest.made + ' of ' + latest.attempted + ' · streak ' + (latest.maxStreak || 0) })
-          ]),
-          h('div', { class: 'v10-row__right', text: latest.accuracy + '%' })
-        ]);
-        // Insert real row right after the ribbon
-        var ribbonEl = host.firstChild;
-        host.insertBefore(row, ribbonEl ? ribbonEl.nextSibling : null);
+            h('div', { class: 'v10-row__title', text: 'NO SESSIONS YET' }),
+            h('div', { class: 'v10-row__sub', text: 'Your first session shows up here the moment you finish it.' })
+          ])
+        ]));
+        return;
       }
-    });
-
-    sessions.forEach(function (s) {
-      host.appendChild(h('div', {
-        class: 'v10-row',
-        onclick: function () { ctx.go('post-session'); }
-      }, [
-        h('div', { class: 'v10-row__num', text: s.n }),
-        h('div', { class: 'v10-row__main' }, [
-          h('div', { class: 'v10-row__title', text: s.t }),
-          h('div', { class: 'v10-row__sub', text: s.s })
-        ]),
-        h('div', { class: 'v10-row__right', text: s.r })
-      ]));
+      rows.forEach(function (s, i) {
+        var counter = s.session_type === 'live_counter' || s.total_made == null;
+        var att = s.total_attempts || 0;
+        var title = counter ? 'LIVE COUNTER' : 'VIDEO ANALYSIS';
+        var sub = sessionDateLabel(s.session_date || s.created_at) + ' · ' + att + ' shots' +
+                  (counter ? '' : ' · ' + (s.total_made || 0) + ' made');
+        var right = counter ? String(att)
+          : (s.accuracy != null ? Math.round(s.accuracy) + '%'
+             : (att ? Math.round((s.total_made || 0) * 100 / att) + '%' : '—'));
+        listWrap.appendChild(h('div', {
+          class: 'v10-row',
+          style: { boxShadow: '2px 2px 0 var(--ink)' }
+        }, [
+          h('div', { class: 'v10-row__num', text: String(i + 1).padStart(2, '0') }),
+          h('div', { class: 'v10-row__main' }, [
+            h('div', { class: 'v10-row__title', text: title }),
+            h('div', { class: 'v10-row__sub', text: sub })
+          ]),
+          h('div', { class: 'v10-row__right', text: right })
+        ]));
+      });
     });
 
     // Spacer pushes CTA to bottom
