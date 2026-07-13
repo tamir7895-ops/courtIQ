@@ -61,6 +61,14 @@
 
   function bootstrap() {
     var initial = (location.hash || '').replace(/^#/, '') || 'home';
+    // First run → onboarding (it sets courtiq_onboarded on finish and
+    // stores name/position that the guest profile reads). Deep links to
+    // other screens are respected.
+    try {
+      if (initial === 'home' && !localStorage.getItem('courtiq_onboarded') && SCREENS.onboarding) {
+        initial = 'onboarding';
+      }
+    } catch (e) { /* storage blocked — skip */ }
     go(initial);
     window.addEventListener('hashchange', function () {
       var next = (location.hash || '').replace(/^#/, '') || 'home';
