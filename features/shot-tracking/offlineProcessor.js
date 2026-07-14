@@ -714,8 +714,12 @@
               diag.fixtures = FIX.length;
               diag.chain = v7Mode ? 'v7' : 'static';
               function isFixture(dx, dy, s) {
+                // Proximity 0.012 (was 0.02): the v7m5-era knot is spatially
+                // tight and the wide radius ate REAL ball obs crossing the
+                // ring plane (night 33.1s make lost). Validated 7/7 on both
+                // v6 dumps and recovers the make on the v7m5 dump.
                 for (var f5 = 0; f5 < FIX.length; f5++) {
-                  if (Math.abs(dx - FIX[f5].dx) <= 0.02 && Math.abs(dy - FIX[f5].dy) <= 0.02 &&
+                  if (Math.abs(dx - FIX[f5].dx) <= 0.012 && Math.abs(dy - FIX[f5].dy) <= 0.012 &&
                       s <= Math.max(2.5 * FIX[f5].ms, 0.10)) return true;
                 }
                 return false;
@@ -777,7 +781,7 @@
                   for (var e1 = 0; e1 < obs[a].length; e1++) {
                     var p = obs[a][e1];
                     var ady = p.y - rgA.y;
-                    if (ady >= -0.13 && ady <= -0.018 && Math.abs(p.x - rgA.cx) <= 0.09) {
+                    if (ady >= -0.13 && ady <= -0.012 && Math.abs(p.x - rgA.cx) <= 0.09) {
                       if (!ent || p.s > ent.s) ent = p;
                     }
                   }
