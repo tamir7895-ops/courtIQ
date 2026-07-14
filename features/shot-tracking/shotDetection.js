@@ -914,7 +914,10 @@
       // Model path resolves against THIS SCRIPT's URL (see SCRIPT_BASE).
       // A page-relative path 404s on pages served from a sub-path and the
       // engine silently became color-only.
-      var modelPath = SCRIPT_BASE + 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished';
+      // window.COURTIQ_MODEL_URL overrides for A/B runs (candidate models
+      // are gated in the browser against the deployed default this way).
+      var modelPath = window.COURTIQ_MODEL_URL ||
+        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished');
 
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
