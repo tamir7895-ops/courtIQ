@@ -661,6 +661,14 @@
 
               function ringOf(i) { return trackMode ? ringAtF(i) : ring; }
 
+              // Chain selector by RIM SCALE, not only camera motion: on a
+              // small/far rim (halfW < 0.040) the geometric ring-cross gate
+              // of classifyRange cannot separate on-iron crossings from
+              // through-net balls (night_c: 3 false-makes), so the v7
+              // net-physics chain runs even for a static camera. Big close
+              // rims (dish 0.047, portrait 0.065) keep classifyRange.
+              var v7Mode = trackMode || (ring && ring.halfW < 0.040);
+
               var obs = [];   // index-aligned with rows: array of [{x,y,s}] near rim
               for (var ri = 0; ri < rows.length; ri++) {
                 var near = [];
@@ -674,13 +682,15 @@
                 obs.push(near);
               }
 
-              // Global fixture map (track mode): the net-knot detects as a
-              // "ball" in ~1/3 of ALL frames at a fixed ring-relative spot.
-              // Grid cells firing in ≥12% of frames are static structure —
-              // their obs only count as a real ball when the score clearly
-              // exceeds the cell's own baseline (2.5× median, floor 0.10).
+              // Global fixture map (v7 mode): the net-knot detects as a
+              // "ball" in up to ~1/3 of ALL frames at a fixed ring-relative
+              // spot. Grid cells firing in ≥8% of frames are static structure
+              // (night_c's knot fired 11.5% — just under the old 12% gate and
+              // produced a false make via identity switch); their obs only
+              // count as a real ball when the score clearly exceeds the
+              // cell's own baseline (2.5× median, floor 0.10).
               var FIX = [];
-              if (trackMode) {
+              if (v7Mode) {
                 var CELLW = 0.015, cellHits = {}, cellScores = {};
                 for (var fx1 = 0; fx1 < rows.length; fx1++) {
                   var rgF = ringOf(fx1), seenF = {};
@@ -693,7 +703,7 @@
                   }
                 }
                 Object.keys(cellHits).forEach(function (key) {
-                  if (cellHits[key] >= 0.12 * rows.length) {
+                  if (cellHits[key] >= 0.08 * rows.length) {
                     var kp = key.split(',');
                     FIX.push({ dx: parseInt(kp[0], 10) * CELLW,
                                dy: parseInt(kp[1], 10) * CELLW,
@@ -702,20 +712,31 @@
                 });
               }
               diag.fixtures = FIX.length;
+              diag.chain = v7Mode ? 'v7' : 'static';
               function isFixture(dx, dy, s) {
+                // Proximity 0.012 (was 0.02): the v7m5-era knot is spatially
+                // tight and the wide radius ate REAL ball obs crossing the
+                // ring plane (night 33.1s make lost). Validated 7/7 on both
+                // v6 dumps and recovers the make on the v7m5 dump.
                 for (var f5 = 0; f5 < FIX.length; f5++) {
-                  if (Math.abs(dx - FIX[f5].dx) <= 0.02 && Math.abs(dy - FIX[f5].dy) <= 0.02 &&
+                  if (Math.abs(dx - FIX[f5].dx) <= 0.012 && Math.abs(dy - FIX[f5].dy) <= 0.012 &&
                       s <= Math.max(2.5 * FIX[f5].ms, 0.10)) return true;
                 }
                 return false;
               }
 
               // ── Arrivals → attempt windows ─────────────────────
+              // Fixture obs never open an attempt: a knot/rim-arc det that
+              // jitters above the ring plane with track wobble used to spawn
+              // phantom windows (night_d 18.9s).
               var aboveIdx = [];
               for (var ai = 0; ai < rows.length; ai++) {
                 var rgA = ringOf(ai);
                 for (var oi = 0; oi < obs[ai].length; oi++) {
-                  if (obs[ai][oi].y < rgA.y - ABOVE_EPS) { aboveIdx.push(ai); break; }
+                  var oA = obs[ai][oi];
+                  if (oA.y >= rgA.y - ABOVE_EPS) continue;
+                  if (isFixture(oA.x - rgA.cx, oA.y - rgA.y, oA.s)) continue;
+                  aboveIdx.push(ai); break;
                 }
               }
               var arrivals = [];
@@ -741,10 +762,11 @@
                 return best;
               }
               function classify(f0, f1) {
-                if (!trackMode) return classifyRange(obs, ring, f0, f1);
-                // TRACK-MODE verdicts — v7 chain, validated 7/7 against
-                // frame-verified GT on the night video via replay of the
-                // app's own detections (scratch/replay_v7.py):
+                if (!v7Mode) return classifyRange(obs, ring, f0, f1);
+                // v7-MODE verdicts — validated 7/7 against frame-verified GT
+                // on the night video via replay of the app's own detections
+                // (scratch/replay_v7.py), then hardened on night_c to 5/6
+                // with zero false-makes (scratch/score_batch.py):
                 //   ENTRY (descent into the cone) → no DEPARTURE (a NEW
                 //   lateral object at ring height = the ball escaping; a
                 //   second ball already tracked there is exempt) → DWELL
@@ -759,7 +781,7 @@
                   for (var e1 = 0; e1 < obs[a].length; e1++) {
                     var p = obs[a][e1];
                     var ady = p.y - rgA.y;
-                    if (ady >= -0.13 && ady <= -0.018 && Math.abs(p.x - rgA.cx) <= 0.09) {
+                    if (ady >= -0.13 && ady <= -0.012 && Math.abs(p.x - rgA.cx) <= 0.09) {
                       if (!ent || p.s > ent.s) ent = p;
                     }
                   }
@@ -795,9 +817,10 @@
                       if (Math.abs(o.x - ent.x) > 0.06) continue;
                       if (isFixture(dx, dy, o.s)) continue;
                       var runLen = 1, lastF = b1, lastO = o;
+                      var runMinDx = dx, runMaxDx = dx;
                       for (var k2 = b1 + 1; k2 < Math.min(b1 + 16, lim); k2++) {
                         if (k2 - lastF > 3) break;
-                        var rgK2 = ringOf(k2), best = null;
+                        var rgK2 = ringOf(k2), best = null, bestDx = 0;
                         for (var q4 = 0; q4 < obs[k2].length; q4++) {
                           var c = obs[k2][q4];
                           var cdx = c.x - rgK2.cx, cdy = c.y - rgK2.y;
@@ -806,9 +829,13 @@
                           var steps = k2 - lastF;
                           if (Math.abs(c.y - lastO.y) > 0.014 * steps ||
                               Math.abs(c.x - lastO.x) > 0.02 * steps) continue;
-                          if (!best || c.s > best.s) best = c;
+                          if (!best || c.s > best.s) { best = c; bestDx = cdx; }
                         }
-                        if (best) { runLen++; lastF = k2; lastO = best; }
+                        if (best) {
+                          runLen++; lastF = k2; lastO = best;
+                          if (bestDx < runMinDx) runMinDx = bestDx;
+                          if (bestDx > runMaxDx) runMaxDx = bestDx;
+                        }
                       }
                       // exit-close: descent chain below the net
                       var exitok = false, cur = lastO, curF = lastF;
@@ -827,6 +854,14 @@
                         if (cur.y - rgK3.y >= 0.085) { exitok = true; break; }
                       }
                       if (runLen < 3 && !exitok) continue;
+                      // end-centering: a net-braked ball ENDS centered in the
+                      // cone; a rim roll-off ends at the band edge before the
+                      // side drop (night_c 5.6s false-make signature)
+                      if (!exitok && Math.abs(lastO.x - ringOf(lastF).cx) > 0.035) continue;
+                      // run x-span cap: a braked ball stays inside the net
+                      // cone; a wide span means the run identity-switched to
+                      // another object across a frame gap
+                      if (runMaxDx - runMinDx > 0.032) continue;
                       // re-rise kill
                       var rise = false;
                       for (var k4 = lastF + 1; k4 < Math.min(lastF + 7, lim) && !rise; k4++) {
