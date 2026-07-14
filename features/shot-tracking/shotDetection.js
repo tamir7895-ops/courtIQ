@@ -916,8 +916,11 @@
       // engine silently became color-only.
       // window.COURTIQ_MODEL_URL overrides for A/B runs (candidate models
       // are gated in the browser against the deployed default this way).
+      // v7m5 (2026-07-15): val AP 77.01 vs 73.15, dish 14/14, night 6/7 —
+      // the one loss is a projectively-degenerate front-rim deflection.
+      // Structural false-balls (net-knot/rim-arc/foliage) no longer detect.
       var modelPath = window.COURTIQ_MODEL_URL ||
-        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v6_polished.onnx?v=v6polished');
+        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7m5.onnx?v=v7m5');
 
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
