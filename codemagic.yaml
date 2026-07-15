@@ -4,6 +4,12 @@
 # with "No matching profiles found"; `fetch-signing-files --create` registers
 # the bundle id (if missing), creates a distribution certificate and an
 # App Store provisioning profile on the fly via the `courtiq-asc` ASC key.
+#
+# CREATING the distribution certificate needs a private key. Provide it as a
+# Secure env var CERTIFICATE_PRIVATE_KEY (raw PEM, NOT base64) inside a
+# Codemagic variable group named `appstore` (imported below). Generate one:
+#   ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""
+# then paste the file's full contents (incl. BEGIN/END lines) into the var.
 workflows:
   ios-testflight:
     name: iOS → TestFlight
@@ -12,6 +18,8 @@ workflows:
     integrations:
       app_store_connect: courtiq-asc
     environment:
+      groups:
+        - appstore          # must contain CERTIFICATE_PRIVATE_KEY (Secure)
       node: 22
       xcode: latest
       vars:
@@ -31,6 +39,7 @@ workflows:
         script: |
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
             --create
       - name: Add certificates to keychain
         script: keychain add-certificates

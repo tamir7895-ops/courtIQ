@@ -35,6 +35,18 @@
    - ‏Name: ‏**courtiq-asc** ‏(חייב בדיוק את השם הזה — ה-yaml מפנה אליו, רגיש לאותיות)
    - ‏Issuer ID + ‏Key ID + קובץ ה-‏.p8 משלב 1.
 
+## שלב 4.5 — מפתח פרטי לתעודת ההפצה (חובה!)
+‏יצירת תעודת distribution יש-מאין דורשת מפתח RSA פרטי. בלעדיו הבנייה
+‏נכשלת ב-"Cannot save Signing Certificates without certificate private key".
+1. ליצור מפתח (טרמינל, פעם אחת):
+   ‏`ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""`
+2. ‏Codemagic → app settings → ‏Environment variables:
+   - ‏Group name: ‏**appstore** ‏(חייב בדיוק — ה-yaml מייבא אותו)
+   - ‏Variable: ‏**CERTIFICATE_PRIVATE_KEY**
+   - ‏Value: **כל תוכן הקובץ** `ios_distribution_private_key` (כולל שורות
+     ‏`-----BEGIN/END RSA PRIVATE KEY-----`), **בלי base64**.
+   - לסמן ‏**Secure**.
+
 ## שלב 5 — בנייה ראשונה
 1. בעמוד האפליקציה ב-Codemagic → ‏Start new build →
    ‏workflow: ‏iOS → TestFlight → ‏Start.
