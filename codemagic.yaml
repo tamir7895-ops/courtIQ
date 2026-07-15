@@ -40,9 +40,27 @@ workflows:
         script: keychain initialize
       - name: Fetch or create signing files
         script: |
-          # CERTIFICATE_PRIVATE_KEY holds the base64 of the PEM (single line,
-          # so no clipboard/CRLF mangling). Decode it back to a real PEM file.
-          printf '%s' "$CERTIFICATE_PRIVATE_KEY" | openssl base64 -d -A > /tmp/cert_key.pem
+          set -e
+          # CERTIFICATE_PRIVATE_KEY should hold the base64 of the distribution
+          # private key (single line). Accept a raw PEM too, in case it was
+          # pasted directly. Diagnostics below reveal the FORMAT (not the
+          # secret) so a bad paste is obvious in the log.
+          echo "== signing-key diagnostics =="
+          echo "CERTIFICATE_PRIVATE_KEY length = ${#CERTIFICATE_PRIVATE_KEY}"
+          echo "first 16 chars = $(printf '%s' "$CERTIFICATE_PRIVATE_KEY" | head -c 16)"
+          if printf '%s' "$CERTIFICATE_PRIVATE_KEY" | grep -q "BEGIN"; then
+            echo "detected raw PEM -> normalising newlines"
+            printf '%s\n' "$CERTIFICATE_PRIVATE_KEY" | tr -d '\r' > /tmp/cert_key.pem
+          else
+            echo "detected base64 -> decoding"
+            printf '%s' "$CERTIFICATE_PRIVATE_KEY" | tr -d '\r\n ' | openssl base64 -d -A > /tmp/cert_key.pem
+          fi
+          echo "decoded first line = $(head -1 /tmp/cert_key.pem)"
+          if ! openssl rsa -in /tmp/cert_key.pem -check -noout; then
+            echo "!! /tmp/cert_key.pem is NOT a valid RSA key — fix the CERTIFICATE_PRIVATE_KEY env var"
+            exit 1
+          fi
+          echo "== private key valid, fetching signing files =="
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --certificate-key=@file:/tmp/cert_key.pem \
