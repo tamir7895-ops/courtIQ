@@ -15,7 +15,7 @@ workflows:
       node: 22
       xcode: latest
       vars:
-        BUNDLE_ID: com.courtiq.app
+        BUNDLE_ID: com.courtiq.ios
     scripts:
       - name: Install dependencies
         script: npm ci

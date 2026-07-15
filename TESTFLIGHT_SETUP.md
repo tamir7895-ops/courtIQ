@@ -3,27 +3,28 @@
 ‏המסלול: ‏Codemagic בונה את האפליקציה על מק-בענן ומעלה ישירות ל-TestFlight.
 ‏ה-MacBook Air 2017 לא נדרש (ראה MACBOOK_SETUP.md רק אם אי-פעם יהיה מק חדש).
 
-## שלב 0 — ממתינים לאישור Apple Developer Program
-‏כל השלבים הבאים אפשריים רק אחרי מייל-האישור של אפל (24-48ש' מהתשלום).
+## שלב 0 — אישור Apple Developer Program ✅ הופעל (2026-07-15)
+‏החשבון פעיל. ‏Team ID: **3USWWKNDCV**.
 
-## שלב 1 — מפתח API של אפל (3 דקות, באתר)
+## שלב 2 — רישום ה-Bundle ID ✅ בוצע (2026-07-15, אוטומטית)
+‏‏**com.courtiq.app היה תפוס גלובלית** (מפתח אחר), לכן ה-Bundle ID הרשום הוא
+‏**com.courtiq.ios** (Description: CourtIQ, Explicit, ללא capabilities).
+‏כל הקוד (codemagic.yaml, capacitor.config.json, project.pbxproj ×2,
+‏TESTFLIGHT_SETUP) כבר מעודכן. ‏Android נשאר com.courtiq.app (namespace נפרד).
+
+## שלב 3 — יצירת האפליקציה ב-App Store Connect ✅ בוצע (2026-07-15, אוטומטית)
+‏רשומת האפליקציה נוצרה: ‏Name (חנות) **CourtIQ AI** (השם "CourtIQ" היה תפוס
+‏בחנות; ניתן לשנות לפני ההשקה הציבורית), ‏iOS, ‏English (U.S.),
+‏Bundle **com.courtiq.ios**, ‏SKU **courtiq-001**. ‏**ASC App ID: 6791217303**.
+‏השם מתחת לאייקון במכשיר נשאר **CourtIQ** (CFBundleDisplayName ב-Info.plist).
+
+## שלב 1 — מפתח API של אפל ⬅️ **נותר לך (רק אתה — קובץ-סוד)** (3 דקות)
 1. ‏appstoreconnect.apple.com → ‏Users and Access → ‏Integrations →
-   ‏App Store Connect API → ‏Team Keys → ‏(+).
-2. שם: ‏codemagic; תפקיד (‏Access): ‏**App Manager**.
-3. להוריד את קובץ ה-‏.p8 (מורידים פעם אחת בלבד! לשמור טוב) ולרשום את
+   ‏App Store Connect API. אם מופיע **Request Access** — ללחוץ פעם אחת
+   (מפעיל את ה-API לארגון), ואז:
+2. ‏Team Keys → ‏(+) → שם: ‏codemagic; תפקיד (‏Access): ‏**App Manager** → ‏Generate.
+3. **Download** את קובץ ה-‏.p8 (מורידים פעם אחת בלבד! לשמור טוב) ולרשום את
    ‏**Key ID** ואת ‏**Issuer ID** (מופיע בראש העמוד).
-
-## שלב 2 — רישום ה-Bundle ID (2 דקות)
-1. ‏developer.apple.com → ‏Certificates, Identifiers & Profiles →
-   ‏Identifiers → ‏(+) → ‏App IDs → ‏App.
-2. ‏Description: ‏CourtIQ; ‏Bundle ID (Explicit): ‏**com.courtiq.app**.
-3. ‏Capabilities: לא צריך לסמן כלום מעבר לברירת-המחדל → ‏Register.
-
-## שלב 3 — יצירת האפליקציה ב-App Store Connect (2 דקות)
-1. ‏appstoreconnect.apple.com → ‏My Apps → ‏(+) → ‏New App.
-2. ‏Platform: ‏iOS; ‏Name: ‏CourtIQ (אם תפוס — ‏CourtIQ AI);
-   ‏Language: ‏English; ‏Bundle ID: לבחור ‏com.courtiq.app;
-   ‏SKU: ‏courtiq-001.
 
 ## שלב 4 — חשבון Codemagic (5 דקות)
 1. ‏codemagic.io → ‏Sign up with GitHub → לאשר גישה לריפו ‏courtIQ.
