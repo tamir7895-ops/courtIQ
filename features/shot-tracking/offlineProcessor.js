@@ -661,13 +661,15 @@
 
               function ringOf(i) { return trackMode ? ringAtF(i) : ring; }
 
-              // Chain selector by RIM SCALE, not only camera motion: on a
-              // small/far rim (halfW < 0.040) the geometric ring-cross gate
-              // of classifyRange cannot separate on-iron crossings from
-              // through-net balls (night_c: 3 false-makes), so the v7
-              // net-physics chain runs even for a static camera. Big close
-              // rims (dish 0.047, portrait 0.065) keep classifyRange.
-              var v7Mode = trackMode || (ring && ring.halfW < 0.040);
+              // Chain selection: v7 net-physics ONLY for track mode (panning
+              // camera). A rim-scale arm (halfW < 0.040 → v7) was trialed and
+              // REJECTED: the in-app ring scan under-measures big rims (dish
+              // scans 0.0387 despite its ~0.047 visual width; pullups-class
+              // scans 0.026) and misrouted static footage off the
+              // classifyRange path that is validated 14/14 (dish) and 7/8
+              // (portrait). Static camera → classifyRange, always, until the
+              // ring measurement is bbox-corroborated (lab experiment only).
+              var v7Mode = trackMode;
 
               var obs = [];   // index-aligned with rows: array of [{x,y,s}] near rim
               for (var ri = 0; ri < rows.length; ri++) {
