@@ -47,5 +47,11 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>CourtIQ uses the camera to track your shots live on the court.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Microphone access accompanies camera capture during live tracking.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>CourtIQ analyzes basketball videos you choose from your library.</string>
 </dict>
 </plist>
