@@ -32,7 +32,7 @@
    ‏(יזהה את ‏codemagic.yaml אוטומטית).
 3. ‏Team settings (או ‏Personal account settings) → ‏Integrations →
    ‏Developer Portal → ‏App Store Connect → ‏Add key:
-   - ‏Name: ‏**courtiq-asc** ‏(חייב בדיוק את השם הזה — ה-yaml מפנה אליו)
+   - ‏Name: ‏**COURTIQ** ‏(חייב בדיוק את השם הזה — ה-yaml מפנה אליו, רגיש לאותיות)
    - ‏Issuer ID + ‏Key ID + קובץ ה-‏.p8 משלב 1.
 
 ## שלב 5 — בנייה ראשונה
