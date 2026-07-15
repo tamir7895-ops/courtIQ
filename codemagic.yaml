@@ -5,11 +5,14 @@
 # the bundle id (if missing), creates a distribution certificate and an
 # App Store provisioning profile on the fly via the `courtiq-asc` ASC key.
 #
-# CREATING the distribution certificate needs a private key. Provide it as a
-# Secure env var CERTIFICATE_PRIVATE_KEY (raw PEM, NOT base64) inside a
-# Codemagic variable group named `appstore` (imported below). Generate one:
+# CREATING the distribution certificate needs a private key. A multi-line PEM
+# gets mangled travelling through a browser/Windows clipboard into the env var
+# (CRLF, collapsed newlines) and the CLI then rejects it as "not valid". So we
+# store the key BASE64-ENCODED (single line, mangle-proof) as a Secure env var
+# CERTIFICATE_PRIVATE_KEY in a Codemagic variable group `appstore`, and decode
+# it back to a PEM file at build time (see the signing step). To produce it:
 #   ssh-keygen -t rsa -b 2048 -m PEM -f ios_distribution_private_key -q -N ""
-# then paste the file's full contents (incl. BEGIN/END lines) into the var.
+#   base64 the file, one line, and paste that as the env var value.
 workflows:
   ios-testflight:
     name: iOS → TestFlight
@@ -37,9 +40,12 @@ workflows:
         script: keychain initialize
       - name: Fetch or create signing files
         script: |
+          # CERTIFICATE_PRIVATE_KEY holds the base64 of the PEM (single line,
+          # so no clipboard/CRLF mangling). Decode it back to a real PEM file.
+          printf '%s' "$CERTIFICATE_PRIVATE_KEY" | openssl base64 -d -A > /tmp/cert_key.pem
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
-            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --certificate-key=@file:/tmp/cert_key.pem \
             --create
       - name: Add certificates to keychain
         script: keychain add-certificates
