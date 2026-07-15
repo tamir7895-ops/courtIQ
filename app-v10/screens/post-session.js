@@ -236,6 +236,21 @@
     return h('div', { class: 'v10-chips' }, [back, title, final]);
   }
 
+  // One mono line under the recap bar after an upload analysis: engine +
+  // wall-clock — the on-device benchmark readout (no Web Inspector needed).
+  function analysisLine() {
+    var a = window.__v10AnalysisInfo;
+    if (!a || !a.ms) return null;
+    var secs = Math.round(a.ms / 1000);
+    var fps = a.frames && a.ms ? (a.frames / (a.ms / 1000)).toFixed(1) : '?';
+    return h('div', {
+      style: { fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: '0.55',
+               textAlign: 'center', letterSpacing: '0.06em', margin: '2px 0 0' },
+      text: 'ANALYZED ' + Math.round(a.videoSec || 0) + 'S CLIP IN ' + secs +
+            'S · ' + fps + ' FPS · ' + String(a.ep || '?').toUpperCase()
+    });
+  }
+
   function zoneDelta(z) {
     var a = acc(z);
     return Math.round((a - 0.5) * 100);
@@ -333,6 +348,8 @@
 
       host.appendChild(ctx.ui.headerPill({ profile: profile }));
       host.appendChild(recapBar(ctx));
+      var aLine = analysisLine();
+      if (aLine) host.appendChild(aLine);
 
       // Hero shot map (capped at ~240px tall via inline style on the svg)
       var eyebrow = h('div', { class: 'v10-court__eyebrow' }, [

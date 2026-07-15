@@ -454,12 +454,24 @@
       } catch (e) {}
     }
 
+    var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
       fps: 30,
       onProgress: function (f) { var p = Math.round(f * 100); bar.style.width = p + '%'; pct.textContent = p + '%'; },
       onStage: function (s) { stageEl.textContent = s; },
       onFrame: drawLive
     }).then(function (res) {
+      // Device benchmark readout (M2): post-session shows engine + timing —
+      // readable straight off an iPhone screen, no Web Inspector needed.
+      try {
+        var eng2 = window.ShotDetectionEngine;
+        window.__v10AnalysisInfo = {
+          ms: Date.now() - analysisT0,
+          videoSec: (res && res.duration) || 0,
+          frames: (res && res.frames) || 0,
+          ep: (eng2 && eng2._detectorType) || '?'
+        };
+      } catch (e) {}
       // If nothing was detected, tell the user WHY instead of a silent
       // "0 of 0" recap. The diag says whether the hoop was ever found /
       // the rim locked — the two reasons a whole clip yields no shots.

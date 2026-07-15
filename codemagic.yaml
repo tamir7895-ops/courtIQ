@@ -1,0 +1,38 @@
+# CourtIQ — cloud iOS build + TestFlight upload (no local Mac needed).
+# Requires (one-time, in the Codemagic UI):
+#   Team settings -> Integrations -> Developer Portal -> App Store Connect:
+#   add an API key named exactly `courtiq-asc` (Issuer ID + Key ID + .p8).
+# See TESTFLIGHT_SETUP.md for the full walkthrough.
+workflows:
+  ios-testflight:
+    name: iOS → TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    integrations:
+      app_store_connect: courtiq-asc
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.courtiq.app
+      node: 22
+      xcode: latest
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Build web + sync iOS bundle (pruned to ~25MB)
+        script: npm run ios:sync
+      - name: Bump build number
+        script: |
+          cd ios/App
+          agvtool new-version -all $PROJECT_BUILD_NUMBER
+      - name: Apply signing profiles
+        script: xcode-project use-profiles
+      - name: Build signed IPA
+        script: xcode-project build-ipa --project ios/App/App.xcodeproj --scheme App
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
