@@ -53,5 +53,9 @@
 	<string>Microphone access accompanies camera capture during live tracking.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>CourtIQ analyzes basketball videos you choose from your library.</string>
+	<!-- App uses only standard HTTPS/TLS provided by iOS (exempt encryption),
+	     so no export-compliance prompt is needed on future TestFlight builds. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
