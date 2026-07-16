@@ -114,6 +114,22 @@
 
   /* ── Config ────────────────────────────────────────────────── */
   var MP_VERSION   = '0.10.14';
+
+  // Bundled MediaPipe assets live at <repo root>/vendor/mediapipe, two levels
+  // above this script. Resolve against document.currentScript.src (same
+  // rationale as SCRIPT_BASE in shotDetection.js) so the path works from any
+  // page depth. Empty string = resolution failed → CDN-only.
+  var SCRIPT_BASE = '';
+  try {
+    var _psrc = document.currentScript && document.currentScript.src;
+    if (_psrc) SCRIPT_BASE = new URL('../../', _psrc).href;
+  } catch (e) { /* keep '' */ }
+
+  // Local-first (offline courts, no CDN dependency); CDN kept as fallback.
+  // NOTE: only the SIMD wasm is bundled (all ~2020+ devices have wasm SIMD);
+  // a rare non-SIMD device throws in FilesetResolver and lands on the CDN.
+  var LOCAL_WASM_BASE = SCRIPT_BASE ? SCRIPT_BASE + 'vendor/mediapipe/wasm' : null;
+  var LOCAL_MODEL_URL = SCRIPT_BASE ? SCRIPT_BASE + 'vendor/mediapipe/pose_landmarker_full.task' : null;
   var WASM_BASE    = 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@' + MP_VERSION + '/wasm';
   // L37.5 (pose recovery): Lite → Full. The L8.7 reason for switching to
   // Lite ("delay following the player") was an inference-cost problem at
@@ -464,20 +480,34 @@
       try {
         var MP = await _waitForMP();
         var t0 = performance.now();
-        var resolver = await MP.FilesetResolver.forVisionTasks(WASM_BASE);
-        _landmarker = await MP.PoseLandmarker.createFromOptions(resolver, {
-          baseOptions: {
-            modelAssetPath: MODEL_URL,
-            delegate: 'GPU'
-          },
-          runningMode: 'VIDEO',
-          // L8.6: track up to 3 people. Pose Lite single-person mode picks
-          // whoever has highest detection score, which in multi-player frames
-          // is often NOT the shooter (e.g. defender standing in the open vs
-          // shooter partially occluded mid-release). detect() picks the most
-          // shooter-like candidate from the returned set.
-          numPoses: 3
-        });
+        var mkLandmarker = async function (wasmBase, modelUrl) {
+          var resolver = await MP.FilesetResolver.forVisionTasks(wasmBase);
+          return MP.PoseLandmarker.createFromOptions(resolver, {
+            baseOptions: {
+              modelAssetPath: modelUrl,
+              delegate: 'GPU'
+            },
+            runningMode: 'VIDEO',
+            // L8.6: track up to 3 people. Pose Lite single-person mode picks
+            // whoever has highest detection score, which in multi-player frames
+            // is often NOT the shooter (e.g. defender standing in the open vs
+            // shooter partially occluded mid-release). detect() picks the most
+            // shooter-like candidate from the returned set.
+            numPoses: 3
+          });
+        };
+        // Bundle first (offline / no-CDN), network CDN as fallback.
+        if (LOCAL_WASM_BASE && LOCAL_MODEL_URL) {
+          try {
+            _landmarker = await mkLandmarker(LOCAL_WASM_BASE, LOCAL_MODEL_URL);
+          } catch (localErr) {
+            console.warn('[PoseDetector] bundled assets failed (' +
+              (localErr && localErr.message) + ') — falling back to CDN');
+          }
+        }
+        if (!_landmarker) {
+          _landmarker = await mkLandmarker(WASM_BASE, MODEL_URL);
+        }
         dlog('[PoseDetector] model loaded in ' + ((performance.now() - t0) | 0) + ' ms');
       } catch (err) {
         _failedInit = true;

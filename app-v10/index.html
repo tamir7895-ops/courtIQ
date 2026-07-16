@@ -81,10 +81,20 @@
 <script src="../js/daily-workout.js"></script>
 <script src="../js/shot-analysis.js"></script>
 
-<!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection) -->
+<!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection).
+     Served from the APP BUNDLE like ORT above — pose fired most shot triggers
+     on eval footage, so it must work offline too. The bundle ships as .mjs.js
+     (not .mjs) for the same Capacitor-iOS MIME reason as the ORT sidecar.
+     CDN import kept only as a fallback if the local file is missing. -->
 <script type="module">
-  import { PoseLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
-  window.__MP = { PoseLandmarker: PoseLandmarker, FilesetResolver: FilesetResolver };
+  var mod;
+  try {
+    mod = await import('../vendor/mediapipe/vision_bundle.mjs.js');
+  } catch (e) {
+    console.warn('[MP] local bundle failed (' + e.message + ') — falling back to CDN');
+    mod = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+  }
+  window.__MP = { PoseLandmarker: mod.PoseLandmarker, FilesetResolver: mod.FilesetResolver };
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
