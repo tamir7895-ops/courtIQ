@@ -919,13 +919,19 @@
       // v7m5 (2026-07-15): val AP 77.01 vs 73.15, dish 14/14, night 6/7 —
       // the one loss is a projectively-degenerate front-rim deflection.
       // Structural false-balls (net-knot/rim-arc/foliage) no longer detect.
-      // fp16 (2026-07-16): same v7m5 weights converted to float16 — 10.1MB
-      // vs 20.1MB (half the download/disk/memory), I/O still float32 so this
-      // code is unchanged. Verified equivalent to fp32: per-frame ball-score
-      // |delta| max 0.0022 and IDENTICAL 4-video GT verdicts (12/15, same
-      // single phantom). Built by tools/quantize_fp16.py.
+      // B1 (2026-07-16): class-balance + night-oversample fine-tune from
+      // v7m5 (40ep, dark+ball x4 / dark x2 / ball x2 repeat-factor sampling,
+      // see training/v7/build_b1_dataset.py + courtiq_v7b1.py). Shipped as
+      // fp16 (10.1MB) via the same tools/quantize_fp16.py boundary-cast fix.
+      // Gates: val-AP 76.00 (v7m5 77.01, v6_polished 73.15). Lab verdicts
+      // (rules frozen) 15/17 vs v7m5's 12/15 — zero new false-makes/phantoms,
+      // 2 night misses recovered. FP16 byte-identical to FP32 in the lab.
+      // Real production JS engine (offline-ab.html) on WebGPU across all 4
+      // eval videos: zero regressions, fewer phantom windows on night_b/d,
+      // v3/night_c unchanged. Full gate log: courtiq-cv-free-improvements
+      // memory + training/v7/PLAN_M5_v7.md.
       var modelPath = window.COURTIQ_MODEL_URL ||
-        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7m5_fp16.onnx?v=v7m5fp16');
+        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7b1_fp16.onnx?v=v7b1fp16');
 
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64

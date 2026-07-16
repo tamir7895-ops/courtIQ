@@ -57,9 +57,20 @@
   // both platforms) and we point ORT straight at it. .wasm is mapped on both.
   try {
     if (window.ort && ort.env && ort.env.wasm) {
+      // ROOT-ABSOLUTE, not page-relative: ORT resolves wasmPaths.wasm/mjs
+      // relative to ort.webgpu.min.js's OWN script location (/vendor/ort/),
+      // not the page's URL. A page-relative '../vendor/ort/...' string
+      // doubled into '/vendor/vendor/ort/...' from there — 404, WebGPU
+      // dies, wasm-proxy/wasm-main-thread cascade-fail on the poisoned
+      // initWasm() singleton, and the engine silently drops to color-only
+      // (zero ML detection) in production. Confirmed via the shipped
+      // www/ build in a real browser tab, not just the isolated verify
+      // page — the isolated page used root-absolute paths already and
+      // never exercised this bug. www/ is the Capacitor webDir root on
+      // both iOS/Android, so '/vendor/...' is valid there too.
       ort.env.wasm.wasmPaths = {
-        wasm: '../vendor/ort/ort-wasm-simd-threaded.jsep.wasm',
-        mjs:  '../vendor/ort/ort-wasm-simd-threaded.jsep.mjs.js'
+        wasm: '/vendor/ort/ort-wasm-simd-threaded.jsep.wasm',
+        mjs:  '/vendor/ort/ort-wasm-simd-threaded.jsep.mjs.js'
       };
     }
   } catch (e) { /* ORT resolves its own default if this fails */ }
