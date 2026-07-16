@@ -33,7 +33,37 @@
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
+<!-- A10: ONNX Runtime is served from the APP BUNDLE, not a CDN. The native
+     (Capacitor) app already ships the YOLOX model locally, but the engine that
+     runs it was still fetched from jsdelivr — so shot tracking could not load
+     at all without internet (exactly the outdoor-court case) and was hostage to
+     a CDN outage. Vendored at /vendor/ort (copied into www/ by build.js).
+     wasmPaths must point at the same folder or ORT re-fetches the .wasm/.mjs
+     from the CDN default. The CDN <script> stays only as a last-resort fallback
+     if the local file is somehow missing from the bundle. -->
+<script src="../vendor/ort/ort.webgpu.min.js"></script>
+<script>
+  if (!window.ort) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"><\/script>');
+  }
+</script>
+<script>
+  // The WebGPU (jsep) backend dynamically import()s an .mjs sidecar, and a
+  // dynamic import is REJECTED unless the response has a JavaScript MIME type.
+  // Capacitor's iOS WebViewAssetHandler has NO ".mjs" entry in its MIME table
+  // (Android does) — it would serve application/octet-stream and ORT would die
+  // with "Failed to fetch dynamically imported module", i.e. no shot detection
+  // at all on iOS. So the sidecar ships with a .js extension ("js" IS mapped on
+  // both platforms) and we point ORT straight at it. .wasm is mapped on both.
+  try {
+    if (window.ort && ort.env && ort.env.wasm) {
+      ort.env.wasm.wasmPaths = {
+        wasm: '../vendor/ort/ort-wasm-simd-threaded.jsep.wasm',
+        mjs:  '../vendor/ort/ort-wasm-simd-threaded.jsep.mjs.js'
+      };
+    }
+  } catch (e) { /* ORT resolves its own default if this fails */ }
+</script>
 
 <!-- ג”€ג”€ג”€ Engine: CourtIQ data + auth services ג”€ג”€ג”€ -->
 <script src="../js/env.js"></script>

@@ -31,6 +31,8 @@ const COPY_TARGETS = [
   'models',
   'assets',
   'icons',
+  'vendor',           // A10: bundled ONNX Runtime (see app-v10/index.html) —
+                      // the CV engine must ship with the app, not load from a CDN
   'app-v10',          // v10 fresh app (pristine magazine design) — the only UI
 ];
 
