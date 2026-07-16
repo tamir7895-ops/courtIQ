@@ -23,6 +23,7 @@ dist/
 models/*
 !models/basketball_yolox_tiny_v6_polished.onnx
 !models/basketball_yolox_tiny_v7m5.onnx
+!models/basketball_yolox_tiny_v7m5_fp16.onnx
 *.onnx.data
 
 # ── Training data & videos (local-only) ──
