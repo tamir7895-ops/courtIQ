@@ -495,7 +495,28 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .h12-chal__s { font-family: var(--d-font); font-weight: 500; font-size: 12px; color: var(--d-body); margin-top: 1px; }
 .h12-chal__bar {
   height: 12px; border-radius: 6px; background: rgba(0,0,0,.08);
-  margin-top: 8px; overflow: hidden;
+  margin-top: 8px; position: relative;
+  /* visible so the flame can stand on the tip; the fill keeps its own radius */
+  overflow: visible;
+}
+/* the little flame that rides the progress tip */
+.h12-chal__flame {
+  position: absolute; top: 50%; left: 4%;
+  font-size: 17px; color: var(--d-orange); line-height: 1;
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.18));
+  transform: translate(-50%, -72%);
+  transform-origin: 50% 88%;
+  animation: h12FlameDance 1.1s ease-in-out infinite;
+  transition: left .5s var(--ease-out-expo);
+  pointer-events: none;
+}
+@keyframes h12FlameDance {
+  0%, 100% { transform: translate(-50%, -72%) scale(1) rotate(-5deg); }
+  35%      { transform: translate(-50%, -80%) scale(1.18, 1.28) rotate(5deg); }
+  65%      { transform: translate(-50%, -70%) scale(.94) rotate(-2deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .h12-chal__flame { animation: none; }
 }
 .h12-chal__fill {
   height: 100%; border-radius: 6px; background: var(--d-gold);

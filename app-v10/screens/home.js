@@ -129,8 +129,13 @@
         h('div', { class: 'h12-chal__t', text: 'WEEKLY CHALLENGE' }),
         h('div', { class: 'h12-chal__s', text: 'Put up 100 shots this week' }),
         h('div', { class: 'h12-chal__bar' }, [
-          h('div', { class: 'h12-chal__fill', style: { width: pct + '%' } })
-        ]),
+          h('div', { class: 'h12-chal__fill', style: { width: pct + '%' } }),
+          /* the flame rides the tip — only once there's real progress */
+          cur > 0 ? h('i', {
+            class: 'ph-fill ph-fire h12-chal__flame', 'aria-hidden': 'true',
+            style: { left: pct + '%' }
+          }) : null
+        ].filter(Boolean)),
         h('div', { class: 'h12-chal__meta' }, [
           h('span', { text: cur + ' / ' + goal }),
           h('span', { text: left ? left + ' to go' : 'Done! Claim it' })
