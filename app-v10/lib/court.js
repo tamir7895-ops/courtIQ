@@ -38,16 +38,20 @@
      half court is dead pixels on a phone. */
   var H_CROP = 330;
 
+  /* The user's sketch, verbatim: INSIDE the arc, the mid zones split on
+     DIAGONALS running from the free-throw-line corners (170/330, 190)
+     outward-down at 45° to the 3pt line — they hit the circle at
+     (113,247)/(387,247) (solve 2t² + 435t − 31100 = 0 → t ≈ 56.7).
+     So top-mid is a trapezoid widening from the FT line to the arc,
+     and the baseline-mid zones own everything above the diagonals.
+     OUTSIDE the arc: corners end at y=142, wings/top split on verticals
+     dropped from the paint edges where they meet the arc (170/330,276). */
   var ZONE_PATHS = {
     lc:     'M 0 0 L 30 0 L 30 142 L 0 142 Z',
     rc:     'M 470 0 L 500 0 L 500 142 L 470 142 Z',
-    ml:     'M 30 0 L 170 0 L 170 276 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
-    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 0 Z',
-    /* topmid runs the arc right-to-left, so its sweep flag is the MIRROR
-       of top's (which runs left-to-right). Same flag on both directions
-       bulges the arc toward the rim and pinches a little lens against
-       the real 3pt line. */
-    topmid: 'M 170 190 L 330 190 L 330 276 A 237.5 237.5 0 0 1 170 276 L 170 190 Z',
+    ml:     'M 30 0 L 170 0 L 170 190 L 113 247 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
+    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 387 247 L 330 190 L 330 0 Z',
+    topmid: 'M 170 190 L 330 190 L 387 247 A 237.5 237.5 0 0 1 113 247 L 170 190 Z',
     lw:     'M 0 142 L 30 142 A 237.5 237.5 0 0 0 170 276 L 170 470 L 0 470 L 0 142 Z',
     rw:     'M 500 142 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 470 L 500 470 L 500 142 Z',
     top:    'M 170 276 A 237.5 237.5 0 0 0 330 276 L 330 470 L 170 470 L 170 276 Z',
