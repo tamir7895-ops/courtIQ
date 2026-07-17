@@ -132,14 +132,20 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="post-session"]) #app::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  /* A real full court at 8px/ft on a 400×752 canvas — border, half
-     line, center circle, and mirrored paint / free-throw arc /
-     backboard / rim / 3pt arc. Nothing overlaps: the FT circle only
-     draws its half away from the paint, exactly like the floor. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 752'%3E%3Cg fill='none' stroke='%230A2850' stroke-opacity='.05' stroke-width='3'%3E%3Crect x='4' y='4' width='392' height='744'/%3E%3Cpath d='M 4 376 L 396 376'/%3E%3Ccircle cx='200' cy='376' r='48'/%3E%3Crect x='136' y='4' width='128' height='152'/%3E%3Cpath d='M 152 156 A 48 48 0 0 0 248 156'/%3E%3Cpath d='M 176 36 L 224 36'/%3E%3Cpath d='M 24 4 L 24 118 A 190 190 0 0 0 376 118 L 376 4'/%3E%3Crect x='136' y='596' width='128' height='152'/%3E%3Cpath d='M 152 596 A 48 48 0 0 1 248 596'/%3E%3Cpath d='M 176 716 L 224 716'/%3E%3Cpath d='M 24 748 L 24 634 A 190 190 0 0 1 376 634 L 376 748'/%3E%3C/g%3E%3Cg fill='none' stroke='%23FF4F1F' stroke-opacity='.06' stroke-width='3'%3E%3Ccircle cx='200' cy='46' r='7'/%3E%3Ccircle cx='200' cy='706' r='7'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 100% auto;
-  background-position: center;
-  background-repeat: no-repeat;
+  /* A real gym floor: light parquet (plank seams two ways) under REAL
+     court lines only — boundary, half line, center circle, and per
+     half: paint, free-throw semicircle (far half, like the floor),
+     and the 3pt line. No backboards, no rims, no invented marks;
+     the only crossing is the center circle over the half line,
+     exactly as on a real court. 8px/ft on a 400×752 canvas. */
+  background-color: #F8EFDC;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 752'%3E%3Cg fill='none' stroke='%230A2850' stroke-opacity='.10' stroke-width='3'%3E%3Crect x='4' y='4' width='392' height='744'/%3E%3Cpath d='M 4 376 L 396 376'/%3E%3Ccircle cx='200' cy='376' r='48'/%3E%3Crect x='136' y='4' width='128' height='152'/%3E%3Cpath d='M 152 156 A 48 48 0 0 0 248 156'/%3E%3Cpath d='M 24 4 L 24 118 A 190 190 0 0 0 376 118 L 376 4'/%3E%3Crect x='136' y='596' width='128' height='152'/%3E%3Cpath d='M 152 596 A 48 48 0 0 1 248 596'/%3E%3Cpath d='M 24 748 L 24 634 A 190 190 0 0 1 376 634 L 376 748'/%3E%3C/g%3E%3C/svg%3E"),
+    repeating-linear-gradient(90deg, rgba(150,105,55,.07) 0 1px, transparent 1px 26px),
+    repeating-linear-gradient(0deg, rgba(150,105,55,.05) 0 1px, transparent 1px 92px);
+  background-size: 100% auto, auto, auto;
+  background-position: center, 0 0, 0 0;
+  background-repeat: no-repeat, repeat, repeat;
 }
 
 /* HOME: the page IS the viewport. Rows compress via dvh clamps
