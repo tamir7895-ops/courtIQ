@@ -21,8 +21,12 @@ const DROP = [
   'debug-eval-run.html', 'debug-pose-poc.html',
   'debug-pose-shot-bench.html', 'debug-auto-rim-eval.html',
 ];
-// keep ONLY the deployed model
-const KEEP_MODELS = new Set(['basketball_yolox_tiny_v7m5.onnx']);
+// keep ONLY the deployed model — MUST match shotDetection.js's modelPath
+// default. When the default model changes, update this list in the SAME
+// commit: the pruner deletes everything else, so a stale name here ships
+// an iPhone bundle whose engine 404s its own model and silently drops to
+// color-only mode (caught in pre-TestFlight verification, 2026-07-17).
+const KEEP_MODELS = new Set(['basketball_yolox_tiny_v7b1_fp16.onnx']);
 
 let freed = 0;
 function rm(p) {
