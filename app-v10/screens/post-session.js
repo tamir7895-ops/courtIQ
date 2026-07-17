@@ -587,10 +587,20 @@
       if (counter) {
         // Counter recap: volume stats only — no made/miss claims.
         var zonesUsed = Object.keys(zones).filter(function (k) { return zones[k].att > 0; }).length;
-        host.appendChild(ctx.ui.bento([
-          { variant: 'orange',  icon: 'ph-basketball', value: String(att), label: 'SHOTS' },
-          { variant: 'sage',    icon: 'ph-target',     value: String(threeAtt), label: 'FROM 3PT RANGE' },
-          { variant: 'mustard', icon: 'ph-map-pin',    value: String(zonesUsed), label: 'ZONES USED' }
+        host.appendChild(h('div', { class: 'ps12-hero d-card d-card--ink' }, [
+          h('div', { class: 'd-label', text: 'COUNTED LIVE' }),
+          h('div', { class: 'ps12-num v10-bento__num', text: String(att) }),
+          h('div', { class: 'ps12-sub', text: 'shots up · no made/miss claims from live counting' }),
+          h('div', { class: 'ps12-chips' }, [
+            h('div', { class: 'ps12-chip' }, [
+              h('i', { class: 'ph-fill ph-target' }),
+              h('span', { text: threeAtt + ' from 3PT range' })
+            ]),
+            h('div', { class: 'ps12-chip' }, [
+              h('i', { class: 'ph-fill ph-map-pin' }),
+              h('span', { text: zonesUsed + ' zones used' })
+            ])
+          ])
         ]));
         // Explain where verdicts live — one tap to the upload flow.
         host.appendChild(h('div', {
@@ -606,16 +616,23 @@
           h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')])
         ]));
       } else {
-        host.appendChild(ctx.ui.bento([
-          { variant: 'orange',  icon: 'ph-check',  value: made + ' / ' + att, label: pct + '% MADE' },
-          { variant: 'sage',    icon: 'ph-target', value: threeAtt ? (threeMade + '/' + threeAtt) : '—', label: '3PT' },
-          {
-            variant: 'mustard',
-            icon: 'ph-fire',
-            iconExtra: streak >= 3 ? 'v10-flicker' : undefined,
-            value: String(streak),
-            label: 'BEST RUN'
-          }
+        /* the verdict hero — print card, one huge number, two chips */
+        host.appendChild(h('div', { class: 'ps12-hero d-card d-card--ink' }, [
+          h('div', { class: 'd-label', text: 'THIS SESSION' }),
+          h('div', { class: 'ps12-num v10-bento__num' }, [
+            document.createTextNode(made + ' / ' + att),
+            h('span', { class: 'ps12-pct', text: pct + '%' })
+          ]),
+          h('div', { class: 'ps12-chips' }, [
+            h('div', { class: 'ps12-chip' }, [
+              h('i', { class: 'ph-fill ph-target' }),
+              h('span', { text: '3PT ' + (threeAtt ? threeMade + '/' + threeAtt : '—') })
+            ]),
+            h('div', { class: 'ps12-chip ps12-chip--fire' }, [
+              h('i', { class: 'ph-fill ph-fire' }),
+              h('span', { text: 'Best run ' + streak })
+            ])
+          ])
         ]));
       }
 
@@ -662,20 +679,16 @@
       // Flex spacer — pushes CTAs to the bottom of the viewport when content is short.
       host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '12px' } }));
 
-      // CTAs
+      // CTAs — v12 lipped buttons
       host.appendChild(h('div', {
         style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }
       }, [
-        ctx.ui.cta({
-          variant: 'orange',
-          icon: 'ph-play-circle',
-          label: 'LOG ANOTHER SESSION',
+        window.V12.btn({
+          icon: 'ph-play-circle', label: 'Log another session',
           onClick: function () { ctx.go('camera-hud'); }
         }),
-        ctx.ui.cta({
-          variant: 'secondary',
-          icon: 'ph-house',
-          label: 'BACK TO HOME',
+        window.V12.btn({
+          variant: 'ghost', icon: 'ph-house', label: 'Back to home',
           onClick: function () { ctx.go('home'); }
         })
       ]));

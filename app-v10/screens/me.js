@@ -193,18 +193,21 @@
   function mainView(host, ctx, prof, iq, totals) {
     while (host.firstChild) host.removeChild(host.firstChild);
 
-    /* avatar hero — always a real face (saved pick or DiceBear default) */
-    var av = h('div', {
-      class: 'm12-hero__av',
+    /* the Duolingo band — the character's world owns the top third,
+       edge to edge, tinted with the avatar's own background color */
+    var url = V12.avatarUrl(prof);
+    var bandColor = (url.match(/backgroundColor=([0-9A-Fa-f]{6})/) || [])[1] || 'FFB800';
+    var band = h('div', {
+      class: 'm12-band',
       role: 'button', tabindex: '0', 'aria-label': 'Customise avatar',
       onclick: function () { ctx.go('avatar-customizer'); },
       onkeydown: V12.activates(function () { ctx.go('avatar-customizer'); })
-    });
-    av.style.backgroundImage = 'url(' + V12.avatarUrl(prof) + ')';
-    host.appendChild(h('div', { class: 'm12-hero' }, [
-      av,
-      h('div', { class: 'm12-hero__edit' }, [h('i', { class: 'ph-bold ph-pencil-simple' })])
-    ]));
+    }, [
+      h('div', { class: 'm12-band__edit' }, [h('i', { class: 'ph-bold ph-pencil-simple' })])
+    ]);
+    band.style.backgroundColor = '#' + bandColor;
+    band.style.backgroundImage = 'url(' + url + ')';
+    host.appendChild(band);
 
     /* name + level + XP bar */
     var xp = prof.xp || 0;

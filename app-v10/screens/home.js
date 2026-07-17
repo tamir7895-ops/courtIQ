@@ -50,7 +50,7 @@
   }
 
   function avatarCard(prof, ctx) {
-    /* always a face — saved customizer avatar or the DiceBear default */
+    /* the character full-bleed — its background color fills the card */
     var img = h('div', { class: 'h12-av__img' });
     img.style.backgroundImage = 'url(' + V12.avatarUrl(prof) + ')';
     return V12.card({
@@ -58,10 +58,8 @@
       onClick: function () { ctx.go('me'); },
       label: 'Profile'
     }, [
-      h('div', { style: { textAlign: 'center' } }, [
-        img,
-        h('div', { class: 'h12-av__lv', text: 'LV ' + (prof.level || 1) })
-      ])
+      img,
+      h('div', { class: 'h12-av__lv', text: 'LV ' + (prof.level || 1) })
     ]);
   }
 
@@ -82,12 +80,14 @@
         h('div', { class: 'h12-badge__l', text: label })
       ]);
     }
-    return h('div', { class: 'h12-badges' }, [
+    var badges = h('div', { class: 'h12-badges' }, [
       badge('streak', 'ph-fire', String(prof.streak || 0), 'Streak', 'me'),
       badge('xp', 'ph-lightning', String(prof.xp || 0), 'XP', 'me'),
       badge('fg', 'ph-target', fg, 'FG · 30D', 'track'),
       badge('week', 'ph-flag-banner', (week.sessions || 0) + '/' + (week.goal || 5), 'This week', 'track')
     ]);
+    if (!(prof.streak > 0)) badges.firstChild.classList.add('is-zero');
+    return badges;
   }
 
   /* ── Row 3: the coach line ──────────────────────────────────── */
