@@ -105,7 +105,7 @@
       ]);
     }
     return V12.card({
-      class: 'h12-coach', bgIcon: 'ph-megaphone', bgTone: 'green',
+      tint: 'green', class: 'h12-coach', bgIcon: 'ph-megaphone', bgTone: 'green',
       onClick: function () { ctx.go('coach'); },
       label: 'Open coach'
     }, [
@@ -121,7 +121,7 @@
     var pct = Math.max(4, Math.min(100, Math.round(cur * 100 / goal)));
     var left = Math.max(0, goal - cur);
     return V12.card({
-      tint: 'green', class: 'h12-chal',
+      tint: 'cream', class: 'h12-chal',
       onClick: function () { ctx.go('social'); },
       label: 'Weekly challenge'
     }, [
@@ -187,9 +187,7 @@
       host.appendChild(top);
       host.appendChild(statBadges(prof, week, fg, ctx));
       host.appendChild(coachRow(coach, ctx));
-      /* flex spacer above the stack so challenge+doors sit as one glued
-         unit at the bottom, against the nav */
-      host.appendChild(h('div', { class: 'h12-flex' }));
+      /* normal rhythm top to bottom — no stretched void in the middle */
       host.appendChild(h('div', { class: 'h12-stack' }, [
         challengeRow(week, ctx),
         doors(ctx)

@@ -251,6 +251,18 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 }
 .d-card--ink.d-card--press:active { transform: translate(4px, 4px); box-shadow: none; }
 
+/* The cream card — the old paper itself, as a quiet colored surface. */
+.d-card--cream {
+  background: var(--d-alt); border-color: #E0D5BC;
+  box-shadow: 0 3px 0 #E0D5BC;
+}
+
+/* coach face inverts inside a vivid green card */
+.d-card--green .h12-coach__face {
+  background: #FFFFFF; color: var(--d-green-deep);
+  border-color: rgba(0,0,0,.18); box-shadow: 0 2px 0 rgba(0,0,0,.22);
+}
+
 /* The "not boring" clause: a big, faded, tilted icon living in the
    card's corner. Color inherits the feature color via .d-bg--*. */
 .d-card__bg {
