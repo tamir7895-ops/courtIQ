@@ -1,0 +1,844 @@
+/* ═══════════════════════════════════════════════════════════════
+   CourtIQ v11 — shared design system
+   ONE dark ground. No alternation.
+
+   This started as "dark shell, cream paper" and it was wrong in practice:
+   every screen banded dark → cream → dark, three or four times, and read
+   as stripes rather than as a system. See the note below.
+
+   THE SKELETON, identical on every tab:
+     .v11-top    — title, the one number, the one action
+     .v11-sheet  — the record
+
+   Type follows WHOOP's published split — brand face for words, industrial
+   face for numbers — which their guidelines state outright and Strava
+   mirrors. Barlow carries every numeral; Lora only ever speaks a sentence.
+
+   Accent discipline follows Oura's published 80/15/5 dark ratio: orange is
+   spent on the tappable and the achieved, never on decoration.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════════════════════════
+   ONE GROUND — the striping fix
+   ═══════════════════════════════════════════════════════════════
+   The first build of C alternated dark shell / cream sheet on every
+   screen, which meant each one banded 3-4 times: dark header, cream
+   content, dark footer. That isn't "a dark app with paper records", it's
+   stripes — and it's a drift from the approved mockup, where C was a dark
+   screen with ONE cream card. The cream grew into a whole sheet only
+   because it let the v10 components run unrestyled. That shortcut is what
+   made the banding.
+
+   The honest fix: one ground everywhere. Which is affordable because
+   components.css turns out to be 100% token-driven — 131 var() refs, zero
+   hardcoded hex — so remapping the palette flips every component at once
+   without touching one of them.
+
+   The swap holds even for inverted pairs: a rule like
+     .v10-chip.is-active { background: var(--ink); color: var(--cream); }
+   becomes light-on-dark, which is still exactly what an active chip
+   wants. The tokens were well chosen; this is the payoff.
+   ═══════════════════════════════════════════════════════════════ */
+body[data-screen="post-session"] {
+  /* --cream was paper; now it's the card surface. --ink was navy type;
+     now it's the light type. Same roles, inverted values — every
+     component follows without knowing. */
+  --cream:      #111D30;
+  --cream-deep: #18263C;
+  --ink:        #E9EDF3;
+  --muted:      #93A6C2;
+  --dot:        rgba(255,255,255,.045);
+  /* A hard 3px offset in the NEW --ink would be a white slab behind every
+     card. The print language survives; the shadow just goes back to being
+     a shadow. */
+  --sh-ink:     3px 3px 0 rgba(0,0,0,.5);
+  --sh-ink-sm:  2px 2px 0 rgba(0,0,0,.5);
+  /* Highlighter yellow at full strength is a flare on a dark ground. */
+  --highlight:  rgba(255,232,115,.28);
+}
+
+/* The ONE place the token swap breaks, and it's worth naming because it's
+   the seam in an otherwise clean inversion.
+
+   Eight rules in components.css read `background: var(--sage); color:
+   var(--cream)` — light type on a green chip, correct on a light theme.
+   But --sage/--orange/--mustard are SEMANTIC and do not invert (green
+   still means made), while --cream just did. So those rules became dark
+   type on green: measured 3.31, under the 4.5 floor.
+
+   The pairs that invert together survive. The pairs where only one side
+   inverts do not — so the accent chips get the ORIGINAL cream back under
+   a name that says what it's for. */
+body[data-screen="post-session"] {
+  --on-accent: #FBF5E8;   /* type on sage / orange — both are mid-dark */
+  --on-light:  #0A2850;   /* type on mustard / highlight — both are pale */
+}
+/* Sage and orange are mid-dark, so their type must be light. */
+body[data-screen="post-session"] :is(
+  .v10-bento__cell--orange, .v10-bento__cell--sage,
+  .v10-cta--orange, .v10-cta--sage,
+  .v10-cal-row.is-done,
+  .v10-row:nth-child(3n+2) .v10-row__num,
+  .v10-challenge--orange .v10-challenge__badge,
+  .v10-challenge--sage .v10-challenge__badge
+) { color: var(--on-accent); }
+
+/* Mustard and highlight are PALE, so they need the opposite fix — their
+   type has to go dark. These read `color: var(--ink)`, which was navy and
+   is now near-white: light type on a yellow chip, measured 1.82. Same
+   root cause as the sage chips, opposite remedy. */
+body[data-screen="post-session"] :is(
+  .v10-bento__cell--mustard,
+  .v10-hero--mustard,
+  .v10-cta--mustard,
+  .v10-row__num,
+  .v10-challenge--mustard .v10-challenge__badge
+) { color: var(--on-light); }
+/* …but the 3n row-num is a light chip with dark type already — leave it. */
+body[data-screen="post-session"]
+  .v10-row:nth-child(3n) .v10-row__num { color: var(--on-light); }
+
+body[data-screen="post-session"] {
+  /* Navy-biased near-black lifted from --ink. Never pure #000:
+     WHOOP grounds at #101518, Oura at #151619 — both refuse it. */
+  --h-void:   #060D18;
+  --h-deep:   #0A1526;
+  --h-lift:   #132741;
+  --h-line:   rgba(255,255,255,.08);
+  --h-dim:    #6F819C;
+  --h-mute:   #9DB0CA;
+  --h-bright: #E9EDF3;
+  background: var(--h-void);
+}
+
+/* ── Break the no-scroll rule ──────────────────────────────────
+   tokens.css pins #app to height:100dvh + overflow:hidden, which is what
+   forced 11 blocks to fight over one viewport and squeezed the CTA to 40px
+   (under the 44pt minimum). Every v11 screen scrolls. */
+body[data-screen="post-session"] #app {
+  height: auto;
+  min-height: 100dvh;
+  overflow: visible;
+  /* Column flex so the paper sheet can claim the leftover height. Without
+     it the cream stopped wherever the content ran out and the rest of the
+     viewport was unexplained dark — which reads as unfinished, not as
+     restraint. Air only works when it's inside the composition. */
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  padding: 0 0 calc(64px + var(--safe-bottom));
+  background:
+    radial-gradient(120% 60% at 50% 0%, var(--h-lift) 0%, var(--h-deep) 46%, var(--h-void) 100%)
+    no-repeat top center / 100% 100dvh,
+    var(--h-void);
+}
+/* The risograph dot grid is a paper texture — it has no business on the
+   dark shell. It comes back inside the paper sheets below. */
+body[data-screen="post-session"] #app::before { content: none; }
+body[data-screen="post-session"] #app > *:last-child { margin-bottom: 0; }
+
+/* ── The dark zone ─────────────────────────────────────────────
+   Default: natural height — a title, maybe a number, maybe a control.
+   Used by track / train / coach / me, where content should start early. */
+.v11-top {
+  display: flex;
+  flex-direction: column;
+  padding: calc(var(--safe-top) + 18px) var(--s-5) var(--s-5);
+}
+
+/* --fold: home only. The whole viewport, holding exactly four things —
+   header, the one number, the one action, and a peek proving there's more.
+   Capped rather than 100dvh: the air is `margin:auto` on .v11-group, so on
+   a tall window it grows without limit and the number floats in ~200px of
+   nothing at each end. 760px keeps the phone composition identical and
+   stops the void on anything taller — and on a tall screen the paper sheet
+   peeks up, which is a better scroll cue than emptiness. */
+.v11-top--fold {
+  min-height: min(100dvh, 760px);
+  /* The nav is position:fixed and 64px tall — the fold must clear it or the
+     peek hides behind it. */
+  padding-bottom: calc(64px + var(--safe-bottom) + 20px);
+}
+
+.v11-hd {
+  display: flex; align-items: center; justify-content: space-between;
+  flex-shrink: 0;
+}
+
+/* One auto margin, one block. Air splits evenly above and below instead of
+   collecting in a single dead gap. */
+.v11-group { margin: auto 0; }
+.v11-hd__mark {
+  font-family: var(--font-display); font-weight: 800; font-size: 19px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--h-bright);
+}
+.v11-hd__av {
+  width: 36px; height: 36px; border-radius: 50%;
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--h-lift); color: var(--h-mute);
+  border: 1px solid var(--h-line);
+  font-family: var(--font-display); font-weight: 800; font-size: 15px;
+  background-size: cover; background-position: center;
+}
+.v11-hd__av:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+/* ── The paper: Court IQ ───────────────────────────────────────
+   Full-bleed so it reads as a sheet laid across the screen, not a
+   card floating on it. */
+/* The one number. Not a slab of another colour any more — it earns its
+   emphasis from the orange rules and the scale of the numeral, which is
+   what was doing the work anyway. */
+.v11-paper {
+  margin: 0 calc(-1 * var(--s-5));
+  padding: 22px var(--s-5) 24px;
+  background: rgba(255,255,255,.03);
+  border-top: 2px solid var(--orange);
+  border-bottom: 2px solid var(--orange);
+}
+/* Orange on cream measures 3.02:1 — under the 4.5:1 AA floor for text this
+   size. (That's the app-wide .eyebrow pairing, not a new problem.) The accent
+   belongs on the tappable and the achieved; a label is neither. It stays on
+   the 2px rules above and below, where 3:1 is the bar and it passes. */
+.v11-paper__lbl {
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--muted);
+}
+.v11-num {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(120px, 40vw, 172px); line-height: .78;
+  letter-spacing: -.05em; color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: baseline; gap: 12px;
+}
+.v11-num--empty { color: var(--muted); letter-spacing: 0; }
+.v11-delta {
+  font-family: var(--font-display); font-weight: 800; font-size: 26px;
+  line-height: 1; letter-spacing: 0;
+}
+.v11-delta--up   { color: var(--sage); }
+.v11-delta--down { color: var(--orange); }
+.v11-delta--flat { color: var(--muted); }
+.v11-tier {
+  font-family: var(--font-display); font-weight: 800; font-size: 15px;
+  letter-spacing: .2em; text-transform: uppercase; color: var(--ink);
+  border-top: 2px solid var(--ink); padding-top: 9px; margin-top: 12px;
+  display: inline-block;
+}
+.v11-basis {
+  font-family: var(--font-body); font-style: italic; font-size: 13.5px;
+  line-height: 1.4; color: var(--muted); margin-top: 6px;
+}
+
+/* ── The one action ────────────────────────────────────────────
+   Duolingo's button physics, which is one trick: a box-shadow with ZERO
+   blur, and a press that travels exactly the shadow's depth (4px) — it
+   lands on the surface it was floating above and stops dead. box-shadow
+   not border-bottom, because border-bottom shifts layout on press. */
+.v11-cta {
+  margin-top: 26px; height: 56px; width: 100%;
+  border: 0; border-radius: 15px; cursor: pointer;
+  background: var(--orange); color: #160600;
+  box-shadow: 0 4px 0 #A32B0C;
+  font-family: var(--font-display); font-weight: 800; font-size: 20px;
+  letter-spacing: .1em; text-transform: uppercase;
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+  transition: box-shadow .06s linear, transform .06s linear;
+}
+.v11-cta:active { transform: translateY(4px); box-shadow: none; }
+.v11-cta:focus-visible { outline: 3px solid var(--cream); outline-offset: 3px; }
+
+/* ── The peek — proof that scrolling is worth it ───────────────── */
+.v11-peek {
+  margin-top: 18px; border-radius: 14px; padding: 13px 15px;
+  display: flex; align-items: center; justify-content: space-between;
+  background: rgba(255,255,255,.045); border: 1px solid var(--h-line);
+  cursor: pointer;
+}
+.v11-peek__l {
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--h-dim);
+  display: flex; align-items: center; gap: 7px;
+}
+.v11-peek__v {
+  font-family: var(--font-display); font-weight: 800; font-size: 22px;
+  color: var(--h-bright); font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 8px;
+}
+.v11-peek__chev { font-size: 14px; color: var(--h-dim); }
+.v11-peek:focus-visible { outline: 2px solid var(--orange); outline-offset: 2px; }
+
+/* ── Below the fold: the record, on paper ───────────────────────
+   The v10 components live here unmodified — they were built for cream
+   and this is cream, so nothing needs restyling. */
+/* No longer a sheet of a different colour — that WAS the striping. It's
+   just the content region now, on the one ground. It still grows so the
+   page never trails off into unexplained space. */
+.v11-sheet {
+  background: transparent;
+  padding: var(--s-2) var(--s-4) var(--s-5);
+  display: flex; flex-direction: column; gap: var(--s-3);
+  flex: 1 0 auto;
+}
+/* Home's content starts below a full-viewport fold, so it must NOT
+   stretch — it would double the page height for nothing. */
+body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
+.v11-sheet__hd {
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .22em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 2px;
+}
+/* order:2 — the ::after is the last DOM child, so without this the rule
+   would land after the meta instead of between label and meta. */
+.v11-sheet__hd::after {
+  content: ''; flex: 1; height: 2px; background: var(--ink); opacity: .18;
+  order: 2;
+}
+.v11-sheet__hd-meta {
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .16em; color: var(--muted); flex: 0 0 auto;
+  order: 3;
+}
+
+/* ── Streak — what the peek promised ───────────────────────────
+   The peek says "Streak 3" and scrolls here, so this has to be the first
+   thing that lands. A peek that resolves to nothing is a broken promise. */
+.v11-streak {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--cream-deep);
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  box-shadow: var(--sh-orange-sm);
+}
+.v11-streak__flame { font-size: 30px; color: var(--orange); line-height: 1; }
+.v11-streak__n {
+  font-family: var(--font-display); font-weight: 900; font-size: 44px;
+  line-height: .85; color: var(--ink); font-variant-numeric: tabular-nums;
+}
+.v11-streak__l {
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+  line-height: 1.15;
+}
+.v11-streak__sub {
+  margin-left: auto; text-align: right;
+  font-family: var(--font-body); font-style: italic; font-size: 12.5px;
+  color: var(--muted); max-width: 46%; line-height: 1.35;
+}
+
+/* The remaining-work chip that replaces the orphaned XP badge. */
+.v11-togo {
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  display: flex; align-items: center; gap: 5px;
+}
+.v11-togo--done { color: var(--sage); }
+
+/* ── Screen title (tabs other than home) ───────────────────────
+   Home shows the wordmark because it's the front door. Every other tab
+   says what it is — you navigated here on purpose. */
+.v11-title {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 38px; line-height: .9; letter-spacing: -.02em;
+  text-transform: uppercase; color: var(--h-bright);
+}
+.v11-sub {
+  font-family: var(--font-body); font-style: italic; font-size: 13px;
+  color: var(--h-dim); margin-top: 4px;
+}
+
+/* ── Segmented control — dark, lives in the shell ──────────────
+   The sliding pill mirrors the bottom nav's, so the app has one idea of
+   "where you are" rather than two. */
+.v11-seg {
+  display: flex; position: relative; margin-top: var(--s-4);
+  background: rgba(255,255,255,.05);
+  border: 1px solid var(--h-line);
+  border-radius: 12px; padding: 3px; gap: 2px;
+}
+.v11-seg__pill {
+  position: absolute; top: 3px; bottom: 3px; left: 3px;
+  background: var(--orange); border-radius: 9px;
+  transition: transform var(--t-base), width var(--t-base);
+  pointer-events: none;
+}
+.v11-seg__item {
+  flex: 1; position: relative; z-index: 1;
+  border: 0; background: none; cursor: pointer;
+  padding: 9px 4px; border-radius: 9px;
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--h-dim);
+  transition: color var(--t-fast);
+}
+.v11-seg__item.is-active { color: #160600; }
+.v11-seg__item:focus-visible { outline: 2px solid var(--cream); outline-offset: -2px; }
+
+/* ── Stat row — dark, for facts that don't need paper ──────────
+   Three at most, and only in different units. Heterogeneous units are what
+   let three numbers sit together without labels doing the work; four
+   same-unit numbers is the bento we just deleted. */
+.v11-stats { display: flex; gap: var(--s-2); margin-top: var(--s-4); }
+.v11-stat {
+  flex: 1; padding: 10px 12px; border-radius: 12px;
+  background: rgba(255,255,255,.045); border: 1px solid var(--h-line);
+}
+.v11-stat__v {
+  font-family: var(--font-display); font-weight: 800; font-size: 26px;
+  line-height: 1; color: var(--h-bright); font-variant-numeric: tabular-nums;
+}
+.v11-stat__v--dim { color: var(--h-dim); }
+.v11-stat__l {
+  font-family: var(--font-display); font-weight: 800; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--h-dim);
+  margin-top: 4px;
+}
+
+/* ── Empty state — invite, never a zero ────────────────────────
+   Duolingo never shows a new user an empty dashboard, and the M4 rule says
+   an honest empty state beats a fake number. This is what both look like. */
+.v11-empty {
+  padding: var(--s-6) var(--s-4); text-align: center;
+  border: 2px dashed rgba(255,255,255,.16); border-radius: 6px;
+}
+.v11-empty__icon { font-size: 30px; color: var(--muted); opacity: .5; }
+.v11-empty__t {
+  font-family: var(--font-display); font-weight: 800; font-size: 17px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--ink);
+  margin-top: 8px;
+}
+.v11-empty__b {
+  font-family: var(--font-body); font-style: italic; font-size: 13.5px;
+  color: var(--muted); margin-top: 5px; line-height: 1.4;
+}
+
+/* ── Action footer — dark, closes a screen ─────────────────────
+   Actions belong to the app, so they sit on the dark, never on the paper.
+   The record doesn't have buttons; the app does. */
+/* Compact. It's a bar the actions sit on, not a room they float in. */
+.v11-foot {
+  padding: var(--s-3) var(--s-4) var(--s-3);
+  display: flex; flex-direction: column; gap: var(--s-2);
+  flex: 0 0 auto;
+}
+/* .v11-cta ships margin-top:26px for the home fold, where it trails the
+   paper. In a footer that margin is just air the flex gap already owns. */
+.v11-foot .v11-cta { margin-top: 0; }
+.v11-foot .v11-cta--ghost { height: 42px; font-size: 14px; }
+
+/* ── Court ─────────────────────────────────────────────────────
+   Parquet, because the palette should come from the sport's materials
+   rather than a screen palette — the wood tokens were already here. */
+.v11-court {
+  border-radius: 6px; overflow: hidden;
+  border: 2px solid var(--ink);
+  background:
+    repeating-linear-gradient(90deg, transparent 0 22px, var(--wood-seam) 22px 23px),
+    repeating-linear-gradient(0deg, transparent 0 46px, var(--wood-row) 46px 47px),
+    var(--wood);
+  padding: 8px;
+}
+.v11-legend {
+  display: flex; gap: var(--s-3); flex-wrap: wrap;
+  margin-top: 8px; justify-content: center;
+}
+.v11-legend__i {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--font-display); font-weight: 800; font-size: 9.5px;
+  letter-spacing: .12em; text-transform: uppercase; color: var(--muted);
+}
+.v11-legend__dot {
+  width: 9px; height: 9px; border-radius: 50%; border: 1.2px solid var(--ink);
+}
+
+/* ── Zone row ──────────────────────────────────────────────────
+   The dash for a thin sample is the point, not a gap to be filled. */
+.v11-zone {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: 9px 12px; background: var(--cream-deep);
+  border: 1.5px solid var(--ink); border-radius: 4px;
+}
+.v11-zone__bar {
+  flex: 1; height: 8px; border-radius: 4px;
+  background: rgba(255,255,255,.09); overflow: hidden;
+}
+.v11-zone__fill { height: 100%; border-radius: 4px; background: var(--sage); }
+.v11-zone__fill--cold { background: var(--mustard); }
+.v11-zone__fill--thin { background: rgba(255,255,255,.2); }
+.v11-zone__n {
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink);
+  width: 88px; flex: 0 0 auto;
+}
+.v11-zone__v {
+  font-family: var(--font-display); font-weight: 800; font-size: 17px;
+  color: var(--ink); font-variant-numeric: tabular-nums;
+  width: 52px; text-align: right; flex: 0 0 auto;
+}
+.v11-zone__v--thin { color: var(--muted); font-size: 13px; }
+/* A zone you haven't shot from. Present, quiet, and legible as a
+   suggestion — not omitted, which is what made the list look half-built. */
+.v11-zone.is-empty { background: transparent; border-style: dashed; opacity: .62; }
+.v11-zone.is-empty .v11-zone__bar { opacity: .4; }
+
+/* ── The path — Duolingo's structure, not its skin ─────────────
+   Their 2022 redesign replaced a branching tree with ONE serpentine chain
+   of nodes, because learners "aren't sure whether they're using it the
+   right way." The whole idea is removing choice: one node is live, the
+   rest are quiet. That's the same thesis as the home screen's one number —
+   which is exactly why this transplants cleanly and the owl doesn't.
+
+   What we take: the chain, the single live node, the locked states.
+   What we leave: the cartoon, the green, the mascot. */
+.v11-path { position: relative; padding: var(--s-2) 0 var(--s-1); }
+/* The spine, behind the nodes. */
+.v11-path::before {
+  content: ''; position: absolute; top: 26px; bottom: 26px; left: 50%;
+  width: 3px; margin-left: -1.5px; z-index: 0;
+  background: repeating-linear-gradient(180deg,
+    rgba(255,255,255,.18) 0 7px, transparent 7px 14px);
+}
+.v11-node {
+  position: relative; z-index: 1; display: flex; align-items: center;
+  gap: var(--s-3); margin-bottom: var(--s-3); width: 100%;
+  background: none; border: 0; padding: 0; cursor: pointer; text-align: left;
+  font: inherit; color: inherit;
+}
+.v11-node:last-child { margin-bottom: 0; }
+/* Serpentine: alternate which side of the spine the node sits on. */
+.v11-node:nth-child(even) { flex-direction: row-reverse; text-align: right; }
+.v11-node:nth-child(even) .v11-node__main { align-items: flex-end; }
+.v11-node__dot {
+  flex: 0 0 auto; width: 54px; height: 54px; border-radius: 50%;
+  display: grid; place-items: center; font-size: 22px;
+  background: var(--cream-deep); color: var(--muted);
+  border: 2.5px solid var(--ink);
+  /* Same physics as the CTA — zero-blur shadow, travel === depth. */
+  box-shadow: 0 4px 0 rgba(0,0,0,.5);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.v11-node:active .v11-node__dot { transform: translateY(4px); box-shadow: none; }
+.v11-node:focus-visible .v11-node__dot { outline: 3px solid var(--orange); outline-offset: 3px; }
+
+/* Exactly one node is live. Everything else is quiet — that IS the design. */
+.v11-node.is-next .v11-node__dot {
+  background: var(--orange); color: #160600; box-shadow: 0 4px 0 #A32B0C;
+  transform: scale(1.1);
+}
+.v11-node.is-next:active .v11-node__dot { transform: scale(1.1) translateY(4px); }
+.v11-node.is-done .v11-node__dot {
+  background: var(--sage); color: var(--cream); box-shadow: 0 4px 0 #26523A;
+}
+/* Not-yet-done and not-suggested. Quiet, but fully open — it is still a
+   real button with a real lip, because you can absolutely start here. */
+.v11-node.is-open .v11-node__dot { opacity: .8; }
+.v11-node.is-open .v11-node__t { color: var(--muted); }
+
+.v11-node__main { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+.v11-node__t {
+  font-family: var(--font-display); font-weight: 800; font-size: 15px;
+  letter-spacing: .04em; text-transform: uppercase; color: var(--ink);
+  line-height: 1.05;
+}
+.v11-node.is-locked .v11-node__t { color: var(--muted); }
+.v11-node__s {
+  font-family: var(--font-mono); font-size: 10.5px; color: var(--muted);
+  letter-spacing: .04em;
+}
+/* The live node names itself. Duolingo's bouncing START bubble, minus the bounce
+   — overshoot is the loudest childish tell in motion. */
+.v11-node__now {
+  font-family: var(--font-display); font-weight: 800; font-size: 10px;
+  letter-spacing: .18em; color: var(--orange); margin-top: 2px;
+}
+
+/* ── Today's prescription — Runna's "workout as a named object" ─
+   The headline isn't a metric, it's a thing to go do. */
+.v11-rx {
+  background: var(--cream); border: 2px solid var(--ink); border-radius: 4px;
+  box-shadow: var(--sh-orange); padding: var(--s-4);
+}
+.v11-rx__eye {
+  font-family: var(--font-display); font-weight: 800; font-size: 10px;
+  letter-spacing: .24em; text-transform: uppercase; color: var(--muted);
+}
+.v11-rx__t {
+  font-family: var(--font-display); font-weight: 900; font-size: 30px;
+  line-height: .95; letter-spacing: -.01em; text-transform: uppercase;
+  color: var(--ink); margin-top: 4px;
+}
+.v11-rx__s {
+  font-family: var(--font-body); font-style: italic; font-size: 13.5px;
+  color: var(--muted); margin-top: 6px; line-height: 1.35;
+}
+.v11-rx__meta {
+  display: flex; gap: var(--s-3); margin-top: 10px; padding-top: 10px;
+  border-top: 1.5px solid rgba(255,255,255,.12);
+}
+.v11-rx__m {
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--ink);
+  display: flex; align-items: center; gap: 5px;
+}
+.v11-rx__m i { color: var(--orange); font-size: 13px; }
+
+/* ── Trophy case ───────────────────────────────────────────────
+   Medals, not stickers. The test the research offers: could it exist as a
+   physical object on a shelf? Apple's badges pass because they're rendered
+   metal with a real specular response; XP gems fail because they're
+   drawings of value. We can't ship 3D, so we ship the other half of Apple's
+   trick — earned is struck and colored, unearned is a grey blank, and the
+   reveal works by SUBTRACTION rather than by adding particles. */
+.v11-tro { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
+.v11-tro__i {
+  aspect-ratio: 1; border-radius: 6px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 4px; padding: 6px;
+  border: 2px solid var(--ink); background: var(--cream-deep);
+  text-align: center; cursor: default;
+}
+.v11-tro__i i { font-size: 24px; color: var(--muted); opacity: .35; }
+.v11-tro__n {
+  font-family: var(--font-display); font-weight: 800; font-size: 9.5px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+  line-height: 1.1;
+}
+.v11-tro__d { font-family: var(--font-mono); font-size: 8px; color: var(--muted); opacity: .7; }
+/* Earned: struck, colored, and it casts a shadow — it became an object. */
+.v11-tro__i.is-earned { background: var(--cream); box-shadow: var(--sh-ink-sm); }
+.v11-tro__i.is-earned i { opacity: 1; }
+.v11-tro__i.is-earned .v11-tro__n { color: var(--ink); }
+.v11-tro__i.is-earned--gold i   { color: var(--mustard); }
+.v11-tro__i.is-earned--silver i { color: var(--ink); }
+.v11-tro__i.is-earned--bronze i { color: var(--sage); }
+
+/* ── Identity block ────────────────────────────────────────────*/
+.v11-id { display: flex; align-items: center; gap: var(--s-4); }
+.v11-id__av {
+  width: 62px; height: 62px; border-radius: 50%; flex: 0 0 auto;
+  border: 2.5px solid var(--ink); box-shadow: var(--sh-orange-sm);
+  background: var(--orange) center/cover; color: var(--cream);
+  display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 900; font-size: 24px;
+}
+.v11-id__n {
+  font-family: var(--font-display); font-weight: 900; font-size: 26px;
+  line-height: .95; text-transform: uppercase; color: var(--ink);
+}
+.v11-id__m {
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+  margin-top: 3px;
+}
+
+/* ── Secondary action — quiet, never competes with the CTA ─────
+   Only one thing per screen gets the accent. */
+.v11-cta--ghost {
+  background: transparent; color: var(--h-mute);
+  border: 1.5px solid var(--h-line); box-shadow: none;
+  height: 48px; font-size: 16px;
+}
+.v11-cta--ghost:active { transform: none; }
+.v11-cta--ghost:focus-visible { outline-color: var(--orange); }
+
+/* ═══════════════════════════════════════════════════════════════
+   THE LIVE HUD — designed for 20 feet, not for the hand
+   ═══════════════════════════════════════════════════════════════
+   The optics decide the design, so here's the arithmetic:
+
+     20ft = 6096mm. One arcminute subtends 6096·tan(1/60°) ≈ 1.77mm.
+     ISO 9241-303 puts the legibility floor at 16 arcmin, and glanceable
+     outdoor text (glare, motion, no fixation) wants ~22 → ~39mm cap.
+     An iPhone renders ~0.182mm per pt → **~214pt of cap height**.
+
+   That is over half the screen. It buys you ONE number and nothing else.
+   Every element the old HUD showed — the "LIVE COUNT" eyebrow, the
+   "SHOTS DETECTED" sub-label, the streak line, the mini-court — is
+   physically invisible from the free-throw line. It spent the entire live
+   UI budget on things the user cannot see.
+
+   Worse, the shooter is looking at the RIM, so the phone sits in
+   peripheral vision, where acuity is a fraction of foveal. Hence: one
+   number, and status encoded as a full-screen COLOUR FIELD. A corner dot
+   at 20ft subtends ~9 arcmin — foveally visible, peripherally absent. A
+   full-screen wash is ~175×80 arcmin: about your palm at arm's length,
+   and the only visual signal that survives.
+   ═══════════════════════════════════════════════════════════════ */
+
+.v11-hud {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; flex-direction: column;
+  pointer-events: none;
+  transition: background .3s var(--ease-in-out);
+}
+/* Calm default. NOT green: --made is already var(--sage) in post-session,
+   and live mode has no verdicts — a green screen would imply a make we
+   never computed. Live status stays ink/orange only. */
+.v11-hud--live  { background: transparent; }
+.v11-hud--lost  { background: rgba(255,79,31,.45); }
+
+/* The one number. 40vh ≈ 325pt on a 812pt screen — past the 214pt floor
+   with margin for glare and older eyes. Tabular figures because a 148pt
+   digit shifting width on 9→10 is very visible. */
+.v11-hud__num {
+  flex: 1; display: grid; place-items: center;
+  font-family: var(--font-display); font-weight: 900;
+  font-size: 40vh; line-height: .8; letter-spacing: -.04em;
+  color: var(--cream); font-variant-numeric: tabular-nums;
+  /* Sunlight collapses screen contrast from ~1000:1 to under 10:1, so the
+     glyph carries its own contrast: heavy stroke + hard outline. */
+  text-shadow: 0 0 34px rgba(0,0,0,.9), 0 4px 0 rgba(0,0,0,.55);
+  text-align: center;
+}
+.v11-hud__num.is-pop { animation: v11HudPop 340ms var(--ease-spring); }
+@keyframes v11HudPop {
+  0% { transform: scale(1); } 45% { transform: scale(1.12); } 100% { transform: scale(1); }
+}
+
+/* Perimeter status. The 3-arcmin stroke isn't resolvable at 20ft — you
+   detect that the frame is LIT, you don't read its thickness. That's the
+   point: peripheral detection scales with extent, not resolvability. */
+.v11-hud__frame {
+  position: absolute; inset: 8px; border-radius: 40px;
+  border: 10px solid transparent; pointer-events: none;
+  transition: border-color .3s var(--ease-in-out);
+}
+.v11-hud--live .v11-hud__frame { border-color: rgba(61,122,83,.55); }
+/* Motion is spent ONLY on state changes. If the HUD always animates, a
+   real problem becomes invisible. Live is perfectly still. 2.5Hz sits
+   under WCAG 2.3.1's 3-flash ceiling deliberately. */
+.v11-hud--lost .v11-hud__frame {
+  border-color: var(--orange); animation: v11HudPulse .4s steps(1) infinite;
+}
+@keyframes v11HudPulse { 50% { border-color: rgba(255,79,31,.25); } }
+
+.v11-hud__lost {
+  position: absolute; left: 0; right: 0; bottom: calc(18% + var(--safe-bottom));
+  text-align: center; font-family: var(--font-display); font-weight: 800;
+  font-size: 30px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--cream); text-shadow: 0 2px 12px rgba(0,0,0,.8);
+}
+
+/* ── The walk-up gate — read at arm's length, so normal type ──
+   The gate belongs on START, not on COUNT. Phase 9b killed the banner
+   because blocking the count on preflight was noise — correct, but it
+   removed the wrong gate. A clip recorded with the rim out of frame is
+   UNRECOVERABLE: you shoot for 20 minutes, walk back, upload, and get
+   "no shots detected". The failure is caused at record time and
+   discovered minutes too late.
+
+   Rim is the only hard gate. Player and ball recover frame to frame; the
+   rim is static, and if it's outside the crop it's outside for the whole
+   clip. */
+.v11-gate {
+  position: fixed; inset: 0; z-index: 62; pointer-events: auto;
+  background: linear-gradient(180deg, rgba(6,13,24,.55) 0%, rgba(6,13,24,.9) 72%);
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: var(--s-5) var(--s-5) calc(var(--s-6) + var(--safe-bottom));
+  gap: var(--s-3);
+}
+.v11-gate__eye {
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .24em; text-transform: uppercase; color: var(--orange);
+}
+.v11-gate__t {
+  font-family: var(--font-display); font-weight: 900; font-size: 32px;
+  line-height: .95; text-transform: uppercase; color: var(--cream);
+}
+.v11-gate__s {
+  font-family: var(--font-body); font-style: italic; font-size: 14px;
+  color: #9DB0CA; line-height: 1.4;
+}
+.v11-gate__row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px; border-radius: 12px;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: .12em; text-transform: uppercase; color: #6F819C;
+}
+.v11-gate__row i { font-size: 17px; }
+.v11-gate__row.is-on { color: var(--cream); border-color: rgba(61,122,83,.6); }
+.v11-gate__row.is-on i { color: var(--sage); }
+.v11-gate__row .v11-gate__st { margin-left: auto; font-size: 11px; opacity: .8; }
+.v11-gate__toggles { display: flex; gap: var(--s-2); }
+.v11-gate__tg {
+  flex: 1; padding: 9px; border-radius: 10px; cursor: pointer;
+  background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase; color: #6F819C;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.v11-gate__tg.is-on { color: #160600; background: var(--orange); border-color: var(--orange); }
+
+/* ── Correction ────────────────────────────────────────────────
+   Dietvorst, Simmons & Massey (Management Science 2018): people abandon
+   an algorithm after seeing it err — but they keep using an imperfect one
+   if they can modify it, AND the effect holds even when the modification
+   allowed is severely restricted. It's a desire for SOME control, not
+   more. So this is one tap, and that's enough to buy back the trust.
+
+   ONE-WAY, deliberately. classifyRange requires positive evidence for
+   'made' and falls through to 'missed', so a miss is a catch-all holding
+   real misses plus every make where tracking dropped. Corrections will be
+   miss→make almost every time; a symmetric toggle would treat both
+   directions as equally likely, which is false, and tax every shot with a
+   decision that has an obvious answer.
+
+   Framing: "WENT IN" — the user states a fact about basketball, not a
+   verdict on our AI. NOT "report a problem" (makes every correction an
+   argument that the product is broken) and NOT "teach the AI" — which
+   would be a lie: adaptiveLearning._addSample labels BALL DETECTIONS, not
+   verdicts, so nothing here trains anything. "WENT IN" promises nothing
+   and is therefore always true. */
+.v11-fix { display: flex; flex-direction: column; gap: 6px; }
+.v11-fix__row {
+  display: flex; align-items: center; gap: var(--s-3);
+  padding: 9px 12px; border-radius: 4px;
+  background: var(--cream-deep); border: 1.5px solid var(--ink);
+}
+.v11-fix__row.is-flagged { border-color: var(--mustard); box-shadow: 2px 2px 0 var(--mustard); }
+.v11-fix__n {
+  font-family: var(--font-mono); font-size: 11px; color: var(--muted);
+  width: 26px; flex: 0 0 auto;
+}
+.v11-fix__v {
+  font-family: var(--font-display); font-weight: 800; font-size: 13px;
+  letter-spacing: .1em; text-transform: uppercase; width: 52px; flex: 0 0 auto;
+}
+.v11-fix__v--made { color: var(--sage); }
+.v11-fix__v--miss { color: var(--muted); }
+.v11-fix__why {
+  font-family: var(--font-body); font-style: italic; font-size: 12px;
+  color: var(--muted); flex: 1; min-width: 0;
+}
+.v11-fix__b {
+  flex: 0 0 auto; border: 1.5px solid var(--sage); background: transparent;
+  color: var(--sage); border-radius: 4px; padding: 7px 11px; cursor: pointer;
+  font-family: var(--font-display); font-weight: 800; font-size: 11px;
+  letter-spacing: .1em; text-transform: uppercase;
+  min-height: 34px; display: flex; align-items: center; gap: 5px;
+}
+.v11-fix__b:active { background: var(--sage); color: var(--cream); }
+.v11-fix__b:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.v11-fix__row.is-fixed { background: rgba(61,122,83,.14); border-color: var(--sage); }
+.v11-fix__row.is-fixed .v11-fix__b { border-color: transparent; color: var(--sage); cursor: default; }
+
+/* Optimistic apply + undo. Never a confirm dialog — a confirm punishes
+   the 95% correct case to guard the 5%. */
+.v11-snack {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(78px + var(--safe-bottom)); z-index: 80;
+  background: var(--ink); color: var(--cream);
+  border-radius: 10px; padding: 11px 14px;
+  display: flex; align-items: center; gap: var(--s-4);
+  font-family: var(--font-display); font-weight: 800; font-size: 12px;
+  letter-spacing: .08em; text-transform: uppercase;
+  box-shadow: 0 8px 24px -6px rgba(0,0,0,.5);
+}
+.v11-snack__u {
+  background: none; border: 0; cursor: pointer; color: var(--orange);
+  font: inherit; text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .v11-cta, .v11-seg__pill, .v11-hud, .v11-hud__frame { transition: none; }
+  .v11-hud__num.is-pop, .v11-hud--lost .v11-hud__frame { animation: none; }
+}

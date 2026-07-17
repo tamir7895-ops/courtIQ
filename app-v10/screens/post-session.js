@@ -182,7 +182,15 @@
     while (g.firstChild) g.removeChild(g.firstChild);
     if (!shots || !shots.length) return;
 
-    var STAGGER_MS = 120;
+    var REDUCED = false;
+    try {
+      REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    } catch (e) {}
+
+    /* A flat 120ms stagger meant a 60-shot session took 7.2s to replay and
+       the user had scrolled away long before it finished. Cap the whole
+       replay at 2.4s regardless of volume. */
+    var STAGGER_MS = REDUCED ? 0 : Math.min(120, Math.round(2400 / shots.length));
     shots.forEach(function (s, i) {
       setTimeout(function () {
         var center = ZONE_CENTER[s.v10Zone] || ZONE_CENTER.top;
@@ -200,20 +208,174 @@
           stroke: fill, 'stroke-width': 2, opacity: '0.9'
         });
         ring.style.transformOrigin = cx + 'px ' + cy + 'px';
-        ring.style.animation = 'v10MiniRipple 700ms ease-out 1';
-        // Solid dot
-        var dot = svg('circle', {
-          cx: cx, cy: cy, r: 9,
-          fill: fill, stroke: '#FBF5E8', 'stroke-width': 1.5
-        });
+        if (!REDUCED) ring.style.animation = 'v10MiniRipple 700ms ease-out 1';
+
+        /* Double-encode: SHAPE as well as colour. Every serious shot chart
+           does this — Basketball-Reference, NBA.com and ballr all pair a
+           mark with a hue — and it isn't decoration: red-green deficiency
+           affects ~8% of men, which is most of this app's users. A make and
+           a miss must differ with the colour switched off.
+             made → filled dot     miss → ×     counted-only → hollow ring */
+        var dot;
+        if (s.made === null || s.made === undefined) {
+          dot = svg('circle', {
+            cx: cx, cy: cy, r: 7, fill: 'none', stroke: fill, 'stroke-width': 2.5
+          });
+        } else if (s.made) {
+          dot = svg('circle', {
+            cx: cx, cy: cy, r: 9, fill: fill, stroke: '#FBF5E8', 'stroke-width': 1.5
+          });
+        } else {
+          dot = svg('path', {
+            d: 'M ' + (cx - 6) + ' ' + (cy - 6) + ' L ' + (cx + 6) + ' ' + (cy + 6) +
+               ' M ' + (cx + 6) + ' ' + (cy - 6) + ' L ' + (cx - 6) + ' ' + (cy + 6),
+            stroke: fill, 'stroke-width': 3, 'stroke-linecap': 'round', fill: 'none'
+          });
+        }
         dot.style.opacity = '0';
-        dot.style.transition = 'opacity 200ms ease-out';
+        dot.style.transition = REDUCED ? 'none' : 'opacity 200ms ease-out';
         g.appendChild(ring);
         g.appendChild(dot);
         requestAnimationFrame(function () { dot.style.opacity = '1'; });
         setTimeout(function () { if (ring.parentNode) ring.parentNode.removeChild(ring); }, 800);
       }, i * STAGGER_MS);
     });
+  }
+
+  /* ── Corrections ─────────────────────────────────────────────────
+     Dietvorst et al. (Management Science 2018): people abandon an
+     algorithm after one visible error — unless they can modify it, and
+     the effect survives even when the modification allowed is severely
+     restricted. It's a desire for SOME control, not more. One tap is
+     enough, and it's the cheapest trust the app can buy.
+
+     ONE-WAY on purpose. classifyRange needs positive evidence to say
+     'made' and falls through to 'missed' ("no through evidence"), so a
+     miss is a catch-all: real misses PLUS every make where the ball was
+     lost to blur, sun or occlusion. Corrections are miss→make nearly
+     every time. A symmetric toggle would imply otherwise and tax every
+     shot with a decision that has an obvious answer.
+
+     Framing is the whole game here, and the same mechanic swings on it:
+     "report a problem" makes every correction an argument that the
+     product is broken; "WENT IN" is the user stating a basketball fact.
+     We deliberately do NOT say "teach the AI" — adaptiveLearning labels
+     BALL DETECTIONS, not verdicts, so no correction trains anything.
+     Claiming otherwise is the kind of lie users detect after correcting
+     the same failure twenty times and watching nothing change. */
+  var FIX_REVIEW_CAP = 5;
+
+  /* Plain-language reason, from the classifier's own `why`. Never a
+     confidence score: there ISN'T one (classifyRange returns {v, why}),
+     and a percentage on a binary event the user personally watched is
+     noise — they know whether it went in. A reason tells them what the
+     app was blind to, which is also how they set up better next time. */
+  function whyText(why) {
+    if (!why) return '';
+    if (why.indexOf('no through') === 0) return 'Never saw it reach the rim.';
+    if (why.indexOf('ring-cross') === 0) return 'Saw it cross the ring.';
+    if (why.indexOf('inside-net') === 0) return 'Saw it in the net.';
+    if (why.indexOf('dwell') === 0) return 'Saw it sit in the rim.';
+    return '';
+  }
+
+  function isUncertain(s) {
+    return !s.made && typeof s.why === 'string' && s.why.indexOf('no through') === 0;
+  }
+
+  function snack(text, onUndo) {
+    var old = document.querySelector('.v11-snack');
+    if (old && old.parentNode) old.parentNode.removeChild(old);
+    var el = h('div', { class: 'v11-snack' }, [
+      h('span', { text: text }),
+      h('button', {
+        class: 'v11-snack__u', type: 'button', text: 'Undo',
+        onclick: function () { onUndo(); if (el.parentNode) el.parentNode.removeChild(el); }
+      })
+    ]);
+    document.body.appendChild(el);
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 5000);
+  }
+
+  function buildCorrections(shots, ctx, host) {
+    var wrap = h('div', {});
+    var flagged = shots.filter(isUncertain);
+
+    /* Cap at 5. Below ~3 the row is noise; above 5 it stops reading as
+       "get your points back" and starts reading as a worklist that
+       advertises the model needs babysitting. If more than 5 qualify the
+       clip itself was bad, and the honest message is about the clip. */
+    var show = flagged.slice(0, FIX_REVIEW_CAP);
+
+    wrap.appendChild(ctx.ui.ribbon({
+      icon: 'ph-eye',
+      title: show.length ? 'A SECOND LOOK' : 'EVERY SHOT',
+      meta: show.length ? show.length + ' TO CHECK' : String(shots.length)
+    }));
+
+    if (flagged.length > FIX_REVIEW_CAP) {
+      wrap.appendChild(h('div', {
+        class: 'v11-basis',
+        text: 'Tracking was rough in this one — ' + flagged.length + ' shots never ' +
+              'reached the rim on camera. Showing the first ' + FIX_REVIEW_CAP + '.'
+      }));
+    }
+
+    var list = h('div', { class: 'v11-fix' });
+    /* Uncertain shots first — they're the ones worth the user's time —
+       then the rest, so nothing is hidden. */
+    var order = show.concat(shots.filter(function (s) { return show.indexOf(s) < 0; }));
+
+    order.slice(0, 12).forEach(function (s) {
+      var idx = shots.indexOf(s);
+      var row = h('div', {
+        class: 'v11-fix__row' + (isUncertain(s) ? ' is-flagged' : '')
+      });
+      var verdict = h('div', {
+        class: 'v11-fix__v ' + (s.made ? 'v11-fix__v--made' : 'v11-fix__v--miss'),
+        text: s.made ? 'Made' : 'Miss'
+      });
+      var btn = h('button', {
+        class: 'v11-fix__b', type: 'button',
+        'aria-label': 'Shot ' + (idx + 1) + ' went in'
+      }, [
+        h('i', { class: 'ph-bold ph-arrow-u-up-left' }),
+        h('span', { text: 'Went in' })
+      ]);
+
+      var apply = function (made) {
+        s.made = made;
+        verdict.textContent = made ? 'Made' : 'Miss';
+        verdict.className = 'v11-fix__v ' + (made ? 'v11-fix__v--made' : 'v11-fix__v--miss');
+        row.classList.toggle('is-fixed', made);
+        btn.style.display = made ? 'none' : '';
+        try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+        /* Re-render so no view can disagree with another. Two surfaces
+           derived from one shot log that print different numbers is how a
+           stats product proves its own numbers are guesses. */
+        if (ctx && ctx.go) ctx.go('post-session');
+      };
+
+      btn.addEventListener('click', function () {
+        apply(true);
+        snack('Shot ' + (idx + 1) + ' counted', function () { apply(false); });
+      });
+
+      row.appendChild(h('div', { class: 'v11-fix__n', text: String(idx + 1) }));
+      row.appendChild(verdict);
+      row.appendChild(h('div', { class: 'v11-fix__why', text: whyText(s.why) }));
+      if (!s.made) row.appendChild(btn);
+      list.appendChild(row);
+    });
+
+    wrap.appendChild(list);
+    wrap.appendChild(h('div', {
+      class: 'v11-basis',
+      text: 'A miss just means the ball was never seen going through — ' +
+            'sun, blur or a body in the way all look the same to the camera. ' +
+            'If you know better, say so.'
+    }));
+    return wrap;
   }
 
   // Compact top row: BACK chip + title + FINAL chip. Sits below headerPill.
@@ -251,12 +413,21 @@
     });
   }
 
-  function zoneDelta(z) {
-    var a = acc(z);
-    return Math.round((a - 0.5) * 100);
+  /* Was `(acc - 0.5) * 100` — every zone measured against a hardcoded 50%
+     that belongs to nobody. A 35% shooter got told "-15% vs base" on a
+     perfectly good zone, and a 70% shooter got congratulated for a bad one.
+     A baseline the player doesn't share is worse than no baseline.
+
+     Compare to THIS session's own accuracy instead: real, computable, and
+     it answers the question actually being asked — "where was I hot
+     tonight?" And below 4 shots there's no signal, so there's no delta. */
+  var MIN_ZONE_SHOTS = 4;
+  function zoneDelta(z, sessionAcc) {
+    if (!z || z.att < MIN_ZONE_SHOTS || sessionAcc == null) return null;
+    return Math.round((acc(z) - sessionAcc) * 100);
   }
 
-  function zoneTile(key, z, counter) {
+  function zoneTile(key, z, counter, sessionAcc) {
     if (counter) {
       return h('div', {
         class: 'v10-tile v10-tile--' + (z.att > 0 ? 'mustard' : 'sage'),
@@ -270,29 +441,39 @@
         h('div', { class: 'v10-tile__meta', text: 'SHOTS' })
       ]);
     }
-    var d = zoneDelta(z);
-    var up = d >= 0;
-    var variant = z && z.att > 0
-      ? (acc(z) >= 0.55 ? 'orange' : (acc(z) <= 0.40 ? 'mustard' : 'sage'))
-      : 'sage';
+    var d = zoneDelta(z, sessionAcc);
+    var up = d != null && d >= 0;
+    /* No delta = not enough shots from here to say anything. Show the raw
+       fraction and stay quiet rather than inventing a comparison. */
+    var variant = !z || !z.att ? 'sage'
+      : (d == null ? 'sage'
+        : (acc(z) >= 0.55 ? 'orange' : (acc(z) <= 0.40 ? 'mustard' : 'sage')));
     return h('div', {
       class: 'v10-tile v10-tile--' + variant,
       style: { flex: '0 0 auto', minWidth: '108px' }
     }, [
       h('div', { class: 'v10-tile__top' }, [
         h('div', { class: 'v10-tile__title', text: (z.label || key).toUpperCase() }),
-        h('i', { class: 'ph-bold ' + (up ? 'ph-trend-up' : 'ph-trend-down') + ' v10-tile__icon v10-tile__icon--' + variant })
+        d == null
+          ? h('i', { class: 'ph-bold ph-minus v10-tile__icon v10-tile__icon--' + variant })
+          : h('i', { class: 'ph-bold ' + (up ? 'ph-trend-up' : 'ph-trend-down') +
+              ' v10-tile__icon v10-tile__icon--' + variant })
       ]),
       h('div', { class: 'v10-tile__num', text: z.att > 0 ? (z.made + '/' + z.att) : '0/0' }),
-      h('div', { class: 'v10-tile__meta', text: (up ? '+' : '') + d + '% vs base' })
+      h('div', {
+        class: 'v10-tile__meta',
+        text: d == null
+          ? (z.att ? z.att + ' shots' : 'none')
+          : (up ? '+' : '') + d + '% vs session'
+      })
     ]);
   }
 
-  function zoneStrip(zones, counter) {
+  function zoneStrip(zones, counter, sessionAcc) {
     var order = ['pnt', 'ml', 'mr', 'lw', 'top', 'rw', 'lc'];
     var tiles = order.map(function (k) {
       var z = zones[k] || { made: 0, att: 0, label: k };
-      return zoneTile(k, z, counter);
+      return zoneTile(k, z, counter, sessionAcc);
     });
     return h('div', {
       style: {
@@ -361,19 +542,24 @@
         buildShotMap(zones, counter)
       ]));
 
-      // Reveal shot dots one-by-one after the SVG mounts.
-      requestAnimationFrame(function () { animateShotDots(sessionShots); });
-
       // 3-cell bento — derived from THIS session only
       var made = sessionShots.filter(function (s) { return s.made; }).length;
       var att  = sessionShots.length;
       var pct  = att ? Math.round(made * 100 / att) : 0;
-      // Celebration: palette-paper confetti, scaled to the performance
-      if (!counter && made > 0 && ctx.ui.confetti) {
-        setTimeout(function () {
-          ctx.ui.confetti({ count: Math.min(32, 10 + made * 2) });
-        }, 420);
-      }
+
+      /* ── The reveal ───────────────────────────────────────────
+         Numbers land BEFORE decoration. The athlete's question is "how'd I
+         do" — answer it first, celebrate second. Celebrating at 420ms
+         celebrated a number that hadn't rendered yet.
+
+         The map moved to 1000ms too: it used to fire on the next frame, so
+         the dots and the bento competed for the eye at the same instant.
+         The map is "how did I get here" — it belongs after the verdict. */
+      var t = window.V11Reveal.run({
+        host: host, ctx: ctx, counter: counter,
+        made: made, att: att, pct: pct,
+        onMap: function () { animateShotDots(sessionShots); }
+      });
       // 3PT = any zone marked in THREE_PT (lc/rc/lw/rw/top)
       var threeShots = sessionShots.filter(function (s) { return THREE_PT[s.v10Zone]; });
       var threeMade  = threeShots.filter(function (s) { return s.made; }).length;
@@ -424,13 +610,19 @@
         ]));
       }
 
+      /* Corrections — verdict sessions only. A counter session has no
+         verdicts, so there is nothing to correct. */
+      if (!counter && sessionShots.length) {
+        host.appendChild(buildCorrections(sessionShots, ctx, host));
+      }
+
       // BY ZONE ribbon + tile strip
       host.appendChild(ctx.ui.ribbon({
         icon: 'ph-map-trifold',
         title: 'BY ZONE',
         meta: 'SCROLL →'
       }));
-      host.appendChild(zoneStrip(zones || {}, counter));
+      host.appendChild(zoneStrip(zones || {}, counter, att ? made / att : null));
 
       // DRILLS ribbon — clickable rows go to workout-player; "View all" chip goes to drill-library
       host.appendChild(ctx.ui.ribbon({

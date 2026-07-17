@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html lang="en" style="background:#FBF5E8">
+<html lang="en" style="background:#FFFFFF">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#FBF5E8" />
+<meta name="theme-color" content="#FFFFFF" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
@@ -18,6 +18,9 @@
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
 <link rel="stylesheet" href="styles/tokens.css?v=dev" />
 <link rel="stylesheet" href="styles/components.css?v=dev" />
+<link rel="stylesheet" href="styles/v11.css?v=dev" />
+<link rel="stylesheet" href="styles/v12.css?v=dev" />
+<link rel="stylesheet" href="styles/studio.css?v=dev" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
 <link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=dev" />
@@ -136,7 +139,28 @@
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
 <script src="lib/ui.js?v=dev"></script>
 <script src="lib/data.js?v=dev"></script>
+<script src="lib/courtiq.js?v=dev"></script>
+<script src="lib/court.js?v=dev"></script>
+<script src="lib/audio.js?v=dev"></script>
+<script src="lib/reveal.js?v=dev"></script>
+<script src="lib/v11.js?v=dev"></script>
+<script src="lib/v12.js?v=dev"></script>
 <script src="lib/nav.js?v=dev"></script>
+<!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
+     ?studio in the URL so it can be opened on a real phone against a LAN
+     dev server. Never ships to a production build. -->
+<script>
+  (function () {
+    var host = location.hostname;
+    var dev = host === 'localhost' || host === '127.0.0.1' ||
+              /^192\.168\./.test(host) || /^10\./.test(host) ||
+              location.search.indexOf('studio') >= 0;
+    if (!dev) return;
+    var s = document.createElement('script');
+    s.src = 'lib/studio.js?v=dev';
+    document.head.appendChild(s);
+  })();
+</script>
 <script src="auth-state.js?v=dev"></script>
 <script src="app.js?v=dev"></script>
 
@@ -146,6 +170,7 @@
 <script src="screens/train.js?v=dev"></script>
 <script src="screens/coach.js?v=dev"></script>
 <script src="screens/me.js?v=dev"></script>
+<script src="screens/social.js?v=dev"></script>
 <script src="screens/auth.js?v=dev"></script>
 <script src="screens/camera-hud.js?v=dev"></script>
 <script src="screens/post-session.js?v=dev"></script>

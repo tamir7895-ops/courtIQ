@@ -117,7 +117,17 @@
 
   /* ── Init ─────────────────────────────────────────────────── */
   function init() {
-    var data = checkIn();
+    /* Was `checkIn()` — which fired on DOMContentLoaded, so merely OPENING
+       the app extended the streak. That is not a training streak, it's an
+       app-open streak, and it's precisely the criticism levelled at
+       Duolingo: the metric measures the habit of launching, not the habit
+       of practising. A number that goes up when you do nothing can't
+       motivate you to do something.
+
+       The real check-in already exists and already fires at the only
+       moment that earns it — ShotTrackingScreen.js calls checkIn() when a
+       session actually ends. This call was duplicate AND wrong; only the
+       duplicate was load-bearing for nothing. Init now just renders. */
     render();
   }
 

@@ -35,8 +35,9 @@
     h.classList.remove('v10-tab-enter');
     void h.offsetWidth;
     h.classList.add('v10-tab-enter');
+    var rendered = null;
     try {
-      SCREENS[id]({
+      rendered = SCREENS[id]({
         host: h,
         ctx: {
           go: go,
@@ -53,10 +54,19 @@
       console.error('[v10] render error:', e);
     }
     if (window.V10Nav) window.V10Nav.setActive(id);
-    // Headline numbers roll up after the sections compose
-    try {
-      if (window.V10UI && window.V10UI.animateCounts) window.V10UI.animateCounts(h);
-    } catch (e2) { /* purely decorative */ }
+    /* Headline numbers roll up once the sections compose.
+       Every screen appends inside a promise, so calling this synchronously
+       scanned an EMPTY host and found zero numbers — the count-up was dead
+       app-wide, most visibly on post-session, where the ticker IS the
+       celebration. A screen can now return a promise to say "I'm done";
+       otherwise we retry on the next frames to catch late-resolving data. */
+    var roll = function () {
+      try {
+        if (window.V10UI && window.V10UI.animateCounts) window.V10UI.animateCounts(h);
+      } catch (e2) { /* purely decorative */ }
+    };
+    if (rendered && typeof rendered.then === 'function') rendered.then(roll, roll);
+    else { roll(); setTimeout(roll, 60); setTimeout(roll, 240); }
   }
 
   function bootstrap() {

@@ -1,7 +1,28 @@
-/* app-v10/screens/camera-hud.js
-   CAMERA HUD — opens the real ShotTrackingScreen (camera + YOLO + pose) and
-   skins it with v10 chrome: LIVE COUNT card top-right + parquet mini-court
-   bottom-right. Old debug HUD + stat row are hidden via CSS scope.
+/* app-v10/screens/camera-hud.js — v11
+   CAMERA HUD — opens the real ShotTrackingScreen (camera + YOLO + pose).
+
+   Designed for 20 feet, which is the only distance that matters here: the
+   phone is on a tripod and the user is shooting. The optics are ruthless —
+   at 20ft a legible glyph needs ~214pt of cap height (ISO 9241-303's
+   16-arcmin floor; ~22 arcmin once you account for glare), which is most
+   of the screen. So the HUD is ONE number and nothing else.
+
+   The v10 chrome this replaces — a LIVE COUNT card with an eyebrow, a
+   "SHOTS DETECTED" sub-label and a streak line, plus a parquet mini-court
+   — measured ~3 arcmin at 20ft. Five times below the legibility floor.
+   It spent the entire live UI budget on things the user physically could
+   not see, on a screen they weren't looking at anyway (they're watching
+   the rim, so the phone is in peripheral vision).
+
+   Two structural consequences:
+     · The number is ATTEMPTS, because live mode is counter-only
+       (`__v10SessionMode='counter'`, `made:null`). We cannot compute makes
+       live, so we don't show a makes counter we'd have to fake.
+     · Status is a FULL-SCREEN colour field, not a badge. A corner dot at
+       20ft subtends ~9 arcmin — foveally visible, peripherally absent.
+
+   Audio (lib/audio.js) is not a nicety here. It's the only output that
+   reaches the shooter.
 
    The router's `#camera-hud` host stays empty — the real overlay is a fixed
    fullscreen element on body, not inside #app.
@@ -18,128 +39,27 @@
     if (n) n.style.display = visible ? '' : 'none';
   }
 
-  /* ── Mini half-court (LIVE) ──────────────────────────────────────
-     Accurate NBA proportions in a 500×350 viewBox (1 unit = 0.1 ft).
-       • Half-court width  : 50 ft → x = 0..500
-       • Baseline to shown : ~35 ft → y = 0..350 (covers paint + 3PT arc + buffer)
-       • Rim centre        : (250, 53)
-       • 3PT arc radius    : 237.5 (23.75 ft from rim centre)
-       • Paint             : 16 ft wide × 19 ft deep → x=170..330, y=0..190
-       • Free-throw circle : r=60 at (250, 190)
-       • Corner straight   : 3 ft from sideline, extends to y=140
-     Starts EMPTY — dots are pushed live by the v10:shot DOM event. */
-  var ZONE_CENTERS = {
-    lc:     { x: 15,  y: 70  },
-    rc:     { x: 485, y: 70  },
-    ml:     { x: 90,  y: 100 },
-    mr:     { x: 410, y: 100 },
-    topmid: { x: 250, y: 200 },
-    lw:     { x: 95,  y: 280 },
-    rw:     { x: 405, y: 280 },
-    top:    { x: 250, y: 295 },
-    pnt:    { x: 250, y: 95  }
-  };
+  /* ── THE SESSION HUD ─────────────────────────────────────────────
+     One number. That's the whole screen.
 
-  function miniCourt() {
-    var line = { fill: 'none', stroke: '#F0E6D2', 'stroke-width': '2.5', opacity: '0.95',
-                 'stroke-linejoin': 'round', 'stroke-linecap': 'round' };
-    var soft = { fill: 'none', stroke: '#F0E6D2', 'stroke-width': '1.8', opacity: '0.75' };
+     The optics allow nothing else: at 20ft a legible glyph needs ~214pt
+     of cap height (ISO 9241-303's 16-arcmin floor, ~22 for glare), which
+     is most of the screen. The old HUD spent its entire budget on an
+     eyebrow, a sub-label, a streak line and a mini-court — every one of
+     them invisible from the free-throw line, on a screen the shooter
+     isn't even looking at.
 
-    return svg('svg', {
-      viewBox: '0 0 500 350',
-      preserveAspectRatio: 'xMidYMid meet',
-      style: 'width:100%;height:100%;display:block'
-    }, [
-      // Outer half-court boundary (baseline + sidelines, top-clipped by viewBox)
-      svg('rect', Object.assign({ x: '4', y: '4', width: '492', height: '342' }, line)),
-      // 3PT corner straight lines (3 ft from sideline, baseline to 14 ft)
-      svg('line', Object.assign({ x1: '30', y1: '0', x2: '30', y2: '142' }, line)),
-      svg('line', Object.assign({ x1: '470', y1: '0', x2: '470', y2: '142' }, line)),
-      // 3PT arc — centred at rim (250, 53), radius 237.5, from (30,142) to (470,142)
-      svg('path', Object.assign({
-        d: 'M 30 142 A 237.5 237.5 0 0 0 470 142'
-      }, line)),
-      // Paint (key) rectangle — 16ft × 19ft
-      svg('rect', Object.assign({ x: '170', y: '0', width: '160', height: '190' }, soft)),
-      // Free-throw circle — 6 ft radius at top of paint
-      svg('circle', Object.assign({ cx: '250', cy: '190', r: '60' }, soft)),
-      // Rim — 18 inch diameter (9 unit radius), centred (250, 53)
-      svg('circle', { cx: '250', cy: '53', r: '9', fill: 'none', stroke: '#FF4F1F', 'stroke-width': '3.2' }),
-      // Backboard — 6 ft wide, 4 ft from baseline (y=40)
-      svg('line', { x1: '220', y1: '40', x2: '280', y2: '40', stroke: '#F0E6D2', 'stroke-width': '3' }),
-      // Live shot dots get appended here
-      svg('g', { id: 'v10-mini-dots' })
-    ]);
-  }
-
-  /* Push a shot dot onto the mini-court. Called by the v10:shot listener.
-     Maps zone → ZONE_CENTERS coords, with optional precise feet-on-court
-     coords when the engine provides them. Green = MADE, Orange = MISS. */
-  function pushShotToMiniCourt(detail) {
-    var g = document.getElementById('v10-mini-dots');
-    if (!g) return;
-    var zone = detail && detail.v10Zone;
-    var center = ZONE_CENTERS[zone] || ZONE_CENTERS.top;
-
-    // Prefer precise position if engine supplied it (normalised feet coords).
-    // We fold the player's normalised x into the zone's horizontal "lane" —
-    // keeps the dot anchored to the zone but with a small lateral offset that
-    // hints at where exactly the shooter was standing.
-    var cx = center.x, cy = center.y;
-    if (typeof detail.feetXNorm === 'number') {
-      var lateral = (detail.feetXNorm - 0.5) * 80; // ±40 from zone centre
-      cx = Math.max(20, Math.min(480, center.x + lateral));
-    }
-
-    // Counter mode (live): no verdict — neutral mustard dot marks the zone.
-    var fill = (detail.made === null || detail.made === undefined)
-      ? '#E0A82E'
-      : (detail.made ? '#3D7A53' : '#FF4F1F');
-
-    // Outer ripple ring (animation)
-    var ring = svg('circle', {
-      cx: '' + cx, cy: '' + cy, r: '6', fill: 'none',
-      stroke: fill, 'stroke-width': '2', opacity: '0.85'
-    });
-    ring.style.transformOrigin = cx + 'px ' + cy + 'px';
-    ring.style.animation = 'v10MiniRipple 700ms ease-out 1';
-
-    // Solid dot
-    var dot = svg('circle', {
-      cx: '' + cx, cy: '' + cy, r: '8',
-      fill: fill, stroke: '#FBF5E8', 'stroke-width': '1.5'
-    });
-
-    g.appendChild(ring);
-    g.appendChild(dot);
-
-    // Clean up ring after animation
-    setTimeout(function () { if (ring.parentNode) ring.parentNode.removeChild(ring); }, 800);
-  }
-
-  /* ── LIVE COUNT card (top-right) ─────────────────────────────────
-     Counter mode (M3): live counts ATTEMPTS only — verdicts come from
-     the upload analyzer. Big number = shots detected. */
-  function counterCard() {
-    return h('div', { id: 'v10-cam-counter', class: 'v10-cam-counter' }, [
-      h('div', { class: 'v10-cam-counter__eyebrow', text: 'LIVE COUNT' }),
-      h('div', { class: 'v10-cam-counter__num', id: 'v10-cam-num', text: '0' }),
-      h('div', { class: 'v10-cam-counter__sub', text: 'SHOTS DETECTED' }),
-      h('div', { class: 'v10-cam-counter__streak' }, [
-        h('i', { class: 'ph-bold ph-film-slate' }),
-        h('span', { id: 'v10-cam-streak', text: 'UPLOAD FOR MADE/MISS' })
-      ])
-    ]);
-  }
-
-  /* ── Mini-court chip (bottom-right) ────────────────────────────── */
-  function miniCourtCard() {
-    return h('div', { id: 'v10-cam-mini', class: 'v10-cam-mini' }, [
-      h('div', { class: 'v10-cam-mini__eyebrow' }, [
-        icon('ph-basketball'),
-        h('span', { text: 'ZONES LIVE' })
-      ]),
-      miniCourt()
+     ONE number, and it has to be ATTEMPTS: live mode is counter-only
+     (`__v10SessionMode = 'counter'`, `made: null` below), so we cannot
+     compute makes at all. HomeCourt shows two counters because HomeCourt
+     computes makes live. Copying that would mean shipping a number we
+     can't stand behind, or a "Makes: 0" that's wrong all session. */
+  function hudLayer() {
+    return h('div', { id: 'v11-hud', class: 'v11-hud v11-hud--live' }, [
+      h('div', { class: 'v11-hud__frame' }),
+      h('div', { class: 'v11-hud__num', id: 'v10-cam-num', text: '0' }),
+      h('div', { class: 'v11-hud__lost', id: 'v11-hud-lost', style: { display: 'none' },
+        text: 'Lost the hoop' })
     ]);
   }
 
@@ -155,34 +75,144 @@
   /* ── v10 calibration banner — reads preflight progress from the
        engine's debug payload (window.__lastPreflight) which we wire from
        ShotTrackingScreen.js. ────────────────────────────────────────── */
-  function calibrationBanner() {
-    var rows = [
-      { key: 'hoop',   label: 'HOOP',   icon: 'ph-basketball' },
-      { key: 'player', label: 'PLAYER', icon: 'ph-person' },
-      { key: 'ball',   label: 'BALL',   icon: 'ph-circle' }
-    ];
-    var rowEls = rows.map(function (r) {
-      return h('div', { id: 'v10-cal-row-' + r.key, class: 'v10-cal-row' }, [
-        h('i', { class: 'ph-bold ' + r.icon }),
-        h('span', { class: 'v10-cal-label', text: r.label }),
-        h('span', { class: 'v10-cal-status', text: 'searching' })
-      ]);
-    });
-    return h('div', { id: 'v10-cal-banner', class: 'v10-cal-banner' }, [
-      h('div', { class: 'v10-cal-eyebrow', text: 'GETTING READY' }),
-      h('div', { class: 'v10-cal-title', text: 'CALIBRATING' }),
-      h('div', { class: 'v10-cal-sub', text: 'Aim camera at rim + player' })
-    ].concat(rowEls));
+  /* ── THE WALK-UP GATE ────────────────────────────────────────────
+     Phase 9b hid this banner and stopped gating the COUNT on preflight.
+     That reasoning was right — blocking counting on preflight is noise —
+     but it removed the wrong gate and left the code behind as a corpse.
+
+     The gate belongs on START. A clip recorded with the rim out of frame
+     is unrecoverable: you shoot for twenty minutes, walk back, upload,
+     and get "The hoop was not detected in this video" — a failure caused
+     at record time and discovered far too late to fix. That's THE
+     catastrophic failure mode of a tripod app.
+
+     Rim only. Player and ball recover frame to frame; the rim is static,
+     and if it's outside the crop it's outside for the whole clip.
+     This is read with the phone in your hand, so it uses normal type. */
+  var gateEl = null, rimStreak = 0, gatePassed = false;
+
+  function readPreflight() {
+    try { return window.__lastPreflight || {}; } catch (e) { return {}; }
   }
 
-  function updateCalibration() {
-    // Phase 9b: CALIBRATING banner permanently hidden. Radical mode no
-    // longer gates counting on preflight — the engine records shots as
-    // soon as pose triggers, so a "calibration" modal blocking the view
-    // is just noise. If the banner element exists, force it off; we
-    // don't even reason about pf.ready anymore.
-    var banner = document.getElementById('v10-cal-banner');
-    if (banner) banner.style.display = 'none';
+  function gateRow(key, label, iconName) {
+    return h('div', { id: 'v11-gate-' + key, class: 'v11-gate__row' }, [
+      h('i', { class: 'ph-bold ' + iconName }),
+      h('span', { text: label }),
+      h('span', { class: 'v11-gate__st', id: 'v11-gate-st-' + key, text: 'searching' })
+    ]);
+  }
+
+  function audioToggle(key, label) {
+    var on = window.V11Audio && window.V11Audio.prefs[key];
+    var el = h('div', {
+      class: 'v11-gate__tg' + (on ? ' is-on' : ''),
+      role: 'button', tabindex: '0',
+      onclick: function () {
+        if (!window.V11Audio) return;
+        var next = !window.V11Audio.prefs[key];
+        window.V11Audio.set(key, next);
+        el.classList.toggle('is-on', next);
+        if (next) window.V11Audio.ok();
+      }
+    }, [
+      h('i', { class: 'ph-fill ph-speaker-high' }),
+      h('span', { text: label })
+    ]);
+    return el;
+  }
+
+  function buildGate(onStart) {
+    var startBtn = h('button', {
+      class: 'v11-cta', type: 'button', disabled: 'disabled',
+      style: { opacity: '.45' },
+      onclick: function () {
+        if (!gatePassed) return;
+        if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.say('Recording'); }
+        gateEl.style.display = 'none';
+        onStart();
+      }
+    }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
+
+    gateEl = h('div', { class: 'v11-gate', id: 'v11-gate' }, [
+      h('div', { class: 'v11-gate__eye', text: 'SET UP' }),
+      h('div', { class: 'v11-gate__t', text: 'Get the hoop in frame' }),
+      h('div', { class: 'v11-gate__s',
+        text: 'The rim is the only thing that has to be there. Without it the ' +
+              'whole clip is unreadable — and you would only find that out afterwards.' }),
+      gateRow('hoop', 'Hoop', 'ph-basketball'),
+      h('div', { class: 'v11-gate__toggles' }, [
+        audioToggle('tick', 'Tick'),
+        audioToggle('count', 'Count')
+      ]),
+      startBtn,
+      /* The detector has real failure modes (scan-halfW collapses indoors,
+         night footage, under-hoop angles). A hard block turns a detector
+         miss into a product wall, so there's always a way through — we
+         just flag it so post-session can explain a mystery zero. */
+      h('button', {
+        class: 'v11-cta v11-cta--ghost', type: 'button',
+        onclick: function () {
+          window.__v11RimLockAtRecord = false;
+          if (window.V11Audio) window.V11Audio.arm();
+          gateEl.style.display = 'none';
+          onStart();
+        }
+      }, [h('span', { text: 'Record anyway' })])
+    ]);
+    document.body.appendChild(gateEl);
+    return gateEl;
+  }
+
+  /* Asymmetric hysteresis: fast to trust (3 frames), slow to doubt
+     (1.5s). Prevents strobing on a single dropped frame. */
+  function updateGate() {
+    if (gatePassed) return;
+    var pf = readPreflight();
+    var seen = !!(pf.hoop || pf.rimLocked);
+    rimStreak = seen ? rimStreak + 1 : 0;
+
+    var row = document.getElementById('v11-gate-hoop');
+    var st  = document.getElementById('v11-gate-st-hoop');
+    if (row) row.classList.toggle('is-on', seen);
+    if (st) st.textContent = seen ? 'locked' : 'searching';
+
+    if (rimStreak >= 3) {
+      gatePassed = true;
+      window.__v11RimLockAtRecord = true;
+      var btn = gateEl && gateEl.querySelector('.v11-cta');
+      var t = document.getElementById('v11-gate-cta-t');
+      if (btn) { btn.removeAttribute('disabled'); btn.style.opacity = '1'; }
+      if (t) t.textContent = 'Start shooting';
+      if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.ok(); }
+      try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
+    }
+  }
+
+  /* Rim lost DURING a session — the one message worth interrupting for,
+     and the only visual that survives 20ft is the full-screen wash. */
+  var lostSince = 0, wasLost = false;
+  function updateLive() {
+    var hud = document.getElementById('v11-hud');
+    if (!hud) return;
+    var pf = readPreflight();
+    var seen = !!(pf.hoop || pf.rimLocked);
+    var now = Date.now();
+    if (seen) { lostSince = 0; }
+    else if (!lostSince) { lostSince = now; }
+
+    var lost = !!lostSince && (now - lostSince) > 1500;
+    if (lost !== wasLost) {
+      wasLost = lost;
+      hud.classList.toggle('v11-hud--lost', lost);
+      hud.classList.toggle('v11-hud--live', !lost);
+      var lbl = document.getElementById('v11-hud-lost');
+      if (lbl) lbl.style.display = lost ? 'block' : 'none';
+      if (window.V11Audio) {
+        if (lost) window.V11Audio.fault();      // never toggleable — it's an alarm
+        else window.V11Audio.say('Got it');
+      }
+    }
   }
 
   function startPolling() {
@@ -190,9 +220,9 @@
     pollHandle = setInterval(function () {
       var s = readEngineStats();
       var numEl = document.getElementById('v10-cam-num');
-      if (numEl) numEl.textContent = String(s.att);
-      updateCalibration();
-    }, 500);
+      if (numEl && numEl.textContent !== String(s.att)) numEl.textContent = String(s.att);
+      if (gatePassed) updateLive(); else updateGate();
+    }, 250);
   }
 
   function stopPolling() {
@@ -203,12 +233,13 @@
 
   function mountChrome() {
     if (v10Layer && v10Layer.parentNode) return;
+    rimStreak = 0; gatePassed = false; lostSince = 0; wasLost = false;
     v10Layer = document.createElement('div');
     v10Layer.id = 'v10-cam-layer';
-    v10Layer.appendChild(counterCard());
-    v10Layer.appendChild(miniCourtCard());
-    v10Layer.appendChild(calibrationBanner());
+    v10Layer.appendChild(hudLayer());
     document.body.appendChild(v10Layer);
+    /* The gate sits above the HUD until the rim locks. */
+    buildGate(function () { /* the engine is already running; the gate just lifts */ });
 
     // ── Current-session shot log ────────────────────────────────
     // Post-session reads window.__v10SessionShots to render the recap
@@ -223,7 +254,6 @@
     v10ShotListener = function (ev) {
       if (!ev || !ev.detail) return;
       var detail = Object.assign({}, ev.detail, { made: null });
-      pushShotToMiniCourt(detail);
       // Persist for post-session view
       window.__v10SessionShots.push({
         made:       null,
@@ -232,6 +262,23 @@
         feetYNorm:  detail.feetYNorm,
         ts:         detail.ts || Date.now()
       });
+
+      /* Shot registered. The tick is immediate — it's a receipt, not
+         feedback, and past ~250ms it stops binding to the shot and starts
+         reading as a malfunction. The spoken count lags deliberately. */
+      if (window.V11Audio) {
+        window.V11Audio.tick();
+        window.V11Audio.count(window.__v10SessionShots.length);
+      }
+      try { if (navigator.vibrate) navigator.vibrate(18); } catch (e) {}
+
+      /* A ~325pt numeral pulsing 12% is a large-area motion event — the
+         only kind that reads at 20ft, in peripheral vision. */
+      var numEl = document.getElementById('v10-cam-num');
+      if (numEl) {
+        numEl.classList.remove('is-pop'); void numEl.offsetWidth;
+        numEl.classList.add('is-pop');
+      }
     };
     document.body.addEventListener('v10:shot', v10ShotListener);
   }
@@ -239,6 +286,8 @@
   function unmountChrome() {
     if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
     v10Layer = null;
+    if (gateEl && gateEl.parentNode) gateEl.parentNode.removeChild(gateEl);
+    gateEl = null;
     if (v10ShotListener) {
       document.body.removeEventListener('v10:shot', v10ShotListener);
       v10ShotListener = null;
@@ -500,12 +549,22 @@
       // Post-session renders ONLY window.__v10SessionShots — populate it
       // from the offline results exactly like the real-time listener does.
       window.__v10SessionMode = 'verdict';   // upload = full made/miss recap
-      window.__v10SessionShots = (res.shots || []).map(function (s) {
+      window.__v10SessionShots = (res.shots || []).map(function (s, i) {
         return {
           made:      s.result === 'made',
           v10Zone:   s.v10Zone || 'top',
           feetXNorm: s.shotX,
-          feetYNorm: s.shotY
+          feetYNorm: s.shotY,
+          /* `why` was computed and thrown away. It's the uncertainty flag
+             we already pay for: classifyRange only returns 'made' on
+             POSITIVE evidence (ring-cross / inside-net / dwell), and
+             'missed' is the fallthrough — 'no through evidence'. So a
+             miss with that reason isn't "I saw it miss", it's "I never
+             saw it at all", which is the shot most likely to be wrong and
+             worth showing the user. No new model, no calibration. */
+          why:       s.why || null,
+          videoT:    s.__videoT,
+          i:         i
         };
       });
       return saveOfflineSession(res).then(function () {

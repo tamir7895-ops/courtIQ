@@ -1,237 +1,180 @@
 /* app-v10/screens/home.js
-   HOME tab — bento, shooting hero, last-week strip, weekly challenges,
-   drill-library link, coach pin, primary CTA.
+   HOME — v12, built row-for-row from the user's Paint sketch.
 
-   M4 rule: every number is REAL (merged remote+local sessions) or the
-   element renders an honest empty state. No fixtures, no demo history.
+   One viewport, no scrolling. Six rows:
+     1  Court IQ (compact number + tier) · avatar
+     2  four drill tiles, each a real half-court diagram
+     3  the coach line (scout speech bubble)
+     4  weekly challenge + prize star
+     5  DRILL LIBRARY · START SESSION side by side
+     6  bottom nav (lib/nav.js)
+
+   M4 rule unchanged: every number is REAL or the element renders an
+   honest empty state. No fixtures.
    ============================================================ */
 (function () {
   'use strict';
-  var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
+  var h = window.V10UI.h, V12 = window.V12;
 
-  function buildHero(stats, ctx) {
-    var att = stats.attempted || 0;
+  /* ── Row 1: Court IQ + avatar ───────────────────────────────── */
+  function iqCard(iq, ctx) {
+    var kids = [];
+    var main = h('div', { style: { minWidth: '0' } });
+    main.appendChild(h('div', { class: 'd-label h12-iq__lbl', text: 'COURT IQ' }));
 
-    // Nothing today yet — invite, don't fake.
-    if (!att) {
-      return h('div', { class: 'v10-hero', onclick: function () { ctx.go('camera-hud'); }, style: { cursor: 'pointer' } }, [
-        h('div', { class: 'v10-hero__main' }, [
-          h('div', { class: 'v10-hero__eyebrow' }, [
-            icon('ph-crosshair-simple'),
-            h('span', { text: 'SHOOTING · TODAY' })
-          ]),
-          h('div', { class: 'v10-hero__num' }, [
-            document.createTextNode('—')
-          ]),
-          h('div', { class: 'v10-hero__sub', text: 'No shots yet today — the court is waiting.' })
-        ]),
-        h('div', { class: 'v10-hero__aside' }, [
-          h('div', { class: 'v10-hero__aside-lbl', text: 'START' }),
-          h('div', { class: 'v10-hero__aside-num' }, [h('i', { class: 'ph-bold ph-play-circle' })])
-        ])
-      ]);
+    if (!iq) {
+      main.appendChild(h('div', { class: 'd-num h12-iq__num h12-iq__num--empty', text: '—' }));
+      main.appendChild(h('div', { class: 'h12-iq__tier', text: 'UNRATED' }));
+    } else {
+      var num = [document.createTextNode(String(iq.score))];
+      if (iq.delta != null && iq.delta !== 0) {
+        var tone = iq.delta > 0 ? 'up' : (iq.decayed ? 'flat' : 'down');
+        num.push(h('span', {
+          class: 'h12-iq__delta h12-iq__delta--' + tone,
+          text: (iq.delta > 0 ? '+' : '') + iq.delta,
+          title: iq.decayed ? 'Sessions ageing out of the 30-day window'
+                            : 'Change vs 7 days ago'
+        }));
+      }
+      main.appendChild(h('div', { class: 'd-num h12-iq__num' }, num));
+      main.appendChild(h('div', { class: 'h12-iq__tier', text: iq.tier }));
     }
+    kids.push(main);
 
-    // Counter-only day: attempts are real, accuracy honestly unknown.
-    if (stats.shootingPct == null) {
-      return h('div', { class: 'v10-hero' }, [
-        h('div', { class: 'v10-hero__main' }, [
-          h('div', { class: 'v10-hero__eyebrow' }, [
-            icon('ph-crosshair-simple'),
-            h('span', { text: 'SHOOTING · TODAY' })
-          ]),
-          h('div', { class: 'v10-hero__num' }, [
-            document.createTextNode(String(att)),
-            h('span', { class: 'v10-hero__num-unit', text: ' shots' })
-          ]),
-          h('div', { class: 'v10-hero__sub', text: 'Counted live — upload a video for made/miss.' })
-        ]),
-        h('div', { class: 'v10-hero__aside' }, [
-          h('div', { class: 'v10-hero__aside-lbl', text: '3PT' }),
-          h('div', { class: 'v10-hero__aside-num', text: '—' })
-        ])
-      ]);
-    }
+    return V12.card({
+      class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
+      onClick: function () { ctx.go('track'); },
+      label: 'Court IQ — open tracking'
+    }, kids);
+  }
 
-    return h('div', { class: 'v10-hero' }, [
-      h('div', { class: 'v10-hero__main' }, [
-        h('div', { class: 'v10-hero__eyebrow' }, [
-          icon('ph-crosshair-simple'),
-          h('span', { text: 'SHOOTING · TODAY' })
-        ]),
-        h('div', { class: 'v10-hero__num' }, [
-          document.createTextNode(String(stats.shootingPct)),
-          h('span', { class: 'v10-hero__num-unit', text: '%' })
-        ]),
-        h('div', { class: 'v10-hero__sub', text: stats.made + ' of ' + stats.verdictAtt + ' made today' })
-      ]),
-      h('div', { class: 'v10-hero__aside' }, [
-        h('div', { class: 'v10-hero__aside-lbl', text: '3PT' }),
-        h('div', { class: 'v10-hero__aside-num', text: stats.threePt != null ? stats.threePt + '%' : '—' })
+  function avatarCard(prof, ctx) {
+    var img = h('div', {
+      class: 'h12-av__img',
+      text: prof.avatarUrl ? '' : (prof.initial || 'R')
+    });
+    if (prof.avatarUrl) img.style.backgroundImage = 'url(' + prof.avatarUrl + ')';
+    return V12.card({
+      class: 'h12-av',
+      onClick: function () { ctx.go('me'); },
+      label: 'Profile'
+    }, [
+      h('div', { style: { textAlign: 'center' } }, [
+        img,
+        h('div', { class: 'h12-av__lv', text: 'LV ' + (prof.level || 1) })
       ])
     ]);
   }
 
-  /* ── LAST-WEEK STRIP — real per-day aggregates ─────────── */
-  function buildWeekStrip(ctx, week) {
-    var LETTERS = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-    var days = (week && week.days) || {};
-    var now = new Date();
-    var cells = [];
-    for (var i = 6; i >= 0; i--) {
-      var d = new Date(now.getTime() - i * 86400000);
-      var key = d.toISOString().slice(0, 10);
-      var agg = days[key];
-      var isToday = i === 0;
-      (function (agg, isToday) {
-        var hasData = agg && agg.attempted > 0;
-        var val = '—';
-        var cls = '';
-        if (hasData) {
-          if (agg.shootingPct != null) {
-            val = agg.shootingPct + '%';
-            cls = agg.shootingPct >= 60 ? ' is-hot' : ' is-cold';
-          } else {
-            val = agg.attempted + '•';   // counter-only day: volume, no verdicts
-            cls = ' is-cold';
-          }
-        }
-        if (isToday) cls = ' is-today';
-        cells.push(h('div', {
-          class: 'v10-week__cell' + cls,
-          onclick: function () { ctx.go(hasData ? 'track' : 'camera-hud'); }
+  /* ── Row 2: drill tiles with court diagrams ─────────────────── */
+  function drillTiles(drills, ctx) {
+    var wrap = h('div', { class: 'h12-drills' });
+    var tints = ['blue', 'orange', 'green', 'purple'];
+    for (var i = 0; i < 4; i++) {
+      (function (i) {
+        var d = drills[i];
+        var open = function () { ctx.go('drill-library'); };
+        wrap.appendChild(V12.card({
+          class: 'h12-drill', press: true, onClick: open,
+          label: d ? d.name : 'Drill library'
         }, [
-          h('div', { class: 'v10-week__day', text: LETTERS[d.getDay()] }),
-          h('div', { class: 'v10-week__num', text: d.getDate() }),
-          h('div', { class: 'v10-week__val', text: isToday && !hasData ? '•' : val })
+          V12.courtThumb(d ? d.focus : null, i, { label: d ? d.name : 'Drill' }),
+          h('div', { class: 'h12-drill__n', text: d ? d.name : 'More drills' })
         ]));
-      })(agg, isToday);
+      })(i);
     }
-    return h('div', { class: 'v10-week' }, cells);
+    return wrap;
   }
 
-  /* ── WEEKLY CHALLENGE CARD — progress from real week data ── */
-  function challengeCard(c, ctx) {
-    var fillPct = Math.max(4, Math.min(100, Math.round(c.cur * 100 / c.goal)));
-    return h('div', {
-      class: 'v10-challenge v10-challenge--' + c.accent,
-      onclick: function () { ctx.go(c.go || 'train'); }
+  /* ── Row 3: the coach line ──────────────────────────────────── */
+  function coachRow(coach, ctx) {
+    var txt;
+    if (coach && coach.verdict) {
+      txt = h('div', { class: 'h12-coach__txt' }, [
+        h('strong', { text: 'Coach: ' }),
+        document.createTextNode(coach.verdict)
+      ]);
+    } else {
+      txt = h('div', { class: 'h12-coach__txt' }, [
+        h('strong', { text: 'Coach: ' }),
+        document.createTextNode('Upload a session video and I start talking — zone by zone.')
+      ]);
+    }
+    return V12.card({
+      class: 'h12-coach',
+      onClick: function () { ctx.go('coach'); },
+      label: 'Open coach'
     }, [
-      h('div', { class: 'v10-challenge__badge' }, [
-        h('i', { class: 'ph-bold ' + c.icon }),
-        h('div', { class: 'v10-challenge__badge-no', text: c.no })
-      ]),
-      h('div', { class: 'v10-challenge__main' }, [
-        h('div', { class: 'v10-challenge__title', text: c.title }),
-        h('div', { class: 'v10-challenge__sub', text: c.sub }),
-        h('div', { class: 'v10-challenge__bar' }, [
-          h('div', { class: 'v10-challenge__fill', style: { width: fillPct + '%' } })
+      h('div', { class: 'h12-coach__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
+      txt,
+      h('i', { class: 'ph-bold ph-caret-right h12-coach__chev' })
+    ]);
+  }
+
+  /* ── Row 4: weekly challenge + prize ────────────────────────── */
+  function challengeRow(week, ctx) {
+    var cur = Math.min(week.attempts || 0, 100), goal = 100;
+    var pct = Math.max(4, Math.min(100, Math.round(cur * 100 / goal)));
+    var left = Math.max(0, goal - cur);
+    return V12.card({
+      tint: 'green', class: 'h12-chal',
+      onClick: function () { ctx.go('social'); },
+      label: 'Weekly challenge'
+    }, [
+      h('div', { class: 'h12-chal__main' }, [
+        h('div', { class: 'h12-chal__t', text: 'WEEKLY CHALLENGE' }),
+        h('div', { class: 'h12-chal__s', text: 'Put up 100 shots this week' }),
+        h('div', { class: 'h12-chal__bar' }, [
+          h('div', { class: 'h12-chal__fill', style: { width: pct + '%' } })
         ]),
-        h('div', { class: 'v10-challenge__meta' }, [
-          h('span', { class: 'v10-challenge__count', text: c.cur + ' / ' + c.goal + ' ' + c.unit }),
-          h('span', { class: 'v10-challenge__xp' }, [
-            icon('ph-lightning'),
-            h('span', { text: '+' + c.xp + ' XP' })
-          ])
+        h('div', { class: 'h12-chal__meta' }, [
+          h('span', { text: cur + ' / ' + goal }),
+          h('span', { text: left ? left + ' to go' : 'Done! Claim it' })
         ])
-      ])
+      ]),
+      h('div', { class: 'h12-chal__star' }, [h('i', { class: 'ph-fill ph-star' })])
+    ]);
+  }
+
+  /* ── Row 5: the two doors ───────────────────────────────────── */
+  function doors(ctx) {
+    return h('div', { class: 'h12-doors' }, [
+      V12.btn({
+        label: 'Drill library', icon: 'ph-barbell', variant: 'ghost',
+        onClick: function () { ctx.go('drill-library'); }
+      }),
+      V12.btn({
+        label: 'Start session', icon: 'ph-play-circle',
+        onClick: function () { ctx.go('camera-hud'); }
+      })
     ]);
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx  = args.ctx;
+    var host = args.host, ctx = args.ctx;
 
-    Promise.all([
-      ctx.data.getTodayStats(),
-      ctx.data.getCoachVerdict(),
+    return Promise.all([
       ctx.data.getProfile(),
-      ctx.data.getWeekStats()
-    ]).then(function (results) {
-      var stats = results[0] || { attempted: 0 };
-      var coach = results[1];   // null when there's no real evidence yet
-      var prof  = results[2] || {};
-      var week  = results[3] || { sessions: 0, goal: 5, days: {}, threes: 0, attempts: 0 };
+      ctx.data.getWeekStats(),
+      ctx.data.getCoachVerdict(),
+      ctx.data.getDrills(4),
+      window.V10CourtIQ.get()
+    ]).then(function (r) {
+      var prof   = r[0] || {};
+      var week   = r[1] || { attempts: 0, sessions: 0, goal: 5, days: {} };
+      var coach  = r[2];
+      var drills = r[3] || [];
+      var iq     = r[4];
 
-      var xpVal = prof.xp || 0;
-      var xpDisplay = xpVal >= 1000 ? (xpVal / 1000).toFixed(1) + 'K' : String(xpVal);
-      var streakVal = prof.streak || 0;
-
-      host.appendChild(ctx.ui.headerPill({ profile: prof }));
-
-      // 4-bento — STREAK / LEVEL / XP / WEEK (all real)
-      host.appendChild(ctx.ui.bento([
-        { variant: 'orange',  icon: 'ph-fire',         value: streakVal,  label: 'STREAK',
-          iconExtra: streakVal >= 3 ? 'v10-flicker' : '' },
-        { variant: 'ink',     icon: 'ph-shield-star',  value: prof.level || 1,  label: 'LEVEL' },
-        {                     icon: 'ph-lightning',    value: xpDisplay,        label: 'XP', mono: true },
-        { variant: 'sage',    icon: 'ph-flag',         value: week.sessions + '/' + week.goal, label: 'WEEK' }
-      ]));
-
-      // Hero + the last-week strip docked right under it
-      host.appendChild(buildHero(stats, ctx));
-      host.appendChild(buildWeekStrip(ctx, week));
-
-      // THIS WEEK CHALLENGE — progress from the real week aggregates
-      host.appendChild(ctx.ui.ribbon({
-        icon: 'ph-trophy',
-        title: 'THIS WEEK CHALLENGE',
-        meta: 'ENDS SUN'
-      }));
-      host.appendChild(challengeCard({
-        no: '01', accent: 'orange', icon: 'ph-basketball',
-        title: 'VOLUME WEEK',
-        sub: 'Put up 100 shots this week',
-        cur: Math.min(week.attempts || 0, 100), goal: 100, unit: 'SHOTS',
-        xp: 250, go: 'camera-hud'
-      }, ctx));
-      host.appendChild(challengeCard({
-        no: '02', accent: 'sage', icon: 'ph-fire',
-        title: 'SHOW UP',
-        sub: 'Log ' + week.goal + ' sessions this week',
-        cur: Math.min(week.sessions || 0, week.goal), goal: week.goal, unit: 'SESSIONS',
-        xp: 180, go: 'camera-hud'
-      }, ctx));
-
-      // Drill library link — closes the challenge block
-      host.appendChild(h('div', {
-        class: 'v10-reels-link',
-        onclick: function () { ctx.go('drill-library'); }
-      }, [
-        icon('ph-barbell'),
-        h('span', { text: 'DRILL LIBRARY' }),
-        h('i', { class: 'ph-bold ph-arrow-right v10-reels-link__arrow' })
-      ]));
-
-      // Coach pin — only when there's REAL zone evidence to talk about
-      if (coach && coach.verdict) {
-        host.appendChild(ctx.ui.pinCard({
-          lg: true,
-          tab: 'COACH PINNED',
-          body: coach.verdict,
-          highlight: coach.highlight,
-          projection: coach.projection || '',
-          sig: 'AI SCOUT'
-        }));
-      } else {
-        host.appendChild(ctx.ui.pinCard({
-          tab: 'COACH PINNED',
-          body: 'Upload a session video and the scout starts talking — zone-by-zone.',
-          highlight: 'the scout starts talking',
-          projection: '',
-          sig: 'AI SCOUT'
-        }));
-      }
-
-      // Flex spacer pushes CTA to bottom when content is short
-      host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
-
-      // Primary CTA → camera-hud
-      host.appendChild(ctx.ui.cta({
-        icon: 'ph-play-circle',
-        label: 'START SHOOTING SESSION',
-        onClick: function () { ctx.go('camera-hud'); }
-      }));
+      var top = h('div', { class: 'h12-top' }, [iqCard(iq, ctx), avatarCard(prof, ctx)]);
+      host.appendChild(top);
+      host.appendChild(drillTiles(drills, ctx));
+      host.appendChild(coachRow(coach, ctx));
+      host.appendChild(challengeRow(week, ctx));
+      /* flex spacer keeps the doors near the nav on tall screens
+         instead of stranding them mid-air */
+      host.appendChild(h('div', { class: 'h12-flex' }));
+      host.appendChild(doors(ctx));
     });
   }
 

@@ -1,305 +1,239 @@
-/* app-v10/screens/coach.js
-   COACH tab — Verdict / Insights / Briefings sub-tabs.
-   Default "Verdict": ink hero, 4-bento (trend/hot/cold/sessions),
-   THIS WEEK ribbon (taps -> briefings), 2x2 drill grid (taps -> drill-library),
-   deeper-look pin, full-briefing CTA (taps -> briefings sub-tab).
+/* app-v10/screens/coach.js — v12
+   COACH — the sketch's four rooms:
+
+     COACH NAME/AVATAR   TRAINING CALENDAR
+     CHAT WITH COACH     (calendar spans both rows)
+     ──────── YOUR TEAM ────────
+
+   The chat is a GUIDED conversation: the scout's opening lines are the
+   real derived insights, and the user answers with quick-reply chips
+   that produce more real answers (heat-map summary, plan, calendar).
+   There is no free-text box because there is no model behind it — a
+   text input that pretends to listen is a lie in UI form.
+
+   Voice rule unchanged: every string is a sentence a coach would say
+   out loud. No exclamation marks. Silence is a valid output.
    ============================================================ */
 (function () {
   'use strict';
-  var h = window.V10UI.h, icon = window.V10UI.icon;
+  var h = window.V10UI.h;
+  var C = window.V11Court, V12 = window.V12;
 
-  var SUBS = [
-    { id: 'verdict',    label: 'Verdict' },
-    { id: 'insights',   label: 'Insights' },
-    { id: 'briefings',  label: 'Briefings' }
-  ];
+  function totals(zones) {
+    var att = 0, made = 0, vatt = 0;
+    Object.keys(zones || {}).forEach(function (k) {
+      var z = zones[k]; if (!z) return;
+      att += z.att || 0; made += z.made || 0; vatt += z.vatt || 0;
+    });
+    return { att: att, made: made, vatt: vatt };
+  }
 
-  // Fallback drill set if ctx.data.getDrills() yields nothing.
-  var FALLBACK_DRILLS = [
-    { num: 'P1', title: 'Left-Wing Form',  meta: '50 REPS · 12 MIN', icon: 'ph-crosshair-simple', tone: 'orange'   },
-    { num: 'P2', title: 'Catch & Release', meta: '5×5 · 15 MIN',     icon: 'ph-lightning',        tone: 'sage'     },
-    { num: 'P3', title: 'Free Throw Set',  meta: '50 REPS · 10 MIN', icon: 'ph-target',           tone: 'mustard'  },
-    { num: 'P4', title: 'Conditioning',    meta: '10 MIN FINISHER',  icon: 'ph-barbell',          tone: 'ink-fill' }
-  ];
-
-  // Map an accent string from data layer to v10 tile tone.
-  var TONE_BY_ACCENT = { orange: 'orange', sage: 'sage', mustard: 'mustard' };
-  var ICON_BY_TONE   = {
-    orange:    'ph-crosshair-simple',
-    sage:      'ph-lightning',
-    mustard:   'ph-target',
-    'ink-fill':'ph-barbell'
-  };
-
-  function drillsFromData(list) {
-    if (!list || !list.length) return FALLBACK_DRILLS;
-    var tones = ['orange', 'sage', 'mustard', 'ink-fill'];
-    return list.slice(0, 4).map(function (d, i) {
-      var tone = TONE_BY_ACCENT[d.accent] || tones[i % tones.length];
-      return {
-        id:    d.id,
-        num:   'P' + (i + 1),
-        title: (d.name || 'Drill').toUpperCase(),
-        meta:  ((d.reps || 30) + ' REPS · ' + (d.mins || 6) + ' MIN').toUpperCase(),
-        icon:  ICON_BY_TONE[tone] || 'ph-crosshair-simple',
-        tone:  tone
-      };
+  function ranked(zones, mean) {
+    return Object.keys(zones || {}).filter(function (k) {
+      return C.state(zones[k]) === 'rated';
+    }).sort(function (a, b) {
+      return C.shrunkAcc(zones[b], mean) - C.shrunkAcc(zones[a], mean);
     });
   }
 
-  function chips(active, onPick) {
-    var row = h('div', { class: 'v10-chips' });
-    SUBS.forEach(function (s) {
-      var cls = 'v10-chip' + (s.id === active ? ' is-active' : '');
-      row.appendChild(h('button', {
-        class: cls,
-        onClick: function () { onPick(s.id); }
-      }, [s.label]));
-    });
-    return row;
-  }
-
-  function heroVerdict(coach, week) {
-    var eyebrowText = 'TODAY VERDICT · ' + ((week && week.sessions) || 0) + ' SESSIONS';
-    if (!coach || !coach.verdict) {
-      return h('div', { class: 'v10-hero v10-hero--ink' }, [
-        h('div', { class: 'v10-hero__main' }, [
-          h('div', { class: 'v10-hero__eyebrow' }, [
-            icon('ph-brain'),
-            h('span', { text: eyebrowText })
-          ]),
-          h('div', { class: 'v10-hero__headline', text: 'NO VERDICT YET.' }),
-          h('div', { class: 'v10-hero__sub', text: 'Upload a scored session — the coach only talks about shots that really happened.' })
-        ])
-      ]);
-    }
-    return h('div', { class: 'v10-hero v10-hero--ink' }, [
-      h('div', { class: 'v10-hero__main' }, [
-        h('div', { class: 'v10-hero__eyebrow' }, [
-          icon('ph-brain'),
-          h('span', { text: eyebrowText })
-        ]),
-        h('div', { class: 'v10-hero__headline', text: coach.highlight.toUpperCase() }),
-        h('div', { class: 'v10-hero__sub', text: coach.verdict })
-      ])
-    ]);
-  }
-
-  // Best / worst zones with real verdict evidence (≥4 scored shots).
-  function extremeZones(zones) {
-    var best = null, worst = null;
-    if (zones) {
-      Object.keys(zones).forEach(function (k) {
-        var z = zones[k];
-        if (!z || z.vatt < 4) return;
-        var pct = z.made / z.vatt;
-        if (!best || pct > best.pct) best = { pct: pct, label: z.label };
-        if (!worst || pct < worst.pct) worst = { pct: pct, label: z.label };
-      });
-    }
-    return { best: best, worst: worst };
-  }
-
-  function bentoRow(today, week, profile, zones) {
-    var ex = extremeZones(zones);
-    var streak = (profile && profile.streak) || 0;
-    var hotCell = {
-      variant: 'orange', icon: 'ph-fire',
-      value: ex.best ? ex.best.label.toUpperCase().slice(0, 8) : '—',
-      label: 'HOT'
-    };
-    if (streak >= 3) hotCell.iconExtra = 'v10-flicker';
-    return window.V10UI.bento([
-      { variant: 'sage',    icon: 'ph-basketball',       value: (week && week.attempts) || 0, label: 'SHOTS · WK' },
-      hotCell,
-      { variant: 'mustard', icon: 'ph-crosshair-simple', value: ex.worst ? ex.worst.label.toUpperCase().slice(0, 8) : '—', label: 'COLD' },
-      { variant: 'ink',     icon: 'ph-flag',             value: (week && week.sessions) || 0, label: 'SESSIONS' }
-    ]);
-  }
-
-  function drillTile(d, ctx) {
-    var cls = 'v10-tile' + (d.tone ? ' v10-tile--' + d.tone : '');
-    var iconCls = 'ph-bold ' + d.icon + ' v10-tile__icon';
-    if (d.tone && d.tone !== 'ink-fill') iconCls += ' v10-tile__icon--' + d.tone;
-    return h('div', {
-      class: cls,
-      role: 'button',
-      tabindex: '0',
-      onclick: function () { ctx.go('drill-library'); }
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('i', { class: iconCls }),
-        h('div', { class: 'v10-tile__num', text: d.num })
-      ]),
-      h('div', { class: 'v10-tile__title', text: d.title }),
-      h('div', { class: 'v10-tile__meta',  text: d.meta })
-    ]);
-  }
-
-  function drillGrid(drills, ctx) {
-    var grid = h('div', { class: 'v10-grid' });
-    drills.forEach(function (d) { grid.appendChild(drillTile(d, ctx)); });
-    return grid;
-  }
-
-  function spacer() {
-    return h('div', { style: { flex: '1 1 auto', minHeight: '0' } });
-  }
-
-  function renderVerdict(host, ctx, bundle, switchSub) {
-    host.appendChild(heroVerdict(bundle.coach, bundle.week));
-    host.appendChild(bentoRow(bundle.today, bundle.week, bundle.profile, bundle.zones));
-
-    // Ribbon is tappable: jumps to the Briefings sub-tab.
-    var thisWeek = window.V10UI.ribbon({
-      icon: 'ph-flag',
-      title: 'THIS WEEK',
-      meta: 'BRIEFING'
-    });
-    thisWeek.style.cursor = 'pointer';
-    thisWeek.setAttribute('role', 'button');
-    thisWeek.addEventListener('click', function () { switchSub('briefings'); });
-    host.appendChild(thisWeek);
-
-    host.appendChild(drillGrid(bundle.drills, ctx));
-
-    if (bundle.coach && bundle.coach.verdict) {
-      host.appendChild(window.V10UI.pinCard({
-        tab:  'DEEPER LOOK',
-        body: bundle.coach.verdict,
-        highlight: bundle.coach.highlight,
-        sig:  'AI SCOUT'
-      }));
-    }
-
-    host.appendChild(spacer());
-
-    host.appendChild(window.V10UI.cta({
-      icon: 'ph-arrow-right',
-      label: 'READ FULL BRIEFING',
-      onClick: function () { switchSub('briefings'); }
-    }));
-  }
-
-  function renderInsights(host, ctx, switchSub) {
-    host.appendChild(window.V10UI.ribbon({
-      icon: 'ph-brain',
-      title: 'INSIGHTS',
-      meta: 'COACH FEED'
-    }));
-    var msg = h('div', { class: 'v10-pin' }, [
-      h('div', { class: 'v10-pin__tab' }, [icon('ph-push-pin-simple'), h('span', { text: 'NO NEW INSIGHTS' })]),
-      h('div', { class: 'v10-pin__body', text: 'Your weekly briefing covers everything new. Head back to Verdict for today’s call.' })
-    ]);
-    host.appendChild(msg);
-
-    host.appendChild(spacer());
-
-    host.appendChild(window.V10UI.cta({
-      icon: 'ph-arrow-left',
-      label: 'BACK TO VERDICT',
-      onClick: function () { switchSub('verdict'); }
-    }));
-  }
-
-  // Real per-week rollups from the merged session store.
-  function renderBriefings(host, ctx, switchSub) {
-    host.appendChild(window.V10UI.ribbon({
-      icon: 'ph-flag',
-      title: 'BRIEFINGS',
-      meta: 'PAST WEEKS'
-    }));
-
-    var listWrap = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px' } });
-    host.appendChild(listWrap);
-
-    ctx.data.getSessions(100).then(function (rows) {
-      var weeks = {};   // monday-ISO → { att, made, vatt, n, t }
-      (rows || []).forEach(function (s) {
-        var d = new Date(s.session_date || s.created_at || 0);
-        if (isNaN(d)) return;
-        var monday = new Date(d);
-        monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
-        var key = monday.toISOString().slice(0, 10);
-        var w = (weeks[key] = weeks[key] || { att: 0, made: 0, vatt: 0, n: 0, t: monday });
-        w.n += 1;
-        w.att += s.total_attempts || 0;
-        if (s.total_made != null) { w.vatt += s.total_attempts || 0; w.made += s.total_made || 0; }
-      });
-      var keys = Object.keys(weeks).sort().reverse().slice(0, 4);
-      if (!keys.length) {
-        listWrap.appendChild(h('div', { class: 'v10-row', style: { boxShadow: '2px 2px 0 var(--ink)' } }, [
-          h('div', { class: 'v10-row__num' }, [icon('ph-flag')]),
-          h('div', { class: 'v10-row__main' }, [
-            h('div', { class: 'v10-row__title', text: 'NO BRIEFINGS YET' }),
-            h('div', { class: 'v10-row__sub', text: 'Weekly rollups appear after your first sessions.' })
-          ])
-        ]));
-        return;
+  /* ── the scout's real lines, computed once ────────────────────*/
+  function scoutLines(data) {
+    var t = data.t, rank = data.rank, zones = data.zones, coach = data.coach;
+    var lines = [];
+    if (!t.att) {
+      lines.push('Nothing on film yet. Upload a session video and I start talking — zone by zone.');
+    } else if (!t.vatt) {
+      lines.push('Your shots were counted but not scored. Upload a session video and the read starts.');
+    } else {
+      lines.push(t.vatt + ' scored shots on film in the last 30 days.');
+      if (coach && coach.verdict) lines.push(coach.verdict);
+      if (rank.length >= 2) {
+        var hot = rank[0], cold = rank[rank.length - 1];
+        var hz = zones[hot], cz = zones[cold];
+        lines.push('Best zone: ' + C.LABEL[hot] + ' at ' +
+          Math.round(hz.made / hz.vatt * 100) + '%. Weakest: ' + C.LABEL[cold] +
+          ' at ' + Math.round(cz.made / cz.vatt * 100) + '%.');
       }
-      keys.forEach(function (k, i) {
-        var w = weeks[k];
-        var right = w.vatt ? Math.round(w.made * 100 / w.vatt) + '%' : String(w.att);
-        var label = w.t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }).toUpperCase();
-        listWrap.appendChild(h('div', { class: 'v10-row' }, [
-          h('div', { class: 'v10-row__num', text: 'W' + (keys.length - i) }),
-          h('div', { class: 'v10-row__main' }, [
-            h('div', { class: 'v10-row__title', text: 'WEEK OF ' + label }),
-            h('div', { class: 'v10-row__sub',   text: w.n + ' sessions · ' + w.att + ' shots' })
-          ]),
-          h('div', { class: 'v10-row__right', text: right })
-        ]));
+    }
+    return lines;
+  }
+
+  /* ── chat view (guided) ───────────────────────────────────────*/
+  function chatView(host, ctx, data, back) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+
+    var thread = h('div', { class: 'c12-thread' });
+    var chips = h('div', { class: 'c12-chips' });
+
+    function coachSay(text) {
+      var b = h('div', { class: 'c12-msg c12-msg--coach' }, [
+        h('div', { class: 'c12-msg__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
+        h('div', { class: 'c12-msg__bubble', text: text })
+      ]);
+      thread.appendChild(b);
+      thread.scrollTop = thread.scrollHeight;
+    }
+    function userSay(text) {
+      thread.appendChild(h('div', { class: 'c12-msg c12-msg--user' }, [
+        h('div', { class: 'c12-msg__bubble c12-msg__bubble--user', text: text })
+      ]));
+      thread.scrollTop = thread.scrollHeight;
+    }
+
+    var ASKS = [
+      { q: 'What should I work on?', a: function () {
+          var rank = data.rank;
+          if (!rank.length) return ['Not enough scored shots from any one spot. Give me ' +
+            C.MIN_VERDICTS + ' from a zone and I rate it.'];
+          var cold = rank[rank.length - 1];
+          var cz = data.zones[cold];
+          return ['Spend 30 reps a session at the ' + C.LABEL[cold].toLowerCase() +
+            '. It sits at ' + cz.made + ' of ' + cz.vatt + '. The plan screen has a block for it.'];
+        } },
+      { q: 'How does my week look?', a: function () {
+          var w = data.week || {};
+          if (!w.sessions) return ['No sessions this week yet. One tonight changes that.'];
+          return [w.sessions + ' session' + (w.sessions === 1 ? '' : 's') + ' this week, ' +
+            (w.attempts || 0) + ' shots up. Goal is ' + (w.goal || 5) + ' sessions.'];
+        } },
+      { q: 'Open my heat map', go: 'track' },
+      { q: 'Build my plan', go: 'train' }
+    ];
+
+    function fillChips() {
+      while (chips.firstChild) chips.removeChild(chips.firstChild);
+      ASKS.forEach(function (a) {
+        chips.appendChild(h('button', {
+          class: 'c12-chip', type: 'button',
+          onclick: function () {
+            userSay(a.q);
+            if (a.go) { setTimeout(function () { ctx.go(a.go); }, 350); return; }
+            setTimeout(function () { a.a().forEach(coachSay); }, 420);
+          }
+        }, [h('span', { text: a.q })]));
       });
+    }
+
+    host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+      h('button', {
+        class: 'c12-back', type: 'button', 'aria-label': 'Back',
+        onclick: back
+      }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+      h('div', {}, [
+        h('div', { class: 'c12-chat-hd__t', text: 'The Scout' }),
+        h('div', { class: 'c12-chat-hd__s', text: 'Only talks about shots that really happened' })
+      ])
+    ]));
+    host.appendChild(thread);
+    host.appendChild(chips);
+
+    scoutLines(data).forEach(coachSay);
+    fillChips();
+  }
+
+  /* ── training calendar — last 4 weeks, real session days ─────*/
+  function calendar(sessions) {
+    var byDay = {};
+    (sessions || []).forEach(function (s) {
+      var d = (s.session_date || s.created_at || '').slice(0, 10);
+      if (d) byDay[d] = (byDay[d] || 0) + 1;
     });
+    var today = new Date(); today.setHours(12, 0, 0, 0);
+    /* grid starts on the Sunday 3 weeks back */
+    var start = new Date(today.getTime() - ((21 + today.getDay()) * 86400000));
+    var wrap = h('div', { class: 'c12-cal' });
+    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (d) {
+      wrap.appendChild(h('div', { class: 'c12-cal__wd', text: d }));
+    });
+    for (var i = 0; i < 28; i++) {
+      var d = new Date(start.getTime() + i * 86400000);
+      var key = d.toISOString().slice(0, 10);
+      var isToday = d.toDateString() === today.toDateString();
+      var future = d > today;
+      var did = byDay[key];
+      wrap.appendChild(h('div', {
+        class: 'c12-cal__d' + (did ? ' is-did' : '') + (isToday ? ' is-today' : '') +
+               (future ? ' is-future' : ''),
+        title: key + (did ? ' — ' + did + ' session' + (did > 1 ? 's' : '') : '')
+      }, [h('span', { text: d.getDate() })]));
+    }
+    return wrap;
+  }
 
-    host.appendChild(spacer());
+  /* ── main view ────────────────────────────────────────────────*/
+  function mainView(host, ctx, data) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    host.appendChild(V12.header('Coach', 'Your corner of the gym.'));
 
-    host.appendChild(window.V10UI.cta({
-      icon: 'ph-arrow-left',
-      label: 'BACK TO VERDICT',
-      onClick: function () { switchSub('verdict'); }
+    var grid = h('div', { class: 'c12-grid' });
+
+    /* coach identity */
+    grid.appendChild(V12.card({
+      tint: 'green', class: 'c12-id', bgIcon: 'ph-strategy', bgTone: 'green'
+    }, [
+      h('div', { class: 'c12-id__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
+      h('div', { class: 'c12-id__n', text: 'THE SCOUT' }),
+      h('div', { class: 'c12-id__s', text: data.t.vatt ? data.t.vatt + ' scored shots on film' : 'Waiting on film' })
+    ]));
+
+    /* training calendar (tall, right) */
+    grid.appendChild(V12.card({ class: 'c12-calcard' }, [
+      h('div', { class: 'd-label', text: 'TRAINING CALENDAR' }),
+      calendar(data.sessions),
+      h('div', { class: 'c12-cal__lg' }, [
+        h('span', { class: 'c12-cal__dot' }), h('span', { text: 'Session day' })
+      ])
+    ]));
+
+    /* chat door */
+    grid.appendChild(V12.card({
+      tint: 'blue', class: 'c12-door', bgIcon: 'ph-chat-circle-dots', bgTone: 'blue',
+      onClick: function () { chatView(host, ctx, data, function () { mainView(host, ctx, data); }); },
+      label: 'Chat with coach'
+    }, [
+      h('i', { class: 'ph-fill ph-chat-circle-dots c12-door__ic' }),
+      h('div', { class: 'c12-door__t', text: 'CHAT WITH COACH' }),
+      h('div', { class: 'c12-door__s', text: (scoutLines(data)[0] || '').slice(0, 64) + '…' })
+    ]));
+
+    host.appendChild(grid);
+
+    /* your team — honest empty state until a social backend exists */
+    host.appendChild(V12.card({
+      tint: 'purple', class: 'c12-team', bgIcon: 'ph-users-three', bgTone: 'purple',
+      onClick: function () { ctx.go('social'); }, label: 'Your team'
+    }, [
+      h('div', { class: 'c12-team__t', text: 'YOUR TEAM' }),
+      h('div', { class: 'c12-team__s',
+        text: 'Nobody on the roster yet. Invite friends and their sessions show up here.' }),
+      h('div', { class: 'c12-team__cta' }, [
+        h('i', { class: 'ph-bold ph-user-plus' }),
+        h('span', { text: 'Invite friends' })
+      ])
+    ]));
+
+    host.appendChild(V12.btn({
+      label: 'Track a session', icon: 'ph-play-circle', variant: 'green',
+      onClick: function () { ctx.go('camera-hud'); }
     }));
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx  = args.ctx;
-    var sub  = 'verdict';
-
-    // Make the host a flex column so spacer() pushes the CTA to the bottom.
-    host.style.display = 'flex';
-    host.style.flexDirection = 'column';
-    host.style.minHeight = '0';
-
-    function switchSub(id) { sub = id; paint(); }
-
-    function paint() {
-      while (host.firstChild) host.removeChild(host.firstChild);
-      Promise.all([
-        ctx.data.getProfile(),
-        ctx.data.getTodayStats(),
-        ctx.data.getWeekStats(),
-        ctx.data.getCoachVerdict(),
-        ctx.data.getDrills(),
-        ctx.data.getZones()
-      ]).then(function (results) {
-        var bundle = {
-          profile: results[0] || {},
-          today:   results[1] || {},
-          week:    results[2] || {},
-          coach:   results[3],          // null until real zone evidence exists
-          drills:  drillsFromData(results[4]),
-          zones:   results[5]
-        };
-        host.appendChild(ctx.ui.headerPill({ profile: bundle.profile }));
-        host.appendChild(chips(sub, switchSub));
-        if (sub === 'insights')       renderInsights(host, ctx, switchSub);
-        else if (sub === 'briefings') renderBriefings(host, ctx, switchSub);
-        else                          renderVerdict(host, ctx, bundle, switchSub);
-      });
-    }
-
-    paint();
+    var host = args.host, ctx = args.ctx;
+    return Promise.all([
+      ctx.data.getCoachVerdict(),
+      ctx.data.getZones(),
+      ctx.data.getSessions(60),
+      ctx.data.getWeekStats()
+    ]).then(function (r) {
+      var zones = r[1] || {};
+      var mean = C.playerMean(zones);
+      var data = {
+        coach: r[0], zones: zones, sessions: r[2] || [], week: r[3] || {},
+        t: totals(zones), rank: ranked(zones, mean)
+      };
+      mainView(host, ctx, data);
+    });
   }
 
   window.app.register('coach', render);

@@ -298,7 +298,8 @@
   }
 
   // ─── drills (real content DB — 200 drills) ──────────────
-  function getDrills() {
+  function getDrills(count) {
+    var N = count || 3;
     return safe(function () {
       var DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : null;
       if (DB && DB.length) {
@@ -306,10 +307,10 @@
         var preferred = DB.filter(function (d) {
           return d && (d.focus_area === 'Shooting' || d.focus_area === 'Ball Handling');
         });
-        var pool = preferred.length >= 3 ? preferred : DB;
+        var pool = preferred.length >= N ? preferred : DB;
         var picks = [];
-        var step = Math.max(1, Math.floor(pool.length / 3));
-        for (var i = 0; i < 3 && picks.length < 3; i++) {
+        var step = Math.max(1, Math.floor(pool.length / N));
+        for (var i = 0; i < N && picks.length < N; i++) {
           var d = pool[i * step];
           if (!d) continue;
           picks.push({
