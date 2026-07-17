@@ -167,9 +167,9 @@
 
     var grid = h('div', { class: 'c12-grid' });
 
-    /* coach identity */
+    /* coach identity — print DNA: paper + navy border + offset shadow */
     grid.appendChild(V12.card({
-      tint: 'green', class: 'c12-id', bgIcon: 'ph-strategy', bgTone: 'green'
+      tint: 'ink', class: 'c12-id', bgIcon: 'ph-strategy', bgTone: 'green'
     }, [
       h('div', { class: 'c12-id__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
       h('div', { class: 'c12-id__n', text: 'THE SCOUT' }),
@@ -200,7 +200,7 @@
 
     /* your team — honest empty state until a social backend exists */
     host.appendChild(V12.card({
-      tint: 'purple', class: 'c12-team', bgIcon: 'ph-users-three', bgTone: 'purple',
+      class: 'c12-team', bgIcon: 'ph-users-three', bgTone: 'purple',
       onClick: function () { ctx.go('social'); }, label: 'Your team'
     }, [
       h('div', { class: 'c12-team__t', text: 'YOUR TEAM' }),

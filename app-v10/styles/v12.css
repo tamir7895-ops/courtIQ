@@ -38,41 +38,52 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
   /* Remap the legacy tokens so every v10 component that survives
      (progress bars, week strip…) lands on white without edits. */
   --cream:      #FFFFFF;
-  --cream-deep: #F6F7F9;
+  --cream-deep: #FAF4E6;           /* nested v10 surfaces go cream-paper */
   --ink:        #0A2850;
   --muted:      #7C8A99;
   --dot:        transparent;
   --highlight:  #FFF1B8;
-  --sh-ink:     0 3px 0 #E5E8EC;
-  --sh-ink-sm:  0 2px 0 #E5E8EC;
-  --sh-orange:  0 3px 0 #E5E8EC;
-  --sh-orange-sm: 0 2px 0 #E5E8EC;
+  /* the old print offsets, back in full color — this is what the v10
+     furniture (plan nodes, rx card, tiles) wears on every sub-page */
+  --sh-ink:     3px 3px 0 #0A2850;
+  --sh-ink-sm:  2px 2px 0 #0A2850;
+  --sh-orange:  3px 3px 0 #FF4F1F;
+  --sh-orange-sm: 2px 2px 0 #FF4F1F;
+  --sh-sage:    2px 2px 0 #2F9204;
+  --sh-mustard: 2px 2px 0 #FFB800;
+  --sage:       #2F9204;           /* vivid court green for v10 components */
+  --mustard:    #FFB800;
 
-  /* v12's own vocabulary */
+  /* v12.1 vocabulary — the color-theory pass.
+     Rule: MOST surfaces are neutral (white / cream paper, ink lines —
+     the old Scout's-Brief DNA). The FEW colored things are FULLY
+     saturated — vivid card, white type — never a washed-out tint.
+     Saturated accents on a calm ground is what pulls the eye; a page
+     of pale pastel is what made it feel weak. */
   --d-bg:      #FFFFFF;
-  --d-alt:     #F6F7F9;
-  --d-line:    #E5E8EC;
-  --d-line-2:  #D4DAE1;
-  --d-ink:     #0A2850;
-  --d-body:    #56677A;
-  --d-mute:    #93A0AD;
+  --d-alt:     #FAF4E6;             /* the old cream paper, back as the nested surface */
+  --d-line:    #C9D4E0;             /* visible ink-leaning hairline (was near-white) */
+  --d-line-2:  #A9B8C8;
+  --d-ink:     #0A2850;             /* the navy that always was CourtIQ */
+  --d-body:    #3E5573;
+  --d-mute:    #7C8DA3;
 
-  --d-orange:      #FF4F1F;
-  --d-orange-deep: #D93A10;
-  --d-orange-tint: #FFF1EC;
-  --d-blue:        #1CB0F6;
-  --d-blue-deep:   #1899D6;
-  --d-blue-tint:   #E9F7FE;
-  --d-green:       #58CC02;
-  --d-green-deep:  #46A302;
-  --d-green-tint:  #EFFBE3;
-  --d-gold:        #FFC800;
-  --d-gold-deep:   #E0A800;
-  --d-gold-tint:   #FFF6D8;
-  --d-purple:      #BE7CFF;
-  --d-purple-deep: #9C5CE0;
-  --d-purple-tint: #F6EDFF;
-  --d-red:         #FF4B4B;
+  --d-orange:      #FF4F1F;         /* brand burnt orange — untouched */
+  --d-orange-deep: #C93407;
+  --d-orange-tint: #FFE9E0;
+  --d-blue:        #14A5F2;
+  --d-blue-deep:   #0E7FC9;
+  --d-blue-tint:   #DDF2FE;
+  --d-green:       #47C012;         /* court green, full punch */
+  --d-green-deep:  #2F9204;
+  --d-green-tint:  #E4F8D8;
+  --d-gold:        #FFB800;         /* mustard turned all the way up */
+  --d-gold-deep:   #D89000;
+  --d-gold-tint:   #FFF2CC;
+  --d-purple:      #A855F7;
+  --d-purple-deep: #7E22CE;
+  --d-purple-tint: #F3E8FF;
+  --d-red:         #FF3B30;
 
   --d-font: 'Lexend', 'Segoe UI', system-ui, sans-serif;
 
@@ -110,13 +121,21 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
   padding: calc(var(--safe-top) + 14px) 16px calc(84px + var(--safe-bottom));
   background: var(--d-bg);
 }
+/* The ground is a COURT, not a void: faint full-court markings pinned
+   behind everything — center circle, arcs, paint — in washed ink.
+   Loud enough to say "gym floor", quiet enough to never fight a card. */
 body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
         [data-screen="onboarding"], [data-screen="auth"],
         [data-screen="post-session"]) #app::before {
-  content: none;   /* no risograph dots on the white ground */
+  content: '';
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 860' preserveAspectRatio='xMidYMin slice'%3E%3Cg fill='none' stroke='%230A2850' stroke-opacity='.055' stroke-width='3'%3E%3Cpath d='M 24 0 L 24 114 A 190 190 0 0 0 376 114 L 376 0'/%3E%3Crect x='136' y='0' width='128' height='152'/%3E%3Ccircle cx='200' cy='152' r='48'/%3E%3Ccircle cx='200' cy='42' r='7' stroke-opacity='.09'/%3E%3Ccircle cx='200' cy='560' r='64'/%3E%3Cpath d='M 0 560 L 136 560 M 264 560 L 400 560'/%3E%3Cpath d='M 24 860 L 24 746 A 190 190 0 0 1 376 746 L 376 860'/%3E%3Crect x='136' y='708' width='128' height='152'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 100% auto;
+  background-position: top center;
+  background-repeat: no-repeat;
 }
 
 /* HOME: the page IS the viewport. Rows compress via dvh clamps
@@ -153,10 +172,13 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   body[data-screen] #app > * { animation: none !important; }
 }
 
-/* ── Type ───────────────────────────────────────────────────────*/
+/* ── Type — the old masthead voice on the new structure ─────────
+   Barlow Condensed carried v10's whole identity; it comes back for
+   every screen title. Lexend stays for body UI. */
 .d-title {
-  font-family: var(--d-font); font-weight: 800; font-size: 26px;
-  letter-spacing: -.02em; color: var(--d-ink); line-height: 1.05;
+  font-family: var(--font-display); font-weight: 900; font-size: 32px;
+  letter-spacing: -.01em; text-transform: uppercase;
+  color: var(--d-ink); line-height: .95;
 }
 .d-sub { font-family: var(--d-font); font-weight: 500; font-size: 13px; color: var(--d-mute); }
 .d-label {
@@ -188,12 +210,42 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .d-card--press:active { transform: translateY(3px); box-shadow: none; }
 .d-card--press:focus-visible { outline: 3px solid var(--d-blue); outline-offset: 2px; }
 
-/* Tinted variants — border and lip take the feature color's tint line */
-.d-card--blue   { background: var(--d-blue-tint);   border-color: #C8E9FB; box-shadow: 0 3px 0 #C8E9FB; }
-.d-card--green  { background: var(--d-green-tint);  border-color: #CDEFAC; box-shadow: 0 3px 0 #CDEFAC; }
-.d-card--gold   { background: var(--d-gold-tint);   border-color: #F4E1A0; box-shadow: 0 3px 0 #F4E1A0; }
-.d-card--purple { background: var(--d-purple-tint); border-color: #E4CCFB; box-shadow: 0 3px 0 #E4CCFB; }
-.d-card--orange { background: var(--d-orange-tint); border-color: #FFD2C2; box-shadow: 0 3px 0 #FFD2C2; }
+/* Colored variants — FULL saturation, white type, colored lip.
+   Inside a vivid card the text tokens flip to on-color values, so every
+   child styled with var(--d-ink)/var(--d-body)/var(--d-mute) follows
+   automatically. Few cards wear these; the ones that do, shout. */
+.d-card--blue, .d-card--green, .d-card--gold, .d-card--purple, .d-card--orange {
+  --d-ink: #FFFFFF;
+  --d-body: rgba(255,255,255,.92);
+  --d-mute: rgba(255,255,255,.75);
+  --d-line: rgba(255,255,255,.35);
+}
+.d-card--blue   { background: var(--d-blue);   border-color: var(--d-blue-deep);   box-shadow: 0 4px 0 var(--d-blue-deep); }
+.d-card--green  { background: var(--d-green);  border-color: var(--d-green-deep);  box-shadow: 0 4px 0 var(--d-green-deep); }
+.d-card--gold   { background: var(--d-gold);   border-color: var(--d-gold-deep);   box-shadow: 0 4px 0 var(--d-gold-deep);
+                  --d-ink: #4A3400; --d-body: rgba(74,52,0,.9); --d-mute: rgba(74,52,0,.7); }
+.d-card--purple { background: var(--d-purple); border-color: var(--d-purple-deep); box-shadow: 0 4px 0 var(--d-purple-deep); }
+.d-card--orange { background: var(--d-orange); border-color: var(--d-orange-deep); box-shadow: 0 4px 0 var(--d-orange-deep); }
+.d-card--blue.d-card--press:active, .d-card--green.d-card--press:active,
+.d-card--gold.d-card--press:active, .d-card--purple.d-card--press:active,
+.d-card--orange.d-card--press:active { transform: translateY(4px); }
+/* the corner icon glows white on a vivid ground */
+.d-card--blue .d-card__bg, .d-card--green .d-card__bg, .d-card--purple .d-card__bg,
+.d-card--orange .d-card__bg { color: #FFFFFF; opacity: .18; }
+.d-card--gold .d-card__bg { color: #4A3400; opacity: .14; }
+/* icons that carried their own feature color go white inside a vivid card */
+.d-card--blue .t12-door__ic--blue,
+.d-card--blue .c12-door__ic { color: #FFFFFF; }
+.d-card--gold .m12-doortile__ic--gold { color: #4A3400; }
+.d-card--blue .c12-door__s, .d-card--green .c12-door__s { color: rgba(255,255,255,.85); }
+
+/* The ink card — the old print language, verbatim: paper, a real navy
+   border, and a hard offset shadow. For the record-keeping surfaces. */
+.d-card--ink {
+  background: var(--d-bg); border-color: var(--d-ink);
+  box-shadow: 4px 4px 0 var(--d-ink);
+}
+.d-card--ink.d-card--press:active { transform: translate(4px, 4px); box-shadow: none; }
 
 /* The "not boring" clause: a big, faded, tilted icon living in the
    card's corner. Color inherits the feature color via .d-bg--*. */
@@ -345,20 +397,23 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   font-family: var(--d-font); font-weight: 800; font-size: 8.5px;
   letter-spacing: .1em; text-transform: uppercase; opacity: .75;
 }
+/* Vivid frames on white — saturated border + colored lip + colored
+   numeral. Color-theory move: full-chroma STROKES read hot without
+   turning the row into a wall of paint. */
 .h12-badge--streak {
-  background: var(--d-orange-tint); border-color: #FFD2C2; box-shadow: 0 3px 0 #FFD2C2;
-  color: var(--d-orange-deep);
+  background: var(--d-bg); border-color: var(--d-orange); box-shadow: 0 3px 0 var(--d-orange);
+  color: var(--d-orange);
 }
 .h12-badge--xp {
-  background: var(--d-gold-tint); border-color: #F4E1A0; box-shadow: 0 3px 0 #F4E1A0;
+  background: var(--d-bg); border-color: var(--d-gold); box-shadow: 0 3px 0 var(--d-gold);
   color: var(--d-gold-deep);
 }
 .h12-badge--fg {
-  background: var(--d-green-tint); border-color: #CDEFAC; box-shadow: 0 3px 0 #CDEFAC;
+  background: var(--d-bg); border-color: var(--d-green); box-shadow: 0 3px 0 var(--d-green);
   color: var(--d-green-deep);
 }
 .h12-badge--week {
-  background: var(--d-blue-tint); border-color: #C8E9FB; box-shadow: 0 3px 0 #C8E9FB;
+  background: var(--d-bg); border-color: var(--d-blue); box-shadow: 0 3px 0 var(--d-blue);
   color: var(--d-blue-deep);
 }
 .h12-badge__v { color: inherit; }
@@ -395,8 +450,9 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .h12-coach { display: flex; align-items: center; gap: 12px; }
 .h12-coach__face {
   flex: 0 0 auto; width: 44px; height: 44px; border-radius: 50%;
-  background: var(--d-green-tint); border: 2px solid #CDEFAC;
-  display: grid; place-items: center; font-size: 22px; color: var(--d-green-deep);
+  background: var(--d-green); border: 2px solid var(--d-green-deep);
+  box-shadow: 0 2px 0 var(--d-green-deep);
+  display: grid; place-items: center; font-size: 22px; color: #FFFFFF;
 }
 .h12-coach__txt {
   font-family: var(--d-font); font-weight: 600; font-size: 13px;
@@ -418,8 +474,8 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   margin-top: 8px; overflow: hidden;
 }
 .h12-chal__fill {
-  height: 100%; border-radius: 6px; background: var(--d-green);
-  box-shadow: inset 0 -3px 0 rgba(0,0,0,.12);
+  height: 100%; border-radius: 6px; background: var(--d-gold);
+  box-shadow: inset 0 -3px 0 rgba(0,0,0,.18);
   transition: width .5s var(--ease-out-expo);
 }
 .h12-chal__meta {
@@ -427,20 +483,39 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   font-family: var(--d-font); font-weight: 700; font-size: 10.5px;
   letter-spacing: .06em; text-transform: uppercase; color: var(--d-mute);
 }
-.h12-chal__star {
-  flex: 0 0 auto; width: 58px; height: 58px; display: grid; place-items: center;
-  font-size: 46px; color: var(--d-gold);
-  filter: drop-shadow(0 3px 0 var(--d-gold-deep));
-  animation: h12Star 3.2s var(--ease-in-out) infinite;
-}
-@keyframes h12Star {
-  0%, 100% { transform: rotate(-6deg) scale(1); }
-  50%      { transform: rotate(6deg) scale(1.07); }
-}
+.h12-chal__hoop { flex: 0 0 auto; margin: -4px -2px -14px 0; }
 
-/* Row 5: the two doors. */
-.h12-doors { display: grid; grid-template-columns: 1fr 1.2fr; gap: 10px; }
-.h12-doors .d-btn { min-height: clamp(52px, 8dvh, 64px); font-size: 14px; }
+/* Row 5: the two doors — SQUARE tiles, glued to the challenge card
+   above them (borders overlap; no air between the rows). */
+.h12-stack { display: flex; flex-direction: column; }
+.h12-stack .h12-chal {
+  border-bottom-left-radius: 0; border-bottom-right-radius: 0;
+  box-shadow: none;
+}
+.h12-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 0 8px; margin-top: -2px; }
+.h12-door {
+  aspect-ratio: 1; max-height: clamp(104px, 21dvh, 172px); width: 100%;
+  border: 2px solid; border-radius: 18px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+  font-family: var(--d-font); font-weight: 800; font-size: 13px;
+  letter-spacing: .08em; text-transform: uppercase;
+  transition: transform .06s linear, box-shadow .06s linear;
+  -webkit-tap-highlight-color: transparent;
+}
+.h12-door:first-child { border-top-left-radius: 0; }
+.h12-door:last-child { border-top-right-radius: 0; }
+.h12-door i { font-size: 34px; }
+.h12-door--start {
+  background: var(--d-orange); color: #fff; border-color: var(--d-orange-deep);
+  box-shadow: 0 4px 0 var(--d-orange-deep);
+}
+.h12-door--lib {
+  background: var(--d-bg); color: var(--d-ink); border-color: var(--d-ink);
+  box-shadow: 4px 4px 0 var(--d-ink);
+}
+.h12-door--lib i { color: var(--d-orange); }
+.h12-door:active { transform: translateY(4px); box-shadow: none; }
+.h12-door:focus-visible { outline: 3px solid var(--d-blue); outline-offset: 2px; }
 
 /* The home spacer rows flex so short phones compress air, not cards */
 .h12-flex { flex: 1 1 0; min-height: 0; }
@@ -498,8 +573,9 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .t12-sess { display: flex; align-items: center; gap: 12px; padding: 11px 14px; }
 .t12-sess__ic {
   flex: 0 0 auto; width: 40px; height: 40px; border-radius: 12px;
-  background: var(--d-blue-tint); border: 2px solid #C8E9FB;
-  display: grid; place-items: center; font-size: 19px; color: var(--d-blue-deep);
+  background: var(--d-blue); border: 2px solid var(--d-blue-deep);
+  box-shadow: 0 2px 0 var(--d-blue-deep);
+  display: grid; place-items: center; font-size: 19px; color: #FFFFFF;
 }
 .t12-sess__main { flex: 1; min-width: 0; }
 .t12-sess__t { font-family: var(--d-font); font-weight: 800; font-size: 14px; color: var(--d-ink); }
@@ -582,7 +658,10 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 
 /* chat */
 .c12-chat-hd { display: flex; align-items: center; gap: 12px; }
-.c12-chat-hd__t { font-family: var(--d-font); font-weight: 800; font-size: 18px; color: var(--d-ink); }
+.c12-chat-hd__t {
+  font-family: var(--font-display); font-weight: 900; font-size: 24px;
+  text-transform: uppercase; letter-spacing: -.01em; color: var(--d-ink);
+}
 .c12-chat-hd__s { font-family: var(--d-font); font-weight: 500; font-size: 11.5px; color: var(--d-mute); }
 .c12-back {
   width: 40px; height: 40px; border-radius: 12px; cursor: pointer;
@@ -639,9 +718,10 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .s12-lb { display: flex; flex-direction: column; gap: 9px; padding: 14px; }
 .s12-lb__row { display: flex; align-items: center; gap: 9px; }
 .s12-lb__row--you {
-  background: var(--d-bg); border: 2px solid #E4CCFB; border-radius: 12px;
-  padding: 7px 9px; box-shadow: 0 2px 0 #E4CCFB;
+  background: #FFFFFF; border: 2px solid rgba(0,0,0,.15); border-radius: 12px;
+  padding: 7px 9px; box-shadow: 0 3px 0 rgba(0,0,0,.25);
 }
+.s12-lb__row--you .s12-lb__n { color: #0A2850; }
 .s12-lb__rank {
   font-family: var(--font-display); font-weight: 900; font-size: 17px;
   color: var(--d-purple-deep); width: 16px; text-align: center;
@@ -660,10 +740,10 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .s12-lb__s { font-family: var(--d-font); font-weight: 700; font-size: 10.5px; color: var(--d-purple-deep); }
 .s12-lb__empty { display: flex; flex-direction: column; gap: 6px; }
 .s12-lb__ghost {
-  height: 34px; border-radius: 12px; border: 2px dashed #E4CCFB;
+  height: 34px; border-radius: 12px; border: 2px dashed rgba(255,255,255,.55);
   display: flex; align-items: center; padding: 0 12px;
   font-family: var(--font-display); font-weight: 900; font-size: 15px;
-  color: #CBA6EE;
+  color: rgba(255,255,255,.85);
 }
 .s12-lb__hint {
   font-family: var(--d-font); font-weight: 500; font-size: 11.5px;
@@ -672,8 +752,8 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .s12-lb__cta {
   align-self: flex-start; display: inline-flex; align-items: center; gap: 6px;
   border: 0; cursor: pointer; border-radius: 12px; padding: 9px 14px;
-  background: var(--d-purple); color: #fff;
-  box-shadow: 0 3px 0 var(--d-purple-deep);
+  background: #FFFFFF; color: var(--d-purple-deep);
+  box-shadow: 0 3px 0 rgba(0,0,0,.25);
   font-family: var(--d-font); font-weight: 800; font-size: 12px; letter-spacing: .08em;
   transition: transform .06s linear, box-shadow .06s linear;
 }
@@ -719,8 +799,9 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .m12-id__n { font-family: var(--d-font); font-weight: 800; font-size: 20px; color: var(--d-ink); }
 .m12-id__lv {
   font-family: var(--d-font); font-weight: 800; font-size: 12px; letter-spacing: .08em;
-  color: var(--d-gold-deep); background: var(--d-gold-tint);
-  border: 2px solid #F4E1A0; border-radius: 999px; padding: 4px 10px;
+  color: #4A3400; background: var(--d-gold);
+  border: 2px solid var(--d-gold-deep); box-shadow: 0 2px 0 var(--d-gold-deep);
+  border-radius: 999px; padding: 4px 10px;
 }
 .m12-id__m { font-family: var(--d-font); font-weight: 600; font-size: 12px; color: var(--d-mute); margin: 2px 0 10px; }
 
@@ -939,6 +1020,40 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   letter-spacing: .08em; text-transform: uppercase; color: var(--d-mute);
 }
 
+/* ── Characters ─────────────────────────────────────────────────*/
+.d12-mascot__body { animation: d12Mascot 2.6s var(--ease-in-out) infinite; transform-origin: 50px 92px; }
+.d12-mascot__shadow { animation: d12MascotShadow 2.6s var(--ease-in-out) infinite; transform-origin: 50px 102px; }
+@keyframes d12Mascot {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  12%      { transform: translateY(2px) scale(1.06, .92); }   /* squash */
+  45%      { transform: translateY(-16px) scale(.96, 1.05); } /* air */
+  78%      { transform: translateY(0) scale(1, 1); }
+}
+@keyframes d12MascotShadow {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  45%      { transform: scale(.72); opacity: .55; }
+}
+.d12-hoop__ball { animation: d12BallDrop 3.2s var(--ease-in-out) infinite; }
+@keyframes d12BallDrop {
+  0%, 18%  { transform: translateY(-26px); opacity: 0; }
+  30%      { transform: translateY(-8px); opacity: 1; }
+  48%      { transform: translateY(28px); opacity: 1; }
+  60%      { transform: translateY(52px); opacity: 0; }
+  100%     { transform: translateY(52px); opacity: 0; }
+}
+.d12-hoop__net { animation: d12Net 3.2s var(--ease-in-out) infinite; transform-origin: 60px 62px; }
+@keyframes d12Net {
+  0%, 42%  { transform: scale(1, 1); }
+  52%      { transform: scale(.94, 1.08); }
+  62%      { transform: scale(1.04, .97); }
+  72%, 100% { transform: scale(1, 1); }
+}
+.d-empty--art { border-color: var(--d-line); }
+.d-empty__art { display: grid; place-items: center; margin-bottom: 4px; }
+@media (prefers-reduced-motion: reduce) {
+  .d12-mascot__body, .d12-mascot__shadow, .d12-hoop__ball, .d12-hoop__net { animation: none; }
+}
+
 /* ── Empty / light state helpers ───────────────────────────────*/
 .d-empty {
   text-align: center; padding: 22px 16px;
@@ -949,6 +1064,5 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .d-empty__b { font-family: var(--d-font); font-weight: 500; font-size: 12.5px; color: var(--d-mute); margin-top: 4px; line-height: 1.45; }
 
 @media (prefers-reduced-motion: reduce) {
-  .h12-chal__star { animation: none; }
   .d-card--press, .d-btn, .h12-chal__fill { transition: none; }
 }

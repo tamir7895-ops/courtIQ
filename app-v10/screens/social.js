@@ -50,8 +50,7 @@
           h('div', { class: 's12-lb__rank', text: '1' }),
           h('div', {
             class: 's12-lb__av',
-            text: prof.avatarUrl ? '' : (prof.initial || 'R'),
-            style: prof.avatarUrl ? { backgroundImage: 'url(' + prof.avatarUrl + ')' } : null
+            style: { backgroundImage: 'url(' + V12.avatarUrl(prof) + ')' }
           }),
           h('div', { class: 's12-lb__main' }, [
             h('div', { class: 's12-lb__n', text: prof.name || 'You' }),
@@ -115,15 +114,13 @@
         ])
       ]));
 
-      /* friends activity — an honest, designed invitation */
+      /* friends activity — the mascot holds the empty room */
+      var feedEmpty = V12.empty('Quiet in here',
+        'When friends join, their sessions land here — "Dana put up 120 shots" — and yours lands on theirs.');
+      feedEmpty.classList.add('s12-feed__empty');
       host.appendChild(V12.card({ class: 's12-feed' }, [
         h('div', { class: 'd-label', text: 'FRIENDS ACTIVITY' }),
-        h('div', { class: 'd-empty s12-feed__empty' }, [
-          h('i', { class: 'ph-bold ph-broadcast d-empty__icon' }),
-          h('div', { class: 'd-empty__t', text: 'Quiet in here' }),
-          h('div', { class: 'd-empty__b',
-            text: 'When friends join, their sessions land here — "Dana put up 120 shots" — and yours lands on theirs.' })
-        ])
+        feedEmpty
       ]));
 
       host.appendChild(V12.btn({

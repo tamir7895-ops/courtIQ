@@ -41,21 +41,20 @@
     }
     kids.push(main);
 
+    /* the print-DNA card: paper, navy border, hard offset shadow */
     return V12.card({
-      tint: 'orange', class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
+      tint: 'ink', class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
       onClick: function () { ctx.go('track'); },
       label: 'Court IQ — open tracking'
     }, kids);
   }
 
   function avatarCard(prof, ctx) {
-    var img = h('div', {
-      class: 'h12-av__img',
-      text: prof.avatarUrl ? '' : (prof.initial || 'R')
-    });
-    if (prof.avatarUrl) img.style.backgroundImage = 'url(' + prof.avatarUrl + ')';
+    /* always a face — saved customizer avatar or the DiceBear default */
+    var img = h('div', { class: 'h12-av__img' });
+    img.style.backgroundImage = 'url(' + V12.avatarUrl(prof) + ')';
     return V12.card({
-      tint: 'gold', class: 'h12-av',
+      class: 'h12-av',
       onClick: function () { ctx.go('me'); },
       label: 'Profile'
     }, [
@@ -106,7 +105,7 @@
       ]);
     }
     return V12.card({
-      tint: 'green', class: 'h12-coach', bgIcon: 'ph-whistle', bgTone: 'green',
+      class: 'h12-coach', bgIcon: 'ph-megaphone', bgTone: 'green',
       onClick: function () { ctx.go('coach'); },
       label: 'Open coach'
     }, [
@@ -137,21 +136,24 @@
           h('span', { text: left ? left + ' to go' : 'Done! Claim it' })
         ])
       ]),
-      h('div', { class: 'h12-chal__star' }, [h('i', { class: 'ph-fill ph-star' })])
+      h('div', { class: 'h12-chal__hoop' }, [V12.hoopScene(74)])
     ]);
   }
 
-  /* ── Row 5: the two doors ───────────────────────────────────── */
+  /* ── Row 5: the two doors — square tiles glued under the challenge */
   function doors(ctx) {
+    function door(mod, icon, label, go) {
+      return h('button', {
+        class: 'h12-door h12-door--' + mod, type: 'button',
+        onclick: function () { ctx.go(go); }
+      }, [
+        h('i', { class: 'ph-fill ' + icon }),
+        h('span', { text: label })
+      ]);
+    }
     return h('div', { class: 'h12-doors' }, [
-      V12.btn({
-        label: 'Drill library', icon: 'ph-barbell', variant: 'ghost',
-        onClick: function () { ctx.go('drill-library'); }
-      }),
-      V12.btn({
-        label: 'Start session', icon: 'ph-play-circle',
-        onClick: function () { ctx.go('camera-hud'); }
-      })
+      door('lib', 'ph-barbell', 'Drill library', 'drill-library'),
+      door('start', 'ph-play-circle', 'Start session', 'camera-hud')
     ]);
   }
 
@@ -185,11 +187,13 @@
       host.appendChild(top);
       host.appendChild(statBadges(prof, week, fg, ctx));
       host.appendChild(coachRow(coach, ctx));
-      host.appendChild(challengeRow(week, ctx));
-      /* flex spacer keeps the doors near the nav on tall screens
-         instead of stranding them mid-air */
+      /* flex spacer above the stack so challenge+doors sit as one glued
+         unit at the bottom, against the nav */
       host.appendChild(h('div', { class: 'h12-flex' }));
-      host.appendChild(doors(ctx));
+      host.appendChild(h('div', { class: 'h12-stack' }, [
+        challengeRow(week, ctx),
+        doors(ctx)
+      ]));
     });
   }
 

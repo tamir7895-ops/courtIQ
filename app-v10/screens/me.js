@@ -193,15 +193,14 @@
   function mainView(host, ctx, prof, iq, totals) {
     while (host.firstChild) host.removeChild(host.firstChild);
 
-    /* avatar hero */
+    /* avatar hero — always a real face (saved pick or DiceBear default) */
     var av = h('div', {
       class: 'm12-hero__av',
-      text: prof.avatarUrl ? '' : (prof.initial || 'R'),
       role: 'button', tabindex: '0', 'aria-label': 'Customise avatar',
       onclick: function () { ctx.go('avatar-customizer'); },
       onkeydown: V12.activates(function () { ctx.go('avatar-customizer'); })
     });
-    if (prof.avatarUrl) av.style.backgroundImage = 'url(' + prof.avatarUrl + ')';
+    av.style.backgroundImage = 'url(' + V12.avatarUrl(prof) + ')';
     host.appendChild(h('div', { class: 'm12-hero' }, [
       av,
       h('div', { class: 'm12-hero__edit' }, [h('i', { class: 'ph-bold ph-pencil-simple' })])
@@ -210,7 +209,7 @@
     /* name + level + XP bar */
     var xp = prof.xp || 0;
     var next = xpNext(xp);
-    host.appendChild(V12.card({ class: 'm12-id', bgIcon: 'ph-lightning', bgTone: 'gold' }, [
+    host.appendChild(V12.card({ tint: 'ink', class: 'm12-id', bgIcon: 'ph-lightning', bgTone: 'gold' }, [
       h('div', { class: 'm12-id__row' }, [
         h('div', { class: 'm12-id__n', text: prof.name || 'Rookie' }),
         h('div', { class: 'm12-id__lv', text: 'LV ' + (prof.level || 1) })
@@ -280,7 +279,7 @@
         h('div', { class: 'm12-doortile__t', text: 'SETTINGS' })
       ]),
       V12.card({
-        tint: 'gold', press: true, bgIcon: 'ph-trophy', bgTone: 'gold', class: 'm12-doortile',
+        press: true, bgIcon: 'ph-trophy', bgTone: 'gold', class: 'm12-doortile',
         onClick: openTrophies, label: 'Trophies'
       }, [
         h('i', { class: 'ph-fill ph-trophy m12-doortile__ic m12-doortile__ic--gold' }),

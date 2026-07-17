@@ -189,8 +189,101 @@
     }, kids);
   }
 
+  /* ── avatar — always a real face, never a lonely initial ────────
+     Saved customizer URL first, else a deterministic DiceBear render
+     seeded by the player's name (same trick the old header pill used). */
+  function avatarUrl(prof) {
+    try {
+      var u = localStorage.getItem('courtiq_avatar_url');
+      if (u) return u;
+    } catch (e) {}
+    return 'https://api.dicebear.com/9.x/avataaars/png?seed=' +
+      encodeURIComponent((prof && prof.name) || 'CourtIQ') + '&backgroundColor=FFB800';
+  }
+
+  /* ── characters — the Duolingo move, in basketball ──────────────
+     Hand-drawn-ish SVG props: a ball with a face (the mascot), and a
+     hoop a ball keeps dropping through. Motion lives in CSS
+     (d12Mascot / d12BallDrop / d12Net) so reduced-motion kills it. */
+  var INK = '#0A2850', ORANGE = '#FF4F1F';
+
+  function ballFace(cx, cy, r) {
+    return [
+      svg('circle', { cx: cx, cy: cy, r: r, fill: ORANGE, stroke: INK, 'stroke-width': 3 }),
+      svg('path', {
+        d: 'M ' + cx + ' ' + (cy - r) + ' L ' + cx + ' ' + (cy + r) +
+           ' M ' + (cx - r) + ' ' + cy + ' L ' + (cx + r) + ' ' + cy +
+           ' M ' + (cx - r * 0.62) + ' ' + (cy - r * 0.78) + ' Q ' + cx + ' ' + (cy - r * 0.15) + ' ' + (cx + r * 0.62) + ' ' + (cy - r * 0.78) +
+           ' M ' + (cx - r * 0.62) + ' ' + (cy + r * 0.78) + ' Q ' + cx + ' ' + (cy + r * 0.15) + ' ' + (cx + r * 0.62) + ' ' + (cy + r * 0.78),
+        stroke: INK, 'stroke-width': 2.5, fill: 'none'
+      }),
+      /* the face */
+      svg('circle', { cx: cx - r * 0.32, cy: cy - r * 0.18, r: r * 0.13, fill: '#FFF' }),
+      svg('circle', { cx: cx + r * 0.32, cy: cy - r * 0.18, r: r * 0.13, fill: '#FFF' }),
+      svg('circle', { cx: cx - r * 0.29, cy: cy - r * 0.15, r: r * 0.065, fill: INK }),
+      svg('circle', { cx: cx + r * 0.35, cy: cy - r * 0.15, r: r * 0.065, fill: INK }),
+      svg('path', {
+        d: 'M ' + (cx - r * 0.22) + ' ' + (cy + r * 0.3) + ' Q ' + cx + ' ' + (cy + r * 0.52) + ' ' + (cx + r * 0.22) + ' ' + (cy + r * 0.3),
+        stroke: INK, 'stroke-width': 2.5, fill: 'none', 'stroke-linecap': 'round'
+      })
+    ];
+  }
+
+  /* The mascot — a happy ball, bouncing (CSS). */
+  function mascot(size) {
+    var el = svg('svg', {
+      viewBox: '0 0 100 110', width: String(size || 72),
+      class: 'd12-mascot', 'aria-hidden': 'true',
+      style: 'display:block;overflow:visible'
+    }, [
+      svg('ellipse', { cx: 50, cy: 102, rx: 26, ry: 5, fill: 'rgba(10,40,80,.12)', class: 'd12-mascot__shadow' }),
+      svg('g', { class: 'd12-mascot__body' }, ballFace(50, 52, 40))
+    ]);
+    return el;
+  }
+
+  /* A hoop that keeps getting scored on: backboard, rim, swishing net,
+     and a ball dropping through on loop. */
+  function hoopScene(size) {
+    return svg('svg', {
+      viewBox: '0 0 120 140', width: String(size || 84),
+      class: 'd12-hoop', 'aria-hidden': 'true',
+      style: 'display:block;overflow:visible'
+    }, [
+      /* backboard */
+      svg('rect', { x: 22, y: 4, width: 76, height: 52, rx: 6, fill: '#FFF', stroke: INK, 'stroke-width': 3.5 }),
+      svg('rect', { x: 44, y: 22, width: 32, height: 24, rx: 3, fill: 'none', stroke: ORANGE, 'stroke-width': 3 }),
+      /* the ball, dropping through on loop (CSS moves the group) */
+      svg('g', { class: 'd12-hoop__ball' }, [
+        svg('circle', { cx: 60, cy: 30, r: 13, fill: ORANGE, stroke: INK, 'stroke-width': 2.5 }),
+        svg('path', { d: 'M 60 17 L 60 43 M 47 30 L 73 30', stroke: INK, 'stroke-width': 2, fill: 'none' })
+      ]),
+      /* rim */
+      svg('ellipse', { cx: 60, cy: 62, rx: 24, ry: 7, fill: 'none', stroke: ORANGE, 'stroke-width': 4.5 }),
+      /* net */
+      svg('g', { class: 'd12-hoop__net' }, [
+        svg('path', {
+          d: 'M 38 64 L 46 98 M 60 69 L 60 102 M 82 64 L 74 98 M 47 67 L 52 100 M 73 67 L 68 100' +
+             ' M 40 76 Q 60 84 80 76 M 44 90 Q 60 97 76 90',
+          stroke: '#8FA3BC', 'stroke-width': 2.2, fill: 'none', 'stroke-linecap': 'round'
+        })
+      ])
+    ]);
+  }
+
+  /* Empty state with the mascot instead of a gray icon. */
+  function empty(title, body, opts) {
+    opts = opts || {};
+    return h('div', { class: 'd-empty d-empty--art' }, [
+      h('div', { class: 'd-empty__art' }, [opts.hoop ? hoopScene(76) : mascot(64)]),
+      h('div', { class: 'd-empty__t', text: title }),
+      h('div', { class: 'd-empty__b', text: body })
+    ]);
+  }
+
   window.V12 = {
     header: header, card: card, btn: btn, seg: seg,
-    xpBar: xpBar, courtThumb: courtThumb, activates: activates
+    xpBar: xpBar, courtThumb: courtThumb, activates: activates,
+    avatarUrl: avatarUrl, mascot: mascot, hoopScene: hoopScene, empty: empty
   };
 })();

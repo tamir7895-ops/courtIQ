@@ -79,17 +79,14 @@
       ]));
 
       if (!data.notes.length) {
-        host.appendChild(h('div', { class: 'd-empty', style: { marginTop: '8px' } }, [
-          h('i', { class: 'ph-bold ph-bell-slash d-empty__icon' }),
-          h('div', { class: 'd-empty__t', text: 'Inbox zero' }),
-          h('div', { class: 'd-empty__b',
-            text: 'Nothing needs you right now. Go put up shots — the inbox fills itself.' })
-        ]));
+        host.appendChild(V12.empty('Inbox zero',
+          'Nothing needs you right now. Go put up shots — the inbox fills itself.'));
       }
 
+      /* neutral rows, vivid icon squares — color marks the TYPE, the row stays paper */
       data.notes.forEach(function (n) {
         host.appendChild(V12.card({
-          tint: n.tone, press: true, class: 'n12-row', bgIcon: n.icon, bgTone: n.tone,
+          press: true, class: 'n12-row', bgIcon: n.icon, bgTone: n.tone,
           onClick: function () { ctx.go(n.dest); }, label: n.title
         }, [
           h('div', { class: 'n12-row__ic n12-row__ic--' + n.tone }, [

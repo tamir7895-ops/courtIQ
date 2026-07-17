@@ -159,12 +159,9 @@
     var mean = C.playerMean(zones);
 
     if (!t.att) {
-      box.appendChild(h('div', { class: 'd-empty' }, [
-        h('i', { class: 'ph-bold ph-crosshair-simple d-empty__icon' }),
-        h('div', { class: 'd-empty__t', text: 'Nothing on the court yet' }),
-        h('div', { class: 'd-empty__b',
-          text: 'Track a session or upload a video. Every shot lands on this map, zone by zone.' })
-      ]));
+      box.appendChild(V12.empty('Nothing on the court yet',
+        'Track a session or upload a video. Every shot lands on this map, zone by zone.',
+        { hoop: true }));
       return;
     }
 
@@ -205,12 +202,8 @@
   function renderSessionsView(box, ctx) {
     return ctx.data.getSessions(15).then(function (rows) {
       if (!rows || !rows.length) {
-        box.appendChild(h('div', { class: 'd-empty' }, [
-          h('i', { class: 'ph-bold ph-flag d-empty__icon' }),
-          h('div', { class: 'd-empty__t', text: 'No sessions yet' }),
-          h('div', { class: 'd-empty__b',
-            text: 'Your first session shows up here the moment you finish it.' })
-        ]));
+        box.appendChild(V12.empty('No sessions yet',
+          'Your first session shows up here the moment you finish it.'));
         return;
       }
       rows.forEach(function (s) {
@@ -248,13 +241,9 @@
     });
 
     if (!rated.length) {
-      box.appendChild(h('div', { class: 'd-empty' }, [
-        h('i', { class: 'ph-bold ph-chat-circle-text d-empty__icon' }),
-        h('div', { class: 'd-empty__t', text: 'The scout needs evidence' }),
-        h('div', { class: 'd-empty__b',
-          text: 'Once a zone reaches ' + C.MIN_VERDICTS +
-                ' scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.' })
-      ]));
+      box.appendChild(V12.empty('The scout needs evidence',
+        'Once a zone reaches ' + C.MIN_VERDICTS +
+        ' scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.'));
       return;
     }
 
