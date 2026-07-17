@@ -14,7 +14,10 @@
      paint        16ft × 19ft   → 170→330, 0→190
      rim          5.25ft off the baseline → (250, 52.5)
    The arc meets the corner line at y = 52.5 + √(237.5² − 220²) = 141.98,
-   which is why 142 appears instead of a rounder number.
+   which is why 142 appears instead of a rounder number. Same math at the
+   paint edges: x=170/330 → y = 52.5 + √(237.5² − 80²) = 276.1 → 276.
+   (An earlier version used 222 there, which parked the zone divider ~54px
+   INSIDE the real 3pt line and carved fictional shooting zones.)
 
    ── THE COORDINATE WARNING ──────────────────────────────────────
    Shots have NO court position. shotDetection.js normalises launch x/y by
@@ -38,30 +41,33 @@
   var ZONE_PATHS = {
     lc:     'M 0 0 L 30 0 L 30 142 L 0 142 Z',
     rc:     'M 470 0 L 500 0 L 500 142 L 470 142 Z',
-    ml:     'M 30 0 L 170 0 L 170 222 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
-    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 330 222 L 330 0 Z',
-    topmid: 'M 170 190 L 330 190 L 330 222 A 237.5 237.5 0 0 0 170 222 L 170 190 Z',
-    lw:     'M 0 142 L 30 142 A 237.5 237.5 0 0 0 170 222 L 170 470 L 0 470 L 0 142 Z',
-    rw:     'M 500 142 L 470 142 A 237.5 237.5 0 0 1 330 222 L 330 470 L 500 470 L 500 142 Z',
-    top:    'M 170 222 A 237.5 237.5 0 0 0 330 222 L 330 470 L 170 470 L 170 222 Z',
+    ml:     'M 30 0 L 170 0 L 170 276 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
+    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 0 Z',
+    topmid: 'M 170 190 L 330 190 L 330 276 A 237.5 237.5 0 0 0 170 276 L 170 190 Z',
+    lw:     'M 0 142 L 30 142 A 237.5 237.5 0 0 0 170 276 L 170 470 L 0 470 L 0 142 Z',
+    rw:     'M 500 142 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 470 L 500 470 L 500 142 Z',
+    top:    'M 170 276 A 237.5 237.5 0 0 0 330 276 L 330 470 L 170 470 L 170 276 Z',
     pnt:    'M 170 0 L 330 0 L 330 190 L 170 190 Z'
   };
 
   /* Label anchors. The full-court centres for lw/rw/top sit at y≈355-360,
      which is outside the cropped viewBox — hence a second set. */
+  /* Labels sit at the visual center of the CORRECTED zones — and always
+     on the right side of the arc: top's crop label needs y≥~300 at
+     x=250 or it lands inside topmid (the arc apex is at y=290). */
   var CENTER_FULL = {
     lc: { x: 15, y: 70 },  rc: { x: 485, y: 70 },
-    ml: { x: 90, y: 100 }, mr: { x: 410, y: 100 },
-    topmid: { x: 250, y: 210 },
+    ml: { x: 92, y: 130 }, mr: { x: 408, y: 130 },
+    topmid: { x: 250, y: 236 },
     lw: { x: 85, y: 355 }, rw: { x: 415, y: 355 },
-    top: { x: 250, y: 360 }, pnt: { x: 250, y: 95 }
+    top: { x: 250, y: 370 }, pnt: { x: 250, y: 95 }
   };
   var CENTER_CROP = {
     lc: { x: 15, y: 70 },  rc: { x: 485, y: 70 },
-    ml: { x: 90, y: 100 }, mr: { x: 410, y: 100 },
-    topmid: { x: 250, y: 208 },
-    lw: { x: 78, y: 272 }, rw: { x: 422, y: 272 },
-    top: { x: 250, y: 282 }, pnt: { x: 250, y: 95 }
+    ml: { x: 92, y: 130 }, mr: { x: 408, y: 130 },
+    topmid: { x: 250, y: 236 },
+    lw: { x: 66, y: 288 }, rw: { x: 434, y: 288 },
+    top: { x: 250, y: 312 }, pnt: { x: 250, y: 95 }
   };
 
   var THREE_PT = { lc: 1, rc: 1, lw: 1, rw: 1, top: 1 };

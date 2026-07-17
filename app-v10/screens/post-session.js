@@ -6,16 +6,18 @@
   'use strict';
   var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
 
-  // Full half-court polygons, viewBox 500x470.
+  // Full half-court polygons, viewBox 500x470. Zone/arc joints at
+  // x=170/330 sit at y = 52.5 + √(237.5² − 80²) = 276 — ON the 3pt
+  // line, so the zone divider IS the 3pt line (mirrors lib/court.js).
   var ZONE_PATHS = {
     lc:     'M 0 0 L 30 0 L 30 142 L 0 142 Z',
     rc:     'M 470 0 L 500 0 L 500 142 L 470 142 Z',
-    ml:     'M 30 0 L 170 0 L 170 222 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
-    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 330 222 L 330 0 Z',
-    topmid: 'M 170 190 L 330 190 L 330 222 A 237.5 237.5 0 0 0 170 222 L 170 190 Z',
-    lw:     'M 0 142 L 30 142 A 237.5 237.5 0 0 0 170 222 L 170 470 L 0 470 L 0 142 Z',
-    rw:     'M 500 142 L 470 142 A 237.5 237.5 0 0 1 330 222 L 330 470 L 500 470 L 500 142 Z',
-    top:    'M 170 222 A 237.5 237.5 0 0 0 330 222 L 330 470 L 170 470 L 170 222 Z',
+    ml:     'M 30 0 L 170 0 L 170 276 A 237.5 237.5 0 0 1 30 142 L 30 0 Z',
+    mr:     'M 330 0 L 470 0 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 0 Z',
+    topmid: 'M 170 190 L 330 190 L 330 276 A 237.5 237.5 0 0 0 170 276 L 170 190 Z',
+    lw:     'M 0 142 L 30 142 A 237.5 237.5 0 0 0 170 276 L 170 470 L 0 470 L 0 142 Z',
+    rw:     'M 500 142 L 470 142 A 237.5 237.5 0 0 1 330 276 L 330 470 L 500 470 L 500 142 Z',
+    top:    'M 170 276 A 237.5 237.5 0 0 0 330 276 L 330 470 L 170 470 L 170 276 Z',
     pnt:    'M 170 0 L 330 0 L 330 190 L 170 190 Z'
   };
 
