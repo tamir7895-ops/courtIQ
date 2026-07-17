@@ -527,8 +527,17 @@
       var profile = results[0];
       var drills  = results[1];
 
-      host.appendChild(ctx.ui.headerPill({ profile: profile }));
-      host.appendChild(recapBar(ctx));
+      host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+        h('button', {
+          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          onclick: function () { ctx.go('track'); }
+        }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+        h('div', { style: { flex: '1' } }, [
+          h('div', { class: 'c12-chat-hd__t', text: 'Session recap' }),
+          h('div', { class: 'c12-chat-hd__s', text: new Date().toLocaleDateString(undefined, {
+            month: 'short', day: 'numeric' }) + ' · final' })
+        ])
+      ]));
       var aLine = analysisLine();
       if (aLine) host.appendChild(aLine);
 

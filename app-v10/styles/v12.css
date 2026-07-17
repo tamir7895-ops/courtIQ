@@ -33,7 +33,8 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
-        [data-screen="onboarding"], [data-screen="auth"]) {
+        [data-screen="onboarding"], [data-screen="auth"],
+        [data-screen="post-session"]) {
   /* Remap the legacy tokens so every v10 component that survives
      (progress bars, week strip…) lands on white without edits. */
   --cream:      #FFFFFF;
@@ -97,7 +98,8 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
-        [data-screen="onboarding"], [data-screen="auth"]) #app {
+        [data-screen="onboarding"], [data-screen="auth"],
+        [data-screen="post-session"]) #app {
   height: auto;
   min-height: 100dvh;
   overflow: visible;
@@ -112,7 +114,8 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
-        [data-screen="onboarding"], [data-screen="auth"]) #app::before {
+        [data-screen="onboarding"], [data-screen="auth"],
+        [data-screen="post-session"]) #app::before {
   content: none;   /* no risograph dots on the white ground */
 }
 
@@ -122,6 +125,32 @@ body[data-screen="home"] #app {
   height: 100dvh;
   overflow: hidden;
   gap: clamp(8px, 1.4dvh, 14px);
+}
+
+/* Every v12 screen enters alive: rows rise in with a small stagger.
+   Cheap (transform+opacity), capped at 8 rows, off for reduced motion. */
+body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
+        [data-screen="coach"], [data-screen="social"], [data-screen="me"],
+        [data-screen="drill-library"], [data-screen="workout-player"],
+        [data-screen="notifications"], [data-screen="avatar-customizer"],
+        [data-screen="onboarding"], [data-screen="auth"],
+        [data-screen="post-session"]) #app > * {
+  animation: d12Rise .42s var(--ease-out-expo) backwards;
+}
+body[data-screen] #app > :nth-child(1) { animation-delay: .00s; }
+body[data-screen] #app > :nth-child(2) { animation-delay: .05s; }
+body[data-screen] #app > :nth-child(3) { animation-delay: .10s; }
+body[data-screen] #app > :nth-child(4) { animation-delay: .15s; }
+body[data-screen] #app > :nth-child(5) { animation-delay: .20s; }
+body[data-screen] #app > :nth-child(6) { animation-delay: .25s; }
+body[data-screen] #app > :nth-child(7) { animation-delay: .30s; }
+body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
+@keyframes d12Rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  body[data-screen] #app > * { animation: none !important; }
 }
 
 /* ── Type ───────────────────────────────────────────────────────*/
@@ -223,13 +252,27 @@ body[data-screen="home"] #app {
   width: 46px; height: 46px; border-radius: 14px;
   display: grid; place-items: center;
   border: 2px solid transparent;
-  transition: background var(--t-fast), border-color var(--t-fast);
+  transition: background var(--t-fast), border-color var(--t-fast), transform .1s var(--ease-spring);
 }
-.d-nav__item i { font-size: 26px; color: #AFBBC6; transition: color var(--t-fast); }
-.d-nav__item.is-active .d-nav__box { background: var(--tab-tint); border-color: var(--tab-line); }
-.d-nav__item.is-active i { color: var(--tab-color); }
+/* Duolingo's bar: the icons are ALWAYS in color — the bar itself is the
+   most colorful strip on the screen. Active earns the tinted box. */
+.d-nav__item i { font-size: 26px; color: var(--tab-color); transition: color var(--t-fast); }
+.d-nav__item:not(.is-active) i { opacity: .82; }
+.d-nav__item.is-active .d-nav__box {
+  background: var(--tab-tint); border-color: var(--tab-line);
+  animation: d12NavPop .38s var(--ease-spring);
+}
+.d-nav__item.is-active i { animation: d12NavBounce .45s var(--ease-spring); }
+.d-nav__item:active .d-nav__box { transform: scale(.88); }
 .d-nav__item:focus-visible { outline: none; }
 .d-nav__item:focus-visible .d-nav__box { border-color: var(--d-ink); }
+@keyframes d12NavPop {
+  0% { transform: scale(.7); } 60% { transform: scale(1.12); } 100% { transform: scale(1); }
+}
+@keyframes d12NavBounce {
+  0% { transform: translateY(0); } 40% { transform: translateY(-5px) rotate(-6deg); }
+  70% { transform: translateY(1px); } 100% { transform: translateY(0); }
+}
 /* Per-tab feature colors */
 .d-nav__item[data-tab="home"]   { --tab-color: var(--d-orange); --tab-tint: var(--d-orange-tint); --tab-line: #FFD2C2; }
 .d-nav__item[data-tab="track"]  { --tab-color: var(--d-blue);   --tab-tint: var(--d-blue-tint);   --tab-line: #C8E9FB; }
@@ -279,7 +322,62 @@ body[data-screen="home"] #app {
   letter-spacing: .1em; color: var(--d-mute);
 }
 
-/* Row 2: four drill tiles, each a mini court diagram. */
+/* Row 2: four stat badges — streak / XP / FG% / sessions.
+   The loudest row on the screen: each badge wears its color proudly
+   and its icon moves a little, because numbers you earn should feel
+   alive (user's call: badges here, drills live in the library). */
+.h12-badges { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.h12-badge {
+  border-radius: 16px; padding: 10px 4px 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 3px;
+  border: 2px solid; text-align: center;
+  transition: transform .06s linear, box-shadow .06s linear;
+  cursor: pointer;
+}
+.h12-badge:active { transform: translateY(3px); box-shadow: none !important; }
+.h12-badge i { font-size: 22px; line-height: 1; }
+.h12-badge__v {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(19px, 3.4dvh, 24px); line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.h12-badge__l {
+  font-family: var(--d-font); font-weight: 800; font-size: 8.5px;
+  letter-spacing: .1em; text-transform: uppercase; opacity: .75;
+}
+.h12-badge--streak {
+  background: var(--d-orange-tint); border-color: #FFD2C2; box-shadow: 0 3px 0 #FFD2C2;
+  color: var(--d-orange-deep);
+}
+.h12-badge--xp {
+  background: var(--d-gold-tint); border-color: #F4E1A0; box-shadow: 0 3px 0 #F4E1A0;
+  color: var(--d-gold-deep);
+}
+.h12-badge--fg {
+  background: var(--d-green-tint); border-color: #CDEFAC; box-shadow: 0 3px 0 #CDEFAC;
+  color: var(--d-green-deep);
+}
+.h12-badge--week {
+  background: var(--d-blue-tint); border-color: #C8E9FB; box-shadow: 0 3px 0 #C8E9FB;
+  color: var(--d-blue-deep);
+}
+.h12-badge__v { color: inherit; }
+/* alive: flame flickers, bolt pulses, target breathes, flag waves */
+.h12-badge--streak i { animation: h12Flick 2.6s ease-in-out infinite; transform-origin: 50% 90%; }
+.h12-badge--xp i     { animation: h12Pulse 2.2s ease-in-out infinite; }
+.h12-badge--fg i     { animation: h12Breathe 3s ease-in-out infinite; }
+.h12-badge--week i   { animation: h12Wave 3.4s ease-in-out infinite; transform-origin: 20% 90%; }
+@keyframes h12Flick {
+  0%, 100% { transform: scale(1) rotate(0); } 30% { transform: scale(1.12) rotate(-4deg); }
+  60% { transform: scale(.96) rotate(3deg); }
+}
+@keyframes h12Pulse {
+  0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.16); opacity: .85; }
+}
+@keyframes h12Breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+@keyframes h12Wave { 0%, 100% { transform: rotate(0); } 30% { transform: rotate(-8deg); } 60% { transform: rotate(5deg); } }
+
+/* (legacy drill-tile styles kept for the library's small thumbs) */
 .h12-drills { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
 .h12-drill {
   padding: 7px 6px 6px; border-radius: 14px;
@@ -751,6 +849,54 @@ body[data-screen="home"] #app {
   font-family: var(--d-font); font-weight: 700; font-size: 11px;
   letter-spacing: .04em; text-transform: uppercase; color: var(--d-mute);
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   WORKOUT PLAYER — timer, court, reps
+   ═══════════════════════════════════════════════════════════════ */
+.wp12-timer { text-align: center; padding: 14px 16px 16px; }
+.wp12-time { font-size: 64px; line-height: .95; letter-spacing: -2px; margin-top: 2px; }
+.wp12-court { padding: 10px; }
+.wp12-desc {
+  font-family: var(--d-font); font-weight: 500; font-size: 12.5px;
+  color: var(--d-body); line-height: 1.45; padding: 9px 4px 2px;
+}
+.wp12-reps { display: flex; align-items: center; gap: 14px; padding: 13px 16px; }
+.wp12-reps__main { flex: 1; min-width: 0; }
+.wp12-reps__row { display: flex; align-items: baseline; gap: 6px; margin: 2px 0 8px; }
+.wp12-reps__v { font-size: 40px; line-height: 1; }
+.wp12-reps__t { font-family: var(--d-font); font-weight: 700; font-size: 15px; color: var(--d-mute); }
+.wp12-plus {
+  flex: 0 0 auto; width: 64px; height: 64px; border-radius: 50%;
+  border: 0; cursor: pointer; font-size: 28px;
+  background: var(--d-green); color: #fff;
+  box-shadow: 0 5px 0 var(--d-green-deep);
+  display: grid; place-items: center;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.wp12-plus:active { transform: translateY(5px); box-shadow: none; }
+.wp12-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   INBOX rows
+   ═══════════════════════════════════════════════════════════════ */
+.n12-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; }
+.n12-row__ic {
+  flex: 0 0 auto; width: 42px; height: 42px; border-radius: 13px;
+  display: grid; place-items: center; font-size: 20px; color: #fff;
+}
+.n12-row__ic--orange { background: var(--d-orange); box-shadow: 0 2px 0 var(--d-orange-deep); }
+.n12-row__ic--green  { background: var(--d-green);  box-shadow: 0 2px 0 var(--d-green-deep); }
+.n12-row__ic--gold   { background: var(--d-gold);   box-shadow: 0 2px 0 var(--d-gold-deep); }
+.n12-row__ic--blue   { background: var(--d-blue);   box-shadow: 0 2px 0 var(--d-blue-deep); }
+.n12-row__ic--purple { background: var(--d-purple); box-shadow: 0 2px 0 var(--d-purple-deep); }
+.n12-row__main { flex: 1; min-width: 0; }
+.n12-row__t { font-family: var(--d-font); font-weight: 800; font-size: 14px; color: var(--d-ink); }
+.n12-row__b {
+  font-family: var(--d-font); font-weight: 500; font-size: 12px;
+  color: var(--d-body); line-height: 1.4; margin-top: 1px;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.n12-row__chev { color: var(--d-mute); font-size: 14px; flex: 0 0 auto; }
 
 /* ── Segmented control (light) ─────────────────────────────────*/
 .d-seg {

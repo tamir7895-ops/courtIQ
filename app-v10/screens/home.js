@@ -42,7 +42,7 @@
     kids.push(main);
 
     return V12.card({
-      class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
+      tint: 'orange', class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
       onClick: function () { ctx.go('track'); },
       label: 'Court IQ — open tracking'
     }, kids);
@@ -55,7 +55,7 @@
     });
     if (prof.avatarUrl) img.style.backgroundImage = 'url(' + prof.avatarUrl + ')';
     return V12.card({
-      class: 'h12-av',
+      tint: 'gold', class: 'h12-av',
       onClick: function () { ctx.go('me'); },
       label: 'Profile'
     }, [
@@ -66,24 +66,29 @@
     ]);
   }
 
-  /* ── Row 2: drill tiles with court diagrams ─────────────────── */
-  function drillTiles(drills, ctx) {
-    var wrap = h('div', { class: 'h12-drills' });
-    var tints = ['blue', 'orange', 'green', 'purple'];
-    for (var i = 0; i < 4; i++) {
-      (function (i) {
-        var d = drills[i];
-        var open = function () { ctx.go('drill-library'); };
-        wrap.appendChild(V12.card({
-          class: 'h12-drill', press: true, onClick: open,
-          label: d ? d.name : 'Drill library'
-        }, [
-          V12.courtThumb(d ? d.focus : null, i, { label: d ? d.name : 'Drill' }),
-          h('div', { class: 'h12-drill__n', text: d ? d.name : 'More drills' })
-        ]));
-      })(i);
+  /* ── Row 2: stat badges — streak / XP / FG% / sessions ────────
+     The user's call: badges here, drills live in the library. Every
+     number is real; a stat with no evidence shows a dash, never a 0%
+     it didn't earn. */
+  function statBadges(prof, week, fg, ctx) {
+    function badge(mod, icon, value, label, go) {
+      return h('div', {
+        class: 'h12-badge h12-badge--' + mod,
+        role: 'button', tabindex: '0', 'aria-label': label + ': ' + value,
+        onclick: function () { ctx.go(go); },
+        onkeydown: V12.activates(function () { ctx.go(go); })
+      }, [
+        h('i', { class: 'ph-fill ' + icon }),
+        h('div', { class: 'h12-badge__v', text: value }),
+        h('div', { class: 'h12-badge__l', text: label })
+      ]);
     }
-    return wrap;
+    return h('div', { class: 'h12-badges' }, [
+      badge('streak', 'ph-fire', String(prof.streak || 0), 'Streak', 'me'),
+      badge('xp', 'ph-lightning', String(prof.xp || 0), 'XP', 'me'),
+      badge('fg', 'ph-target', fg, 'FG · 30D', 'track'),
+      badge('week', 'ph-flag-banner', (week.sessions || 0) + '/' + (week.goal || 5), 'This week', 'track')
+    ]);
   }
 
   /* ── Row 3: the coach line ──────────────────────────────────── */
@@ -101,7 +106,7 @@
       ]);
     }
     return V12.card({
-      class: 'h12-coach',
+      tint: 'green', class: 'h12-coach', bgIcon: 'ph-whistle', bgTone: 'green',
       onClick: function () { ctx.go('coach'); },
       label: 'Open coach'
     }, [
@@ -157,18 +162,28 @@
       ctx.data.getProfile(),
       ctx.data.getWeekStats(),
       ctx.data.getCoachVerdict(),
-      ctx.data.getDrills(4),
+      ctx.data.getZones(),
       window.V10CourtIQ.get()
     ]).then(function (r) {
       var prof   = r[0] || {};
       var week   = r[1] || { attempts: 0, sessions: 0, goal: 5, days: {} };
       var coach  = r[2];
-      var drills = r[3] || [];
+      var zones  = r[3] || {};
       var iq     = r[4];
+
+      /* FG% only past the same evidence floor the tracking screen uses */
+      var made = 0, vatt = 0;
+      Object.keys(zones).forEach(function (k) {
+        var z = zones[k]; if (!z) return;
+        made += z.made || 0; vatt += z.vatt || 0;
+      });
+      var C = window.V11Court;
+      var fg = vatt >= C.MIN_TOTAL ? Math.round(made * 100 / vatt) + '%'
+             : (vatt ? made + '/' + vatt : '—');
 
       var top = h('div', { class: 'h12-top' }, [iqCard(iq, ctx), avatarCard(prof, ctx)]);
       host.appendChild(top);
-      host.appendChild(drillTiles(drills, ctx));
+      host.appendChild(statBadges(prof, week, fg, ctx));
       host.appendChild(coachRow(coach, ctx));
       host.appendChild(challengeRow(week, ctx));
       /* flex spacer keeps the doors near the nav on tall screens

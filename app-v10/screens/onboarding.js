@@ -84,11 +84,13 @@
     return h('button', {
       onclick: onClick,
       style: {
-        background: active ? 'var(--ink)' : 'var(--cream)',
-        color: active ? 'var(--cream)' : 'var(--ink)',
-        border: '1.5px solid var(--ink)', padding: '14px 8px',
-        fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: '900',
-        letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer'
+        background: active ? 'var(--d-blue, #1CB0F6)' : 'var(--cream)',
+        color: active ? '#FFFFFF' : 'var(--ink)',
+        border: '2px solid ' + (active ? 'var(--d-blue, #1CB0F6)' : 'var(--d-line, #E5E8EC)'),
+        borderRadius: '14px', padding: '14px 8px',
+        boxShadow: active ? '0 3px 0 var(--d-blue-deep, #1899D6)' : '0 3px 0 var(--d-line, #E5E8EC)',
+        fontFamily: "'Lexend', sans-serif", fontSize: '14px', fontWeight: '800',
+        letterSpacing: '0.08em', textTransform: 'uppercase', cursor: 'pointer'
       },
       text: label
     });
@@ -257,24 +259,54 @@
   }
 
   function renderStep7(state) {
-    var grade = 'B+';
+    /* The grade and the strengths/gaps come from the SELF-SCOUT the user
+       just filled in — their own words, reflected back. The old screen
+       hardcoded "B+ / Quick release / Left-hand finishing" for everyone,
+       which made the whole intake theater. */
+    var SKILL_LABELS = {
+      shoot: 'Shooting', handle: 'Ball handling', pass: 'Passing',
+      defend: 'Defense', finish: 'Finishing', iq: 'Court IQ'
+    };
+    var entries = Object.keys(state.skills).map(function (k) {
+      return { k: k, v: state.skills[k] };
+    }).sort(function (a, b) { return b.v - a.v; });
+    var avg = entries.reduce(function (n, e) { return n + e.v; }, 0) / entries.length;
+    var grade = avg >= 8.5 ? 'A' : avg >= 7.5 ? 'A-' : avg >= 6.5 ? 'B+'
+              : avg >= 5.5 ? 'B' : avg >= 4.5 ? 'B-' : avg >= 3.5 ? 'C+' : 'C';
+    var strengths = entries.slice(0, 2).map(function (e) {
+      return SKILL_LABELS[e.k] + ' (' + e.v + '/10, your call)';
+    });
+    var gaps = entries.slice(-2).reverse().map(function (e) {
+      return SKILL_LABELS[e.k] + ' (' + e.v + '/10 — first thing to train)';
+    });
     var archetype = state.playStyle === 'sniper' ? 'PERIMETER SNIPER'
       : state.playStyle === 'slasher' ? 'DOWNHILL SLASHER'
       : state.playStyle === 'floor-general' ? 'FLOOR GENERAL'
       : state.playStyle === 'lockdown' ? 'PERIMETER LOCKDOWN'
       : 'TWO-WAY WING';
-    var court = h('div', { class: 'v10-court', style: { padding: '18px' } }, [
-      h('div', { class: 'v10-court__eyebrow' }, [icon('ph-shield-star'), h('span', { text: 'SCOUT GRADE' })]),
+    var court = h('div', {
+      style: { background: 'var(--d-gold-tint, #FFF6D8)', border: '2px solid #F4E1A0',
+        borderRadius: '18px', boxShadow: '0 3px 0 #F4E1A0', padding: '18px', textAlign: 'center' }
+    }, [
+      h('div', {
+        style: { fontFamily: "'Lexend', sans-serif", fontSize: '11px', fontWeight: '700',
+          letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--d-gold-deep, #E0A800)' },
+        text: 'SELF-SCOUT GRADE'
+      }),
       h('div', {
         style: { fontFamily: 'var(--font-display)', fontSize: '72px', fontWeight: '900',
-          color: 'var(--cream)', letterSpacing: '-3px', lineHeight: '1', textShadow: '2px 2px 0 var(--ink)' },
+          color: 'var(--ink)', letterSpacing: '-3px', lineHeight: '1' },
         text: grade
       }),
       h('div', {
-        style: { fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '800',
-          color: 'var(--cream)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: '6px',
-          textShadow: '1px 1px 0 var(--ink)' },
+        style: { fontFamily: "'Lexend', sans-serif", fontSize: '15px', fontWeight: '800',
+          color: 'var(--ink)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: '6px' },
         text: archetype
+      }),
+      h('div', {
+        style: { fontFamily: "'Lexend', sans-serif", fontSize: '11px', fontWeight: '500',
+          color: 'var(--muted)', marginTop: '4px' },
+        text: 'From your own ratings — the court gets the final say.'
       })
     ]);
 
@@ -327,8 +359,8 @@
     return h('div', null, [
       court,
       avatarStrip,
-      card('STRENGTHS', ['Quick release', 'Good court vision', 'Plays bigger than height'], 'sage', 'ph-flame'),
-      card('GAPS TO CLOSE', ['Left-hand finishing', 'Off-ball defense', 'Free throw consistency'], 'orange', 'ph-target')
+      card('STRENGTHS', strengths, 'sage', 'ph-flame'),
+      card('GAPS TO CLOSE', gaps, 'orange', 'ph-target')
     ]);
   }
 
