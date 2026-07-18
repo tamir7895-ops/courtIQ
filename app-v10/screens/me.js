@@ -226,7 +226,7 @@
     host.appendChild(h('div', { class: 'm12-two' }, [
       V12.card({
         tint: 'gold', press: true, bgIcon: 'ph-storefront', bgTone: 'gold', class: 'm12-doortile',
-        onClick: function () { ctx.go('avatar-customizer'); }, label: 'Shop'
+        onClick: function () { ctx.go('shop'); }, label: 'Shop'
       }, [
         h('i', { class: 'ph-fill ph-storefront m12-doortile__ic m12-doortile__ic--gold' }),
         h('div', { class: 'm12-doortile__t', text: 'SHOP' })

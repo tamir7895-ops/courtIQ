@@ -193,6 +193,14 @@
      Saved customizer URL first, else a deterministic DiceBear render
      seeded by the player's name (same trick the old header pill used). */
   function avatarUrl(prof) {
+    /* Prefer the live customizer params so the face reflects the latest
+       edit even before a save round-trips through courtiq_avatar_url. */
+    try {
+      if (window.V12Avatar && localStorage.getItem('courtiq_avatar_params')) {
+        return window.V12Avatar.buildUrl(window.V12Avatar.load(),
+          { seed: (prof && prof.name) || 'courtiq' });
+      }
+    } catch (e) {}
     try {
       var u = localStorage.getItem('courtiq_avatar_url');
       if (u) return u;

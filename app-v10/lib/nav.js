@@ -21,7 +21,7 @@
   var ALIAS = {
     train: 'track', 'drill-library': 'track', 'workout-player': 'track',
     'post-session': 'track', 'camera-hud': 'track',
-    'avatar-customizer': 'me', notifications: 'home', onboarding: 'home'
+    'avatar-customizer': 'me', shop: 'me', notifications: 'home', onboarding: 'home'
   };
 
   var navEl = null;
