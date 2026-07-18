@@ -375,7 +375,7 @@
           ]),
           V12.card({
             press: true, tint: 'blue', bgIcon: 'ph-clipboard-text', bgTone: 'blue', class: 't12-door',
-            onClick: function () { ctx.go('train'); }, label: 'Customize your training plan'
+            onClick: function () { ctx.go('plan'); }, label: 'Customize your training plan'
           }, [
             h('i', { class: 'ph-fill ph-clipboard-text t12-door__ic t12-door__ic--blue' }),
             h('div', { class: 't12-door__t', text: 'Customize your training plan' })

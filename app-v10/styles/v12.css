@@ -1197,7 +1197,9 @@ body[data-screen="post-session"] .v10-court {
 /* ═══════════════════════════════════════════════════════════════
    ONBOARDING / PLAN — the combine
    ═══════════════════════════════════════════════════════════════ */
-body:is([data-screen="onboarding"], [data-screen="plan"]) #app {
+/* onboarding is a fixed-height wizard; the plan console scrolls (it's a
+   long program view) and keeps the default v12 scaffold. */
+body[data-screen="onboarding"] #app {
   height: 100dvh; overflow: hidden;
   display: flex; flex-direction: column; gap: 0;
   padding: calc(var(--safe-top) + 16px) 18px calc(16px + var(--safe-bottom));
@@ -1292,6 +1294,173 @@ body:is([data-screen="onboarding"], [data-screen="plan"]) #app {
 .tr12-plan { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-top: 10px; }
 .tr12-plan__l { font-family: var(--d-font); font-weight: 700; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--d-mute); }
 .tr12-plan__v { font-family: var(--d-font); font-weight: 700; font-size: 13px; color: var(--d-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ═══════════════════════════════════════════════════════════════
+   TRAINING PLAN CONSOLE
+   ═══════════════════════════════════════════════════════════════ */
+.plan12-body { display: flex; flex-direction: column; gap: 12px; }
+
+.plan12-nav { display: flex; align-items: center; justify-content: space-between; }
+.plan12-nav__l { font-family: var(--font-display); font-weight: 900; font-size: 18px; text-transform: uppercase; color: var(--d-ink); }
+.plan12-nav__b {
+  width: 38px; height: 38px; border-radius: 12px; cursor: pointer;
+  background: var(--d-bg); border: 2px solid var(--d-line); box-shadow: 0 2px 0 var(--d-line);
+  color: var(--d-ink); font-size: 16px; display: grid; place-items: center;
+}
+.plan12-nav__b:active { transform: translateY(2px); box-shadow: none; }
+
+/* summary card (ink) with ring */
+.plan12-sum { display: flex; align-items: center; gap: 16px; padding: 15px 16px; }
+.plan12-ring { flex: 0 0 auto; }
+.plan12-sum__main { flex: 1; min-width: 0; }
+.plan12-sum__t { font-family: var(--d-font); font-weight: 800; font-size: 17px; color: var(--d-ink); }
+.plan12-sum__s { font-family: var(--d-font); font-weight: 500; font-size: 12px; color: var(--d-mute); margin-top: 1px; }
+.plan12-sum__chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
+.plan12-mini {
+  display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 10px;
+  font-family: var(--d-font); font-weight: 800; font-size: 11px;
+}
+.plan12-mini i { font-size: 12px; }
+.plan12-mini--gold { background: var(--d-gold-tint); color: var(--d-gold-deep); }
+.plan12-mini--orange { background: var(--d-orange-tint); color: var(--d-orange-deep); }
+
+/* focus pill (shared) */
+.plan12-fpill {
+  display: inline-flex; align-items: center; gap: 5px; border-radius: 999px; padding: 4px 11px;
+  font-family: var(--d-font); font-weight: 800; font-size: 12px; letter-spacing: .02em;
+}
+.plan12-fpill i { font-size: 13px; }
+.plan12-fpill--orange { background: var(--d-orange-tint); color: var(--d-orange-deep); }
+.plan12-fpill--blue   { background: var(--d-blue-tint);   color: var(--d-blue-deep); }
+.plan12-fpill--green  { background: var(--d-green-tint);  color: var(--d-green-deep); }
+.plan12-fpill--purple { background: var(--d-purple-tint); color: var(--d-purple-deep); }
+.plan12-fpill--gold   { background: var(--d-gold-tint);   color: var(--d-gold-deep); }
+.plan12-fpill--rest   { background: var(--d-alt); color: var(--d-mute); }
+
+/* week day rows */
+.plan12-week { display: flex; flex-direction: column; gap: 7px; }
+.plan12-day {
+  display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; text-align: left;
+  background: var(--d-bg); border: 2px solid var(--d-line); border-radius: 14px;
+  box-shadow: 0 2px 0 var(--d-line); padding: 9px 12px;
+  transition: transform .06s linear, box-shadow .06s linear; -webkit-tap-highlight-color: transparent;
+}
+.plan12-day:active { transform: translateY(2px); box-shadow: none; }
+.plan12-day.is-today { border-color: var(--d-ink); box-shadow: 0 2px 0 var(--d-ink); }
+.plan12-day.is-done { background: var(--d-green-tint); border-color: #CDEFAC; box-shadow: 0 2px 0 #CDEFAC; }
+.plan12-day.is-rest { opacity: .72; }
+.plan12-day__date { flex: 0 0 auto; width: 38px; text-align: center; }
+.plan12-day__dow { font-family: var(--d-font); font-weight: 700; font-size: 9.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--d-mute); }
+.plan12-day__num { font-family: var(--font-display); font-weight: 900; font-size: 20px; color: var(--d-ink); line-height: 1; }
+.plan12-day__main { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.plan12-day__meta { font-family: var(--d-font); font-weight: 500; font-size: 11px; color: var(--d-mute); }
+.plan12-day__mk { flex: 0 0 auto; font-size: 20px; color: var(--d-mute); }
+.plan12-day__mk--done { color: var(--d-green); }
+.plan12-day__mk--today { color: var(--d-orange); font-size: 13px; }
+
+.plan12-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plan12-two .d-btn { min-height: 50px; }
+
+/* month */
+.plan12-periodcard { padding: 12px 14px; }
+.plan12-period { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 8px; }
+.plan12-period__w { background: var(--d-alt); border-radius: 10px; padding: 8px 4px; text-align: center; }
+.plan12-period__n { font-family: var(--font-display); font-weight: 900; font-size: 13px; color: var(--d-ink); }
+.plan12-period__l { font-family: var(--d-font); font-weight: 700; font-size: 9px; letter-spacing: .06em; text-transform: uppercase; color: var(--d-mute); }
+
+.plan12-calcard { padding: 12px; }
+.plan12-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.plan12-cal__wd { text-align: center; font-family: var(--d-font); font-weight: 700; font-size: 9px; color: var(--d-mute); text-transform: uppercase; }
+.plan12-cal__d {
+  aspect-ratio: 1; border-radius: 9px; border: 2px solid transparent; cursor: pointer;
+  background: var(--d-alt); position: relative;
+  display: grid; place-items: center;
+  font-family: var(--d-font); font-weight: 700; font-size: 11px; color: var(--d-body);
+}
+.plan12-cal__d::after {
+  content: ''; position: absolute; bottom: 4px; left: 50%; transform: translateX(-50%);
+  width: 5px; height: 5px; border-radius: 50%; background: var(--fc, transparent);
+}
+.plan12-cal__d.is-rest::after { display: none; }
+.plan12-cal__d.is-done { background: var(--fc, var(--d-green)); color: #fff; }
+.plan12-cal__d.is-done::after { display: none; }
+.plan12-cal__d.is-today { border-color: var(--d-ink); }
+.plan12-cal__d.is-out { opacity: .3; }
+
+.plan12-monthstats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.plan12-mstat { background: var(--d-alt); border-radius: 14px; padding: 11px 8px; text-align: center; }
+.plan12-mstat__v { font-size: 26px; line-height: 1; }
+
+/* focus builder */
+.plan12-focus { display: flex; flex-direction: column; gap: 8px; }
+.plan12-frow {
+  display: flex; align-items: center; gap: 12px; padding: 9px 12px;
+  background: var(--d-bg); border: 2px solid var(--d-line); border-radius: 14px; box-shadow: 0 2px 0 var(--d-line);
+}
+.plan12-frow.is-on { border-color: var(--d-line-2); }
+.plan12-frow__ic { width: 38px; height: 38px; border-radius: 11px; display: grid; place-items: center; font-size: 19px; color: #fff; flex: 0 0 auto; }
+.plan12-frow__ic--orange { background: var(--d-orange); } .plan12-frow__ic--blue { background: var(--d-blue); }
+.plan12-frow__ic--green { background: var(--d-green); } .plan12-frow__ic--purple { background: var(--d-purple); }
+.plan12-frow__ic--gold { background: var(--d-gold); color: #4A3400; }
+.plan12-frow__l { flex: 1; font-family: var(--d-font); font-weight: 800; font-size: 14px; color: var(--d-ink); }
+.plan12-stepper { display: flex; align-items: center; gap: 8px; flex: 0 0 auto; }
+.plan12-stepper__b {
+  width: 32px; height: 32px; border-radius: 10px; cursor: pointer;
+  background: var(--d-alt); border: 2px solid var(--d-line); color: var(--d-ink); font-size: 14px;
+  display: grid; place-items: center;
+}
+.plan12-stepper__b:active { transform: translateY(2px); }
+.plan12-stepper__v { font-family: var(--font-display); font-weight: 900; font-size: 18px; color: var(--d-ink); width: 16px; text-align: center; }
+
+/* progress */
+.plan12-balance { display: flex; flex-direction: column; gap: 8px; }
+.plan12-bal { display: flex; align-items: center; gap: 10px; }
+.plan12-bal__l { flex: 0 0 108px; display: flex; align-items: center; gap: 6px; font-family: var(--d-font); font-weight: 700; font-size: 12px; color: var(--d-ink); }
+.plan12-bal__ic--orange { color: var(--d-orange); } .plan12-bal__ic--blue { color: var(--d-blue-deep); }
+.plan12-bal__ic--green { color: var(--d-green-deep); } .plan12-bal__ic--purple { color: var(--d-purple-deep); }
+.plan12-bal__ic--gold { color: var(--d-gold-deep); }
+.plan12-bal__bar { flex: 1; height: 10px; border-radius: 5px; background: rgba(10,40,80,.08); overflow: hidden; }
+.plan12-bal__fill { height: 100%; border-radius: 5px; }
+.plan12-bal__fill--orange { background: var(--d-orange); } .plan12-bal__fill--blue { background: var(--d-blue); }
+.plan12-bal__fill--green { background: var(--d-green); } .plan12-bal__fill--purple { background: var(--d-purple); }
+.plan12-bal__fill--gold { background: var(--d-gold); }
+.plan12-bal__v { flex: 0 0 auto; font-family: var(--font-display); font-weight: 800; font-size: 13px; color: var(--d-ink); width: 40px; text-align: right; }
+
+.plan12-trend { display: flex; align-items: flex-end; gap: 8px; height: 110px; padding: 6px 4px 0; }
+.plan12-trend__col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; }
+.plan12-trend__bar { width: 68%; min-height: 4px; border-radius: 6px 6px 0 0; background: var(--d-blue); }
+.plan12-trend__x { font-family: var(--d-font); font-weight: 700; font-size: 9px; color: var(--d-mute); }
+.plan12-trend__load { font-family: var(--d-font); font-weight: 500; font-size: 12.5px; color: var(--d-mute); align-self: center; text-align: center; }
+
+/* day editor sheet */
+.plan12-sheetbg {
+  position: fixed; inset: 0; z-index: 70; background: rgba(10,40,80,.4);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: plan12Fade .18s ease;
+}
+@keyframes plan12Fade { from { opacity: 0; } }
+.plan12-sheet {
+  width: 100%; max-width: 480px; max-height: 82dvh; overflow-y: auto;
+  background: var(--d-bg); border: 2px solid var(--d-ink);
+  border-radius: 22px 22px 0 0; box-shadow: 0 -6px 0 var(--d-ink);
+  padding: 16px 16px calc(18px + var(--safe-bottom));
+  animation: plan12Up .24s var(--ease-out-expo);
+}
+@keyframes plan12Up { from { transform: translateY(40px); } }
+.plan12-sheet__hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.plan12-sheet__t { font-family: var(--font-display); font-weight: 900; font-size: 22px; text-transform: uppercase; color: var(--d-ink); }
+.plan12-sheet__x { width: 36px; height: 36px; border-radius: 11px; cursor: pointer; background: var(--d-alt); border: 2px solid var(--d-line); color: var(--d-ink); font-size: 16px; display: grid; place-items: center; }
+.plan12-chips { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 6px; }
+.plan12-chip { border: 0; background: none; cursor: pointer; padding: 0; border-radius: 999px; }
+.plan12-chip.is-active { outline: 2px solid var(--d-ink); outline-offset: 1px; }
+.plan12-drow { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1.5px dashed var(--d-line); }
+.plan12-drow__n { font-family: var(--font-display); font-weight: 900; font-size: 14px; color: var(--d-mute); width: 18px; }
+.plan12-drow__main { flex: 1; min-width: 0; }
+.plan12-drow__t { font-family: var(--d-font); font-weight: 700; font-size: 13.5px; color: var(--d-ink); }
+.plan12-drow__s { font-family: var(--d-font); font-weight: 500; font-size: 11px; color: var(--d-mute); }
+.plan12-rest { display: flex; align-items: center; gap: 8px; padding: 16px 2px; font-family: var(--d-font); font-weight: 600; font-size: 13.5px; color: var(--d-mute); }
+.plan12-rest i { font-size: 20px; color: var(--d-purple); }
+.plan12-sheet__foot { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
 
 /* ── Segmented control (light) ─────────────────────────────────*/
 .d-seg {

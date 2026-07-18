@@ -346,6 +346,15 @@
     return null;
   }
   function getPlanDrills() {
+    /* Prefer the v12 plan console's schedule: prescribe TODAY's focus. */
+    try {
+      if (window.V12Plan) {
+        var p = window.V12Plan.load();
+        var td = window.V12Plan.todaysDrills(p);
+        if (td && td.length) return Promise.resolve(td);
+        // a scheduled rest day → still give something light to browse
+      }
+    } catch (e) {}
     var prefs = getPlanPrefs();
     var minutes = (prefs && prefs.minutes) || 30;
     var N = Math.max(2, Math.min(6, Math.round(minutes / 8)));
