@@ -329,6 +329,61 @@
     }, []);
   }
 
+  /* Plan-aware drill selection. Reads courtiq_plan_prefs (written by
+     onboarding / the plan editor) and prescribes a session that honors
+     the player's chosen focus areas and fits their session length —
+     roughly one 8-minute drill per 8 minutes, 2–6 drills. Falls back to
+     the generic getDrills when there are no prefs or no matching pool. */
+  var FOCUS_TO_AREA = {
+    shooting: 'Shooting', handles: 'Ball Handling', finishing: 'Finishing',
+    defense: 'Defense', conditioning: 'Conditioning', passing: 'Passing'
+  };
+  function getPlanPrefs() {
+    try {
+      var raw = localStorage.getItem('courtiq_plan_prefs');
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return null;
+  }
+  function getPlanDrills() {
+    var prefs = getPlanPrefs();
+    var minutes = (prefs && prefs.minutes) || 30;
+    var N = Math.max(2, Math.min(6, Math.round(minutes / 8)));
+    if (!prefs || !prefs.focus || !prefs.focus.length) return getDrills(N);
+
+    return safe(function () {
+      var DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : null;
+      if (!DB || !DB.length) return getDrills(N);
+      var accents = ['orange', 'sage', 'mustard'];
+      var areas = prefs.focus.map(function (f) { return FOCUS_TO_AREA[f]; }).filter(Boolean);
+      var picks = [], usedIds = {};
+      // round-robin across focus areas, in priority order, so the top
+      // focus leads and every chosen area is represented
+      var poolByArea = areas.map(function (area) {
+        return DB.filter(function (d) { return d && d.focus_area === area; });
+      });
+      var cursor = 0;
+      while (picks.length < N && cursor < 40) {
+        var area = cursor % Math.max(1, areas.length);
+        var pool = poolByArea[area] || [];
+        var d = pool[Math.floor(cursor / Math.max(1, areas.length)) % Math.max(1, pool.length)];
+        cursor++;
+        if (!d || usedIds[d.id]) continue;
+        usedIds[d.id] = 1;
+        picks.push({
+          id: d.id || ('plan-' + picks.length),
+          name: d.name || ('Drill ' + (picks.length + 1)),
+          reps: d.reps_or_sets ? parseInt(String(d.reps_or_sets), 10) || 30 : 30,
+          mins: d.duration_minutes || 6,
+          accent: accents[picks.length % accents.length],
+          focus: d.focus_area || 'Skill',
+          description: d.description || ''
+        });
+      }
+      return picks.length ? picks : getDrills(N);
+    }, getDrills(N));
+  }
+
   // ─── latest session ─────────────────────────────────────
   function getLatestSession() {
     return safe(function () {
@@ -431,6 +486,8 @@
     getWeekStats:      getWeekStats,
     getCoachVerdict:   getCoachVerdict,
     getDrills:         getDrills,
+    getPlanDrills:     getPlanDrills,
+    getPlanPrefs:      getPlanPrefs,
     getZones:          getZones,
     getSessions:       getSessions,
     getTotals:         getTotals,

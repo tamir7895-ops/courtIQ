@@ -168,10 +168,11 @@
 
     return Promise.all([
       ctx.data.getProfile(),
-      ctx.data.getDrills()
+      ctx.data.getPlanDrills ? ctx.data.getPlanDrills() : ctx.data.getDrills()
     ]).then(function (r) {
       var profile = r[0] || {};
       var drills = r[1] || [];
+      var prefs = ctx.data.getPlanPrefs ? ctx.data.getPlanPrefs() : null;
 
       function paint() {
         while (host.firstChild) host.removeChild(host.firstChild);
@@ -191,6 +192,23 @@
         host.appendChild(window.V12.seg([
           { id: 'today', label: 'Today' }, { id: 'library', label: 'Library' }
         ], tab, function (n) { tab = n; paint(); }));
+
+        /* the plan the drills came from — one tap to reshape it */
+        var FL = { shooting: 'Shooting', handles: 'Ball handling', finishing: 'Finishing',
+                   defense: 'Defense', conditioning: 'Conditioning', passing: 'Passing' };
+        var focusTxt = prefs && prefs.focus && prefs.focus.length
+          ? prefs.focus.map(function (f) { return FL[f] || f; }).join(' · ')
+          : 'Balanced — set your focus';
+        host.appendChild(window.V12.card({
+          press: true, class: 'tr12-plan', bgIcon: 'ph-sliders', bgTone: 'blue',
+          onClick: function () { ctx.go('plan'); }, label: 'Plan settings'
+        }, [
+          h('div', { style: { flex: '1', minWidth: '0' } }, [
+            h('div', { class: 'tr12-plan__l', text: 'YOUR PLAN' }),
+            h('div', { class: 'tr12-plan__v', text: (prefs ? (prefs.days || 4) + ' days · ' + (prefs.minutes || 30) + 'm · ' : '') + focusTxt })
+          ]),
+          h('i', { class: 'ph-bold ph-caret-right', style: { color: 'var(--d-mute)' } })
+        ]));
 
         var sheet = V.sheet();
         host.appendChild(sheet);

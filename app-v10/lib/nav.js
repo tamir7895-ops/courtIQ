@@ -19,7 +19,7 @@
 
   // Screens that belong to a tab without being one.
   var ALIAS = {
-    train: 'track', 'drill-library': 'track', 'workout-player': 'track',
+    train: 'track', plan: 'track', 'drill-library': 'track', 'workout-player': 'track',
     'post-session': 'track', 'camera-hud': 'track',
     'avatar-customizer': 'me', shop: 'me', notifications: 'home', onboarding: 'home'
   };
