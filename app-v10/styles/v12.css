@@ -33,6 +33,7 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
+        [data-screen="shop"], [data-screen="plan"],
         [data-screen="onboarding"], [data-screen="auth"],
         [data-screen="post-session"]) {
   /* Remap the legacy tokens so every v10 component that survives
@@ -109,6 +110,7 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
+        [data-screen="shop"], [data-screen="plan"],
         [data-screen="onboarding"], [data-screen="auth"],
         [data-screen="post-session"]) #app {
   height: auto;
@@ -128,6 +130,7 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
+        [data-screen="shop"], [data-screen="plan"],
         [data-screen="onboarding"], [data-screen="auth"],
         [data-screen="post-session"]) #app::before {
   content: '';
@@ -162,6 +165,7 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="coach"], [data-screen="social"], [data-screen="me"],
         [data-screen="drill-library"], [data-screen="workout-player"],
         [data-screen="notifications"], [data-screen="avatar-customizer"],
+        [data-screen="shop"], [data-screen="plan"],
         [data-screen="onboarding"], [data-screen="auth"],
         [data-screen="post-session"]) #app > * {
   animation: d12Rise .42s var(--ease-out-expo) backwards;
