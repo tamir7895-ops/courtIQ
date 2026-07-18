@@ -919,6 +919,7 @@ body[data-screen] #app > .m12-band { animation: none; }
 .m12-set__s { font-family: var(--d-font); font-weight: 500; font-size: 11.5px; color: var(--d-mute); margin-top: 1px; }
 .m12-set__chev { color: var(--d-mute); font-size: 14px; }
 
+.me12-editscroll { display: flex; flex-direction: column; gap: 14px; padding: 2px 0 4px; }
 .m12-form { padding: 14px 16px; }
 .m12-in {
   width: 100%; margin-top: 6px;

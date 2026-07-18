@@ -143,37 +143,102 @@
     }
   }
 
-  /* ── edit profile view ────────────────────────────────────────*/
+  /* ── edit profile view — the full data card, editable ──────────
+     Everything the combine collected about the player, in one place:
+     name, position, play style, and the measurables. Reads the same
+     localStorage keys onboarding writes so the two round-trip, and
+     re-renders me on save so the header + id card reflect it. */
+  function lsGet(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+
   function editView(host, ctx, prof, back) {
     while (host.firstChild) host.removeChild(host.firstChild);
+
+    /* current values from storage (fall back to profile / sane defaults) */
+    var cur = {
+      name: (prof.name && prof.name !== 'Rookie') ? prof.name : (lsGet('courtiq_profile_name', '') || ''),
+      position: lsGet('courtiq_profile_position', '') || (prof.position || ''),
+      playStyle: lsGet('courtiq_profile_playstyle', '') || '',
+      height: parseInt(lsGet('courtiq_profile_height', '74'), 10) || 74,
+      weight: parseInt(lsGet('courtiq_profile_weight', '175'), 10) || 175,
+      age: parseInt(lsGet('courtiq_profile_age', '17'), 10) || 17,
+      hand: lsGet('courtiq_profile_hand', 'R') || 'R'
+    };
+
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       backBtn(back),
-      h('div', {}, [h('div', { class: 'c12-chat-hd__t', text: 'Edit profile' })])
+      h('div', {}, [
+        h('div', { class: 'c12-chat-hd__t', text: 'Edit my data' }),
+        h('div', { class: 'c12-chat-hd__s', text: 'Your combine card — change anything' })
+      ])
     ]));
+
+    var scroll = h('div', { class: 'me12-editscroll' });
+    host.appendChild(scroll);
+
+    /* helpers reusing the onboarding control styles */
+    function slider(label, val, min, max, unit, key) {
+      var out = h('span', { class: 'onb12-slider__v', text: val + (unit || '') });
+      var input = h('input', { type: 'range', min: String(min), max: String(max), value: String(val), class: 'onb12-range' });
+      input.addEventListener('input', function () {
+        cur[key] = parseInt(input.value, 10);
+        out.textContent = input.value + (unit || '');
+      });
+      return h('div', { class: 'onb12-slider' }, [
+        h('div', { class: 'onb12-slider__top' }, [h('span', { class: 'd-label', text: label }), out]), input
+      ]);
+    }
+    function pickRow(label, opts, key, cols) {
+      var wrap = h('div', { class: cols === 2 ? 'onb12-two' : 'onb12-grid3' });
+      function paintPills() {
+        while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+        opts.forEach(function (o) {
+          wrap.appendChild(h('button', {
+            class: 'onb12-pill' + (cur[key] === o.id ? ' is-active' : ''), type: 'button',
+            onclick: function () { cur[key] = o.id; paintPills(); }
+          }, [
+            h('div', { class: 'onb12-pill__l', text: o.l }),
+            o.s ? h('div', { class: 'onb12-pill__s', text: o.s }) : null
+          ].filter(Boolean)));
+        });
+      }
+      paintPills();
+      return h('div', {}, [h('div', { class: 'd-label', style: { marginBottom: '7px' }, text: label }), wrap]);
+    }
 
     var nameIn = h('input', {
-      class: 'm12-in', type: 'text', maxlength: '24',
-      placeholder: 'Your name', value: prof.name === 'Rookie' ? '' : (prof.name || '')
+      class: 'onb12-input', type: 'text', maxlength: '24',
+      placeholder: 'Your name', value: cur.name,
+      oninput: function (e) { cur.name = e.target.value; }
     });
-    var posIn = h('select', { class: 'm12-in' },
-      ['GUARD', 'FORWARD', 'CENTER', 'PLAYER'].map(function (p) {
-        var o = h('option', { value: p, text: p.charAt(0) + p.slice(1).toLowerCase() });
-        if ((prof.position || 'PLAYER') === p) o.selected = true;
-        return o;
-      }));
 
-    host.appendChild(V12.card({ class: 'm12-form' }, [
+    scroll.appendChild(h('div', { class: 'onb12-body' }, [
       h('div', { class: 'd-label', text: 'NAME' }), nameIn,
-      h('div', { class: 'd-label', style: { marginTop: '12px' }, text: 'POSITION' }), posIn
+      pickRow('Position', [
+        { id: 'PG', l: 'Point' }, { id: 'SG', l: 'Shooting' }, { id: 'SF', l: 'Small F' },
+        { id: 'PF', l: 'Power F' }, { id: 'C', l: 'Center' }
+      ], 'position', 3),
+      pickRow('Play style', [
+        { id: 'sniper', l: 'Sniper' }, { id: 'slasher', l: 'Slasher' },
+        { id: 'floor-general', l: 'Floor Gen' }, { id: 'lockdown', l: 'Lockdown' }
+      ], 'playStyle', 2),
+      slider('Height', cur.height, 60, 90, '"', 'height'),
+      slider('Weight', cur.weight, 100, 320, ' lb', 'weight'),
+      slider('Age', cur.age, 10, 60, ' yr', 'age'),
+      pickRow('Shooting hand', [{ id: 'L', l: 'Lefty' }, { id: 'R', l: 'Righty' }], 'hand', 2)
     ]));
+
     host.appendChild(V12.btn({
       label: 'Save', icon: 'ph-check',
       onClick: function () {
         try {
-          localStorage.setItem('courtiq_profile_name', nameIn.value.trim());
-          localStorage.setItem('courtiq_profile_position', posIn.value);
+          localStorage.setItem('courtiq_profile_name', (cur.name || '').trim() || 'Rookie');
+          localStorage.setItem('courtiq_profile_position', cur.position || '');
+          localStorage.setItem('courtiq_profile_playstyle', cur.playStyle || '');
+          localStorage.setItem('courtiq_profile_height', String(cur.height));
+          localStorage.setItem('courtiq_profile_weight', String(cur.weight));
+          localStorage.setItem('courtiq_profile_age', String(cur.age));
+          localStorage.setItem('courtiq_profile_hand', cur.hand || 'R');
         } catch (e) {}
-        /* re-render from scratch so the header card shows the new name */
         window.app.go('me');
       }
     }));

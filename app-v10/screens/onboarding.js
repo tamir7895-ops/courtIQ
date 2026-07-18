@@ -278,6 +278,8 @@
       localStorage.setItem('courtiq_profile_position', s.position || '');
       localStorage.setItem('courtiq_profile_hand', s.hand || 'R');
       localStorage.setItem('courtiq_profile_height', String(s.height));
+      localStorage.setItem('courtiq_profile_weight', String(s.weight));
+      localStorage.setItem('courtiq_profile_age', String(s.age));
       localStorage.setItem('courtiq_profile_playstyle', s.playStyle || '');
       localStorage.setItem('courtiq_plan_prefs', JSON.stringify({
         days: s.days, minutes: s.minutes, equipment: s.equipment,
