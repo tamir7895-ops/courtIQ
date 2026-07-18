@@ -908,6 +908,16 @@
                   if (eng._classifyV10Zone)  v10Zone  = eng._classifyV10Zone(feetX, feetY, rimZoneObj, eng.threePtDistance || 0) || v10Zone;
                   if (eng._classifyShotZone) shotZone = eng._classifyShotZone({ x: feetX, y: feetY }, rimZoneObj, eng.threePtDistance || 0) || shotZone;
                 } catch (e) { /* zones are cosmetic */ }
+                // Court calibration (when present): true court coords + real
+                // distance from the shooter's feet; overrides the image-space
+                // zone heuristic. See courtPosition.js.
+                var court = null;
+                try {
+                  if (window.CourtPosition && window.CourtPosition.isCalibrated()) {
+                    court = window.CourtPosition.locate(feetX, feetY);
+                    if (court) v10Zone = court.zone;
+                  }
+                } catch (e) { court = null; }
                 // small trajectory record: rim-area best obs across the window
                 var traj = [];
                 for (var ti = w0; ti <= w1 && traj.length < 40; ti++) {
@@ -920,6 +930,9 @@
                   shotX: feetX, shotY: feetY,
                   launchPoint: { x: feetX, y: feetY },
                   v10Zone: v10Zone, shotZone: shotZone,
+                  courtX: court ? +court.x.toFixed(2) : null,
+                  courtZ: court ? +court.z.toFixed(2) : null,
+                  shotDistM: court ? +court.dist.toFixed(2) : null,
                   trajectory: traj,
                   __videoT: tShot,
                   triggerSrc: 'offline-timeline'

@@ -4089,6 +4089,17 @@
       if (v10fy != null && v10fy > 1.5) v10fy = v10fy / vh;
       var v10Zone = classifyV10Zone(v10fx, v10fy, this.rimZone, this.threePtDistance);
 
+      // COURT POSITION: when a per-session calibration exists, project the
+      // shooter's feet through the floor homography for TRUE court coords,
+      // real shot distance (meters) and an exact zone. The image-space
+      // classifyV10Zone stays as the uncalibrated fallback.
+      var court = null;
+      if (window.CourtPosition && window.CourtPosition.isCalibrated() &&
+          v10fx != null && v10fy != null) {
+        court = window.CourtPosition.locate(v10fx, v10fy);
+        if (court) v10Zone = court.zone;
+      }
+
       var shotData = {
         result: finalResult,
         shotX: normX,
@@ -4099,6 +4110,9 @@
         v10Zone: v10Zone,
         feetXNorm: v10fx,
         feetYNorm: v10fy,
+        courtX: court ? +court.x.toFixed(2) : null,   // meters, +X right of rim
+        courtZ: court ? +court.z.toFixed(2) : null,   // meters from rim toward court
+        shotDistM: court ? +court.dist.toFixed(2) : null,
         timestamp: now,
         triggerSrc: triggerSrc,           // 'pose' | 'ball' — for analytics + UI badge
         releaseConfidence: releaseConf    // 0-1 when pose-triggered, null otherwise
