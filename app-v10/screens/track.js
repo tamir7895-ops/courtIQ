@@ -270,6 +270,67 @@
     });
   }
 
+  /* ── court calibration (shooter position in real meters) ──────
+     Establishes the floor homography once per court/camera setup so the
+     shot map + distances are true court coordinates, not image-space
+     guesses. See features/shot-tracking/courtPosition.js. */
+  var CALIB_KEY = 'courtiq-calib-v1';
+  var SPEC_KEY = 'courtiq-court-spec';
+  var COURT_TYPES = [
+    { id: 'us_hs', label: 'High school' },
+    { id: 'ncaa',  label: 'College' },
+    { id: 'nba',   label: 'NBA' },
+    { id: 'fiba',  label: 'FIBA' }
+  ];
+
+  function calibSection(repaint) {
+    if (!window.CourtCalibration || !window.CourtPosition) return null;
+    // restore a saved calibration so status is accurate across reloads
+    if (!window.CourtPosition.isCalibrated()) {
+      try { window.CourtCalibration.restore(CALIB_KEY); } catch (e) {}
+    }
+    var spec = localStorage.getItem(SPEC_KEY) || 'us_hs';
+    var calibrated = window.CourtPosition.isCalibrated();
+
+    function launch() {
+      window.CourtCalibration.startFromCamera({
+        spec: spec,
+        landmarkSet: 'lane',
+        persistKey: CALIB_KEY,
+        onDone: function () { repaint(); },
+        onError: function (err) {
+          alert('Could not open the camera to calibrate: ' + (err && err.message || 'unknown'));
+        }
+      });
+    }
+
+    return V12.card({ class: 't12-calib', tint: calibrated ? 'green' : null,
+                      bgIcon: 'ph-ruler', bgTone: calibrated ? 'green' : 'ink' }, [
+      h('div', { class: 't12-calib__hd' }, [
+        h('i', { class: 'ph-fill ' + (calibrated ? 'ph-check-circle' : 'ph-ruler') }),
+        h('div', { text: calibrated ? 'Court calibrated' : 'Calibrate your court' })
+      ]),
+      h('div', { class: 't12-calib__sub', text: calibrated
+        ? 'Shot distances and zones are mapped to real court meters.'
+        : 'Tap 4 court lines once, and every shot gets a true distance and zone.' }),
+      h('div', { class: 'd-label t12-calib__lbl', text: 'COURT TYPE' }),
+      V12.seg(COURT_TYPES, spec, function (next) {
+        localStorage.setItem(SPEC_KEY, next);
+        // a saved calibration was fit to the old spec — clear it so the
+        // status is honest until the user recalibrates on the new spec
+        if (window.CourtPosition.isCalibrated()) {
+          window.CourtPosition.clear();
+          try { localStorage.removeItem(CALIB_KEY); } catch (e) {}
+        }
+        repaint();
+      }),
+      V12.btn({
+        label: calibrated ? 'Recalibrate court' : 'Calibrate court',
+        icon: 'ph-crosshair', onClick: launch
+      })
+    ]);
+  }
+
   /* ── screen ───────────────────────────────────────────────────*/
   function render(args) {
     var host = args.host, ctx = args.ctx;
@@ -296,6 +357,9 @@
         if (view === 'map') renderMapView(box, zones);
         else if (view === 'sessions') renderSessionsView(box, ctx);
         else renderInsightsView(box, ctx, zones);
+
+        var calib = calibSection(paint);
+        if (calib) host.appendChild(calib);
 
         host.appendChild(V12.btn({
           label: 'Session start', icon: 'ph-play-circle',

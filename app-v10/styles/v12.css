@@ -633,6 +633,17 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   color: var(--d-body); line-height: 1.45; margin-top: 3px; max-width: 88%;
 }
 
+/* court calibration card */
+.t12-calib { padding: 15px 16px; display: flex; flex-direction: column; gap: 10px; }
+.t12-calib__hd { display: flex; align-items: center; gap: 8px;
+  font-family: var(--d-font); font-weight: 800; font-size: 15px; color: var(--d-ink); }
+.t12-calib__hd i { font-size: 20px; color: var(--d-ink); }
+.t12-calib__sub { font-family: var(--d-font); font-weight: 500; font-size: 12.5px;
+  color: var(--d-body); line-height: 1.4; margin-top: -2px; max-width: 92%; }
+.t12-calib__lbl { margin-top: 2px; }
+.t12-calib .d-seg { margin: 0; }
+.t12-calib .d-btn { margin-top: 2px; }
+
 /* the two doors under the CTA */
 .t12-doors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .t12-door { display: flex; flex-direction: column; gap: 8px; padding: 14px 16px; min-height: 84px; }

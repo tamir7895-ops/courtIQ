@@ -183,6 +183,50 @@
 
     cancel: function () { finish(false); },
 
+    /* Convenience: open the rear camera, wait for a frame, then run the
+       tap-calibration on it. Same camera constraints as ShotTrackingScreen
+       so the calibration is done at the SAME framing the session will use.
+       opts.onDone(ok) fires after the user confirms/cancels; the stream is
+       always stopped. opts.onError(err) for camera-permission failures. */
+    startFromCamera: function (opts) {
+      opts = opts || {};
+      var self = this;
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        if (opts.onError) opts.onError(new Error('camera unavailable'));
+        return;
+      }
+      var video = document.createElement('video');
+      video.muted = true; video.playsInline = true; video.setAttribute('playsinline', '');
+      var stream = null;
+      function stop() { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); }
+      navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      }).then(function (s) {
+        stream = s; video.srcObject = s;
+        return video.play();
+      }).then(function () {
+        // wait for a decoded frame with real dimensions
+        var tries = 0;
+        (function waitFrame() {
+          if (video.videoWidth > 0 && video.videoHeight > 0) {
+            var userDone = opts.onDone;
+            self.start(video, Object.assign({}, opts, {
+              onDone: function (ok) { stop(); if (userDone) userDone(ok); }
+            }));
+          } else if (tries++ < 100) {
+            setTimeout(waitFrame, 50);
+          } else {
+            stop();
+            if (opts.onError) opts.onError(new Error('no camera frame'));
+          }
+        })();
+      }).catch(function (err) {
+        stop();
+        if (opts.onError) opts.onError(err);
+      });
+    },
+
     restore: function (persistKey) {
       CP = window.CourtPosition;
       if (!CP) return false;
