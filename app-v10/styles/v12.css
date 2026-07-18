@@ -362,44 +362,60 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
    HOME — the sketch, row by row
    ═══════════════════════════════════════════════════════════════ */
 
-/* Row 1: Court IQ compact + avatar. One card, two lives. */
-.h12-top { display: flex; gap: 10px; align-items: stretch; }
-.h12-iq {
-  flex: 1; display: flex; align-items: center; gap: 14px;
-  padding: clamp(10px, 1.8dvh, 16px) 16px;
+/* Row 1: the player summary card — name, Court IQ + rate, XP rank,
+   and the avatar on the right (where the basketball used to sit). */
+.h12-summary { display: flex; align-items: center; gap: 14px; padding: 13px 15px; }
+.h12-sum__main {
+  flex: 1; min-width: 0; cursor: pointer; align-self: stretch;
+  display: flex; flex-direction: column; justify-content: center;
 }
-.h12-iq__num {
-  font-size: clamp(44px, 8.4dvh, 64px); line-height: .9;
-  display: flex; align-items: baseline; gap: 7px;
+.h12-sum__main:focus-visible { outline: 2px solid var(--d-blue); outline-offset: 3px; border-radius: 8px; }
+.h12-sum__name {
+  font-family: var(--font-display); font-weight: 900;
+  font-size: clamp(20px, 3.4dvh, 26px); line-height: 1;
+  text-transform: uppercase; letter-spacing: -.01em; color: var(--d-ink);
 }
-.h12-iq__num--empty { color: var(--d-mute); }
-.h12-iq__delta { font-family: var(--d-font); font-weight: 800; font-size: 16px; }
-.h12-iq__delta--up   { color: var(--d-green-deep); }
-.h12-iq__delta--down { color: var(--d-red); }
-.h12-iq__delta--flat { color: var(--d-mute); }
-.h12-iq__tier {
+.h12-sum__lbl { margin: 6px 0 1px; }
+.h12-sum__iqrow { display: flex; align-items: baseline; gap: 9px; }
+.h12-sum__score {
+  font-size: clamp(38px, 7dvh, 52px); line-height: .85; color: var(--d-ink);
+}
+.h12-sum__score--empty { color: var(--d-mute); }
+.h12-sum__tier {
   font-family: var(--d-font); font-weight: 800; font-size: 12px;
-  letter-spacing: .12em; text-transform: uppercase; color: var(--d-orange);
-  border-top: 2px solid var(--d-line); padding-top: 5px; margin-top: 5px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--d-orange);
 }
-.h12-iq__lbl { margin-bottom: 2px; }
-/* The avatar's own background color IS the card — the character sits
-   full-bleed in its window, no circle-in-a-box. */
-.h12-av {
-  flex: 0 0 auto; width: auto; aspect-ratio: 1;
-  padding: 0; overflow: hidden;
+.h12-sum__delta { font-family: var(--d-font); font-weight: 800; font-size: 13px; margin-left: 6px; }
+.h12-sum__delta--up   { color: var(--d-green-deep); }
+.h12-sum__delta--down { color: var(--d-red); }
+.h12-sum__delta--flat { color: var(--d-mute); }
+.h12-sum__meta { display: flex; gap: 7px; margin-top: 9px; flex-wrap: wrap; }
+.h12-sum__chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  border-radius: 999px; padding: 4px 10px;
+  font-family: var(--d-font); font-weight: 800; font-size: 11px; letter-spacing: .04em;
 }
-.h12-av__img {
-  position: absolute; inset: 0; border-radius: inherit;
-  background-color: var(--d-gold);
-  background-size: cover; background-position: center 20%;
+.h12-sum__chip i { font-size: 12px; }
+.h12-sum__chip--fg { background: var(--d-green-tint); color: var(--d-green-deep); }
+.h12-sum__chip--xp { background: var(--d-gold-tint); color: var(--d-gold-deep); }
+/* the avatar, round, in its own color — the "where the basketball was" spot */
+.h12-sum__av {
+  flex: 0 0 auto; position: relative; cursor: pointer;
+  width: clamp(74px, 13dvh, 92px); height: clamp(74px, 13dvh, 92px);
 }
-.h12-av__lv {
-  position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%);
-  background: #FFFFFF; border: 1.5px solid var(--d-line);
-  border-radius: 999px; padding: 2px 8px; white-space: nowrap;
-  font-family: var(--d-font); font-weight: 800; font-size: 9.5px;
-  letter-spacing: .1em; color: var(--d-ink);
+.h12-sum__avimg {
+  position: absolute; inset: 0; border-radius: 50%;
+  background-color: var(--av-bg, var(--d-gold));
+  background-size: cover; background-position: center 18%;
+  border: 3px solid var(--d-ink); box-shadow: 3px 3px 0 var(--d-ink);
+}
+.h12-sum__av:focus-visible .h12-sum__avimg { outline: 3px solid var(--d-blue); outline-offset: 2px; }
+.h12-sum__lv {
+  position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%);
+  background: #FFFFFF; border: 2px solid var(--d-ink);
+  border-radius: 999px; padding: 1px 9px; white-space: nowrap;
+  font-family: var(--d-font); font-weight: 800; font-size: 10px;
+  letter-spacing: .06em; color: var(--d-ink);
 }
 
 /* Row 2: four stat badges — streak / XP / FG% / sessions.

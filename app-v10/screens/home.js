@@ -16,51 +16,78 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
-  /* ── Row 1: Court IQ + avatar ───────────────────────────────── */
-  function iqCard(iq, ctx) {
-    var kids = [];
-    var main = h('div', { style: { minWidth: '0' } });
-    main.appendChild(h('div', { class: 'd-label h12-iq__lbl', text: 'COURT IQ' }));
-
-    if (!iq) {
-      main.appendChild(h('div', { class: 'd-num h12-iq__num h12-iq__num--empty', text: '—' }));
-      main.appendChild(h('div', { class: 'h12-iq__tier', text: 'UNRATED' }));
-    } else {
-      var num = [document.createTextNode(String(iq.score))];
-      if (iq.delta != null && iq.delta !== 0) {
-        var tone = iq.delta > 0 ? 'up' : (iq.decayed ? 'flat' : 'down');
-        num.push(h('span', {
-          class: 'h12-iq__delta h12-iq__delta--' + tone,
-          text: (iq.delta > 0 ? '+' : '') + iq.delta,
-          title: iq.decayed ? 'Sessions ageing out of the 30-day window'
-                            : 'Change vs 7 days ago'
-        }));
+  /* The XP rank name (ROOKIE / HOOPER / ALL-STAR / MVP) from the real
+     XP system — the "level like BEGINNER" the summary card shows. */
+  function xpRank(prof) {
+    try {
+      if (window.XPSystem && window.XPSystem.getLevel) {
+        var l = window.XPSystem.getLevel(prof.xp || 0);
+        if (l && l.name) return l.name;
       }
-      main.appendChild(h('div', { class: 'd-num h12-iq__num' }, num));
-      main.appendChild(h('div', { class: 'h12-iq__tier', text: iq.tier }));
-    }
-    kids.push(main);
-
-    /* the print-DNA card: paper, navy border, hard offset shadow */
-    return V12.card({
-      tint: 'ink', class: 'h12-iq', bgIcon: 'ph-basketball', bgTone: 'orange',
-      onClick: function () { ctx.go('track'); },
-      label: 'Court IQ — open tracking'
-    }, kids);
+    } catch (e) {}
+    return 'Rookie';
   }
 
-  function avatarCard(prof, ctx) {
-    /* the character full-bleed — its background color fills the card */
-    var img = h('div', { class: 'h12-av__img' });
+  /* ── Row 1: the player summary card ───────────────────────────
+     A small dossier: name, Court IQ (+ its percentage rate), the XP
+     rank, and the player's avatar on the right — where the basketball
+     used to sit. Two tap targets: the body opens tracking, the avatar
+     opens the profile. */
+  function summaryCard(prof, iq, fg, ctx) {
+    var goTrack = function () { ctx.go('track'); };
+    var goMe = function () { ctx.go('me'); };
+
+    /* left: name + Court IQ + rank */
+    var iqRow = h('div', { class: 'h12-sum__iqrow' });
+    if (!iq) {
+      iqRow.appendChild(h('div', { class: 'd-num h12-sum__score h12-sum__score--empty', text: '—' }));
+      iqRow.appendChild(h('div', { class: 'h12-sum__tier', text: 'UNRATED' }));
+    } else {
+      iqRow.appendChild(h('div', { class: 'd-num h12-sum__score', text: String(iq.score) }));
+      var tone = (iq.delta != null && iq.delta !== 0)
+        ? (iq.delta > 0 ? 'up' : (iq.decayed ? 'flat' : 'down')) : null;
+      var tierKids = [h('span', { class: 'h12-sum__tier', text: iq.tier })];
+      if (tone) tierKids.push(h('span', {
+        class: 'h12-sum__delta h12-sum__delta--' + tone,
+        text: (iq.delta > 0 ? '+' : '') + iq.delta
+      }));
+      iqRow.appendChild(h('div', {}, tierKids));
+    }
+
+    var main = h('div', {
+      class: 'h12-sum__main', role: 'button', tabindex: '0',
+      'aria-label': 'Court IQ — open tracking', onclick: goTrack, onkeydown: V12.activates(goTrack)
+    }, [
+      h('div', { class: 'h12-sum__name', text: (prof.name || 'Rookie') }),
+      h('div', { class: 'd-label h12-sum__lbl', text: 'COURT IQ' }),
+      iqRow,
+      h('div', { class: 'h12-sum__meta' }, [
+        h('div', { class: 'h12-sum__chip h12-sum__chip--fg' }, [
+          h('i', { class: 'ph-fill ph-target' }),
+          h('span', { text: fg + ' FG' })
+        ]),
+        h('div', { class: 'h12-sum__chip h12-sum__chip--xp' }, [
+          h('i', { class: 'ph-fill ph-lightning' }),
+          h('span', { text: xpRank(prof).toUpperCase() })
+        ])
+      ])
+    ]);
+
+    /* right: avatar where the basketball was */
+    var img = h('div', { class: 'h12-sum__avimg' });
     img.style.backgroundImage = 'url(' + V12.avatarUrl(prof) + ')';
-    return V12.card({
-      class: 'h12-av',
-      onClick: function () { ctx.go('me'); },
-      label: 'Profile'
+    var url = V12.avatarUrl(prof);
+    var avColor = (url.match(/backgroundColor=([0-9A-Fa-f]{6})/) || [])[1] || 'FFB800';
+    var av = h('div', {
+      class: 'h12-sum__av', role: 'button', tabindex: '0',
+      'aria-label': 'Profile', onclick: goMe, onkeydown: V12.activates(goMe)
     }, [
       img,
-      h('div', { class: 'h12-av__lv', text: 'LV ' + (prof.level || 1) })
+      h('div', { class: 'h12-sum__lv', text: 'LV ' + (prof.level || 1) })
     ]);
+    av.style.setProperty('--av-bg', '#' + avColor);
+
+    return V12.card({ tint: 'ink', class: 'h12-summary' }, [main, av]);
   }
 
   /* ── Row 2: stat badges — streak / XP / FG% / sessions ────────
@@ -158,7 +185,7 @@
     }
     return h('div', { class: 'h12-doors' }, [
       door('lib', 'ph-barbell', 'Drill library', 'drill-library'),
-      door('start', 'ph-play-circle', 'Start session', 'camera-hud')
+      door('start', 'ph-basketball', 'Start session', 'camera-hud')
     ]);
   }
 
@@ -188,8 +215,7 @@
       var fg = vatt >= C.MIN_TOTAL ? Math.round(made * 100 / vatt) + '%'
              : (vatt ? made + '/' + vatt : '—');
 
-      var top = h('div', { class: 'h12-top' }, [iqCard(iq, ctx), avatarCard(prof, ctx)]);
-      host.appendChild(top);
+      host.appendChild(summaryCard(prof, iq, fg, ctx));
       host.appendChild(statBadges(prof, week, fg, ctx));
       host.appendChild(coachRow(coach, ctx));
       /* normal rhythm top to bottom — no stretched void in the middle */
