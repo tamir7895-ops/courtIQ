@@ -135,15 +135,19 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
         [data-screen="post-session"]) #app::before {
   content: '';
   position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  /* A real gym floor: light parquet (plank seams two ways) under REAL
-     court lines only — boundary, half line, center circle, and per
-     half: paint, free-throw semicircle (far half, like the floor),
-     and the 3pt line. No backboards, no rims, no invented marks;
-     the only crossing is the center circle over the half line,
-     exactly as on a real court. 8px/ft on a 400×752 canvas. */
+  /* A real gym floor: light parquet (plank seams two ways) under the
+     court diagram from the user's reference photo, ONE TO ONE. Per half:
+     paint with the four lane hash marks outside each lane line
+     (7/8/11/14 ft), free-throw circle with the far half SOLID and the
+     basket-side half DASHED, backboard (6ft, at 4ft) + rim (r=0.75ft at
+     5.25ft), and a 3pt arc that springs straight off the baseline —
+     exactly as drawn in the photo, no corner straights. Boundary, half
+     line and center circle unchanged. 8px/ft on a 400×752 canvas; the
+     arc meets the baseline at x = 200 ± √(190² − 42²) ≈ ±185, which is
+     why 15/385 and not rounder numbers. */
   background-color: #F8EFDC;
   background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 752'%3E%3Cg fill='none' stroke='%230A2850' stroke-opacity='.10' stroke-width='3'%3E%3Crect x='4' y='4' width='392' height='744'/%3E%3Cpath d='M 4 376 L 396 376'/%3E%3Ccircle cx='200' cy='376' r='48'/%3E%3Crect x='136' y='4' width='128' height='152'/%3E%3Cpath d='M 152 156 A 48 48 0 0 0 248 156'/%3E%3Cpath d='M 24 4 L 24 118 A 190 190 0 0 0 376 118 L 376 4'/%3E%3Crect x='136' y='596' width='128' height='152'/%3E%3Cpath d='M 152 596 A 48 48 0 0 1 248 596'/%3E%3Cpath d='M 24 748 L 24 634 A 190 190 0 0 1 376 634 L 376 748'/%3E%3C/g%3E%3C/svg%3E"),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 752'%3E%3Cg fill='none' stroke='%230A2850' stroke-opacity='.10' stroke-width='3'%3E%3Crect x='4' y='4' width='392' height='744'/%3E%3Cpath d='M 4 376 L 396 376'/%3E%3Ccircle cx='200' cy='376' r='48'/%3E%3Crect x='136' y='4' width='128' height='152'/%3E%3Cpath d='M 152 156 A 48 48 0 0 0 248 156'/%3E%3Cpath d='M 152 156 A 48 48 0 0 1 248 156' stroke-dasharray='10 9'/%3E%3Cpath d='M 176 36 L 224 36'/%3E%3Ccircle cx='200' cy='46' r='6'/%3E%3Cpath d='M 136 60 L 127 60 M 136 68 L 127 68 M 136 92 L 127 92 M 136 116 L 127 116'/%3E%3Cpath d='M 264 60 L 273 60 M 264 68 L 273 68 M 264 92 L 273 92 M 264 116 L 273 116'/%3E%3Cpath d='M 15 4 A 190 190 0 0 0 385 4'/%3E%3Crect x='136' y='596' width='128' height='152'/%3E%3Cpath d='M 152 596 A 48 48 0 0 1 248 596'/%3E%3Cpath d='M 152 596 A 48 48 0 0 0 248 596' stroke-dasharray='10 9'/%3E%3Cpath d='M 176 716 L 224 716'/%3E%3Ccircle cx='200' cy='706' r='6'/%3E%3Cpath d='M 136 692 L 127 692 M 136 684 L 127 684 M 136 660 L 127 660 M 136 636 L 127 636'/%3E%3Cpath d='M 264 692 L 273 692 M 264 684 L 273 684 M 264 660 L 273 660 M 264 636 L 273 636'/%3E%3Cpath d='M 15 748 A 190 190 0 0 1 385 748'/%3E%3C/g%3E%3C/svg%3E"),
     repeating-linear-gradient(90deg, rgba(150,105,55,.07) 0 1px, transparent 1px 26px),
     repeating-linear-gradient(0deg, rgba(150,105,55,.05) 0 1px, transparent 1px 92px);
   background-size: 100% auto, auto, auto;
@@ -765,6 +769,35 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 }
 @keyframes c12In { from { opacity: 0; transform: translateY(6px); } }
 .c12-chips { display: flex; flex-wrap: wrap; gap: 7px; padding-top: 6px; }
+
+/* ── free-text row — same press physics as every other control ── */
+.c12-chat-in {
+  display: flex; gap: 8px; align-items: center; padding-top: 8px;
+}
+.c12-chat-in__field {
+  flex: 1; min-width: 0; height: 46px; padding: 0 16px;
+  border: 2px solid var(--d-line); border-radius: 999px;
+  background: var(--d-bg); color: var(--d-ink);
+  font-family: var(--d-font); font-weight: 600; font-size: 14px;
+}
+.c12-chat-in__field:focus { outline: none; border-color: var(--d-blue); }
+.c12-chat-in__field::placeholder { color: var(--d-muted); font-weight: 600; }
+.c12-chat-in__send {
+  flex: 0 0 auto; width: 46px; height: 46px; border-radius: 50%;
+  border: 0; cursor: pointer; display: grid; place-items: center;
+  background: var(--d-blue); color: #fff; font-size: 19px;
+  box-shadow: 0 3px 0 var(--d-blue-deep);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.c12-chat-in__send:active { transform: translateY(3px); box-shadow: none; }
+
+/* typing — three quiet pulses, no bounce */
+.c12-msg--typing .c12-msg__bubble { color: var(--d-muted); letter-spacing: 3px; }
+.c12-msg--typing .c12-msg__bubble { animation: c12Typing 1.1s ease-in-out infinite; }
+@keyframes c12Typing { 50% { opacity: .35; } }
+@media (prefers-reduced-motion: reduce) {
+  .c12-msg--typing .c12-msg__bubble { animation: none; }
+}
 .c12-chip {
   border: 2px solid var(--d-blue); background: var(--d-bg); cursor: pointer;
   color: var(--d-blue-deep); border-radius: 999px; padding: 8px 14px;

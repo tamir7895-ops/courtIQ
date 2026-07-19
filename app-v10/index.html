@@ -150,6 +150,7 @@
 <script src="lib/v12.js?v=dev"></script>
 <script src="lib/avatar.js?v=dev"></script>
 <script src="lib/plan.js?v=dev"></script>
+<script src="lib/coach-ai.js?v=dev"></script>
 <script src="lib/nav.js?v=dev"></script>
 <script src="lib/mobile.js?v=dev"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
@@ -157,6 +158,11 @@
      dev server. Never ships to a production build. -->
 <script>
   (function () {
+    /* NEVER inside the native app: Capacitor's webview origin is
+       capacitor://localhost (iOS) / https://localhost (Android), so a
+       plain hostname check would ship the dev Studio to every phone.
+       Caught before it ever reached a build; the guard stays first. */
+    if (window.Capacitor) return;
     var host = location.hostname;
     var dev = host === 'localhost' || host === '127.0.0.1' ||
               /^192\.168\./.test(host) || /^10\./.test(host) ||

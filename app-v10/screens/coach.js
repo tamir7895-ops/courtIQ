@@ -58,12 +58,20 @@
     return lines;
   }
 
-  /* ── chat view (guided) ───────────────────────────────────────*/
+  /* ── chat view ────────────────────────────────────────────────
+     Signed in: a real conversation — V12CoachAI carries the player's
+     actual zones, sessions, plan and Court IQ to Claude through the
+     claude-proxy edge function, and the model can adjust the plan via
+     the @@ACTION protocol.
+     Signed out: the proxy 401s, so guests keep the local guided
+     answers — labelled as such, never pretending to be live. */
   function chatView(host, ctx, data, back) {
     while (host.firstChild) host.removeChild(host.firstChild);
 
+    var live = !!(window.V12CoachAI && window.V12CoachAI.signedIn());
     var thread = h('div', { class: 'c12-thread' });
     var chips = h('div', { class: 'c12-chips' });
+    var busy = false;
 
     function coachSay(text) {
       var b = h('div', { class: 'c12-msg c12-msg--coach' }, [
@@ -72,6 +80,7 @@
       ]);
       thread.appendChild(b);
       thread.scrollTop = thread.scrollHeight;
+      return b;
     }
     function userSay(text) {
       thread.appendChild(h('div', { class: 'c12-msg c12-msg--user' }, [
@@ -79,56 +88,99 @@
       ]));
       thread.scrollTop = thread.scrollHeight;
     }
+    function typing() {
+      var t = coachSay('…');
+      t.classList.add('c12-msg--typing');
+      return t;
+    }
 
-    var ASKS = [
-      { q: 'What should I work on?', a: function () {
-          var rank = data.rank;
-          if (!rank.length) return ['Not enough scored shots from any one spot. Give me ' +
-            C.MIN_VERDICTS + ' from a zone and I rate it.'];
-          var cold = rank[rank.length - 1];
-          var cz = data.zones[cold];
-          return ['Spend 30 reps a session at the ' + C.LABEL[cold].toLowerCase() +
-            '. It sits at ' + cz.made + ' of ' + cz.vatt + '. The plan screen has a block for it.'];
-        } },
-      { q: 'How does my week look?', a: function () {
-          var w = data.week || {};
-          if (!w.sessions) return ['No sessions this week yet. One tonight changes that.'];
-          return [w.sessions + ' session' + (w.sessions === 1 ? '' : 's') + ' this week, ' +
-            (w.attempts || 0) + ' shots up. Goal is ' + (w.goal || 5) + ' sessions.'];
-        } },
-      { q: 'Open my heat map', go: 'track' },
-      { q: 'Build my plan', go: 'train' }
-    ];
+    /* Local answers — the guest path, and the safety net when the
+       proxy is down. Same voice, same real numbers. */
+    function localAnswer(q) {
+      var rank = data.rank, w = data.week || {};
+      if (/work on|improve|weak/i.test(q)) {
+        if (!rank.length) return 'Not enough scored shots from any one spot. Give me ' +
+          C.MIN_VERDICTS + ' from a zone and I rate it.';
+        var cold = rank[rank.length - 1];
+        var cz = data.zones[cold];
+        return 'Spend 30 reps a session at the ' + C.LABEL[cold].toLowerCase() +
+          '. It sits at ' + cz.made + ' of ' + cz.vatt + '. The plan screen has a block for it.';
+      }
+      if (/week|today/i.test(q)) {
+        if (!w.sessions) return 'No sessions this week yet. One tonight changes that.';
+        return w.sessions + ' session' + (w.sessions === 1 ? '' : 's') + ' this week, ' +
+          (w.attempts || 0) + ' shots up. Goal is ' + (w.goal || 5) + ' sessions.';
+      }
+      return 'Sign in and I can answer that properly — with your film in front of me. ' +
+        'Until then: the quick questions below always work.';
+    }
 
-    function fillChips() {
-      while (chips.firstChild) chips.removeChild(chips.firstChild);
-      ASKS.forEach(function (a) {
-        chips.appendChild(h('button', {
-          class: 'c12-chip', type: 'button',
-          onclick: function () {
-            userSay(a.q);
-            if (a.go) { setTimeout(function () { ctx.go(a.go); }, 350); return; }
-            setTimeout(function () { a.a().forEach(coachSay); }, 420);
-          }
-        }, [h('span', { text: a.q })]));
+    function send(q) {
+      if (busy || !q) return;
+      userSay(q);
+      if (!live) {
+        setTimeout(function () { coachSay(localAnswer(q)); }, 380);
+        return;
+      }
+      busy = true;
+      var t = typing();
+      window.V12CoachAI.ask(q, data, ctx).then(function (r) {
+        t.remove(); busy = false;
+        coachSay(r.text);
+        if (r.confirmation) coachSay(r.confirmation);
+      }).catch(function (e) {
+        t.remove(); busy = false;
+        if (e && e.guest) { live = false; coachSay(localAnswer(q)); return; }
+        /* proxy down ≠ coach silent: answer locally and say why */
+        coachSay(localAnswer(q));
+        coachSay('(Live line dropped — that was the short version. Try again in a minute.)');
       });
     }
+
+    var STARTERS = [
+      'What should I work on?',
+      'How does my week look?',
+      'Build my week around shooting',
+      'Why did my Court IQ move?'
+    ];
+    STARTERS.forEach(function (q) {
+      chips.appendChild(h('button', {
+        class: 'c12-chip', type: 'button',
+        onclick: function () { send(q); }
+      }, [h('span', { text: q })]));
+    });
+
+    /* free-text row — the reason this screen exists now */
+    var input = h('input', {
+      class: 'c12-chat-in__field', type: 'text',
+      placeholder: live ? 'Ask the coach anything…' : 'Sign in for the live coach — chips work now',
+      'aria-label': 'Message the coach', maxlength: '280', autocomplete: 'off'
+    });
+    var sendBtn = h('button', {
+      class: 'c12-chat-in__send', type: 'button', 'aria-label': 'Send',
+      onclick: function () { var q = input.value.trim(); input.value = ''; send(q); }
+    }, [h('i', { class: 'ph-fill ph-paper-plane-right' })]);
+    input.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Enter') { ev.preventDefault(); sendBtn.click(); }
+    });
 
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       h('button', {
         class: 'c12-back', type: 'button', 'aria-label': 'Back',
-        onclick: back
+        onclick: function () { if (window.V12CoachAI) window.V12CoachAI.reset(); back(); }
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
       h('div', {}, [
         h('div', { class: 'c12-chat-hd__t', text: 'The Scout' }),
-        h('div', { class: 'c12-chat-hd__s', text: 'Only talks about shots that really happened' })
+        h('div', { class: 'c12-chat-hd__s',
+          text: live ? 'Live — reads your real film before every answer'
+                     : 'Only talks about shots that really happened' })
       ])
     ]));
     host.appendChild(thread);
     host.appendChild(chips);
+    host.appendChild(h('div', { class: 'c12-chat-in' }, [input, sendBtn]));
 
     scoutLines(data).forEach(coachSay);
-    fillChips();
   }
 
   /* ── training calendar — last 4 weeks, real session days ─────*/
@@ -224,13 +276,18 @@
       ctx.data.getCoachVerdict(),
       ctx.data.getZones(),
       ctx.data.getSessions(60),
-      ctx.data.getWeekStats()
+      ctx.data.getWeekStats(),
+      ctx.data.getProfile(),
+      window.V10CourtIQ ? window.V10CourtIQ.get() : Promise.resolve(null)
     ]).then(function (r) {
       var zones = r[1] || {};
       var mean = C.playerMean(zones);
       var data = {
         coach: r[0], zones: zones, sessions: r[2] || [], week: r[3] || {},
-        t: totals(zones), rank: ranked(zones, mean)
+        t: totals(zones), rank: ranked(zones, mean),
+        /* the AI coach grounds its answers in these — real or absent */
+        prof: r[4] || {}, iq: r[5] || null,
+        plan: (window.V12Plan && window.V12Plan.load) ? window.V12Plan.load() : null
       };
       mainView(host, ctx, data);
     });
