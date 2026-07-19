@@ -55,21 +55,24 @@ http.createServer((req, res) => {
     if (err || !st.isFile()) { res.writeHead(404); res.end('not found: ' + p); return; }
     const ext = path.extname(file).toLowerCase();
     const mime = MIME[ext] || 'application/octet-stream';
+    // Dev server: never let the browser cache source — edits must always
+    // load fresh (a stale cached offlineProcessor.js silently hid a fix).
+    const noCache = { 'Cache-Control': 'no-store, must-revalidate' };
     const range = req.headers.range;
     if (range && st.size) {
       const m = /bytes=(\d*)-(\d*)/.exec(range);
       let start = m && m[1] ? parseInt(m[1], 10) : 0;
       let end = m && m[2] ? parseInt(m[2], 10) : st.size - 1;
       if (isNaN(start) || start > end) { start = 0; end = st.size - 1; }
-      res.writeHead(206, {
+      res.writeHead(206, Object.assign({
         'Content-Type': mime,
         'Content-Range': 'bytes ' + start + '-' + end + '/' + st.size,
         'Accept-Ranges': 'bytes',
         'Content-Length': end - start + 1,
-      });
+      }, noCache));
       fs.createReadStream(file, { start, end }).pipe(res);
     } else {
-      res.writeHead(200, { 'Content-Type': mime, 'Content-Length': st.size, 'Accept-Ranges': 'bytes' });
+      res.writeHead(200, Object.assign({ 'Content-Type': mime, 'Content-Length': st.size, 'Accept-Ranges': 'bytes' }, noCache));
       fs.createReadStream(file).pipe(res);
     }
   });

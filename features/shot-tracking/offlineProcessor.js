@@ -154,6 +154,86 @@
     return passScan('red') || passScan('orange');
   }
 
+  /* ── Ball-track gap interpolation (bridge detection dropout at the rim) ──
+     The made/miss classifier is only as good as the ball signal it sees.
+     YOLOX drops the ball for a handful of frames at the exact through-rim
+     moment (net occlusion, motion blur, tiny distant ball) — measured on
+     the night_c 1.1s make: a 6-frame gap at the crossing (f46→f52) broke the
+     dwell-run continuity and the make was scored a miss. Competitor trackers
+     (avishah3, chonyy, NEX/HomeCourt) all agree: don't classify off raw
+     per-frame detections — associate them into a track and interpolate the
+     gap, then decide against the continuous trajectory.
+
+     Greedy constant-velocity association over the near-rim obs; for each pair
+     of consecutive REAL anchors in a track separated by a short gap, insert
+     linearly-interpolated points into the intervening frames. We ONLY bridge
+     BETWEEN two real detections — never extrapolate past the last one (that
+     is the L31 ghost bug where a constant-velocity phantom sailed off-frame
+     and fired false triggers). Interpolated points carry a modest synthetic
+     score so they clear the ball floor but never dominate a real detection.
+     Validated on GT (scratch/score_batch.py SB_TRACKFILL): 15/17 → 16/17
+     with zero regressions; stable for maxGap 6-12. obs is mutated in place
+     (new arrays are pushed onto the per-frame lists). */
+  function bridgeTrackGaps(obs, N, maxGap, synthS) {
+    maxGap = maxGap || 8; synthS = synthS || 0.12;
+    var openT = [], tracks = [];
+    for (var f = 0; f < N; f++) {
+      var cand = obs[f].slice().sort(function (a, b) { return b.s - a.s; });
+      var used = new Array(cand.length);
+      for (var ti = 0; ti < openT.length; ti++) {
+        var tr = openT[ti];
+        var last = tr.pts[tr.pts.length - 1];
+        var dt = f - tr.lastF;
+        var px = last.x + tr.vx * dt, py = last.y + tr.vy * dt;
+        var gate = 0.045 + 0.02 * (dt - 1);
+        var best = -1, bd = gate;
+        for (var ci = 0; ci < cand.length; ci++) {
+          if (used[ci]) continue;
+          var dist = Math.abs(cand[ci].x - px) + Math.abs(cand[ci].y - py);
+          if (dist < bd) { best = ci; bd = dist; }
+        }
+        if (best >= 0) {
+          used[best] = true;
+          var d = cand[best], step = Math.max(1, f - last.frame);
+          tr.vx = 0.4 * tr.vx + 0.6 * (d.x - last.x) / step;
+          tr.vy = 0.4 * tr.vy + 0.6 * (d.y - last.y) / step;
+          tr.pts.push({ frame: f, x: d.x, y: d.y }); tr.lastF = f;
+        }
+      }
+      for (var ci2 = 0; ci2 < cand.length; ci2++) {
+        if (!used[ci2] && cand[ci2].s >= 0.05) {
+          openT.push({ pts: [{ frame: f, x: cand[ci2].x, y: cand[ci2].y }],
+                       vx: 0, vy: 0, lastF: f });
+        }
+      }
+      var keep = [];
+      for (var ki = 0; ki < openT.length; ki++) {
+        if (f - openT[ki].lastF > maxGap) tracks.push(openT[ki]);
+        else keep.push(openT[ki]);
+      }
+      openT = keep;
+    }
+    for (var oi = 0; oi < openT.length; oi++) tracks.push(openT[oi]);
+    for (var tj = 0; tj < tracks.length; tj++) {
+      var pts = tracks[tj].pts;
+      if (pts.length < 2) continue;
+      for (var a = 0; a < pts.length - 1; a++) {
+        var pa = pts[a], pb = pts[a + 1], gap = pb.frame - pa.frame;
+        if (gap < 2 || gap > maxGap) continue;
+        for (var g = 1; g < gap; g++) {
+          var r = g / gap, fi = pa.frame + g;
+          var xf = pa.x + r * (pb.x - pa.x), yf = pa.y + r * (pb.y - pa.y);
+          var dup = false;
+          for (var pi = 0; pi < obs[fi].length; pi++) {
+            if (Math.abs(obs[fi][pi].x - xf) + Math.abs(obs[fi][pi].y - yf) < 0.02) { dup = true; break; }
+          }
+          if (!dup) obs[fi].push({ x: xf, y: yf, s: synthS, filled: true });
+        }
+      }
+    }
+    return obs;
+  }
+
   /* Verdict for one attempt window — PURE function shared by the final
      pass-2 classification AND the live display layer, so what the user
      watches during analysis is the exact same math as the saved result.
@@ -683,6 +763,10 @@
                 }
                 obs.push(near);
               }
+              // Bridge short detection dropouts at the rim so a make whose
+              // through-rim frames vanished still shows a continuous crossing
+              // (see bridgeTrackGaps — validated 15/17 → 16/17 on GT).
+              bridgeTrackGaps(obs, rows.length, 8, 0.12);
 
               // Global fixture map (v7 mode): the net-knot detects as a
               // "ball" in up to ~1/3 of ALL frames at a fixed ring-relative

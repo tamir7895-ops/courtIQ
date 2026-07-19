@@ -72,6 +72,14 @@
         <span class="muted">Runs the REAL engine on it like a live camera</span></div>
       <input type="file" id="file" accept="video/*" hidden>
       <div class="row" style="margin-top:10px">
+        <span class="muted">Mode:</span>
+        <select id="mode">
+          <option value="live">Live camera (real-time)</option>
+          <option value="analyze">Accurate analyze (like upload)</option>
+        </select>
+      </div>
+      <div class="muted" id="modeHint" style="margin-top:4px">Real-time path — plays like a live camera. Rim must auto-lock.</div>
+      <div class="row" style="margin-top:10px">
         <button class="btn ghost" id="replay" disabled>↻ Replay</button>
         <button class="btn ghost" id="calib" disabled>◎ Calibrate court</button>
       </div>
@@ -102,12 +110,18 @@
         <span class="chip" id="cRim">rim lock</span>
         <span class="chip" id="cPose">pose</span>
       </div>
+      <div id="rimHint" class="muted" style="margin-top:8px"></div>
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><span class="v" id="sPoseTrig">0</span><span class="l">pose triggers</span></div>
+        <div class="stat"><span class="v" id="sPoseChk">0</span><span class="l">pose checks</span></div>
+      </div>
       <div class="legend" style="margin-top:10px">
         <span><i style="background:#ff8800"></i>ball</span>
         <span><i style="background:#33aaff"></i>hoop</span>
         <span><i style="background:#44dd66"></i>player</span>
         <span><i style="background:#ffd23f"></i>trajectory</span>
         <span><i style="background:#ff5a1f"></i>rim zone</span>
+        <span><i style="background:#c56cff"></i>pose</span>
       </div>
     </div>
 
@@ -138,6 +152,7 @@
 <script src="/features/shot-tracking/courtCalibration.js"></script>
 <script src="/features/shot-tracking/poseDetector.js"></script>
 <script src="/features/shot-tracking/shotDetection.js"></script>
+<script src="/features/shot-tracking/offlineProcessor.js"></script>
 
 <script>
 'use strict';
@@ -232,6 +247,32 @@ setInterval(function () {
   if (rimLocked && rimAutoMode && hoopLost && lastHoopAt > 0 && Date.now() - lastHoopAt > HOOP_LOST_HARD_MS && engine._rimStabilized) engine.setRimStabilized(false);
 }, 100);
 
+/* ── MediaPipe pose skeleton (33-landmark BlazePose topology) ──── */
+var POSE_LINKS = [
+  [11,12],[11,23],[12,24],[23,24],                    // torso
+  [11,13],[13,15],[15,17],[15,19],[15,21],[17,19],    // left arm
+  [12,14],[14,16],[16,18],[16,20],[16,22],[18,20],    // right arm
+  [23,25],[25,27],[27,29],[27,31],[29,31],            // left leg
+  [24,26],[26,28],[28,30],[28,32],[30,32],            // right leg
+  [0,1],[1,2],[2,3],[3,7],[0,4],[4,5],[5,6],[6,8],[9,10] // face
+];
+function drawSkeleton(lms) {
+  if (!lms || lms.length < 33) return;
+  function pt(i) { var l = lms[i]; return l ? [l.x * ov.width, l.y * ov.height, (l.visibility == null ? 1 : l.visibility)] : null; }
+  octx.strokeStyle = '#c56cff'; octx.lineWidth = 3; octx.lineCap = 'round';
+  POSE_LINKS.forEach(function (lk) {
+    var a = pt(lk[0]), b = pt(lk[1]);
+    if (a && b && a[2] > 0.3 && b[2] > 0.3) {
+      octx.beginPath(); octx.moveTo(a[0], a[1]); octx.lineTo(b[0], b[1]); octx.stroke();
+    }
+  });
+  octx.fillStyle = '#e9d5ff';
+  for (var i = 0; i < 33; i++) {
+    var p = pt(i);
+    if (p && p[2] > 0.3) { octx.beginPath(); octx.arc(p[0], p[1], 3, 0, Math.PI * 2); octx.fill(); }
+  }
+}
+
 /* ── live overlay drawing ─────────────────────────────────────── */
 var lastDebug = null;
 function drawBox(b, d, color, label) {
@@ -246,6 +287,7 @@ function drawBox(b, d, color, label) {
 }
 function renderOverlay() {
   requestAnimationFrame(renderOverlay);
+  if (analyzing) return;   // analyze mode has its own draw loop
   if (ov.width !== vid.clientWidth || ov.height !== vid.clientHeight) {
     ov.width = vid.clientWidth; ov.height = vid.clientHeight;
   }
@@ -279,13 +321,25 @@ function renderOverlay() {
     octx.fillStyle = bp.source === 'predicted' ? '#ffff00' : '#37d67a';
     octx.beginPath(); octx.arc(bp.normX * ov.width, bp.normY * ov.height, 5, 0, Math.PI * 2); octx.fill();
   }
+  // MediaPipe pose skeleton — the overlay drives its OWN detect() call;
+  // PoseDetector de-dupes by currentTime so this shares the engine's
+  // inference for the same frame (no double work).
+  try {
+    if (window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady() &&
+        vid.readyState >= 2 && !vid.paused) {
+      var pose = window.PoseDetector.detect(vid, vid.currentTime);
+      if (pose && pose.landmarks) drawSkeleton(pose.landmarks);
+    }
+  } catch (e) { /* pose overlay is best-effort */ }
 }
 requestAnimationFrame(renderOverlay);
 
 /* ── stats + chips ────────────────────────────────────────────── */
 var inferMs = 0, detCount = 0, lastFpsT = performance.now(), fpsFrames = 0;
 function chip(el, on, warn) { el.className = 'chip' + (on ? ' on' : (warn ? ' warn' : '')); }
+var runStartAt = 0;
 setInterval(function () {
+  if ($('mode').value !== 'live') return;   // analyze mode owns its own display
   $('sState').textContent = engine._shotState || '—';
   $('sScore').textContent = (engine.stats ? engine.stats.made : 0) + ' / ' + (engine.stats ? engine.stats.attempts : 0);
   $('sInfer').textContent = engine._inferMsEMA ? Math.round(engine._inferMsEMA) + ' ms' : '—';
@@ -294,7 +348,26 @@ setInterval(function () {
   chip($('cHoop'), d && d.hoops && d.hoops.length);
   chip($('cPlayer'), d && d.players && d.players.length);
   chip($('cRim'), rimLocked && engine._rimStabilized, rimLocked && !engine._rimStabilized);
-  chip($('cPose'), window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady());
+  var poseReady = window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady();
+  chip($('cPose'), poseReady);
+  var ps = engine._poseStats || { triggers: 0, checks: 0 };
+  $('sPoseTrig').textContent = ps.triggers || 0;
+  $('sPoseChk').textContent = ps.checks || 0;
+  // Rim diagnosis — the usual reason a clip "doesn't count": the hoop never
+  // lands in the auto-lock accept window (upper-middle of frame), so the rim
+  // never locks and no crossing can be judged.
+  var hint = '';
+  if (!rimLocked) {
+    var secs = runStartAt ? (Date.now() - runStartAt) / 1000 : 0;
+    hint = 'Rim: searching…' + (secs > 6 ? '  — aim the camera so the HOOP sits in the upper-middle of the frame (it must be visible and fairly still).' : '');
+  } else if (!engine._rimStabilized) {
+    hint = 'Rim: locking (stabilizing)…';
+  } else if (hoopLost) {
+    hint = 'Rim: lost (hoop left the frame) — will re-lock.';
+  } else {
+    hint = 'Rim: LOCKED ✓  — shots are being judged against it.';
+  }
+  $('rimHint').textContent = hint;
 }, 200);
 
 /* ── shot log ─────────────────────────────────────────────────── */
@@ -346,6 +419,7 @@ async function startEngineOnVideo() {
   resetSession();
   try { engine.stop(); } catch (e) {}     // clean any prior run
   engine.start(vid);
+  runStartAt = Date.now();
   try { await vid.play(); } catch (e) {}
   if (_playWatch) clearInterval(_playWatch);
   _playWatch = setInterval(function () { if (!vid.ended && vid.paused) vid.play().catch(function () {}); }, 300);
@@ -353,16 +427,136 @@ async function startEngineOnVideo() {
   // stopping happens only when a new clip is loaded.
   $('replay').disabled = false; $('calib').disabled = false;
 }
+var lastFile = null;
 async function runFile(file) {
+  lastFile = file;
   await boot();
+  if ($('mode').value === 'analyze') { await runAnalyze(file); return; }
   vid.src = URL.createObjectURL(file);
   await new Promise(function (r) { vid.onloadedmetadata = r; });
   await startEngineOnVideo();
 }
 
+/* ── Accurate mode: the OFFLINE processor (what the app runs on uploads).
+   Seeks the clip frame-by-frame, draws detections + ring per frame, and
+   ends with the accurate made/miss verdicts. This is the 15/17-GT path. ── */
+var analyzeDets = null, analyzeRing = null, analyzing = false;
+// ── Online single-ball smoother (display only) ──────────────────
+// The raw per-frame YOLOX output flickers between the real ball, net knots
+// and second balls, and vanishes on dropout — that is the "jumpy ball" the
+// eye sees. Mirror the competitor clean_ball_pos idea: gate each new
+// detection on continuity with the predicted position, EMA-smooth the kept
+// track, and COAST a few frames on velocity when the ball drops out so the
+// dot glides instead of blinking. Purely cosmetic — the saved verdicts come
+// from the offline classifier, untouched.
+var ballTrk = null, ballTrail = [];
+function updateBallTrk(balls) {
+  var cands = (balls || []).filter(function (b) { return b.s >= 0.05; });
+  var picked = null;
+  if (ballTrk) {
+    var px = ballTrk.x + ballTrk.vx, py = ballTrk.y + ballTrk.vy, bd = 0.12;
+    cands.forEach(function (b) {
+      var d = Math.abs(b.x - px) + Math.abs(b.y - py);
+      if (d < bd) { bd = d; picked = b; }
+    });
+    if (picked) {
+      ballTrk.vx = 0.5 * ballTrk.vx + 0.5 * (picked.x - ballTrk.x);
+      ballTrk.vy = 0.5 * ballTrk.vy + 0.5 * (picked.y - ballTrk.y);
+      ballTrk.x = picked.x; ballTrk.y = picked.y; ballTrk.s = picked.s; ballTrk.miss = 0;
+    } else {
+      ballTrk.x += ballTrk.vx; ballTrk.y += ballTrk.vy; ballTrk.miss++;
+      if (ballTrk.miss > 8) { ballTrk = null; ballTrail = []; }
+    }
+  }
+  if (!ballTrk && cands.length) {
+    var top = cands.reduce(function (a, b) { return b.s > a.s ? b : a; });
+    ballTrk = { x: top.x, y: top.y, vx: 0, vy: 0, s: top.s, miss: 0 };
+  }
+  if (ballTrk) { ballTrail.push({ x: ballTrk.x, y: ballTrk.y, c: ballTrk.miss > 0 }); if (ballTrail.length > 14) ballTrail.shift(); }
+}
+function drawAnalyze() {
+  requestAnimationFrame(drawAnalyze);
+  if (!analyzing) return;
+  if (ov.width !== vid.clientWidth || ov.height !== vid.clientHeight) { ov.width = vid.clientWidth; ov.height = vid.clientHeight; }
+  octx.clearRect(0, 0, ov.width, ov.height);
+  var fd = analyzeDets;
+  if (fd) {
+    // raw model output — faint, so the smoothed track reads as the ball
+    (fd.balls || []).forEach(function (b) {
+      octx.strokeStyle = 'rgba(255,136,0,0.35)'; octx.lineWidth = 1;
+      octx.strokeRect(b.x * ov.width - 6, b.y * ov.height - 6, 12, 12);
+    });
+    (fd.players || []).forEach(function (p) {
+      octx.strokeStyle = '#44dd66'; octx.lineWidth = 2;
+      octx.strokeRect((p.x - p.w / 2) * ov.width, (p.y - p.h / 2) * ov.height, p.w * ov.width, p.h * ov.height);
+    });
+  }
+  // smoothed ball trail + dot
+  if (ballTrail.length > 1) {
+    octx.strokeStyle = 'rgba(255,90,31,0.55)'; octx.lineWidth = 3; octx.beginPath();
+    ballTrail.forEach(function (p, i) {
+      var X = p.x * ov.width, Y = p.y * ov.height;
+      i ? octx.lineTo(X, Y) : octx.moveTo(X, Y);
+    });
+    octx.stroke();
+  }
+  if (ballTrk) {
+    var bx = ballTrk.x * ov.width, by = ballTrk.y * ov.height;
+    octx.beginPath(); octx.arc(bx, by, 9, 0, Math.PI * 2);
+    octx.fillStyle = ballTrk.miss > 0 ? 'rgba(255,170,60,0.6)' : '#ff5a1f';   // dim while coasting
+    octx.fill();
+    octx.strokeStyle = '#fff'; octx.lineWidth = 2; octx.stroke();
+  }
+  if (analyzeRing) {
+    var hw = (analyzeRing.halfW || 0.05);
+    octx.strokeStyle = '#ff5a1f'; octx.lineWidth = 2; octx.setLineDash([7, 5]);
+    octx.beginPath();
+    octx.ellipse(analyzeRing.cx * ov.width, analyzeRing.y * ov.height, hw * ov.width, hw * ov.width * 0.5, 0, 0, Math.PI * 2);
+    octx.stroke(); octx.setLineDash([]);
+  }
+}
+requestAnimationFrame(drawAnalyze);
+
+async function runAnalyze(file) {
+  analyzing = true; analyzeDets = null; analyzeRing = null; ballTrk = null; ballTrail = [];
+  $('log').innerHTML = '<div class="muted">Analyzing every frame…</div>'; shotN = 0; $('shotCount').textContent = '';
+  vid.src = URL.createObjectURL(file);
+  await new Promise(function (r) { vid.onloadedmetadata = r; });
+  $('sState').textContent = 'analyzing';
+  var res = await window.ShotOfflineProcessor.process(file, {
+    onStage: function (s) { $('rimHint').textContent = 'Stage: ' + (s.stage || s || ''); },
+    onProgress: function (f) { $('sFps').textContent = Math.round(f * 100) + '%'; },
+    onFrame: function (d) { analyzeDets = d.dets; analyzeRing = d.ring; updateBallTrk(d.dets && d.dets.balls); }
+  });
+  analyzing = false;
+  // accurate verdicts -> shot log + score
+  $('sState').textContent = 'done';
+  $('sScore').textContent = res.made + ' / ' + res.total;
+  $('rimHint').textContent = 'Accurate analysis complete — ' + res.made + ' made of ' + res.total + ' attempts.';
+  $('log').innerHTML = ''; shotN = 0;
+  (res.shots || []).forEach(function (s) {
+    var made = (s.result === 'made' || s.result === 'M' || s.verdict === 'M');
+    var court = (window.CourtPosition && window.CourtPosition.isCalibrated() && s.shotX != null)
+      ? window.CourtPosition.locate(s.shotX, s.shotY) : null;
+    var meta = [s.v10Zone || s.shotZone || '?'];
+    if (court) meta.push(court.dist.toFixed(1) + 'm');
+    var t = (s.__videoT != null ? s.__videoT : (s.t || 0));
+    var row = document.createElement('div');
+    row.className = 'shot ' + (made ? 'made' : 'missed');
+    row.innerHTML = '<span class="t">' + (+t).toFixed(1) + 's</span>' +
+      '<span class="r ' + (made ? 'made' : 'missed') + '">' + (made ? 'MADE' : 'MISS') + '</span>' +
+      '<span class="meta">' + meta.join(' · ') + '</span>';
+    $('log').appendChild(row); shotN++;
+  });
+  if (!shotN) $('log').innerHTML = '<div class="muted">No shots detected in this clip.</div>';
+  $('shotCount').textContent = shotN ? '· ' + shotN : '';
+  $('replay').disabled = false; $('calib').disabled = false;
+}
+
 /* ── FPS from detect frames ───────────────────────────────────── */
 var _lastFC = 0;
 setInterval(function () {
+  if ($('mode').value !== 'live') return;   // sFps shows analyze progress %
   var fc = engine._frameCount || 0;
   $('sFps').textContent = (fc - _lastFC) + '';
   _lastFC = fc;
@@ -381,7 +575,16 @@ fileInput.onchange = function (e) { var f = e.target.files[0]; if (f) runFile(f)
 drop.addEventListener('drop', function (e) {
   var f = e.dataTransfer.files[0]; if (f && /video/.test(f.type)) runFile(f);
 });
-$('replay').onclick = function () { vid.currentTime = 0; startEngineOnVideo(); };
+$('replay').onclick = function () {
+  if ($('mode').value === 'analyze' && lastFile) { runAnalyze(lastFile); return; }
+  vid.currentTime = 0; startEngineOnVideo();
+};
+$('mode').onchange = function () {
+  $('modeHint').textContent = this.value === 'analyze'
+    ? 'Offline path — seeks every frame for the app\'s upload-grade accuracy. No rim auto-lock needed.'
+    : 'Real-time path — plays like a live camera. Rim must auto-lock.';
+  if (lastFile) runFile(lastFile);
+};
 $('spec').onchange = function () {
   if (window.CourtPosition && window.CourtPosition.isCalibrated()) {
     window.CourtPosition.clear(); $('calibState').textContent = 'court changed — recalibrate';
