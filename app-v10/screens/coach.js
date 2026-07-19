@@ -164,23 +164,46 @@
       if (ev.key === 'Enter') { ev.preventDefault(); sendBtn.click(); }
     });
 
+    /* Back does NOT reset — a coach remembers the conversation. Starting
+       over is an explicit small control in the header instead. */
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       h('button', {
         class: 'c12-back', type: 'button', 'aria-label': 'Back',
-        onclick: function () { if (window.V12CoachAI) window.V12CoachAI.reset(); back(); }
+        onclick: back
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
-      h('div', {}, [
+      h('div', { style: { flex: '1', minWidth: '0' } }, [
         h('div', { class: 'c12-chat-hd__t', text: 'The Scout' }),
         h('div', { class: 'c12-chat-hd__s',
           text: live ? 'Live — reads your real film before every answer'
                      : 'Only talks about shots that really happened' })
-      ])
+      ]),
+      h('button', {
+        class: 'c12-back', type: 'button', 'aria-label': 'New conversation',
+        title: 'New conversation',
+        onclick: function () {
+          if (window.V12CoachAI) window.V12CoachAI.reset();
+          chatView(host, ctx, data, back);
+        }
+      }, [h('i', { class: 'ph-bold ph-arrows-counter-clockwise' })])
     ]));
     host.appendChild(thread);
     host.appendChild(chips);
     host.appendChild(h('div', { class: 'c12-chat-in' }, [input, sendBtn]));
 
-    scoutLines(data).forEach(coachSay);
+    /* Replay the running conversation if one exists; otherwise open with
+       the scout's real derived lines. */
+    var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
+    if (past.length) {
+      past.forEach(function (m) {
+        if (m.role === 'user') userSay(m.content);
+        else {
+          /* strip any action line from stored assistant turns */
+          coachSay(m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, ''));
+        }
+      });
+    } else {
+      scoutLines(data).forEach(coachSay);
+    }
   }
 
   /* ── training calendar — last 4 weeks, real session days ─────*/
@@ -278,16 +301,23 @@
       ctx.data.getSessions(60),
       ctx.data.getWeekStats(),
       ctx.data.getProfile(),
-      window.V10CourtIQ ? window.V10CourtIQ.get() : Promise.resolve(null)
+      window.V10CourtIQ ? window.V10CourtIQ.get() : Promise.resolve(null),
+      ctx.data.getShots ? ctx.data.getShots(30) : Promise.resolve([])
     ]).then(function (r) {
       var zones = r[1] || {};
       var mean = C.playerMean(zones);
+      var sessions = r[2] || [];
+      var shots = r[6] || [];
       var data = {
-        coach: r[0], zones: zones, sessions: r[2] || [], week: r[3] || {},
+        coach: r[0], zones: zones, sessions: sessions, week: r[3] || {},
         t: totals(zones), rank: ranked(zones, mean),
         /* the AI coach grounds its answers in these — real or absent */
         prof: r[4] || {}, iq: r[5] || null,
-        plan: (window.V12Plan && window.V12Plan.load) ? window.V12Plan.load() : null
+        plan: (window.V12Plan && window.V12Plan.load) ? window.V12Plan.load() : null,
+        /* derived reads: trends, fade, consistency, rhythm — computed
+           from raw shots so the coach sees direction, not just level */
+        insights: window.V12Insights ? window.V12Insights.compute(shots, sessions) : null,
+        drills: window.V12Insights ? window.V12Insights.drillCatalog(['Shooting', 'Ball Handling'], 24) : []
       };
       mainView(host, ctx, data);
     });

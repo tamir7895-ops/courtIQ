@@ -498,6 +498,7 @@
     getPlanDrills:     getPlanDrills,
     getPlanPrefs:      getPlanPrefs,
     getZones:          getZones,
+    getShots:          getShots,
     getSessions:       getSessions,
     getTotals:         getTotals,
     getLatestSession:  getLatestSession,
