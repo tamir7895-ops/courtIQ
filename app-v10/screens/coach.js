@@ -171,9 +171,13 @@
       }).catch(function (e) {
         t.remove(); busy = false;
         if (e && e.guest) { live = false; coachSay(localAnswer(q)); return; }
-        /* proxy down ≠ coach silent: answer locally and say why */
+        /* proxy down ≠ coach silent: answer locally, and say the REAL
+           reason — a canned "try again" line hid a dead API key for a
+           whole day because every failure read identically. */
         coachSay(localAnswer(q));
-        coachSay('(Live line dropped — that was the short version. Try again in a minute.)');
+        var why = (e && e.message) ? e.message :
+                  (e && e.name === 'AbortError') ? 'timed out after 30s' : 'network error';
+        coachSay('(Local answer — the live coach is down: ' + why + ')');
       });
     }
 

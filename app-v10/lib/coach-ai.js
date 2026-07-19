@@ -380,8 +380,31 @@
         signal: controller.signal
       }).then(function (res) {
         clearTimeout(timeout);
-        if (res.status === 401) throw { guest: true };
-        if (!res.ok) return res.text().then(function (t) { throw new Error('proxy ' + res.status + ': ' + t.slice(0, 120)); });
+        if (!res.ok) {
+          /* READ THE BODY before classifying. A 401 here has TWO distinct
+             sources and they mean opposite things:
+               - the proxy's own auth check: {"error":"Unauthorized"} — the
+                 player's session is invalid → genuinely the guest path.
+               - Anthropic, passed through verbatim: {"type":"error","error":
+                 {"type":"authentication_error",...}} — the SERVER'S API key
+                 is broken. Treating that as "guest" silently downgraded
+                 every signed-in user to canned local answers with no error
+                 anywhere. The real reason must surface. */
+          return res.text().then(function (t) {
+            try { localStorage.setItem('courtiq_coach_last_error', res.status + ' ' + t.slice(0, 500)); } catch (e2) {}
+            var msg = t.slice(0, 160);
+            try {
+              var j = JSON.parse(t);
+              if (typeof j.error === 'string') {
+                if (res.status === 401) throw { guest: true };   /* proxy rejected the session */
+                msg = j.error;
+              } else if (j.error && j.error.message) {
+                msg = j.error.type ? j.error.type + ': ' + j.error.message : j.error.message;
+              }
+            } catch (e3) { if (e3 && e3.guest) throw e3; }
+            throw new Error('AI service ' + res.status + ' — ' + msg);
+          });
+        }
         return res.json();
       });
     }).then(function (data2) {
