@@ -94,6 +94,45 @@
       return t;
     }
 
+    /* The coach proposed a program — render it as a card with the ONE
+       button that actually writes it into the plan. Until that tap,
+       nothing changed. */
+    /* Monday-first — MUST match V12Plan.DOW (schedule index 0 = Monday) */
+    var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    function proposalCard(p) {
+      var card = h('div', { class: 'c12-proposal' });
+      card.appendChild(h('div', { class: 'c12-proposal__t', text: p.name }));
+      card.appendChild(h('div', {
+        class: 'c12-proposal__s',
+        text: p.days.length + ' sessions · ' + p.minutes + ' min each'
+      }));
+      p.days.forEach(function (d) {
+        card.appendChild(h('div', { class: 'c12-proposal__day' }, [
+          h('span', { class: 'c12-proposal__dow', text: DOW[d.dow] }),
+          h('span', {
+            class: 'c12-proposal__what',
+            text: d.drills.length ? d.drills.join(' · ') : d.focus
+          })
+        ]));
+      });
+      var btn = h('button', {
+        class: 'c12-proposal__build', type: 'button',
+        onclick: function () {
+          var msg = window.V12CoachAI.applyProposal(p);
+          btn.disabled = true;
+          btn.textContent = 'In your plan';
+          if (msg) coachSay(msg);
+          try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+        }
+      }, [
+        h('i', { class: 'ph-fill ph-hammer' }),
+        h('span', { text: 'Build this into my plan' })
+      ]);
+      card.appendChild(btn);
+      thread.appendChild(card);
+      thread.scrollTop = thread.scrollHeight;
+    }
+
     /* Local answers — the guest path, and the safety net when the
        proxy is down. Same voice, same real numbers. */
     function localAnswer(q) {
@@ -127,6 +166,7 @@
       window.V12CoachAI.ask(q, data, ctx).then(function (r) {
         t.remove(); busy = false;
         coachSay(r.text);
+        if (r.proposal) proposalCard(r.proposal);
         if (r.confirmation) coachSay(r.confirmation);
       }).catch(function (e) {
         t.remove(); busy = false;

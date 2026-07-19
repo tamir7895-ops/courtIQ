@@ -84,7 +84,7 @@
 
       /* the session */
       if (fid !== 'rest') {
-        var drills = P.drillsForFocus(fid, p.minutes);
+        var drills = P.drillsForDay(p, dowIdx);
         sheet.appendChild(h('div', { class: 'd-label', style: { marginTop: '12px' },
           text: p.minutes + ' MIN · ' + drills.length + ' DRILLS' }));
         drills.forEach(function (d, i) {
@@ -117,7 +117,7 @@
         actions.appendChild(V12.btn({
           icon: 'ph-play-circle', label: 'Start',
           onClick: function () {
-            var drills = P.drillsForFocus(fid, p.minutes);
+            var drills = P.drillsForDay(p, dowIdx);
             if (drills[0]) { try { sessionStorage.setItem('courtiq_v11_drill', JSON.stringify(drills[0])); } catch (e) {} }
             window.app.go('workout-player');
           }
@@ -165,7 +165,7 @@
       var iso = P.isoOf(d);
       var done = P.isDone(p, iso);
       var isToday = state.weekOff === 0 && i === todayI;
-      var drills = fid === 'rest' ? [] : P.drillsForFocus(fid, p.minutes);
+      var drills = P.drillsForDay(p, i);
       list.appendChild(h('button', {
         class: 'plan12-day' + (isToday ? ' is-today' : '') + (done ? ' is-done' : '') + (fid === 'rest' ? ' is-rest' : ''),
         type: 'button',

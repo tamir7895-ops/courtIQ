@@ -179,11 +179,45 @@
 
   function focusForDay(p, idx) { return (p.schedule || [])[idx] || 'rest'; }
   function todaysFocus(p) { return focusForDay(p, todayIdx()); }
-  function todaysDrills(p) {
-    var fid = todaysFocus(p);
+
+  /* ── coach-built days ─────────────────────────────────────────
+     p.dayDrills = { '0'..'6': ['Drill Name', ...] } — set when the coach
+     builds a plan, so the drills the player sees are EXACTLY the drills
+     the coach named, not whatever the focus derivation would pick.
+     Names resolve against the real DB; anything that doesn't resolve is
+     dropped rather than invented. Falls back to derivation when a day
+     has no override. */
+  function resolveDrill(name) {
+    var DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : [];
+    var want = String(name || '').trim().toLowerCase();
+    if (!want) return null;
+    for (var i = 0; i < DB.length; i++) {
+      if ((DB[i].name || '').toLowerCase() === want) {
+        var d = DB[i];
+        return {
+          id: d.id || d.name, name: d.name,
+          reps: d.reps_or_sets ? parseInt(String(d.reps_or_sets), 10) || 30 : 30,
+          mins: d.duration_minutes || 8,
+          focus: d.focus_area || 'Skill',
+          description: d.description || ''
+        };
+      }
+    }
+    return null;
+  }
+
+  function drillsForDay(p, idx) {
+    var names = p && p.dayDrills && p.dayDrills[String(idx)];
+    if (names && names.length) {
+      var resolved = names.map(resolveDrill).filter(Boolean);
+      if (resolved.length) return resolved;
+    }
+    var fid = focusForDay(p, idx);
     if (fid === 'rest') return [];
     return drillsForFocus(fid, p.minutes);
   }
+
+  function todaysDrills(p) { return drillsForDay(p, todayIdx()); }
 
   /* ── completion log ───────────────────────────────────────────*/
   function isDone(p, iso) { return !!(p.log && p.log[iso] && p.log[iso].done); }
@@ -263,6 +297,7 @@
     FOCI: FOCI, DOW: DOW, focus: focus,
     load: load, save: save, rebuild: rebuild, generateSchedule: generateSchedule,
     drillsForFocus: drillsForFocus, focusForDay: focusForDay,
+    drillsForDay: drillsForDay, resolveDrill: resolveDrill,
     todaysFocus: todaysFocus, todaysDrills: todaysDrills, todayIdx: todayIdx,
     isDone: isDone, setDone: setDone,
     isoOf: isoOf, todayISO: todayISO, weekDates: weekDates, monthGrid: monthGrid,

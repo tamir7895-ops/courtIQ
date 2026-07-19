@@ -223,6 +223,20 @@
       'screens: track, train, plan. Valid focus ids: shooting, handles, finishing, ' +
       'conditioning, defense, passing.\n\n' +
 
+      'BUILDING A PROGRAM: when the player asks for a training program (a week, a ' +
+      'month, "build me a plan"), lay the week out in TEXT first — days, drills, reps, ' +
+      'the why — then end with ONE propose_plan action mirroring it:\n' +
+      '@@ACTION {"type":"propose_plan","name":"Left wing rescue week","minutes":30,' +
+      '"days":[{"dow":1,"focus":"shooting","drills":["Catch & Shoot Corner 3s","Five-Spot Shooting Circuit"]},' +
+      '{"dow":2,"focus":"handles","drills":[]},{"dow":4,"focus":"shooting","drills":["Step-Back Three"]}]}\n' +
+      'dow: 0=Monday .. 6=Sunday. Drill names MUST be verbatim from the DRILL ' +
+      'LIBRARY list — anything else is silently dropped. 2-5 sessions a week; rest ' +
+      'days are part of the program, say so. This shows the player a BUILD button — ' +
+      'it does not change anything until they tap it, so never claim the plan is ' +
+      'already set. For a month: propose the weekly microcycle and describe in text ' +
+      'how weeks 2-4 progress (volume first, then difficulty); the player rebuilds ' +
+      'with you as the weeks pass.\n\n' +
+
       'DATA (real, current):\n' + ctx;
   }
 
@@ -243,13 +257,79 @@
       } else if (a.type === 'remember') {
         if (typeof a.notes !== 'string' || !a.notes.trim()) a = null;
         else a.notes = a.notes.slice(0, 400);
+      } else if (a.type === 'propose_plan') {
+        a = validateProposal(a);
       } else a = null;
       return { text: clean, action: a };
     } catch (e) { return { text: clean, action: null }; }
   }
 
+  /* ── plan proposals ──────────────────────────────────────────────
+     propose_plan is DIFFERENT from every other action: it is not applied
+     when the model emits it. The model proposes; the player gets a card
+     with a "Build this into my plan" button; only that tap writes to the
+     plan. The one who trains decides — the coach just hands over the
+     clipboard.
+
+     Validation is strict because this writes durable state: days 0-6,
+     de-duplicated; focus ids from the whitelist; every drill name resolved
+     against the REAL drill DB via V12Plan.resolveDrill — unresolvable
+     names are dropped, and a day left with no real drills falls back to
+     its focus derivation rather than inventing content. */
+  function validateProposal(a) {
+    if (!Array.isArray(a.days) || !a.days.length) return null;
+    var seen = {}, days = [];
+    a.days.forEach(function (d) {
+      if (!d || typeof d.dow !== 'number') return;
+      var dow = Math.round(d.dow);
+      if (dow < 0 || dow > 6 || seen[dow]) return;
+      var focusId = VALID_FOCUS[d.focus] ? d.focus : 'shooting';
+      var drills = [];
+      if (Array.isArray(d.drills) && window.V12Plan && window.V12Plan.resolveDrill) {
+        d.drills.slice(0, 5).forEach(function (n) {
+          var hit = window.V12Plan.resolveDrill(n);
+          if (hit) drills.push(hit.name);          /* canonical DB name */
+        });
+      }
+      seen[dow] = 1;
+      days.push({ dow: dow, focus: focusId, drills: drills });
+    });
+    if (!days.length || days.length > 6) return null;
+    days.sort(function (x, y) { return x.dow - y.dow; });
+    return {
+      type: 'propose_plan',
+      name: (typeof a.name === 'string' ? a.name : 'Coach\'s week').slice(0, 60),
+      minutes: Math.max(15, Math.min(90, +a.minutes || 30)),
+      days: days
+    };
+  }
+
+  /* The button's handler — coach.js calls this when the player taps. */
+  function applyProposal(p) {
+    if (!p || !window.V12Plan) return null;
+    var plan = window.V12Plan.load();
+    /* focus frequencies fall out of the proposed week */
+    var counts = {};
+    p.days.forEach(function (d) { counts[d.focus] = (counts[d.focus] || 0) + 1; });
+    plan.focus = Object.keys(counts).map(function (id) {
+      return { id: id, perWeek: counts[id] };
+    }).slice(0, 3);
+    plan.minutes = p.minutes;
+    var sched = ['rest', 'rest', 'rest', 'rest', 'rest', 'rest', 'rest'];
+    var dayDrills = {};
+    p.days.forEach(function (d) {
+      sched[d.dow] = d.focus;
+      if (d.drills.length) dayDrills[String(d.dow)] = d.drills;
+    });
+    plan.schedule = sched;
+    plan.dayDrills = dayDrills;
+    window.V12Plan.save(plan);
+    return p.days.length + '-day week is in your plan — "' + p.name + '". The Plan screen has it.';
+  }
+
   function applyAction(a, ctx) {
     if (!a) return null;
+    if (a.type === 'propose_plan') return null;   /* card + button, never auto */
     if (a.type === 'remember') {
       var m = loadMem();
       m.notes = a.notes;
@@ -312,7 +392,10 @@
       persist();
       var parsed = extractAction(raw);
       var confirmation = applyAction(parsed.action, ctx);
-      return { text: parsed.text, confirmation: confirmation, action: parsed.action };
+      return {
+        text: parsed.text, confirmation: confirmation, action: parsed.action,
+        proposal: (parsed.action && parsed.action.type === 'propose_plan') ? parsed.action : null
+      };
     }).catch(function (e) {
       /* the failed turn must not poison the next one */
       if (history.length && history[history.length - 1].role === 'user') history.pop();
@@ -334,5 +417,9 @@
   /* the UI replays this on open so the thread survives navigation */
   function transcript() { return history.slice(); }
 
-  window.V12CoachAI = { ask: ask, reset: reset, signedIn: signedIn, transcript: transcript };
+  window.V12CoachAI = {
+    ask: ask, reset: reset, signedIn: signedIn, transcript: transcript,
+    applyProposal: applyProposal,
+    _parse: extractAction        /* exposed for tests — parses a raw reply */
+  };
 })();
