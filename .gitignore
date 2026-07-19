@@ -48,6 +48,8 @@ android/app/build/
 android/.gradle/
 
 # Local eval artifacts (frames, detections, GT sheets) — hundreds of MB
+# (scratch/model-test-lab.html + scratch/eval-server.js are force-tracked as
+#  reusable dev tools — see `npm run testlab`)
 scratch/
 
 # Local test videos served via tunnel, not for the repo

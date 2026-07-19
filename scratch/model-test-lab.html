@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CourtIQ — Model Test Lab</title>
+<style>
+  :root { --bg:#0b0e12; --panel:#141a22; --line:#232c38; --ink:#e8edf3; --dim:#8ea0b5;
+          --orange:#ff5a1f; --green:#37d67a; --blue:#2ea6ff; --red:#ff4d4d; --yellow:#ffd23f; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink);
+         font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+  header { padding:14px 18px; border-bottom:1px solid var(--line); display:flex; gap:12px; align-items:center; }
+  header h1 { font-size:16px; margin:0; font-weight:800; letter-spacing:.02em; }
+  header .tag { font-size:11px; color:var(--dim); background:var(--panel); padding:3px 8px; border-radius:20px; }
+  .wrap { display:flex; gap:14px; padding:14px; flex-wrap:wrap; align-items:flex-start; }
+  .stage { position:relative; background:#000; border-radius:12px; overflow:hidden;
+           flex:1 1 520px; min-width:320px; max-width:760px; }
+  #vid { display:block; width:100%; height:auto; background:#000; }
+  #ov  { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .side { flex:1 1 300px; min-width:280px; display:flex; flex-direction:column; gap:12px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .card h2 { margin:0 0 8px; font-size:12px; letter-spacing:.08em; color:var(--dim); text-transform:uppercase; }
+  .drop { border:2px dashed var(--line); border-radius:12px; padding:26px 16px; text-align:center;
+          color:var(--dim); cursor:pointer; transition:.15s; }
+  .drop.hot { border-color:var(--orange); color:var(--ink); background:#1a1109; }
+  .drop b { color:var(--orange); }
+  .btn { display:inline-flex; align-items:center; gap:6px; padding:9px 14px; border:0; border-radius:9px;
+         background:var(--orange); color:#fff; font-weight:700; cursor:pointer; font-size:13px; }
+  .btn.ghost { background:#20293480; color:var(--ink); border:1px solid var(--line); }
+  .btn:disabled { opacity:.4; cursor:default; }
+  .row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  select { background:#0d1219; color:var(--ink); border:1px solid var(--line); border-radius:8px; padding:7px 9px; font-size:13px; }
+  .stats { display:grid; grid-template-columns:1fr 1fr; gap:8px 12px; }
+  .stat { display:flex; flex-direction:column; }
+  .stat .v { font-size:18px; font-weight:800; font-variant-numeric:tabular-nums; }
+  .stat .l { font-size:10px; letter-spacing:.06em; color:var(--dim); text-transform:uppercase; }
+  .chips { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { font-size:11px; padding:3px 8px; border-radius:20px; background:#0d1219; border:1px solid var(--line); }
+  .chip.on { border-color:var(--green); color:var(--green); }
+  .chip.warn { border-color:var(--yellow); color:var(--yellow); }
+  #log { max-height:320px; overflow:auto; display:flex; flex-direction:column; gap:6px; }
+  .shot { display:flex; gap:10px; align-items:center; padding:7px 9px; border-radius:8px; background:#0d1219; border-left:3px solid var(--line); }
+  .shot.made { border-left-color:var(--green); }
+  .shot.missed { border-left-color:var(--red); }
+  .shot .t { font-variant-numeric:tabular-nums; color:var(--dim); width:44px; }
+  .shot .r { font-weight:800; width:52px; }
+  .shot .r.made { color:var(--green); } .shot .r.missed { color:var(--red); }
+  .shot .meta { color:var(--dim); font-size:12px; flex:1; }
+  .muted { color:var(--dim); font-size:12px; }
+  .legend { display:flex; gap:10px; flex-wrap:wrap; font-size:11px; color:var(--dim); }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:4px; vertical-align:middle; }
+</style>
+</head>
+<body>
+<header>
+  <h1>CourtIQ — Model Test Lab</h1>
+  <span class="tag" id="backendTag">engine: loading…</span>
+  <span class="tag" id="modelTag"></span>
+</header>
+
+<div class="wrap">
+  <div class="stage" id="stage">
+    <video id="vid" muted playsinline></video>
+    <canvas id="ov"></canvas>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <h2>Upload a clip</h2>
+      <div class="drop" id="drop">Drag a video here, or <b>click to choose</b><br>
+        <span class="muted">Runs the REAL engine on it like a live camera</span></div>
+      <input type="file" id="file" accept="video/*" hidden>
+      <div class="row" style="margin-top:10px">
+        <button class="btn ghost" id="replay" disabled>↻ Replay</button>
+        <button class="btn ghost" id="calib" disabled>◎ Calibrate court</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <span class="muted">Court:</span>
+        <select id="spec">
+          <option value="us_hs">High school</option>
+          <option value="ncaa">College</option>
+          <option value="nba">NBA</option>
+          <option value="fiba">FIBA</option>
+        </select>
+        <span class="muted" id="calibState">not calibrated</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Live state</h2>
+      <div class="stats">
+        <div class="stat"><span class="v" id="sState">—</span><span class="l">shot state</span></div>
+        <div class="stat"><span class="v" id="sScore">0 / 0</span><span class="l">made / attempts</span></div>
+        <div class="stat"><span class="v" id="sFps">—</span><span class="l">detect fps</span></div>
+        <div class="stat"><span class="v" id="sInfer">—</span><span class="l">inference ms</span></div>
+      </div>
+      <div class="chips" style="margin-top:10px">
+        <span class="chip" id="cBall">ball</span>
+        <span class="chip" id="cHoop">hoop</span>
+        <span class="chip" id="cPlayer">player</span>
+        <span class="chip" id="cRim">rim lock</span>
+        <span class="chip" id="cPose">pose</span>
+      </div>
+      <div class="legend" style="margin-top:10px">
+        <span><i style="background:#ff8800"></i>ball</span>
+        <span><i style="background:#33aaff"></i>hoop</span>
+        <span><i style="background:#44dd66"></i>player</span>
+        <span><i style="background:#ffd23f"></i>trajectory</span>
+        <span><i style="background:#ff5a1f"></i>rim zone</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Shots <span class="muted" id="shotCount"></span></h2>
+      <div id="log"><div class="muted">Shots appear here as the engine fires them.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- Engine stack, served from the repo root by scratch/eval-server.js -->
+<script type="module">
+  import { PoseLandmarker, FilesetResolver }
+    from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
+  window.__MP = { PoseLandmarker, FilesetResolver };
+</script>
+<script src="/vendor/ort/ort.webgpu.min.js"></script>
+<script>
+  if (!window.ort) document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js"><\/script>');
+  try { if (window.ort && ort.env && ort.env.wasm) ort.env.wasm.wasmPaths = {
+    wasm: '/vendor/ort/ort-wasm-simd-threaded.jsep.wasm',
+    mjs:  '/vendor/ort/ort-wasm-simd-threaded.jsep.mjs.js'
+  }; } catch (e) {}
+</script>
+<script src="/features/shot-tracking/v2/config.js"></script>
+<script src="/features/shot-tracking/adaptiveLearning.js"></script>
+<script src="/features/shot-tracking/courtPosition.js"></script>
+<script src="/features/shot-tracking/courtCalibration.js"></script>
+<script src="/features/shot-tracking/poseDetector.js"></script>
+<script src="/features/shot-tracking/shotDetection.js"></script>
+
+<script>
+'use strict';
+var $ = function (id) { return document.getElementById(id); };
+var vid = $('vid'), ov = $('ov'), octx = ov.getContext('2d');
+var engine = window.ShotDetectionEngine;
+try { localStorage.clear(); } catch (e) {}
+
+/* ── production-mirrored rim auto-lock (copied from eval-harness) ── */
+var DEFAULT_RIM_W = 0.18, DEFAULT_RIM_H = 0.04;
+var RIM_EMA_ALPHA = 0.3, RIM_STAB_MS = 1200, HOOP_LOST_MS = 2000, HOOP_LOST_HARD_MS = 5000;
+var hoopBuffer = [], HOOP_BUFFER_SIZE = 5;
+var rimLocked = false, rimAutoMode = true, hoopLost = false;
+var rimCenter = null, rimSize = { w: DEFAULT_RIM_W, h: DEFAULT_RIM_H };
+var rimStabT = null, lastHoopAt = 0, firstColorRefinedAt = 0;
+
+function rimOffsetFrac(bw, bh) {
+  var a = bw / Math.max(0.001, bh);
+  if (a >= 3.5) return 0.10;
+  if (a <= 1.3) return -0.44;
+  return -0.44 + (a - 1.3) * (0.54 / 2.2);
+}
+function onHoop(hoop) {
+  if (hoop.cx < 0.15 || hoop.cx > 0.85 || hoop.cy < 0.05 || hoop.cy > 0.55) return;
+  if (hoop.bw < 0.02 || hoop.bh < 0.005 || hoop.bw > 0.30 || hoop.bh > 0.25 || hoop.score < 0.10) return;
+  lastHoopAt = Date.now();
+  if (hoopLost) {
+    hoopLost = false;
+    if (rimLocked && rimAutoMode) {
+      var recAnchY = hoop.colorRefined ? hoop.cy : hoop.cy + hoop.bh * rimOffsetFrac(hoop.bw, hoop.bh);
+      var d = Math.abs(hoop.cx - rimCenter.x) + Math.abs(recAnchY - rimCenter.y);
+      if (d > 0.06) { rimLocked = false; hoopBuffer.length = 0; firstColorRefinedAt = 0; engine.setRimStabilized(false); }
+      else { firstColorRefinedAt = Date.now(); engine.setRimStabilized(true); }
+    }
+  }
+  if (!rimAutoMode) return;
+  if (!rimLocked) {
+    hoopBuffer.push({ cx: hoop.cx, cy: hoop.cy, bw: hoop.bw, bh: hoop.bh, score: hoop.score, colorRefined: !!hoop.colorRefined });
+    if (hoopBuffer.length > HOOP_BUFFER_SIZE) hoopBuffer.shift();
+    if (hoopBuffer.length < 3) return;
+    var CR = 0.08, clusters = [];
+    hoopBuffer.forEach(function (det) {
+      var asg = false;
+      for (var ci = 0; ci < clusters.length; ci++) {
+        var cm = clusters[ci].mean;
+        if (Math.abs(det.cx - cm.cx) + Math.abs(det.cy - cm.cy) <= CR) {
+          clusters[ci].items.push(det);
+          var sx = 0, sy = 0; clusters[ci].items.forEach(function (m) { sx += m.cx; sy += m.cy; });
+          clusters[ci].mean = { cx: sx / clusters[ci].items.length, cy: sy / clusters[ci].items.length };
+          asg = true; break;
+        }
+      }
+      if (!asg) clusters.push({ mean: { cx: det.cx, cy: det.cy }, items: [det] });
+    });
+    clusters.sort(function (a, b) { return b.items.length - a.items.length || a.mean.cy - b.mean.cy; });
+    var win = clusters[0];
+    if (win.items.length < 3) return;
+    var aCX = 0, aCY = 0, aBW = 0, aBH = 0;
+    win.items.forEach(function (i) { aCX += i.cx; aCY += i.cy; aBW += i.bw; aBH += i.bh; });
+    var n = win.items.length; aCX /= n; aCY /= n; aBW /= n; aBH /= n;
+    var spread = 0; win.items.forEach(function (i) { spread = Math.max(spread, Math.abs(i.cx - aCX) + Math.abs(i.cy - aCY)); });
+    if (spread > 0.06) return;
+    var crCount = 0; win.items.forEach(function (i) { if (i.colorRefined) crCount++; });
+    var mostCR = crCount * 2 >= n;
+    var off = mostCR ? 0 : rimOffsetFrac(aBW, aBH);
+    rimCenter = { x: aCX, y: aCY + aBH * off };
+    rimSize = { w: Math.min(Math.max(aBW, 0.08), 0.25), h: Math.min(Math.max(aBH, 0.03), 0.15) };
+    rimLocked = true;
+    engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+    if (rimStabT) clearTimeout(rimStabT);
+    rimStabT = setTimeout(function () {
+      if (rimLocked && rimAutoMode && !hoopLost) engine.setRimStabilized(true);
+    }, RIM_STAB_MS);
+    return;
+  }
+  var st = engine._shotState;
+  if (st === 'shot_started' || st === 'near_hoop') return;
+  if (!firstColorRefinedAt && hoop.colorRefined) firstColorRefinedAt = Date.now();
+  if (firstColorRefinedAt && (Date.now() - firstColorRefinedAt) > 2000) return;
+  if (!hoop.colorRefined) return;
+  var eoff = hoop.colorRefined ? 0 : rimOffsetFrac(hoop.bw, hoop.bh);
+  var nCY = hoop.cy + hoop.bh * eoff;
+  var a2 = Math.min(RIM_EMA_ALPHA, 0.05);
+  rimCenter.x = (1 - a2) * rimCenter.x + a2 * hoop.cx;
+  rimCenter.y = (1 - a2) * rimCenter.y + a2 * nCY;
+  rimSize.w = (1 - a2) * rimSize.w + a2 * Math.min(Math.max(hoop.bw, 0.08), 0.25);
+  rimSize.h = (1 - a2) * rimSize.h + a2 * Math.min(Math.max(hoop.bh, 0.03), 0.15);
+  engine.setRimZone(rimCenter.x, rimCenter.y, rimSize.w, rimSize.h);
+}
+setInterval(function () {
+  if (rimLocked && rimAutoMode && lastHoopAt > 0 && !hoopLost && Date.now() - lastHoopAt > HOOP_LOST_MS) hoopLost = true;
+  if (rimLocked && rimAutoMode && hoopLost && lastHoopAt > 0 && Date.now() - lastHoopAt > HOOP_LOST_HARD_MS && engine._rimStabilized) engine.setRimStabilized(false);
+}, 100);
+
+/* ── live overlay drawing ─────────────────────────────────────── */
+var lastDebug = null;
+function drawBox(b, d, color, label) {
+  var fx = (b.cx * d.cropScaleX + d.cropOffsetX) / d.videoW * ov.width;
+  var fy = (b.cy * d.cropScaleY + d.cropOffsetY) / d.videoH * ov.height;
+  var fw = (b.bw * d.cropScaleX) / d.videoW * ov.width;
+  var fh = (b.bh * d.cropScaleY) / d.videoH * ov.height;
+  octx.strokeStyle = color; octx.lineWidth = 2; octx.fillStyle = color;
+  octx.strokeRect(fx - fw / 2, fy - fh / 2, fw, fh);
+  octx.font = '12px system-ui';
+  octx.fillText(label, fx - fw / 2, Math.max(11, fy - fh / 2 - 3));
+}
+function renderOverlay() {
+  requestAnimationFrame(renderOverlay);
+  if (ov.width !== vid.clientWidth || ov.height !== vid.clientHeight) {
+    ov.width = vid.clientWidth; ov.height = vid.clientHeight;
+  }
+  octx.clearRect(0, 0, ov.width, ov.height);
+  var d = lastDebug;
+  if (!d) return;
+  (d.balls || []).forEach(function (b) { drawBox(b, d, '#ff8800', 'ball ' + b.score.toFixed(2)); });
+  (d.hoops || []).forEach(function (h) { drawBox(h, d, '#33aaff', 'hoop ' + h.score.toFixed(2)); });
+  (d.players || []).forEach(function (p) { drawBox(p, d, '#44dd66', 'player ' + p.score.toFixed(2)); });
+  // rim zone (locked)
+  if (rimCenter) {
+    octx.strokeStyle = engine._rimStabilized ? '#ff5a1f' : '#7a5a3a';
+    octx.setLineDash([7, 5]); octx.lineWidth = 2;
+    octx.beginPath();
+    octx.ellipse(rimCenter.x * ov.width, rimCenter.y * ov.height, rimSize.w * ov.width / 2, rimSize.h * ov.height / 2, 0, 0, Math.PI * 2);
+    octx.stroke(); octx.setLineDash([]);
+  }
+  // ball trajectory (normalized)
+  var traj = d.trajectory || [];
+  if (traj.length > 1) {
+    octx.strokeStyle = '#ffd23f'; octx.lineWidth = 2; octx.beginPath();
+    traj.forEach(function (p, i) {
+      var x = p.x * ov.width, y = p.y * ov.height;
+      i ? octx.lineTo(x, y) : octx.moveTo(x, y);
+    });
+    octx.stroke();
+  }
+  // live ball position dot
+  var bp = engine.ballPosition;
+  if (bp) {
+    octx.fillStyle = bp.source === 'predicted' ? '#ffff00' : '#37d67a';
+    octx.beginPath(); octx.arc(bp.normX * ov.width, bp.normY * ov.height, 5, 0, Math.PI * 2); octx.fill();
+  }
+}
+requestAnimationFrame(renderOverlay);
+
+/* ── stats + chips ────────────────────────────────────────────── */
+var inferMs = 0, detCount = 0, lastFpsT = performance.now(), fpsFrames = 0;
+function chip(el, on, warn) { el.className = 'chip' + (on ? ' on' : (warn ? ' warn' : '')); }
+setInterval(function () {
+  $('sState').textContent = engine._shotState || '—';
+  $('sScore').textContent = (engine.stats ? engine.stats.made : 0) + ' / ' + (engine.stats ? engine.stats.attempts : 0);
+  $('sInfer').textContent = engine._inferMsEMA ? Math.round(engine._inferMsEMA) + ' ms' : '—';
+  var d = lastDebug;
+  chip($('cBall'), d && d.balls && d.balls.length);
+  chip($('cHoop'), d && d.hoops && d.hoops.length);
+  chip($('cPlayer'), d && d.players && d.players.length);
+  chip($('cRim'), rimLocked && engine._rimStabilized, rimLocked && !engine._rimStabilized);
+  chip($('cPose'), window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady());
+}, 200);
+
+/* ── shot log ─────────────────────────────────────────────────── */
+var shotN = 0;
+function onShot(s) {
+  shotN++;
+  var made = s.result === 'made';
+  var court = (window.CourtPosition && window.CourtPosition.isCalibrated() && s.feetXNorm != null)
+    ? window.CourtPosition.locate(s.feetXNorm, s.feetYNorm) : null;
+  var meta = [];
+  meta.push(s.v10Zone || s.shotZone || '?');
+  if (court) meta.push(court.dist.toFixed(1) + 'm');
+  if (s.triggerSrc) meta.push('via ' + s.triggerSrc);
+  var row = document.createElement('div');
+  row.className = 'shot ' + (made ? 'made' : 'missed');
+  row.innerHTML = '<span class="t">' + (vid.currentTime || 0).toFixed(1) + 's</span>' +
+    '<span class="r ' + (made ? 'made' : 'missed') + '">' + (made ? 'MADE' : 'MISS') + '</span>' +
+    '<span class="meta">' + meta.join(' · ') + '</span>';
+  var log = $('log');
+  if (shotN === 1) log.innerHTML = '';
+  log.insertBefore(row, log.firstChild);
+  $('shotCount').textContent = '· ' + shotN;
+}
+
+/* ── run a file ───────────────────────────────────────────────── */
+var booted = false;
+async function boot() {
+  if (booted) return; booted = true;
+  $('backendTag').textContent = 'engine: initializing…';
+  await engine.init();
+  $('backendTag').textContent = 'engine: ' + (engine._backend || 'color-only');
+  $('modelTag').textContent = 'model: ' + ((engine._modelUrl || 'v7b1_fp16').split('/').pop());
+  if (window.PoseDetector && window.PoseDetector.init) { try { await window.PoseDetector.init(); } catch (e) {} }
+  engine.onDebugFrame = function (d) { lastDebug = d; };
+  engine.onHoopDetected = onHoop;
+  engine.onShotDetected = onShot;
+}
+
+var _playWatch = null;
+function resetSession() {
+  rimLocked = false; hoopLost = false; rimCenter = null; hoopBuffer.length = 0; firstColorRefinedAt = 0;
+  if (engine.resetStats) engine.resetStats();
+  engine.rimZone = null; engine._shotState = 'idle';
+  try { engine.setRimStabilized(false); } catch (e) {}
+  if (window.PoseDetector) { try { window.PoseDetector.reset(); window.PoseDetector.resetMotion(); } catch (e) {} }
+  $('log').innerHTML = '<div class="muted">Watching…</div>'; shotN = 0; $('shotCount').textContent = '';
+}
+async function startEngineOnVideo() {
+  resetSession();
+  try { engine.stop(); } catch (e) {}     // clean any prior run
+  engine.start(vid);
+  try { await vid.play(); } catch (e) {}
+  if (_playWatch) clearInterval(_playWatch);
+  _playWatch = setInterval(function () { if (!vid.ended && vid.paused) vid.play().catch(function () {}); }, 300);
+  // NOTE: do NOT stop the engine on 'ended' — Replay needs it re-armable;
+  // stopping happens only when a new clip is loaded.
+  $('replay').disabled = false; $('calib').disabled = false;
+}
+async function runFile(file) {
+  await boot();
+  vid.src = URL.createObjectURL(file);
+  await new Promise(function (r) { vid.onloadedmetadata = r; });
+  await startEngineOnVideo();
+}
+
+/* ── FPS from detect frames ───────────────────────────────────── */
+var _lastFC = 0;
+setInterval(function () {
+  var fc = engine._frameCount || 0;
+  $('sFps').textContent = (fc - _lastFC) + '';
+  _lastFC = fc;
+}, 1000);
+
+/* ── wiring ───────────────────────────────────────────────────── */
+var drop = $('drop'), fileInput = $('file');
+drop.onclick = function () { fileInput.click(); };
+fileInput.onchange = function (e) { var f = e.target.files[0]; if (f) runFile(f); };
+['dragenter', 'dragover'].forEach(function (ev) {
+  drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('hot'); });
+});
+['dragleave', 'drop'].forEach(function (ev) {
+  drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('hot'); });
+});
+drop.addEventListener('drop', function (e) {
+  var f = e.dataTransfer.files[0]; if (f && /video/.test(f.type)) runFile(f);
+});
+$('replay').onclick = function () { vid.currentTime = 0; startEngineOnVideo(); };
+$('spec').onchange = function () {
+  if (window.CourtPosition && window.CourtPosition.isCalibrated()) {
+    window.CourtPosition.clear(); $('calibState').textContent = 'court changed — recalibrate';
+  }
+};
+$('calib').onclick = function () {
+  if (!window.CourtCalibration) return;
+  vid.pause();
+  window.CourtCalibration.start(vid, {
+    spec: $('spec').value, landmarkSet: 'behind_hoop', persistKey: 'courtiq-lab-calib',
+    onDone: function (ok) {
+      $('calibState').textContent = ok ? 'calibrated ✓ — distances live' : 'calibration cancelled';
+      vid.play().catch(function () {});
+    }
+  });
+};
+</script>
+</body>
+</html>

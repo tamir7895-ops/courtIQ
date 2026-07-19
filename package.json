@@ -8,7 +8,8 @@
     "sync": "node build.js && npx cap sync android",
     "open": "npx cap open android",
     "ios:open": "npx cap open ios",
-    "ios:sync": "node scripts/ios-sync.js"
+    "ios:sync": "node scripts/ios-sync.js",
+    "testlab": "node scratch/eval-server.js"
   },
   "keywords": [],
   "author": "",
