@@ -16,7 +16,8 @@
   },
   "ios": {
     "scheme": "courtiq",
-    "contentInset": "automatic"
+    "contentInset": "never",
+    "scrollEnabled": false
   },
   "plugins": {
     "Camera": {

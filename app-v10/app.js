@@ -21,7 +21,7 @@
     SCREENS[id] = fn;
   }
 
-  function go(id) {
+  function go(id, slideDir) {
     if (!id) id = 'home';
     if (!SCREENS[id]) id = 'home';
     document.body.setAttribute('data-screen', id);
@@ -31,10 +31,17 @@
     current = id;
     var h = host();
     while (h.firstChild) h.removeChild(h.firstChild);
-    // Tab fade-in (200ms) — restart the animation each navigation
-    h.classList.remove('v10-tab-enter');
+    /* Swipes slide from the direction of travel ('l'/'r', set by
+       lib/mobile.js); everything else keeps the 200ms fade. Restart the
+       animation each navigation. */
+    h.classList.remove('v10-tab-enter', 'v12-slide-l', 'v12-slide-r');
     void h.offsetWidth;
-    h.classList.add('v10-tab-enter');
+    h.classList.add(slideDir === 'l' ? 'v12-slide-l'
+                  : slideDir === 'r' ? 'v12-slide-r'
+                  : 'v10-tab-enter');
+    /* A swipe lands on a NEW page — it starts at the top, like a pager,
+       not wherever the last visit left the scroller. */
+    if (slideDir) { try { h.scrollTop = 0; } catch (e) {} }
     var rendered = null;
     try {
       rendered = SCREENS[id]({
