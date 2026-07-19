@@ -82,6 +82,7 @@
       <div class="row" style="margin-top:10px">
         <button class="btn ghost" id="replay" disabled>↻ Replay</button>
         <button class="btn ghost" id="calib" disabled>◎ Calibrate court</button>
+        <button class="btn ghost" id="savedbg" disabled title="Save the full per-frame evidence of the last analyze run so it can be diagnosed">💾 Save debug</button>
       </div>
       <div class="row" style="margin-top:8px">
         <span class="muted">Court:</span>
@@ -469,7 +470,11 @@ function updateBallTrk(balls) {
     }
   }
   if (!ballTrk && cands.length) {
-    var top = cands.reduce(function (a, b) { return b.s > a.s ? b : a; });
+    // Re-seed on a CONFIDENT detection (≥0.15) so the dot doesn't teleport
+    // onto a stray net-knot flicker the instant the real ball drops out.
+    var strong = cands.filter(function (b) { return b.s >= 0.15; });
+    var pool = strong.length ? strong : cands;
+    var top = pool.reduce(function (a, b) { return b.s > a.s ? b : a; });
     ballTrk = { x: top.x, y: top.y, vx: 0, vy: 0, s: top.s, miss: 0 };
   }
   if (ballTrk) { ballTrail.push({ x: ballTrk.x, y: ballTrk.y, c: ballTrk.miss > 0 }); if (ballTrail.length > 14) ballTrail.shift(); }
@@ -481,10 +486,10 @@ function drawAnalyze() {
   octx.clearRect(0, 0, ov.width, ov.height);
   var fd = analyzeDets;
   if (fd) {
-    // raw model output — faint, so the smoothed track reads as the ball
+    // raw model output — tiny dim dots, so the smoothed track reads as THE ball
     (fd.balls || []).forEach(function (b) {
-      octx.strokeStyle = 'rgba(255,136,0,0.35)'; octx.lineWidth = 1;
-      octx.strokeRect(b.x * ov.width - 6, b.y * ov.height - 6, 12, 12);
+      octx.fillStyle = 'rgba(255,136,0,0.28)';
+      octx.beginPath(); octx.arc(b.x * ov.width, b.y * ov.height, 3, 0, Math.PI * 2); octx.fill();
     });
     (fd.players || []).forEach(function (p) {
       octx.strokeStyle = '#44dd66'; octx.lineWidth = 2;
@@ -517,8 +522,11 @@ function drawAnalyze() {
 }
 requestAnimationFrame(drawAnalyze);
 
+var lastAnalyzeDump = null;
 async function runAnalyze(file) {
   analyzing = true; analyzeDets = null; analyzeRing = null; ballTrk = null; ballTrail = [];
+  window.__opDebug = true;   // capture per-frame evidence for the Save-debug button
+  $('savedbg').disabled = true;
   $('log').innerHTML = '<div class="muted">Analyzing every frame…</div>'; shotN = 0; $('shotCount').textContent = '';
   vid.src = URL.createObjectURL(file);
   await new Promise(function (r) { vid.onloadedmetadata = r; });
@@ -551,6 +559,17 @@ async function runAnalyze(file) {
   if (!shotN) $('log').innerHTML = '<div class="muted">No shots detected in this clip.</div>';
   $('shotCount').textContent = shotN ? '· ' + shotN : '';
   $('replay').disabled = false; $('calib').disabled = false;
+  // Bundle the full evidence so a wrong verdict can be diagnosed offline.
+  lastAnalyzeDump = {
+    video: (lastFile && lastFile.name) || 'clip', when: new Date().toISOString(),
+    made: res.made, total: res.total,
+    shots: (res.shots || []).map(function (s) {
+      return { t: +(s.__videoT != null ? s.__videoT : s.t || 0).toFixed(2),
+               result: s.result, why: s.why, zone: s.v10Zone || s.shotZone };
+    }),
+    diag: res.diag, dump: window.__opDump || null
+  };
+  $('savedbg').disabled = !lastAnalyzeDump.dump;
 }
 
 /* ── FPS from detect frames ───────────────────────────────────── */
@@ -578,6 +597,22 @@ drop.addEventListener('drop', function (e) {
 $('replay').onclick = function () {
   if ($('mode').value === 'analyze' && lastFile) { runAnalyze(lastFile); return; }
   vid.currentTime = 0; startEngineOnVideo();
+};
+$('savedbg').onclick = function () {
+  if (!lastAnalyzeDump) return;
+  var safe = (lastAnalyzeDump.video || 'clip').replace(/[^a-z0-9._-]/gi, '_');
+  var name = 'labdbg_' + safe + '.json';
+  $('savedbg').textContent = '⏳ saving…'; $('savedbg').disabled = true;
+  fetch('/scratch-save?name=' + encodeURIComponent(name), {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(lastAnalyzeDump)
+  }).then(function (r) {
+    $('savedbg').textContent = r.ok ? '✓ saved ' + name : '✗ save failed';
+    setTimeout(function () { $('savedbg').textContent = '💾 Save debug'; $('savedbg').disabled = false; }, 3000);
+  }).catch(function () {
+    $('savedbg').textContent = '✗ save failed';
+    setTimeout(function () { $('savedbg').textContent = '💾 Save debug'; $('savedbg').disabled = false; }, 3000);
+  });
 };
 $('mode').onchange = function () {
   $('modeHint').textContent = this.value === 'analyze'
