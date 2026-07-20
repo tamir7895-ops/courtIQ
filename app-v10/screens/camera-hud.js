@@ -163,9 +163,39 @@
      This is read with the phone in your hand, so it uses normal type. */
   var gateEl = null, rimStreak = 0, gatePassed = false;
   var sessionStartAt = 0;   // set when the user taps Start (not at mount)
+  var shotBaseline   = 0;   // attempts already counted during walk-up
 
   function readPreflight() {
     try { return window.__lastPreflight || {}; } catch (e) { return {}; }
+  }
+
+  /* Is the hoop being seen RIGHT NOW?
+     This used to be `pf.hoop || pf.rimLocked` — and neither field exists.
+     The engine emits preflight as { ready, checks:{ball,hoop,player},
+     thresholds }, so both reads were permanently undefined, `seen` was
+     permanently false, rimStreak never reached 3, the gate never unlocked
+     and the session clock (which starts on the gate's Start tap) never
+     began. That is the "timer never started" report.
+
+     Prefer the engine's LIVE hoop detection and treat it as fresh only
+     while it keeps changing, so "Lost the hoop" still works. Fall back to
+     the preflight tally read in its ACTUAL shape. */
+  var _hoopSig = '', _hoopSigAt = 0;
+  function rimSeen() {
+    var eng = window.ShotDetectionEngine;
+    var pf  = readPreflight();
+    var pfSeen = !!(pf.rimLocked || pf.hoop ||
+                    (pf.checks && pf.checks.hoop >= ((pf.thresholds && pf.thresholds.hoop) || 5)));
+    if (!eng) return pfSeen;
+    var d = eng._lastHoopDetection;
+    if (d) {
+      var sig = d.cx + ',' + d.cy + ',' + d.score;
+      var now = Date.now();
+      if (sig !== _hoopSig) { _hoopSig = sig; _hoopSigAt = now; }
+      if (now - _hoopSigAt < 1500) return true;   // still updating = still seen
+      return false;                                // frozen = hoop gone
+    }
+    return pfSeen;
   }
 
   function gateRow(key, label, iconName) {
@@ -204,6 +234,22 @@
         if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.say('Recording'); }
         gateEl.style.display = 'none';
         sessionStartAt = Date.now();   // the clock starts when shooting does
+        /* The engine runs during the whole walk-up phase, so by the time the
+           user actually taps Start it has already counted the shots taken
+           while framing the hoop — the session opened on a non-zero count
+           ("it counted a shot I never took"). Zero it at the real start. */
+        try {
+          var eng0 = window.ShotDetectionEngine;
+          if (eng0 && eng0.resetStats) eng0.resetStats();
+          /* The count the HUD shows comes from the legacy screen's DOM
+             counters (#st-attempts), not from engine.stats, so resetting the
+             engine alone leaves the old number on screen. Take a baseline at
+             the real start and display the delta. */
+          shotBaseline = readEngineStats().att;
+          window.__v10SessionShots = [];
+          var n0 = document.getElementById('v10-cam-num');
+          if (n0) n0.textContent = '0';
+        } catch (e) {}
         onStart();
       }
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
@@ -242,8 +288,7 @@
      (1.5s). Prevents strobing on a single dropped frame. */
   function updateGate() {
     if (gatePassed) return;
-    var pf = readPreflight();
-    var seen = !!(pf.hoop || pf.rimLocked);
+    var seen = rimSeen();
     rimStreak = seen ? rimStreak + 1 : 0;
 
     var row = document.getElementById('v11-gate-hoop');
@@ -269,8 +314,7 @@
   function updateLive() {
     var hud = document.getElementById('v11-hud');
     if (!hud) return;
-    var pf = readPreflight();
-    var seen = !!(pf.hoop || pf.rimLocked);
+    var seen = rimSeen();
     var now = Date.now();
     if (seen) { lostSince = 0; }
     else if (!lostSince) { lostSince = now; }
@@ -314,7 +358,8 @@
     pollHandle = setInterval(function () {
       var s = readEngineStats();
       var numEl = document.getElementById('v10-cam-num');
-      if (numEl && numEl.textContent !== String(s.att)) numEl.textContent = String(s.att);
+      var shown = Math.max(0, s.att - shotBaseline);
+      if (numEl && numEl.textContent !== String(shown)) numEl.textContent = String(shown);
       updateSessionClock();
       var beEl = document.getElementById('v10-backend-badge');
       if (beEl) {
@@ -334,6 +379,7 @@
   function mountChrome() {
     if (v10Layer && v10Layer.parentNode) return;
     rimStreak = 0; gatePassed = false; lostSince = 0; wasLost = false;
+    sessionStartAt = 0; shotBaseline = 0;
     v10Layer = document.createElement('div');
     v10Layer.id = 'v10-cam-layer';
     v10Layer.appendChild(hudLayer());
