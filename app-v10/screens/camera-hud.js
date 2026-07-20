@@ -125,14 +125,34 @@
     }
   }
 
-  /* Reads the backend the engine settled on + its rolling inference cost. */
+  /* Reads the backend + a live diagnostic line: inference cost, how many
+     YOLOX runs per second are actually happening, and — the key number —
+     what fraction of those runs FIND a ball. A low ball-hit rate means the
+     model cannot see the ball (distance / lighting / filming a screen); a
+     low run rate means the loop is starved (compute). They point at
+     completely different fixes, and this is how the phone tells us which. */
+  var _diagWin = { runs: 0, hits: 0, t: 0 };   // window anchor
+  var _diagShown = '';                          // last computed rate/ball text
   function backendLabel() {
     var eng = window.ShotDetectionEngine;
     if (!eng) return 'engine —';
     var be = eng._backend || '…';
     var ms = eng._inferMsEMA ? Math.round(eng._inferMsEMA) + 'ms' : '—';
+    var now = Date.now();
+    var runs = eng._diagYoloxRuns || 0, hits = eng._diagYoloxBallHits || 0;
+    // Recompute the rate/ball% only every ~1.5s. Over the 250ms poll a WebGPU
+    // loop only does ~2-3 inferences, so ball% would quantise to 0/33/50/100
+    // and flicker; a 1.5s window gives a steady, readable number on device.
+    if (!_diagWin.t) { _diagWin = { runs: runs, hits: hits, t: now }; }
+    else if (now - _diagWin.t >= 1500) {
+      var dt = (now - _diagWin.t) / 1000;
+      var dr = runs - _diagWin.runs, dh = hits - _diagWin.hits;
+      _diagShown = ' · ' + (dr / dt).toFixed(0) + '/s · ball ' +
+                   (dr > 0 ? Math.round((dh / dr) * 100) : 0) + '%';
+      _diagWin = { runs: runs, hits: hits, t: now };
+    }
     var gpu = (typeof navigator !== 'undefined' && navigator.gpu) ? '' : ' no-webgpu';
-    return be + ' · ' + ms + gpu;
+    return be + ' · ' + ms + _diagShown + gpu;
   }
 
   /* ── Find engine state at runtime ─────────────────────────────── */

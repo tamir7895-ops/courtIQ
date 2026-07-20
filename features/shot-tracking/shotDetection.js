@@ -2061,6 +2061,14 @@
         var assocBall = (mlBall || self._offlineMode) ? null
           : self._associateLowConf(scaleX, scaleY, offsetX, offsetY, vw, vh);
 
+        // Diagnostics: count YOLOX runs and how many actually found a ball,
+        // so the on-screen badge can report a real ML ball-hit rate. This is
+        // the number that separates "the model can't see the ball" (test /
+        // distance / filmed-screen problem) from "the loop is too slow"
+        // (compute problem) — instead of guessing from an impression.
+        self._diagYoloxRuns = (self._diagYoloxRuns || 0) + 1;
+        if (mlBall) self._diagYoloxBallHits = (self._diagYoloxBallHits || 0) + 1;
+
         if (mlBall) {
           self._mlMissCount = 0;
           self._mlEverDetected = true;
