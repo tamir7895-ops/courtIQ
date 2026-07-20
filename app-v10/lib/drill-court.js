@@ -56,9 +56,43 @@
     ];
   }
 
+  /* STATION MODE — gym work (planks, jumps, med ball...) does not happen
+     on court spots, so drawing it on the court reads as noise. A station
+     drill gets a clean scene instead: floor line, a mat, and a player dot
+     animated with the drill's real motion (jump / hold / power / steady). */
+  function renderStation(choreo, opts) {
+    var kids = [
+      svg('rect', { x: 0, y: 0, width: 500, height: VIEW_H, fill: 'transparent' }),
+      svg('line', { x1: 60, y1: 218, x2: 440, y2: 218, class: 'dc-floor' }),
+      svg('rect', { x: 190, y: 202, width: 120, height: 18, rx: 9, class: 'dc-mat' })
+    ];
+    var motion = choreo.station.motion || 'power';
+    var g = svg('g', { class: 'dc-st dc-st--' + motion });
+    g.appendChild(svg('circle', { cx: 250, cy: 178, r: 16, class: 'dc-player' }));
+    kids.push(g);
+    /* rep ticks — three quiet pulses so the loop reads as reps, not decor */
+    for (var i = 0; i < 3; i++) {
+      kids.push(svg('circle', {
+        cx: 320 + i * 26, cy: 130, r: 6, class: 'dc-tick',
+        style: 'animation-delay:' + (i * 0.5) + 's'
+      }));
+    }
+    if (choreo.note) {
+      kids.push(svg('text', { x: 250, y: 300, 'text-anchor': 'middle', class: 'dc-note' },
+        [document.createTextNode(choreo.note)]));
+    }
+    return svg('svg', {
+      viewBox: '0 0 500 ' + VIEW_H,
+      role: 'img', 'aria-label': opts.label || 'Station work',
+      class: 'dc-court dc-court--station',
+      style: 'display:block;width:100%;height:auto;background:' + (opts.bg || '#FFFFFF')
+    }, kids);
+  }
+
   function render(choreo, opts) {
     opts = opts || {};
     choreo = choreo || {};
+    if (choreo.station) return renderStation(choreo, opts);
     var kids = courtLines();
 
     /* zone under everything else */
@@ -141,6 +175,13 @@
       /* stationary drill with no ball flight — player stands on spot 1 */
       var s0 = choreo.spots[0];
       kids.push(svg('circle', { cx: s0.x, cy: s0.y, r: 10, class: 'dc-player' }));
+    }
+
+    /* the one-line "how to read this" — clarity beat any legend we tried */
+    if (choreo.note) {
+      kids.push(svg('rect', { x: 0, y: VIEW_H - 26, width: 500, height: 26, class: 'dc-note__bg' }));
+      kids.push(svg('text', { x: 250, y: VIEW_H - 8, 'text-anchor': 'middle', class: 'dc-note' },
+        [document.createTextNode(choreo.note)]));
     }
 
     return svg('svg', {

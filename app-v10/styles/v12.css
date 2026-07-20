@@ -813,8 +813,25 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .dc-spot__n { fill: #FFFFFF; font: 800 15px var(--d-font, sans-serif); }
 .dc-spot    { animation: dc-pulse 2.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
 @keyframes dc-pulse { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.25); } 24% { transform: scale(1); } }
+/* station mode — gym drills off the court: mat + real motion pattern */
+.dc-floor { stroke: #D8DBE2; stroke-width: 6; stroke-linecap: round; }
+.dc-mat   { fill: #EEF0F4; stroke: #D8DBE2; stroke-width: 2; }
+.dc-tick  { fill: var(--d-green, #47C012); opacity: 0; animation: dc-tick 1.5s ease-in-out infinite; }
+@keyframes dc-tick { 0%, 100% { opacity: 0; } 30%, 60% { opacity: 1; } }
+.dc-st { transform-box: fill-box; transform-origin: center bottom; }
+.dc-st--jump  { animation: dc-jump 1s ease-in-out infinite; }
+.dc-st--hold  { animation: dc-hold 2.6s ease-in-out infinite; }
+.dc-st--power { animation: dc-power .9s ease-in infinite; }
+.dc-st--steady{ animation: dc-steady 1.4s ease-in-out infinite; }
+@keyframes dc-jump  { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-34px); } 55% { transform: translateY(-30px); } }
+@keyframes dc-hold  { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
+@keyframes dc-power { 0%, 100% { transform: translateY(-22px); } 45% { transform: translateY(6px) scaleY(.82); } 60% { transform: translateY(2px); } }
+@keyframes dc-steady{ 0%, 100% { transform: translateX(-16px); } 50% { transform: translateX(16px); } }
+.dc-note    { fill: #6B7280; font: 600 15px var(--d-font, sans-serif); }
+.dc-note__bg{ fill: #FFFFFF; opacity: .85; }
 @media (prefers-reduced-motion: reduce) {
-  .dc-spot, .dc-p--dribble, .dc-p--pass, .dc-p--slide { animation: none; }
+  .dc-spot, .dc-p--dribble, .dc-p--pass, .dc-p--slide,
+  .dc-st, .dc-tick { animation: none; }
 }
 
 /* ── plan proposal card — the coach hands over the clipboard ──── */

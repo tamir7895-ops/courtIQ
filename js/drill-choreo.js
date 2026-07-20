@@ -331,15 +331,92 @@
     }
   };
 
+  /* ── station work — gym drills do NOT belong on court spots ────
+     Planks, box jumps, med-ball slams: drawing shuttle lines for these
+     read as noise (and did). They render as a clean station scene with
+     the drill's real motion pattern instead of a court. */
+  function stationChoreo(d) {
+    var t = ((d.name || '') + ' ' + (d.description || '')).toLowerCase();
+    if (/plank|wall sit|hold|bridge|stance|grip|squeeze/.test(t)) {
+      return { station: { motion: 'hold' }, note: 'Isometric hold — set the position, breathe, no movement' };
+    }
+    if (/jump|pogo|rope|plyo|box|bound|hop|knees|split squat|step-up/.test(t)) {
+      return { station: { motion: 'jump' }, note: 'Explosive jumps on the spot — land soft, go again' };
+    }
+    if (/slam|throw|battle rope|press|row|burpee|pull-apart|deadlift|pistol|squat/.test(t)) {
+      return { station: { motion: 'power' }, note: 'Explosive station reps — full effort, reset, repeat' };
+    }
+    return { station: { motion: 'steady' }, note: 'Controlled station reps — quality over speed' };
+  }
+  function isStation(d) {
+    var t = ((d.name || '') + ' ' + (d.description || '')).toLowerCase();
+    if (d.focus_area === 'Strength') {
+      return !/walk|lunge|crawl|court length/.test(t);   /* carries stay on court */
+    }
+    if (d.focus_area === 'Conditioning') {
+      return /jump rope|plyo|box jump|burpee|wall sit|medicine|high knees|bound|jump series/.test(t);
+    }
+    return false;
+  }
+  /* strength carries/lunges/crawls: real court movement, sideline lengths */
+  function walkChoreo() {
+    return {
+      paths: [{ pts: [[80, 300], [420, 300], [80, 300]], kind: 'run' }],
+      cones: [{ x: 80, y: 300 }, { x: 420, y: 300 }],
+      note: 'Loaded walk — line to line and back, tall posture'
+    };
+  }
+
+  /* one line under every diagram: how to read it */
+  var NOTES = {
+    catch_shoot: 'Blue = the pass in. Catch, shoot — ball arcs to the rim',
+    pullup: 'Dribble in (orange), pull up at the spot, shoot',
+    stepback: 'Drive in, step back to the mark, shoot',
+    spot_shoot: 'Run the numbered spots — shots up at every one',
+    post_fade: 'Back down to the spot, turn, fade away',
+    free_throw: 'Free throws — same routine every rep',
+    two_ball: 'Stationary dribble, both balls, eyes up',
+    slalom: 'Dribble the cone line — both hands, tight turns',
+    spider: 'Low rapid dribble around the spot',
+    crossover: 'Attack the cone, cross over, finish the move',
+    defensive_slide: 'Defensive slides around the paint — stay low',
+    closeout: 'Sprint out, chop the last steps, contest high',
+    mikan: 'Alternate sides under the rim, no dribble',
+    eurostep: 'Drive baseline — two lateral steps past the defender',
+    drive_finish: 'Drive from the wing, finish at the rim',
+    sprints: 'Shuttle runs — out and back, touch every line',
+    full_court_run: 'Court lengths at tempo — down and back',
+    sprint_drill: 'Sprint intervals between the cones',
+    chest_pass: 'Blue line = the pass — chest height, snap it',
+    bounce_pass: 'Bounce pass — one bounce, hits the target waist-high',
+    skip_pass: 'Skip pass across the court — over the defense',
+    outlet_pass: 'Rebound, turn, outlet to the wing',
+    fast_break: 'Outlet pass, then sprint the lane',
+    triple_threat: 'Jab and pivot from the spot — stay in triple threat',
+    pivot_moves: 'Front and reverse pivots on the spot',
+    drop_step: 'Seal at the block, drop step, power finish',
+    footwork_ladder: 'Quick feet through the ladder rungs',
+    lateral_shuffle: 'Shuffle cone to cone — never cross the feet',
+    layup_finish: 'Drive in and finish — off the correct foot',
+    dribble_series: 'Stationary combo dribbles — follow the pattern'
+  };
+
   function get(d) {
     if (!d) return null;
     try {
-      if (OVERRIDES[d.id]) return OVERRIDES[d.id]();
+      if (OVERRIDES[d.id]) {
+        var o = OVERRIDES[d.id]();
+        if (o && !o.note && NOTES[d.anim_type]) o.note = NOTES[d.anim_type];
+        return o;
+      }
+      if (isStation(d)) return stationChoreo(d);
+      if (d.focus_area === 'Strength') return walkChoreo();
+      var c;
       var t = T[d.anim_type];
-      if (t) return t(d);
-      /* archetype missing: still a real court — spot where the text says */
-      var spots = shootSpots(d);
-      return { spots: num(spots) };
+      if (t) c = t(d);
+      else c = { spots: num(shootSpots(d)) };
+      if (c && !c.note && NOTES[d.anim_type]) c.note = NOTES[d.anim_type];
+      return c;
     } catch (e) { return null; }
   }
 
