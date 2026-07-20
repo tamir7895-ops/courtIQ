@@ -491,16 +491,18 @@
     // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
-    // 1280×720 chosen for visual quality of the live preview and the
-    // recorded video-replay clip. Detection itself downscales to 640px wide,
-    // so a smaller capture (e.g. 854×480) would save ~30% of camera/encoder
-    // power on battery-bound devices without affecting accuracy. Worth
-    // revisiting on mobile if thermal throttling becomes an issue.
+    // 854×480, not 1280×720. Detection downscales to 640px wide regardless,
+    // so the extra pixels never reached the model — they only cost camera and
+    // ENCODER power. That was free while recording was silently broken, but
+    // now that the session really is recorded the encoder competes with YOLOX
+    // and pose on the same chip, and measured headroom was already thin
+    // (~60ms/inference against a 33ms frame). Dropping the capture is the
+    // cheapest way to buy it back, and costs the model nothing.
     var constraints = {
       video: {
         facingMode: { ideal: 'environment' },
-        width: { ideal: 1280 },
-        height: { ideal: 720 }
+        width: { ideal: 854 },
+        height: { ideal: 480 }
       },
       audio: false
     };

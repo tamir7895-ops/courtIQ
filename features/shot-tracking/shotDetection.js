@@ -795,6 +795,10 @@
     onDebugFrame: null,     // callback({ balls: [], hoops: [], shotState, kalman, frameCount })
     _isDetecting: false,
     _colorOnlyMode: false,
+    /* Set by the session UI while the clip is being recorded for offline
+       analysis — backs the YOLOX cadence right off so the video encoder gets
+       the chip. See _adaptiveDivisor. */
+    _lowPowerMode: false,
     _mlMissCount: 0,
     _frameCount: 0,
     _detectorType: 'none',   // 'yolox' | 'none'
@@ -1884,10 +1888,22 @@
        Faster sampling on strong GPUs (2 vs the old fixed 3 → ~7.5Hz ball
        sampling); automatic back-off on weak GPUs (4) so the loop never chokes. */
     _adaptiveDivisor: function () {
-      if (this._backend !== 'webgpu') return 6;
-      if (!this._inferMsEMA || (this._inferSamples || 0) < 4) return 3;  // warmup default
-      var d = Math.round(this._inferMsEMA / DETECTION_INTERVAL) + 1;
-      return Math.max(2, Math.min(4, d));
+      if (this._backend !== 'webgpu') return this._lowPowerMode ? 12 : 6;
+      var d;
+      if (!this._inferMsEMA || (this._inferSamples || 0) < 4) d = 3;  // warmup default
+      else d = Math.max(2, Math.min(4, Math.round(this._inferMsEMA / DETECTION_INTERVAL) + 1));
+      /* LOW-POWER: set while the session is being RECORDED for offline
+         analysis. The accurate made/miss verdicts come from the offline pass
+         over the finished clip (9/9 on real user footage) — the live engine
+         only has to hold the rim lock and prove liveness, it does not have to
+         sample the ball fast enough to judge shots. Meanwhile the video
+         encoder is now competing for the same chip, and measured headroom was
+         already thin (~60ms/inference against a 33ms frame). Backing the
+         cadence off hands that headroom to the encoder, which makes the
+         RECORDING cleaner — and the recording is what the accuracy actually
+         comes from now. */
+      if (this._lowPowerMode) d = Math.max(d * 3, 9);
+      return d;
     },
 
     /* ── YOLOX ONNX inference (async) ─────────────────────────── */

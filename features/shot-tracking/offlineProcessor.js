@@ -342,6 +342,11 @@
             prevOnFrame = eng.onFrameDetections;
 
             eng._offlineMode = true;
+            /* Belt and braces: the live session sets _lowPowerMode while
+               recording to give the encoder the chip. Offline analysis is the
+               opposite regime — it must see EVERY frame, and it is where the
+               accuracy comes from — so never inherit a stale throttle. */
+            eng._lowPowerMode = false;
             if (eng.isRunning) { try { eng.stop(); } catch (e) {} }
             eng._offlineMode = true;
             try { eng.start(video); } catch (e) { fail(e); return; }

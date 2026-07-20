@@ -246,6 +246,12 @@
              engine alone leaves the old number on screen. Take a baseline at
              the real start and display the delta. */
           shotBaseline = readEngineStats().att;
+          /* The clip is now genuinely being recorded, and the encoder shares
+             the chip with YOLOX + pose. The accurate verdicts come from the
+             offline pass over that clip, so the live engine can back right
+             off — that headroom goes to a cleaner recording, which is what
+             the accuracy actually depends on now. */
+          if (eng0) eng0._lowPowerMode = true;
           window.__v10SessionShots = [];
           var n0 = document.getElementById('v10-cam-num');
           if (n0) n0.textContent = '0';
@@ -430,6 +436,10 @@
   }
 
   function unmountChrome() {
+    /* Leaving the session: hand the engine back its full cadence, or the
+       next non-recorded use (and the offline analyser, which drives the same
+       engine) would inherit the throttle. */
+    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._lowPowerMode = false; } catch (e) {}
     if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
     v10Layer = null;
     if (gateEl && gateEl.parentNode) gateEl.parentNode.removeChild(gateEl);
