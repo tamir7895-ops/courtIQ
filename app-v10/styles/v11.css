@@ -920,3 +920,9 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
    clears the 214pt legibility floor the counter was sized to, while
    leaving the 4-glyph run comfortably inside the viewport. */
 #v11-hud-timer { font-size: min(40vh, 58vw); }
+
+/* Recording fault reads as a hard fault, not a soft warning: a session that
+   is not being captured cannot be analysed at all afterwards. */
+.v11-hud__pill.is-fault {
+  background: rgba(255,79,31,.82); border-color: rgba(255,255,255,.35);
+}

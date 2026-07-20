@@ -280,9 +280,20 @@
        ruin the session, so it is the thing we state in words. */
     var pill = document.getElementById('v11-hud-pill');
     var stateEl = document.getElementById('v11-hud-state');
-    if (pill) pill.classList.toggle('is-lost', lost);
+    /* Recording state outranks hoop state in the pill: a session that is not
+       being captured cannot be analysed afterwards at all, which is a worse
+       failure than a momentarily lost rim — and it is otherwise completely
+       invisible until the clip turns out to be missing. */
+    var rec = null;
+    try { rec = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState(); } catch (e) {}
+    var notRecording = !!(rec && !rec.active);
+    if (pill) {
+      pill.classList.toggle('is-lost', lost || notRecording);
+      pill.classList.toggle('is-fault', notRecording);
+    }
     if (stateEl) {
-      var want = lost ? 'Hoop lost — reframe' : 'Tracking the hoop';
+      var want = notRecording ? 'Not recording'
+               : (lost ? 'Hoop lost — reframe' : 'Recording · tracking');
       if (stateEl.textContent !== want) stateEl.textContent = want;
     }
     if (lost !== wasLost) {

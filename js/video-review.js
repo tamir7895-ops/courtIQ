@@ -18,6 +18,7 @@
   var _chunks = [];
   var _recordingStartTime = 0;
   var _shotTimestamps = [];
+  var _recordingMime = '';
 
   /* ── IndexedDB ─────────────────────────────────────────── */
   function openDB() {
@@ -97,20 +98,38 @@
     _shotTimestamps = [];
     _recordingStartTime = Date.now();
 
-    var mimeType = 'video/webm;codecs=vp9';
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-      mimeType = 'video/webm;codecs=vp8';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
-      }
+    /* Codec probe. This used to try ONLY webm — and iOS/WKWebView does not
+       support webm at all. So on iPhone every branch failed, the last
+       unsupported type was handed to the constructor anyway, it threw, and
+       recording silently never started: the session looked normal and there
+       was simply no clip at the end. mp4 is what Safari records, so it has
+       to be in the list. webm stays FIRST so Android/Chrome keep the exact
+       behaviour they already had, and an empty type (browser default) is the
+       final safety net rather than passing something known-unsupported. */
+    var CANDIDATES = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4;codecs=avc1',   // iOS / Safari
+      'video/mp4'
+    ];
+    var mimeType = null;
+    for (var ci = 0; ci < CANDIDATES.length; ci++) {
+      try {
+        if (MediaRecorder.isTypeSupported(CANDIDATES[ci])) { mimeType = CANDIDATES[ci]; break; }
+      } catch (e) { /* isTypeSupported can throw on exotic builds */ }
     }
 
     try {
-      _mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
+      _mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType: mimeType })
+        : new MediaRecorder(stream);   // let the platform pick
     } catch (e) {
       console.warn('[VideoReview] MediaRecorder init failed:', e);
       return false;
     }
+    _recordingMime = _mediaRecorder.mimeType || mimeType || '';
+    try { console.info('[VideoReview] recording as', _recordingMime || '(platform default)'); } catch (e) {}
 
     _mediaRecorder.ondataavailable = function (e) {
       if (e.data && e.data.size > 0) _chunks.push(e.data);
@@ -363,8 +382,22 @@
   /* ── Init ───────────────────────────────────────────────── */
   purgeOld().catch(function () {});
 
+  /* Is a clip actually being captured right now, and in what container?
+     Recording failing is invisible from the outside — the session looks
+     completely normal and the clip is simply missing afterwards — so the
+     HUD reads this to tell the user the truth while there is still time
+     to do something about it. */
+  function recordingState() {
+    return {
+      active: !!(_mediaRecorder && _mediaRecorder.state === 'recording'),
+      mime: _recordingMime,
+      supported: isSupported()
+    };
+  }
+
   window.VideoReview = {
     isSupported: isSupported,
+    recordingState: recordingState,
     startRecording: startRecording,
     recordShotEvent: recordShotEvent,
     stopRecording: stopRecording,
