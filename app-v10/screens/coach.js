@@ -235,19 +235,25 @@
     host.appendChild(h('div', { class: 'c12-chat-in' }, [input, sendBtn]));
 
     /* Replay the running conversation if one exists; otherwise open with
-       the scout's real derived lines. */
-    var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
-    if (past.length) {
-      past.forEach(function (m) {
-        if (m.role === 'user') userSay(m.content);
-        else {
-          /* strip any action line from stored assistant turns */
-          coachSay(m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, ''));
-        }
-      });
-    } else {
-      scoutLines(data).forEach(coachSay);
+       the scout's real derived lines. sync() first pulls the account's
+       memory row (other device, reinstall) — resolves instantly for
+       guests or once already synced this launch. */
+    function replay() {
+      var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
+      if (past.length) {
+        past.forEach(function (m) {
+          if (m.role === 'user') userSay(m.content);
+          else {
+            /* strip any action line from stored assistant turns */
+            coachSay(m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, ''));
+          }
+        });
+      } else {
+        scoutLines(data).forEach(coachSay);
+      }
     }
+    if (live && window.V12CoachAI.sync) window.V12CoachAI.sync().then(replay, replay);
+    else replay();
   }
 
   /* ── training calendar — last 4 weeks, real session days ─────*/

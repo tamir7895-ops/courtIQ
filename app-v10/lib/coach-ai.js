@@ -57,10 +57,57 @@
     var m = loadMem();
     if (Array.isArray(m.history)) history = m.history.slice(-MAX_TURNS);
   })();
+
+  /* ── account sync — the memory follows the player, not the phone ──
+     public.coach_memory holds one row per user (RLS: owner only). The
+     server row is the source of truth: sync() pulls it once per app
+     launch and overwrites the local copy; every persist() pushes back.
+     A device with no session (guest) just keeps localStorage. */
+  var remoteSynced = false;
+  function pushRemote() {
+    try {
+      if (!signedIn() || !window.sb || !sb.from || !window.currentUser.id) return;
+      var m = loadMem();
+      sb.from('coach_memory').upsert({
+        user_id: window.currentUser.id,
+        notes: m.notes || null,
+        history: m.history || [],
+        updated_at: new Date().toISOString()
+      }).then(function () {}, function () {});
+    } catch (e) { /* memory sync must never break the chat */ }
+  }
+  function sync() {
+    if (remoteSynced || !signedIn() || !window.sb || !sb.from) {
+      return Promise.resolve(false);
+    }
+    return sb.from('coach_memory')
+      .select('notes,history')
+      .eq('user_id', window.currentUser.id)
+      .maybeSingle()
+      .then(function (res) {
+        remoteSynced = true;
+        var row = res && res.data;
+        if (row && (row.notes || (Array.isArray(row.history) && row.history.length))) {
+          var m = loadMem();
+          if (typeof row.notes === 'string' && row.notes) m.notes = row.notes;
+          if (Array.isArray(row.history) && row.history.length) {
+            m.history = row.history.slice(-MAX_TURNS);
+            history = m.history.slice();
+          }
+          saveMem(m);
+          return true;
+        }
+        pushRemote();      /* first device on this account: seed the row */
+        return false;
+      })
+      .catch(function () { return false; });
+  }
+
   function persist() {
     var m = loadMem();
     m.history = history.slice(-MAX_TURNS);
     saveMem(m);
+    pushRemote();
   }
 
   function signedIn() {
@@ -260,6 +307,7 @@
       var m = loadMem();
       m.notes = a.notes;
       saveMem(m);
+      pushRemote();              /* notes are the part most worth syncing */
       return null;               /* silent — a coach doesn't announce note-taking */
     }
     if (a.type === 'plan_focus' && window.V12Plan) {
@@ -363,6 +411,7 @@
     var m = loadMem();
     delete m.history;
     saveMem(m);
+    pushRemote();                /* the fresh start reaches the account too */
   }
 
   /* the UI replays this on open so the thread survives navigation */
@@ -370,7 +419,7 @@
 
   window.V12CoachAI = {
     ask: ask, reset: reset, signedIn: signedIn, transcript: transcript,
-    applyProposal: applyProposal,
+    sync: sync, applyProposal: applyProposal,
     _parse: extractAction        /* exposed for tests — parses a raw reply */
   };
 })();
