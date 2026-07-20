@@ -54,28 +54,36 @@
      compute makes at all. HomeCourt shows two counters because HomeCourt
      computes makes live. Copying that would mean shipping a number we
      can't stand behind, or a "Makes: 0" that's wrong all session. */
+  function checkRow(key, label) {
+    return h('div', { class: 'v11-check', id: 'v11-check-' + key }, [
+      h('span', { class: 'v11-check__dot' }),
+      h('span', { class: 'v11-check__lbl', text: label })
+    ]);
+  }
+
   function hudLayer() {
     return h('div', { id: 'v11-hud', class: 'v11-hud v11-hud--live' }, [
       h('div', { class: 'v11-hud__frame' }),
 
-      /* Status pill — the one thing worth reading at a glance, because it
-         is the only thing that can silently ruin the session. */
-      h('div', { class: 'v11-hud__top' }, [
-        h('div', { class: 'v11-hud__pill', id: 'v11-hud-pill' }, [
-          h('span', { class: 'v11-hud__dot' }),
-          h('span', { class: 'v11-hud__pilltxt', id: 'v11-hud-state', text: 'Finding the hoop' })
+      /* Right column: compact recording timer + a live checklist of what
+         the model is seeing. The camera view itself is the hero now — the
+         chrome stays out of the middle of the frame. The giant centre
+         clock is gone by request; status reads as a tidy stack instead. */
+      h('div', { class: 'v11-hud__side' }, [
+        h('div', { class: 'v11-side__timer' }, [
+          h('span', { class: 'v11-side__rec', id: 'v11-side-rec' }),
+          h('span', { class: 'v11-side__time', id: 'v11-hud-timer', text: '0:00' })
+        ]),
+        /* progress toward the 5-minute cap, thin, right under the clock */
+        h('div', { class: 'v11-side__cap' }, [
+          h('div', { class: 'v11-side__capfill', id: 'v11-hud-capfill' })
+        ]),
+        h('div', { class: 'v11-side__checks' }, [
+          checkRow('hoop',   'Hoop'),
+          checkRow('ball',   'Ball'),
+          checkRow('player', 'Player'),
+          checkRow('rec',    'Rec')
         ])
-      ]),
-
-      /* HERO — the session clock, not a score. Live mode cannot compute
-         makes, so a big "12" was a number we could not stand behind. The
-         clock is true, it is useful (you are shooting to a 5-minute cap),
-         and it keeps the 40vh optics the old counter was sized for. */
-      h('div', { class: 'v11-hud__num', id: 'v11-hud-timer', text: '0:00' }),
-
-      /* Progress toward the cap — extent, not text, so it reads far away. */
-      h('div', { class: 'v11-hud__cap' }, [
-        h('div', { class: 'v11-hud__capfill', id: 'v11-hud-capfill' })
       ]),
 
       /* Secondary, for when you walk back in. Framed as DETECTED, never as
@@ -123,6 +131,32 @@
       fill.style.width = (frac * 100).toFixed(1) + '%';
       fill.classList.toggle('is-near', frac >= 0.8);
     }
+  }
+
+  /* The live checklist — what is the model seeing RIGHT NOW.
+     Hoop from rimSeen() (live detection freshness), ball/player from the
+     engine's freshness stamps, rec from the recorder itself. Ball gets a
+     wider window than its detection cadence (~10/s) because a ball is
+     legitimately absent between shots — the row should read "recently seen",
+     not flicker on every dribble. */
+  function updateChecklist() {
+    var eng = window.ShotDetectionEngine;
+    var now = Date.now();
+    function setRow(key, on, warn) {
+      var el = document.getElementById('v11-check-' + key);
+      if (!el) return;
+      el.classList.toggle('is-on', !!on);
+      el.classList.toggle('is-warn', !on && !!warn);
+    }
+    setRow('hoop', rimSeen());
+    setRow('ball', eng && eng._diagLastBallAt && (now - eng._diagLastBallAt < 2000));
+    setRow('player', eng && eng._diagLastPlayerAt && (now - eng._diagLastPlayerAt < 2000));
+    var rec = null;
+    try { rec = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState(); } catch (e) {}
+    // rec is a FAULT when off: an unrecorded session cannot be analysed.
+    setRow('rec', rec && rec.active, true);
+    var recDot = document.getElementById('v11-side-rec');
+    if (recDot) recDot.classList.toggle('is-live', !!(rec && rec.active));
   }
 
   /* Reads the backend + a live diagnostic line: inference cost, how many
@@ -346,26 +380,8 @@
     else if (!lostSince) { lostSince = now; }
 
     var lost = !!lostSince && (now - lostSince) > 1500;
-    /* Status pill: tracking health is the only live signal that can quietly
-       ruin the session, so it is the thing we state in words. */
-    var pill = document.getElementById('v11-hud-pill');
-    var stateEl = document.getElementById('v11-hud-state');
-    /* Recording state outranks hoop state in the pill: a session that is not
-       being captured cannot be analysed afterwards at all, which is a worse
-       failure than a momentarily lost rim — and it is otherwise completely
-       invisible until the clip turns out to be missing. */
-    var rec = null;
-    try { rec = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState(); } catch (e) {}
-    var notRecording = !!(rec && !rec.active);
-    if (pill) {
-      pill.classList.toggle('is-lost', lost || notRecording);
-      pill.classList.toggle('is-fault', notRecording);
-    }
-    if (stateEl) {
-      var want = notRecording ? 'Not recording'
-               : (lost ? 'Hoop lost — reframe' : 'Recording · tracking');
-      if (stateEl.textContent !== want) stateEl.textContent = want;
-    }
+    /* Word-level status now lives in the right-side checklist
+       (updateChecklist); this keeps only the full-screen lost wash. */
     if (lost !== wasLost) {
       wasLost = lost;
       hud.classList.toggle('v11-hud--lost', lost);
@@ -387,6 +403,7 @@
       var shown = Math.max(0, s.att - shotBaseline);
       if (numEl && numEl.textContent !== String(shown)) numEl.textContent = String(shown);
       updateSessionClock();
+      updateChecklist();
       var beEl = document.getElementById('v10-backend-badge');
       if (beEl) {
         var lbl = backendLabel();

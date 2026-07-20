@@ -914,15 +914,78 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
   text-transform: uppercase; opacity: .72;
 }
 
-/* The hero is now a CLOCK, not a 1-2 digit count, so 40vh alone overflows:
-   "0:00" renders ~489px at 40vh on a 375px-wide screen and gets clipped.
-   Clamp by width as well. 58vw = 217px on a 375pt screen, which still
-   clears the 214pt legibility floor the counter was sized to, while
-   leaving the 4-glyph run comfortably inside the viewport. */
-#v11-hud-timer { font-size: min(40vh, 58vw); }
+/* (The giant centre clock is gone — the timer now lives in the right-side
+   stack, styled by .v11-side__time. No ID-level font-size override.) */
 
 /* Recording fault reads as a hard fault, not a soft warning: a session that
    is not being captured cannot be analysed at all afterwards. */
 .v11-hud__pill.is-fault {
   background: rgba(255,79,31,.82); border-color: rgba(255,255,255,.35);
 }
+
+/* ── Session side stack: compact timer + live checklist ──────────
+   The camera view is the hero; chrome moves to a tidy right-hand column.
+   Same dark-glass language as the rest of the live HUD: ink glass, cream
+   display type, sage = seen, orange = fault. */
+.v11-hud__side {
+  position: absolute;
+  top: calc(var(--safe-top, env(safe-area-inset-top, 0px)) + 12px);
+  right: 12px;
+  display: flex; flex-direction: column; align-items: flex-end; gap: 8px;
+  pointer-events: none;
+}
+.v11-side__timer {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 12px;
+  background: rgba(6,13,24,.62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(251,245,232,.16);
+}
+.v11-side__rec {
+  width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+  background: rgba(251,245,232,.3);
+}
+.v11-side__rec.is-live {
+  background: var(--orange);
+  animation: v11RecBlink 1.6s ease-in-out infinite;
+}
+/* gentle breathe, well under WCAG 2.3.1's 3-flash ceiling */
+@keyframes v11RecBlink { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+.v11-side__time {
+  font-family: var(--font-display); font-weight: 900; font-size: 22px;
+  letter-spacing: .04em; color: var(--cream);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.v11-side__cap {
+  width: 100%; height: 3px; border-radius: 999px;
+  background: rgba(251,245,232,.16); overflow: hidden;
+}
+.v11-side__capfill {
+  height: 100%; width: 0%; border-radius: 999px;
+  background: var(--cream); transition: width .9s linear, background .3s ease;
+}
+.v11-side__capfill.is-near { background: var(--orange); }
+.v11-side__checks {
+  display: flex; flex-direction: column; align-items: stretch; gap: 5px;
+  padding: 9px 12px; border-radius: 12px;
+  background: rgba(6,13,24,.62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(251,245,232,.16);
+}
+.v11-check { display: flex; align-items: center; gap: 8px; }
+.v11-check__dot {
+  width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto;
+  background: rgba(251,245,232,.22);
+  transition: background .25s ease, box-shadow .25s ease;
+}
+.v11-check.is-on .v11-check__dot {
+  background: var(--sage); box-shadow: 0 0 6px rgba(61,122,83,.8);
+}
+.v11-check.is-warn .v11-check__dot { background: var(--orange); }
+.v11-check__lbl {
+  font-family: var(--font-display); font-weight: 800; font-size: 11.5px;
+  letter-spacing: .16em; text-transform: uppercase;
+  color: rgba(251,245,232,.55); line-height: 1; transition: color .25s ease;
+}
+.v11-check.is-on .v11-check__lbl { color: var(--cream); }
+.v11-check.is-warn .v11-check__lbl { color: var(--orange); }

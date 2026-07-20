@@ -2068,6 +2068,10 @@
         // (compute problem) — instead of guessing from an impression.
         self._diagYoloxRuns = (self._diagYoloxRuns || 0) + 1;
         if (mlBall) self._diagYoloxBallHits = (self._diagYoloxBallHits || 0) + 1;
+        // Freshness timestamps for the session checklist — "what is the
+        // model seeing right now", readable off the engine without the
+        // rAF-gated debug payload.
+        if (mlBall) self._diagLastBallAt = Date.now();
 
         if (mlBall) {
           self._mlMissCount = 0;
@@ -2325,6 +2329,8 @@
       var ballKeep   = this._greedyNMS(ballCandidates,   NMS_THRESH);
       var hoopKeep   = this._greedyNMS(hoopCandidates,   NMS_THRESH);
       var playerKeep = this._greedyNMS(playerCandidates, NMS_THRESH);
+      // Freshness timestamp for the session checklist (see _diagLastBallAt).
+      if (playerKeep.length > 0) this._diagLastPlayerAt = Date.now();
 
       // Store latest hoop detection for auto rim-lock (use UNFILTERED hoopKeep
       // here — the auto-lock needs the strongest raw signal). We rebuild a
