@@ -1618,3 +1618,45 @@ body[data-screen="onboarding"] #app {
 @media (prefers-reduced-motion: reduce) {
   .d-card--press, .d-btn, .h12-chal__fill { transition: none; }
 }
+
+/* ── session-prep (Before you start) ─────────────────────────────
+   The setup screen. Reuses .n12-row for the condition list; these are
+   only the bits that row does not already cover. */
+.sp12-how { padding: 14px 16px; }
+.sp12-how__t {
+  font-family: var(--d-font); font-weight: 800; font-size: 13px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--d-ink);
+}
+.sp12-how__steps { margin-top: 10px; display: grid; gap: 9px; }
+.sp12-step {
+  display: flex; align-items: flex-start; gap: 10px;
+  font-family: var(--d-font); font-weight: 600; font-size: 13.5px;
+  color: var(--d-ink); line-height: 1.4;
+}
+.sp12-step__n {
+  flex: 0 0 auto; width: 21px; height: 21px; border-radius: 50%;
+  background: var(--d-orange); color: #FFFFFF;
+  box-shadow: 0 2px 0 var(--d-orange-deep);
+  font-size: 11.5px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin-top: 1px;
+}
+.sp12-sec {
+  font-family: var(--d-font); font-weight: 800; font-size: 11.5px;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--d-mute);
+  margin: 18px 0 2px 4px;
+}
+.sp12-dsa {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  margin: 16px 4px 4px;
+  font-family: var(--d-font); font-weight: 600; font-size: 13.5px;
+  color: var(--d-mute);
+}
+.sp12-dsa__box { width: 18px; height: 18px; accent-color: var(--d-orange); cursor: pointer; }
+.sp12-skip {
+  width: 100%; margin-top: 10px; border: 0; background: transparent; cursor: pointer;
+  font-family: var(--d-font); font-weight: 700; font-size: 13.5px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--d-mute);
+  min-height: 44px; border-radius: 12px;
+}
+.sp12-skip:active { background: rgba(10,40,80,0.05); }

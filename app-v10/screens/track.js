@@ -363,7 +363,9 @@
 
         host.appendChild(V12.btn({
           label: 'Session start', icon: 'ph-play-circle',
-          onClick: function () { ctx.go('camera-hud'); }
+          // via the setup screen — it forwards straight through once the
+          // user has ticked "don't show this again"
+          onClick: function () { ctx.go('session-prep'); }
         }));
         host.appendChild(h('div', { class: 't12-doors' }, [
           V12.card({
