@@ -1888,7 +1888,7 @@
        Faster sampling on strong GPUs (2 vs the old fixed 3 → ~7.5Hz ball
        sampling); automatic back-off on weak GPUs (4) so the loop never chokes. */
     _adaptiveDivisor: function () {
-      if (this._backend !== 'webgpu') return this._lowPowerMode ? 12 : 6;
+      if (this._backend !== 'webgpu') return 6;
       var d;
       if (!this._inferMsEMA || (this._inferSamples || 0) < 4) d = 3;  // warmup default
       else d = Math.max(2, Math.min(4, Math.round(this._inferMsEMA / DETECTION_INTERVAL) + 1));
@@ -1902,7 +1902,15 @@
          cadence off hands that headroom to the encoder, which makes the
          RECORDING cleaner — and the recording is what the accuracy actually
          comes from now. */
-      if (this._lowPowerMode) d = Math.max(d * 3, 9);
+      /* DISABLED for now. Backing the live cadence off to ~3/sec was premature:
+         it optimised for an architecture that is not wired yet. Until the
+         recorded clip is actually handed to the offline analyser at the end of
+         a session, the LIVE view is the only output the user has — and at 3
+         inferences/sec a ball in flight simply falls between samples. The
+         encoder turned out to cost only ~60 -> 70-80ms anyway, so this was not
+         where the load was. Re-enable only once offline hand-off ships AND the
+         live view is no longer the thing being judged. */
+      // if (this._lowPowerMode) d = Math.max(d * 3, 9);
       return d;
     },
 

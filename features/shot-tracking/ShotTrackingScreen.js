@@ -491,18 +491,19 @@
     // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
-    // 854×480, not 1280×720. Detection downscales to 640px wide regardless,
-    // so the extra pixels never reached the model — they only cost camera and
-    // ENCODER power. That was free while recording was silently broken, but
-    // now that the session really is recorded the encoder competes with YOLOX
-    // and pose on the same chip, and measured headroom was already thin
-    // (~60ms/inference against a 33ms frame). Dropping the capture is the
-    // cheapest way to buy it back, and costs the model nothing.
+    // 1280×720. A 854×480 capture was tried to buy encoder headroom on the
+    // reasoning that detection downscales to 640 wide anyway — that reasoning
+    // was wrong for SMALL objects. The ball is only a few pixels; capturing it
+    // with fewer sensor pixels to begin with means less ball detail survives
+    // into the 640 input, and phone ISPs are often softer in low capture modes
+    // too. Measured cost of the encoder was only ~60ms -> 70-80ms, so this was
+    // never where the load was. Do not lower this again without measuring
+    // detection quality, not just frame cost.
     var constraints = {
       video: {
         facingMode: { ideal: 'environment' },
-        width: { ideal: 854 },
-        height: { ideal: 480 }
+        width: { ideal: 1280 },
+        height: { ideal: 720 }
       },
       audio: false
     };
