@@ -179,7 +179,7 @@
         a.focus = a.focus.filter(function (f) { return VALID_FOCUS[f]; }).slice(0, 3);
         if (!a.focus.length) a = null;
       } else if (a.type === 'go') {
-        if (['track', 'train', 'plan'].indexOf(a.screen) < 0) a = null;
+        if (['track', 'train', 'plan', 'home', 'me', 'social'].indexOf(a.screen) < 0) a = null;
       } else if (a.type === 'remember') {
         if (typeof a.notes !== 'string' || !a.notes.trim()) a = null;
         else a.notes = a.notes.slice(0, 400);
