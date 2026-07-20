@@ -78,7 +78,13 @@
 
     /* How the session actually works — sets the expectation that results
        are NOT instant, which is the whole shape of this flow. */
-    host.appendChild(V12.card({ tint: 'orange', bgIcon: 'ph-film-strip', bgTone: 'orange', class: 'sp12-how' }, [
+    /* Neutral card, NOT a saturated one. The tinted variant flips the text
+       tokens to white, and white 13px type on orange measures 3.29:1 —
+       below AA for anything that is not large text, and it read as
+       unreadable on device. The system's own rule is that most surfaces
+       stay neutral and only the few things that shout get colour; a list
+       of setup instructions is meant to be read, not to shout. */
+    host.appendChild(V12.card({ bgIcon: 'ph-film-strip', bgTone: 'orange', class: 'sp12-how' }, [
       h('div', { class: 'sp12-how__t', text: 'How it works' }),
       h('div', { class: 'sp12-how__steps' }, [
         h('div', { class: 'sp12-step' }, [
