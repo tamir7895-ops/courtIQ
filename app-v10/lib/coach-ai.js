@@ -38,6 +38,16 @@
   var MAX_TURNS = 16;          /* context window discipline: last N turns travel */
   var LS_MEM = 'courtiq_coach_memory';
 
+  /* ── the coaching staff ──────────────────────────────────────────
+     Four coaches, one brain each: the GM (The Scout) plus three
+     specialists. Every persona keeps its OWN conversation and notes —
+     locally under its own key, remotely in its own coach_memory row.
+     The server narrows the model's role per persona; the client only
+     says who is talking. */
+  var PERSONA_IDS = { gm: 1, splash: 1, flow: 1, tank: 1 };
+  var persona = 'gm';
+  function memKey() { return persona === 'gm' ? LS_MEM : LS_MEM + '_' + persona; }
+
   var history = [];            /* [{role, content}] — user/assistant alternating */
 
   /* ── memory — a coach remembers ──────────────────────────────────
@@ -47,45 +57,54 @@
      player's goal, what was agreed last time). A coach who greets you
      like a stranger every session is a chatbot. */
   function loadMem() {
-    try { return JSON.parse(localStorage.getItem(LS_MEM) || '{}'); }
+    try { return JSON.parse(localStorage.getItem(memKey()) || '{}'); }
     catch (e) { return {}; }
   }
   function saveMem(m) {
-    try { localStorage.setItem(LS_MEM, JSON.stringify(m)); } catch (e) {}
+    try { localStorage.setItem(memKey(), JSON.stringify(m)); } catch (e) {}
   }
-  (function restore() {
+  function restore() {
     var m = loadMem();
-    if (Array.isArray(m.history)) history = m.history.slice(-MAX_TURNS);
-  })();
+    history = Array.isArray(m.history) ? m.history.slice(-MAX_TURNS) : [];
+  }
+  restore();
+
+  function setPersona(id) {
+    if (!PERSONA_IDS[id] || id === persona) return;
+    persona = id;
+    restore();                   /* this coach's own thread */
+  }
 
   /* ── account sync — the memory follows the player, not the phone ──
      public.coach_memory holds one row per user (RLS: owner only). The
      server row is the source of truth: sync() pulls it once per app
      launch and overwrites the local copy; every persist() pushes back.
      A device with no session (guest) just keeps localStorage. */
-  var remoteSynced = false;
+  var remoteSynced = {};         /* per persona, once per launch */
   function pushRemote() {
     try {
       if (!signedIn() || !window.sb || !sb.from || !window.currentUser.id) return;
       var m = loadMem();
       sb.from('coach_memory').upsert({
         user_id: window.currentUser.id,
+        persona: persona,
         notes: m.notes || null,
         history: m.history || [],
         updated_at: new Date().toISOString()
-      }).then(function () {}, function () {});
+      }, { onConflict: 'user_id,persona' }).then(function () {}, function () {});
     } catch (e) { /* memory sync must never break the chat */ }
   }
   function sync() {
-    if (remoteSynced || !signedIn() || !window.sb || !sb.from) {
+    if (remoteSynced[persona] || !signedIn() || !window.sb || !sb.from) {
       return Promise.resolve(false);
     }
     return sb.from('coach_memory')
       .select('notes,history')
       .eq('user_id', window.currentUser.id)
+      .eq('persona', persona)
       .maybeSingle()
       .then(function (res) {
-        remoteSynced = true;
+        remoteSynced[persona] = true;
         var row = res && res.data;
         if (row && (row.notes || (Array.isArray(row.history) && row.history.length))) {
           var m = loadMem();
@@ -346,7 +365,8 @@
            the client cannot ask for a different model or a bigger budget. */
         body: JSON.stringify({
           context: contextBlock(data),
-          history: history
+          history: history,
+          persona: persona
         }),
         signal: controller.signal
       }).then(function (res) {
@@ -419,7 +439,7 @@
 
   window.V12CoachAI = {
     ask: ask, reset: reset, signedIn: signedIn, transcript: transcript,
-    sync: sync, applyProposal: applyProposal,
+    sync: sync, setPersona: setPersona, applyProposal: applyProposal,
     _parse: extractAction        /* exposed for tests — parses a raw reply */
   };
 })();

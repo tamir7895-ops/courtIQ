@@ -65,8 +65,42 @@
      the @@ACTION protocol.
      Signed out: the proxy 401s, so guests keep the local guided
      answers — labelled as such, never pretending to be live. */
-  function chatView(host, ctx, data, back) {
+  /* ── the coaching staff — the Duolingo cast, basketball edition ──
+     Four characters, four faces, four brains: the GM runs the program,
+     the specialists own their lane. DiceBear faces are deterministic
+     (fixed seeds), so every player meets the same four coaches. */
+  var COACHES = [
+    { id: 'gm', name: 'The Scout', role: 'GM · runs your whole program',
+      short: 'The GM', seed: 'courtiq-the-scout', bg: 'b6e3f4',
+      starters: ['What should I work on?', 'How does my week look?',
+                 'Build my week around shooting', 'Why did my Court IQ move?'] },
+    { id: 'splash', name: 'Splash', role: 'Shooting coach', short: 'Shooting',
+      seed: 'courtiq-splash-7', bg: 'ffd5dc',
+      opener: 'Splash. Shooting coach. Form, release, footwork into the shot — that is my whole world. What is broken?',
+      starters: ['Tips for a better release', 'Why am I missing short?',
+                 'Fix my free throws', 'Give me a shooting drill'] },
+    { id: 'flow', name: 'Flow', role: 'Ball-handling coach', short: 'Handles',
+      seed: 'courtiq-flow-3', bg: 'd1f4d1',
+      opener: 'Flow here. Handles are rhythm — both hands, eyes up, ball on a string. What are we tightening?',
+      starters: ['Strengthen my weak hand', 'A daily handle routine',
+                 'Drill for tight spaces', 'How do I protect my dribble?'] },
+    { id: 'tank', name: 'Tank', role: 'Strength & conditioning', short: 'Fitness',
+      seed: 'courtiq-tank-9', bg: 'ffdfbf',
+      opener: 'Tank. Strength and conditioning. We build the motor and protect the knees. What do you need?',
+      starters: ['Get me game-fit', 'My legs die in the second half',
+                 'A pre-game warm-up', 'How do I jump higher?'] }
+  ];
+  function coachFace(c, size) {
+    return 'https://api.dicebear.com/9.x/avataaars/png?size=' + (size || 96) +
+      '&seed=' + encodeURIComponent(c.seed) + '&backgroundColor=' + c.bg;
+  }
+
+  function chatView(host, ctx, data, back, coach) {
     while (host.firstChild) host.removeChild(host.firstChild);
+    coach = coach || COACHES[0];
+    if (window.V12CoachAI && window.V12CoachAI.setPersona) {
+      window.V12CoachAI.setPersona(coach.id);
+    }
 
     var live = !!(window.V12CoachAI && window.V12CoachAI.signedIn());
     var thread = h('div', { class: 'c12-thread' });
@@ -181,12 +215,7 @@
       });
     }
 
-    var STARTERS = [
-      'What should I work on?',
-      'How does my week look?',
-      'Build my week around shooting',
-      'Why did my Court IQ move?'
-    ];
+    var STARTERS = coach.starters;
     STARTERS.forEach(function (q) {
       chips.appendChild(h('button', {
         class: 'c12-chip', type: 'button',
@@ -197,7 +226,7 @@
     /* free-text row — the reason this screen exists now */
     var input = h('input', {
       class: 'c12-chat-in__field', type: 'text',
-      placeholder: live ? 'Ask the coach anything…' : 'Sign in for the live coach — chips work now',
+      placeholder: live ? 'Ask ' + coach.name + ' anything…' : 'Sign in for the live coach — chips work now',
       'aria-label': 'Message the coach', maxlength: '280', autocomplete: 'off'
     });
     var sendBtn = h('button', {
@@ -215,18 +244,18 @@
         class: 'c12-back', type: 'button', 'aria-label': 'Back',
         onclick: back
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+      h('img', { class: 'c12-chat-hd__face', src: coachFace(coach, 72), alt: '' }),
       h('div', { style: { flex: '1', minWidth: '0' } }, [
-        h('div', { class: 'c12-chat-hd__t', text: 'The Scout' }),
+        h('div', { class: 'c12-chat-hd__t', text: coach.name }),
         h('div', { class: 'c12-chat-hd__s',
-          text: live ? 'Live — reads your real film before every answer'
-                     : 'Only talks about shots that really happened' })
+          text: coach.role + (live ? ' · reads your real film' : ' · sign in for live answers') })
       ]),
       h('button', {
         class: 'c12-back', type: 'button', 'aria-label': 'New conversation',
         title: 'New conversation',
         onclick: function () {
           if (window.V12CoachAI) window.V12CoachAI.reset();
-          chatView(host, ctx, data, back);
+          chatView(host, ctx, data, back, coach);
         }
       }, [h('i', { class: 'ph-bold ph-arrows-counter-clockwise' })])
     ]));
@@ -248,8 +277,10 @@
             coachSay(m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, ''));
           }
         });
-      } else {
+      } else if (coach.id === 'gm') {
         scoutLines(data).forEach(coachSay);
+      } else {
+        coachSay(coach.opener);
       }
     }
     if (live && window.V12CoachAI.sync) window.V12CoachAI.sync().then(replay, replay);
@@ -310,18 +341,35 @@
       ])
     ]));
 
-    /* chat door */
+    /* chat door — the GM */
     grid.appendChild(V12.card({
       tint: 'blue', class: 'c12-door', bgIcon: 'ph-chat-circle-dots', bgTone: 'blue',
-      onClick: function () { chatView(host, ctx, data, function () { mainView(host, ctx, data); }); },
-      label: 'Chat with coach'
+      onClick: function () { chatView(host, ctx, data, function () { mainView(host, ctx, data); }, COACHES[0]); },
+      label: 'Chat with the GM'
     }, [
-      h('i', { class: 'ph-fill ph-chat-circle-dots c12-door__ic' }),
-      h('div', { class: 'c12-door__t', text: 'CHAT WITH COACH' }),
+      h('img', { class: 'c12-door__face', src: coachFace(COACHES[0], 96), alt: '' }),
+      h('div', { class: 'c12-door__t', text: 'THE SCOUT · GM' }),
       h('div', { class: 'c12-door__s', text: (scoutLines(data)[0] || '').slice(0, 64) + '…' })
     ]));
 
     host.appendChild(grid);
+
+    /* the specialists — every coach a character, every character a lane */
+    host.appendChild(h('div', { class: 'd-label c12-staff__label', text: 'YOUR COACHING STAFF' }));
+    var staff = h('div', { class: 'c12-staff' });
+    COACHES.slice(1).forEach(function (c) {
+      staff.appendChild(h('button', {
+        class: 'c12-staff__tile', type: 'button', 'aria-label': c.name + ' — ' + c.role,
+        onclick: function () {
+          chatView(host, ctx, data, function () { mainView(host, ctx, data); }, c);
+        }
+      }, [
+        h('img', { class: 'c12-staff__face', src: coachFace(c, 96), alt: '' }),
+        h('div', { class: 'c12-staff__n', text: c.name }),
+        h('div', { class: 'c12-staff__r', text: c.short })
+      ]));
+    });
+    host.appendChild(staff);
 
     /* your team — honest empty state until a social backend exists */
     host.appendChild(V12.card({

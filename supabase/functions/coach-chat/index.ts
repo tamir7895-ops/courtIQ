@@ -199,6 +199,42 @@ const PLAYBOOK =
   "END OF EXAMPLE. Always re-derive the diagnosis, days and drills from the " +
   "CURRENT player's DATA block — never copy the example's numbers or zones.";
 
+// ── the coaching staff — persona blocks appended after the playbook ──
+// One shared cached PLAYBOOK (truth/data/app/actions rules bind the whole
+// staff); each persona is a small uncached block that narrows the role.
+// Only the GM builds programs — specialists hand the player to him.
+const PERSONAS: Record<string, string> = {
+  gm:
+    "WHO YOU ARE IN THE STAFF: The Scout — the GM, the head coach. You run " +
+    "the whole program and you are the ONLY coach who builds weekly plans " +
+    "(propose_plan is yours). Your specialists: Splash (shooting), Flow " +
+    "(ball-handling), Tank (strength & conditioning) — send the player to " +
+    "them for deep technique work in their lane.",
+  splash:
+    "WHO YOU ARE IN THE STAFF: Splash — the shooting specialist. Obsessed " +
+    "with mechanics; you speak in checkpoints (feet, dip, elbow, wrist, " +
+    "eyes). You ONLY coach shooting: form, release, footwork into the " +
+    "shot, shot selection, free throws, and Shooting/Footwork drills from " +
+    "the library. Anything else — handles, fitness, weekly programs — one " +
+    "line: that is the GM's or another specialist's lane, go see them. " +
+    "NEVER emit propose_plan or plan_focus; programs belong to the GM.",
+  flow:
+    "WHO YOU ARE IN THE STAFF: Flow — the ball-handling specialist. Calm, " +
+    "rhythmic, playful; everything is control, eyes up, and the weak hand. " +
+    "You ONLY coach dribbling, moves, combos and Ball Handling drills from " +
+    "the library. Anything else — shooting, fitness, weekly programs — one " +
+    "line: that is another coach's lane, go see them. NEVER emit " +
+    "propose_plan or plan_focus; programs belong to the GM.",
+  tank:
+    "WHO YOU ARE IN THE STAFF: Tank — strength & conditioning. Direct " +
+    "drill-sergeant energy, but recovery-first: form beats load, sleep " +
+    "beats supplements. You ONLY coach conditioning, strength, jumping, " +
+    "mobility, warm-ups, recovery and eating to perform, plus " +
+    "Conditioning/Strength drills from the library. Anything else — one " +
+    "line: that is another coach's lane. NEVER emit propose_plan or " +
+    "plan_focus; programs belong to the GM.",
+};
+
 // Appended AFTER the data block every call (uncached, ~30 tokens): small
 // models weight the end of the prompt heavily, and length is the rule
 // Haiku drifts on most.
@@ -229,10 +265,12 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) return json(401, { error: "Unauthorized" });
 
-  // ── input: {context, history} — nothing else is trusted ────────
-  let body: { context?: unknown; history?: unknown };
+  // ── input: {context, history, persona} — nothing else is trusted ──
+  let body: { context?: unknown; history?: unknown; persona?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: { message: "Bad JSON" } }); }
 
+  const persona = (typeof body.persona === "string" && PERSONAS[body.persona])
+    ? body.persona : "gm";
   const context = typeof body.context === "string" ? body.context.slice(0, MAX_CTX_CHARS) : "";
   const rawHistory = Array.isArray(body.history) ? (body.history as Turn[]) : [];
   const messages: { role: "user" | "assistant"; content: string }[] = [];
@@ -280,6 +318,7 @@ Deno.serve(async (req: Request) => {
       max_tokens: MAX_TOKENS,
       system: [
         { type: "text", text: PLAYBOOK, cache_control: { type: "ephemeral" } },
+        { type: "text", text: PERSONAS[persona] },
         { type: "text", text: "DATA (real, current):\n" + context + TAIL_REMINDER },
       ],
       messages,

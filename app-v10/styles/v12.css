@@ -840,6 +840,35 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   .dc-tick { opacity: 1; }
 }
 
+/* ── the coaching staff — Duolingo cast, basketball edition ───── */
+.c12-staff__label { margin: 14px 2px 8px; }
+.c12-staff {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+}
+.c12-staff__tile {
+  background: var(--d-bg, #FFFFFF); border: 2px solid var(--d-line, #E5E7EB);
+  border-radius: 16px; padding: 12px 8px 10px; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+  box-shadow: 0 3px 0 var(--d-line, #E5E7EB);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.c12-staff__tile:active { transform: translateY(3px); box-shadow: none; }
+.c12-staff__face {
+  width: 56px; height: 56px; border-radius: 50%;
+  border: 2px solid var(--d-ink, #0A2850); background: #F6F7F9;
+}
+.c12-staff__n { font: 800 14px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); }
+.c12-staff__r { font: 700 11px var(--d-font, sans-serif); color: var(--d-muted, #6B7280); text-transform: uppercase; letter-spacing: .04em; }
+.c12-door__face {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.7); margin-bottom: 6px; background: #F6F7F9;
+}
+.c12-chat-hd__face {
+  width: 38px; height: 38px; border-radius: 50%;
+  border: 2px solid var(--d-ink, #0A2850); margin-right: 10px; background: #F6F7F9;
+  flex: 0 0 auto;
+}
+
 /* ── plan proposal card — the coach hands over the clipboard ──── */
 .c12-proposal {
   border: 2px solid var(--d-ink); border-radius: 14px;
