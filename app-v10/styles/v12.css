@@ -792,6 +792,31 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 }
 .c12-chat-in__send:active { transform: translateY(3px); box-shadow: none; }
 
+/* ── drill choreography court (V12DrillCourt) ─────────────────
+   One engine, every drill: spots pulse in order, dashes march
+   along pass/dribble lines, the player dot runs the circuit and
+   the ball flies to the rim (SMIL). Colors here, geometry there. */
+.dc-zone   { fill: var(--d-orange, #FF9F1C); opacity: .12; }
+.dc-ladder { stroke: #B9BEC9; stroke-width: 4; }
+.dc-cone   { fill: #F5A623; stroke: #C97F0A; stroke-width: 2; }
+.dc-coach  { fill: #9AA1AC; }
+.dc-ball   { fill: #E8590C; stroke: #FFFFFF; stroke-width: 2; }
+.dc-player { fill: var(--d-blue-deep, #0A2850); stroke: #FFFFFF; stroke-width: 3; }
+.dc-p              { stroke-width: 5; stroke-linejoin: round; stroke-linecap: round; }
+.dc-p--run         { stroke: #0A2850; stroke-dasharray: 2 14; }
+.dc-p--slide       { stroke: #7048E8; stroke-dasharray: 14 10; animation: dc-march 1.2s linear infinite; }
+.dc-p--dribble     { stroke: #E8590C; stroke-dasharray: 10 10; animation: dc-march 1.2s linear infinite; }
+.dc-p--pass        { stroke: #1C7ED6; stroke-dasharray: 16 12; animation: dc-march .9s linear infinite; }
+.dc-p--shot        { stroke: #E8590C; stroke-width: 3; stroke-dasharray: 2 10; opacity: .6; }
+@keyframes dc-march { to { stroke-dashoffset: -48; } }
+.dc-spot__c { fill: var(--d-orange, #FF9F1C); stroke: #FFFFFF; stroke-width: 3; }
+.dc-spot__n { fill: #FFFFFF; font: 800 15px var(--d-font, sans-serif); }
+.dc-spot    { animation: dc-pulse 2.1s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes dc-pulse { 0%, 100% { transform: scale(1); } 12% { transform: scale(1.25); } 24% { transform: scale(1); } }
+@media (prefers-reduced-motion: reduce) {
+  .dc-spot, .dc-p--dribble, .dc-p--pass, .dc-p--slide { animation: none; }
+}
+
 /* ── plan proposal card — the coach hands over the clipboard ──── */
 .c12-proposal {
   border: 2px solid var(--d-ink); border-radius: 14px;

@@ -87,6 +87,7 @@
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
+<script src="../js/drill-choreo.js"></script>
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
 <script src="../js/badges.js"></script>
@@ -95,6 +96,12 @@
 <script src="../js/daily-challenge.js"></script>
 <script src="../js/daily-workout.js"></script>
 <script src="../js/shot-analysis.js"></script>
+<!-- Session recording. ShotTrackingScreen calls VideoReview.startRecording()
+     on the camera stream and stopRecording() at the end, but this file was
+     never included here — so window.VideoReview was undefined in the v10 app
+     and NOTHING was ever recorded. Without it the record-then-analyse flow
+     has no clip to analyse at all. -->
+<script src="../js/video-review.js"></script>
 
 <!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection).
      Served from the APP BUNDLE like ORT above — pose fired most shot triggers
@@ -144,6 +151,7 @@
 <script src="lib/data.js?v=dev"></script>
 <script src="lib/courtiq.js?v=dev"></script>
 <script src="lib/court.js?v=dev"></script>
+<script src="lib/drill-court.js?v=dev"></script>
 <script src="lib/audio.js?v=dev"></script>
 <script src="lib/reveal.js?v=dev"></script>
 <script src="lib/v11.js?v=dev"></script>

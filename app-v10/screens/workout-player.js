@@ -94,9 +94,17 @@
         eyebrow, timerEl
       ]));
 
-      /* the drill on the court — the real diagram, not a fake video */
+      /* the drill on the court — its OWN choreography when we have it,
+         the category diagram as fallback. Never a fake video. */
       host.appendChild(V12.card({ class: 'wp12-court' }, [
-        V12.courtThumb(d.focus, 0, { label: d.name, bg: '#FFFFFF' }),
+        (function () {
+          try {
+            var full = window.V12DrillChoreo && window.V12DrillChoreo.find(d);
+            var c = full && window.V12DrillCourt && window.V12DrillChoreo.get(full);
+            if (c) return window.V12DrillCourt.render(c, { label: d.name });
+          } catch (e) {}
+          return V12.courtThumb(d.focus, 0, { label: d.name, bg: '#FFFFFF' });
+        })(),
         d.description ? h('div', { class: 'wp12-desc', text: d.description }) : null
       ].filter(Boolean)));
 

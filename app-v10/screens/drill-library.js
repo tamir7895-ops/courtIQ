@@ -77,7 +77,16 @@
       var equip = (d.equipment_needed && d.equipment_needed.length) ? d.equipment_needed.join(' · ') : '';
       kids.push(h('div', { class: 'dl12-body' }, [
         h('div', { class: 'dl12-bigcourt' }, [
-          V12.courtThumb(d.focus_area, i, { label: d.name, bg: '#FFFFFF' })
+          /* the drill's OWN choreography — spots, paths and ball on the
+             real court; category thumb only if the choreo layer is out */
+          (function () {
+            try {
+              var c = window.V12DrillChoreo && window.V12DrillCourt &&
+                      window.V12DrillChoreo.get(d);
+              if (c) return window.V12DrillCourt.render(c, { label: d.name });
+            } catch (e) {}
+            return V12.courtThumb(d.focus_area, i, { label: d.name, bg: '#FFFFFF' });
+          })()
         ]),
         h('div', { class: 'dl12-desc', text: d.description || 'Practice this drill at game pace.' }),
         equip ? h('div', { class: 'dl12-equip' }, [
