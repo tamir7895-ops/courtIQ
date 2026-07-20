@@ -581,6 +581,15 @@ body.v10-cam-active .st-bottom-bar { padding-bottom: calc(14px + var(--safe-bott
   z-index: 250000;
 }
 #v10-cam-layer > * { pointer-events: auto; }
+/* ...EXCEPT the HUD. It is a passive full-screen readout (inset: 0), and it
+   declares pointer-events: none itself — but the blanket rule above is an ID
+   selector (1-0-0) and outranks .v11-hud (0-1-0), so the HUD was computing to
+   pointer-events: auto and swallowing every tap on the whole screen. That put
+   an invisible full-screen shield over #shot-tracking-screen (z-index 200002,
+   below this layer's 250000), so END SESSION could never be pressed — the tap
+   never reached it. Verified with elementFromPoint: the bottom-centre of the
+   screen resolved to .v11-hud instead of the button. */
+#v10-cam-layer > .v11-hud { pointer-events: none; }
 
 .v10-cam-counter {
   position: fixed;
