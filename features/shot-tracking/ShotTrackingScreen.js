@@ -2256,6 +2256,17 @@
   function enterSummaryPhase() {
     phase = 'summary';
 
+    /* v10 record-then-analyse hand-off. When the v10 session UI is driving
+       and has registered a clip consumer, the recorded session is HANDED
+       OVER for offline analysis instead of ending on the legacy summary —
+       the offline pass over the clip is where the accurate made/miss
+       verdicts come from. The hook is captured synchronously because
+       stopRecording() resolves async and the v10 chrome may clear the
+       global while we wait. */
+    var v10Hook = (document.body.classList.contains('v10-cam-active') &&
+                   typeof window.__v10OnSessionClip === 'function')
+      ? window.__v10OnSessionClip : null;
+
     // Stop video recording and save
     if (typeof VideoReview !== 'undefined') {
       VideoReview.stopRecording().then(function (data) {
@@ -2266,7 +2277,24 @@
           var replayBtn = document.getElementById('st-video-replay-btn');
           if (replayBtn) replayBtn.style.display = '';
         }
-      }).catch(function () {});
+        if (v10Hook) { try { v10Hook(data && data.blob ? data : null); } catch (e) {} }
+      }).catch(function () {
+        if (v10Hook) { try { v10Hook(null); } catch (e) {} }
+      });
+    } else if (v10Hook) {
+      try { v10Hook(null); } catch (e) {}
+    }
+
+    if (v10Hook) {
+      /* Claim the flow BEFORE closing: watchTrackerClose auto-routes to
+         post-session ~150ms after this screen closes, and the v10 leave
+         observer tears down whatever overlay is up when the route changes —
+         together they were deleting the analysis UI out from under the
+         processor. The flag suppresses both; the analysis flow clears it
+         when it routes to its own result. */
+      window.__v10AnalysisOwnsFlow = true;
+      closeScreen();
+      return;   // v10 owns the rest of the flow
     }
 
     stopCamera();

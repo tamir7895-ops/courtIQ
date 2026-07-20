@@ -327,6 +327,9 @@
 
         var run = function () {
           var duration = video.duration || 0;
+          // Infinity slips past a falsy check: totalFrames became Infinity,
+          // progress stuck at 0 and the seek loop never terminated.
+          if (!isFinite(duration)) { fail(new Error('video duration unavailable (unseekable recording)')); return; }
           if (!duration || !video.videoWidth) { fail(new Error('video has no duration/dimensions')); return; }
 
           onStage('Loading model…');
@@ -1087,9 +1090,37 @@
         // kick forces the media pipeline to spin up even in background;
         // multiple ready events + a readyState poll cover the rest.
         var started = false;
+        /* MediaRecorder webm (a recorded live session) ships WITHOUT a
+           duration header — video.duration reads Infinity, which slipped
+           past the falsy check, made totalFrames Infinity, pinned progress
+           at 0 and turned the seek loop non-terminating. The standard
+           repair: seek far past the end once; the browser scans the file,
+           fires durationchange with the real length, and everything
+           downstream works unchanged. One attempt only — if the duration
+           still is not finite, run() now fails it cleanly. */
+        var durationFixTried = false;
+        function fixInfiniteDuration() {
+          durationFixTried = true;
+          var done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            try { video.currentTime = 0; } catch (e) {}
+            tryRun();
+          }
+          video.addEventListener('durationchange', function dc() {
+            if (isFinite(video.duration)) {
+              video.removeEventListener('durationchange', dc);
+              finish();
+            }
+          });
+          try { video.currentTime = 1e9; } catch (e) { finish(); return; }
+          setTimeout(finish, 4000);   // stall guard — proceed and let run() judge
+        }
         function tryRun() {
           if (started) return;
           if (video.readyState >= 2 && video.videoWidth > 0) {
+            if (!isFinite(video.duration) && !durationFixTried) { fixInfiniteDuration(); return; }
             started = true;
             try { video.pause(); } catch (e) {}
             try { video.currentTime = 0; } catch (e) {}
