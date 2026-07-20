@@ -59,8 +59,29 @@
       h('div', { class: 'v11-hud__frame' }),
       h('div', { class: 'v11-hud__num', id: 'v10-cam-num', text: '0' }),
       h('div', { class: 'v11-hud__lost', id: 'v11-hud-lost', style: { display: 'none' },
-        text: 'Lost the hoop' })
+        text: 'Lost the hoop' }),
+      /* DIAGNOSTIC: which ORT execution provider actually won on THIS
+         device. Desktop Chrome gets webgpu; a phone WebView may silently
+         fall back to wasm (~1.4s/inference), which starves the real-time
+         path — and that is invisible without saying so out loud. Tiny and
+         dimmed so it never competes with the one number that matters. */
+      h('div', { id: 'v10-backend-badge', style: {
+        position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 8px)', left: '10px',
+        font: '10px/1.4 ui-monospace, Menlo, monospace', color: 'rgba(255,255,255,0.55)',
+        background: 'rgba(0,0,0,0.35)', padding: '3px 7px', borderRadius: '6px',
+        letterSpacing: '0.04em', pointerEvents: 'none', zIndex: '5'
+      }, text: 'backend …' })
     ]);
+  }
+
+  /* Reads the backend the engine settled on + its rolling inference cost. */
+  function backendLabel() {
+    var eng = window.ShotDetectionEngine;
+    if (!eng) return 'engine —';
+    var be = eng._backend || '…';
+    var ms = eng._inferMsEMA ? Math.round(eng._inferMsEMA) + 'ms' : '—';
+    var gpu = (typeof navigator !== 'undefined' && navigator.gpu) ? '' : ' no-webgpu';
+    return be + ' · ' + ms + gpu;
   }
 
   /* ── Find engine state at runtime ─────────────────────────────── */
@@ -221,6 +242,11 @@
       var s = readEngineStats();
       var numEl = document.getElementById('v10-cam-num');
       if (numEl && numEl.textContent !== String(s.att)) numEl.textContent = String(s.att);
+      var beEl = document.getElementById('v10-backend-badge');
+      if (beEl) {
+        var lbl = backendLabel();
+        if (beEl.textContent !== lbl) beEl.textContent = lbl;
+      }
       if (gatePassed) updateLive(); else updateGate();
     }, 250);
   }
@@ -506,7 +532,10 @@
     var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
       fps: 30,
-      onProgress: function (f) { var p = Math.round(f * 100); bar.style.width = p + '%'; pct.textContent = p + '%'; },
+      // Show the execution provider alongside progress: on a phone WebView
+      // that fell back to wasm this is the whole explanation for a slow
+      // analyze, and it is otherwise invisible.
+      onProgress: function (f) { var p = Math.round(f * 100); bar.style.width = p + '%'; pct.textContent = p + '% · ' + backendLabel(); },
       onStage: function (s) { stageEl.textContent = s; },
       onFrame: drawLive
     }).then(function (res) {

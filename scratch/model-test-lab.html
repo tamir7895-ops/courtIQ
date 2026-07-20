@@ -340,6 +340,16 @@ var inferMs = 0, detCount = 0, lastFpsT = performance.now(), fpsFrames = 0;
 function chip(el, on, warn) { el.className = 'chip' + (on ? ' on' : (warn ? ' warn' : '')); }
 var runStartAt = 0;
 setInterval(function () {
+  // Backend badge updates in EVERY mode: _backend is only set once the ONNX
+  // session is created (model load), not at engine.init(), so a boot-time
+  // read always showed the pre-load value. This is the readout that says
+  // whether this device got webgpu or silently fell back to wasm.
+  var be = engine._backend || 'loading…';
+  var beMs = engine._inferMsEMA ? ' · ' + Math.round(engine._inferMsEMA) + 'ms' : '';
+  var beWarn = (engine._backend && engine._backend !== 'webgpu') ? '  ⚠ CPU fallback' : '';
+  var beTxt = 'engine: ' + be + beMs + beWarn + (navigator.gpu ? '' : '  (no navigator.gpu)');
+  if ($('backendTag').textContent !== beTxt) $('backendTag').textContent = beTxt;
+
   if ($('mode').value !== 'live') return;   // analyze mode owns its own display
   $('sState').textContent = engine._shotState || '—';
   $('sScore').textContent = (engine.stats ? engine.stats.made : 0) + ' / ' + (engine.stats ? engine.stats.attempts : 0);
