@@ -842,3 +842,81 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
   .v11-cta, .v11-seg__pill, .v11-hud, .v11-hud__frame { transition: none; }
   .v11-hud__num.is-pop, .v11-hud--lost .v11-hud__frame { animation: none; }
 }
+
+/* ── Live session HUD, rebuilt ───────────────────────────────────
+   The old hero was the ATTEMPT COUNT. Live mode cannot compute makes, so
+   that number was the one thing on screen we could not stand behind — and
+   with the session now recorded and analysed afterwards, the live screen
+   does not need to keep score at all. Its job is system status: is this
+   session actually being captured properly?
+
+   So the hero becomes the CLOCK (true, useful against the cap, and it
+   keeps the 40vh optics the counter was sized for), tracking health is
+   stated in words at the top, and the count drops to a secondary chip
+   labelled "detected" so it can never read as a score. */
+.v11-hud__top {
+  position: absolute; left: 0; right: 0;
+  top: calc(var(--safe-top, 0px) + 14px);
+  display: flex; justify-content: center; pointer-events: none;
+}
+.v11-hud__pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 14px 7px 11px; border-radius: 999px;
+  background: rgba(6,13,24,.62);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid rgba(251,245,232,.16);
+  font-family: var(--font-display); font-weight: 800; font-size: 12.5px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--cream);
+}
+.v11-hud__dot {
+  width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto;
+  background: var(--sage); box-shadow: 0 0 0 0 rgba(61,122,83,.55);
+  animation: v11HudBreathe 2.4s ease-in-out infinite;
+}
+.v11-hud__pill.is-lost { border-color: rgba(255,79,31,.5); }
+.v11-hud__pill.is-lost .v11-hud__dot {
+  background: var(--orange); animation: v11HudBreathe .9s ease-in-out infinite;
+}
+/* Slow breathe = "alive". Well under WCAG 2.3.1's 3-flash ceiling, and it
+   is the only always-on motion on the screen. */
+@keyframes v11HudBreathe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255,255,255,.28); }
+  50%      { box-shadow: 0 0 0 7px rgba(255,255,255,0); }
+}
+
+/* Cap bar — extent reads at distance where digits do not. */
+.v11-hud__cap {
+  position: absolute; left: 12%; right: 12%;
+  bottom: calc(30% + var(--safe-bottom, 0px));
+  height: 5px; border-radius: 999px;
+  background: rgba(251,245,232,.16); overflow: hidden;
+}
+.v11-hud__capfill {
+  height: 100%; width: 0%; border-radius: 999px;
+  background: var(--cream); transition: width .9s linear, background .3s ease;
+}
+.v11-hud__capfill.is-near { background: var(--orange); }
+
+/* Secondary count — deliberately small and labelled "detected". */
+.v11-hud__meta {
+  position: absolute; left: 0; right: 0;
+  bottom: calc(23% + var(--safe-bottom, 0px));
+  display: flex; justify-content: center; pointer-events: none;
+}
+.v11-hud__chip {
+  display: inline-flex; align-items: baseline; gap: 7px;
+  font-family: var(--font-display); color: var(--cream);
+  text-shadow: 0 2px 10px rgba(0,0,0,.75);
+}
+.v11-hud__chipnum { font-weight: 900; font-size: 26px; font-variant-numeric: tabular-nums; }
+.v11-hud__chiplbl {
+  font-weight: 700; font-size: 11.5px; letter-spacing: .16em;
+  text-transform: uppercase; opacity: .72;
+}
+
+/* The hero is now a CLOCK, not a 1-2 digit count, so 40vh alone overflows:
+   "0:00" renders ~489px at 40vh on a 375px-wide screen and gets clipped.
+   Clamp by width as well. 58vw = 217px on a 375pt screen, which still
+   clears the 214pt legibility floor the counter was sized to, while
+   leaving the 4-glyph run comfortably inside the viewport. */
+#v11-hud-timer { font-size: min(40vh, 58vw); }

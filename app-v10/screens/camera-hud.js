@@ -57,7 +57,36 @@
   function hudLayer() {
     return h('div', { id: 'v11-hud', class: 'v11-hud v11-hud--live' }, [
       h('div', { class: 'v11-hud__frame' }),
-      h('div', { class: 'v11-hud__num', id: 'v10-cam-num', text: '0' }),
+
+      /* Status pill — the one thing worth reading at a glance, because it
+         is the only thing that can silently ruin the session. */
+      h('div', { class: 'v11-hud__top' }, [
+        h('div', { class: 'v11-hud__pill', id: 'v11-hud-pill' }, [
+          h('span', { class: 'v11-hud__dot' }),
+          h('span', { class: 'v11-hud__pilltxt', id: 'v11-hud-state', text: 'Finding the hoop' })
+        ])
+      ]),
+
+      /* HERO — the session clock, not a score. Live mode cannot compute
+         makes, so a big "12" was a number we could not stand behind. The
+         clock is true, it is useful (you are shooting to a 5-minute cap),
+         and it keeps the 40vh optics the old counter was sized for. */
+      h('div', { class: 'v11-hud__num', id: 'v11-hud-timer', text: '0:00' }),
+
+      /* Progress toward the cap — extent, not text, so it reads far away. */
+      h('div', { class: 'v11-hud__cap' }, [
+        h('div', { class: 'v11-hud__capfill', id: 'v11-hud-capfill' })
+      ]),
+
+      /* Secondary, for when you walk back in. Framed as DETECTED, never as
+         a score — the verdicts come from the analysis afterwards. */
+      h('div', { class: 'v11-hud__meta' }, [
+        h('span', { class: 'v11-hud__chip' }, [
+          h('span', { class: 'v11-hud__chipnum', id: 'v10-cam-num', text: '0' }),
+          h('span', { class: 'v11-hud__chiplbl', text: 'shots detected' })
+        ])
+      ]),
+
       h('div', { class: 'v11-hud__lost', id: 'v11-hud-lost', style: { display: 'none' },
         text: 'Lost the hoop' }),
       /* DIAGNOSTIC: which ORT execution provider actually won on THIS
@@ -72,6 +101,28 @@
         letterSpacing: '0.04em', pointerEvents: 'none', zIndex: '5'
       }, text: 'backend …' })
     ]);
+  }
+
+  /* Session clock + cap bar. The cap exists because analysis runs at
+     roughly 2-3x the clip length on-device — an uncapped session is an
+     unbounded wait afterwards. Shown as extent (a bar) as well as digits,
+     because a bar is readable from the free-throw line and digits are not
+     once you are past ~15ft. */
+  function updateSessionClock() {
+    var el = document.getElementById('v11-hud-timer');
+    if (!el) return;
+    var capMs = window.__COURTIQ_SESSION_MAX_MS || (5 * 60 * 1000);
+    var ms = sessionStartAt ? (Date.now() - sessionStartAt) : 0;
+    if (ms < 0) ms = 0;
+    var total = Math.floor(ms / 1000);
+    var txt = Math.floor(total / 60) + ':' + ('0' + (total % 60)).slice(-2);
+    if (el.textContent !== txt) el.textContent = txt;
+    var frac = Math.max(0, Math.min(1, ms / capMs));
+    var fill = document.getElementById('v11-hud-capfill');
+    if (fill) {
+      fill.style.width = (frac * 100).toFixed(1) + '%';
+      fill.classList.toggle('is-near', frac >= 0.8);
+    }
   }
 
   /* Reads the backend the engine settled on + its rolling inference cost. */
@@ -111,6 +162,7 @@
      and if it's outside the crop it's outside for the whole clip.
      This is read with the phone in your hand, so it uses normal type. */
   var gateEl = null, rimStreak = 0, gatePassed = false;
+  var sessionStartAt = 0;   // set when the user taps Start (not at mount)
 
   function readPreflight() {
     try { return window.__lastPreflight || {}; } catch (e) { return {}; }
@@ -151,6 +203,7 @@
         if (!gatePassed) return;
         if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.say('Recording'); }
         gateEl.style.display = 'none';
+        sessionStartAt = Date.now();   // the clock starts when shooting does
         onStart();
       }
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
@@ -223,6 +276,15 @@
     else if (!lostSince) { lostSince = now; }
 
     var lost = !!lostSince && (now - lostSince) > 1500;
+    /* Status pill: tracking health is the only live signal that can quietly
+       ruin the session, so it is the thing we state in words. */
+    var pill = document.getElementById('v11-hud-pill');
+    var stateEl = document.getElementById('v11-hud-state');
+    if (pill) pill.classList.toggle('is-lost', lost);
+    if (stateEl) {
+      var want = lost ? 'Hoop lost — reframe' : 'Tracking the hoop';
+      if (stateEl.textContent !== want) stateEl.textContent = want;
+    }
     if (lost !== wasLost) {
       wasLost = lost;
       hud.classList.toggle('v11-hud--lost', lost);
@@ -242,6 +304,7 @@
       var s = readEngineStats();
       var numEl = document.getElementById('v10-cam-num');
       if (numEl && numEl.textContent !== String(s.att)) numEl.textContent = String(s.att);
+      updateSessionClock();
       var beEl = document.getElementById('v10-backend-badge');
       if (beEl) {
         var lbl = backendLabel();
