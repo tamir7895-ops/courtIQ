@@ -77,14 +77,14 @@
         style: 'animation-delay:' + (i * 0.5) + 's'
       }));
     }
-    if (choreo.note) {
+    if (choreo.note && !opts.still) {
       kids.push(svg('text', { x: 250, y: 300, 'text-anchor': 'middle', class: 'dc-note' },
         [document.createTextNode(choreo.note)]));
     }
     return svg('svg', {
       viewBox: '0 0 500 ' + VIEW_H,
       role: 'img', 'aria-label': opts.label || 'Station work',
-      class: 'dc-court dc-court--station',
+      class: 'dc-court dc-court--station' + (opts.still ? ' dc-court--still' : ''),
       style: 'display:block;width:100%;height:auto;background:' + (opts.bg || '#FFFFFF')
     }, kids);
   }
@@ -124,17 +124,23 @@
       }
     });
 
-    /* shots: dotted arc to the rim + a ball that flies it, staggered */
+    /* shots: dotted arc to the rim + a ball that flies it, staggered.
+       still mode (list thumbnails): same picture, ball parked at the
+       shot origin — 178 live SMIL loops in one list would cook a phone. */
     (choreo.shots || []).forEach(function (s, i) {
       var mx = (s.x + RIM.x) / 2, my = Math.min(s.y, RIM.y) - 40;   /* arc peak */
       var d = 'M ' + s.x + ' ' + s.y + ' Q ' + mx + ' ' + my + ' ' + RIM.x + ' ' + RIM.y;
       kids.push(svg('path', { d: d, class: 'dc-p dc-p--shot', fill: 'none' }));
-      var ball = svg('circle', { r: 7, class: 'dc-ball' });
-      ball.appendChild(svg('animateMotion', {
-        path: d, dur: '1.6s', begin: (i * 0.5) + 's',
-        repeatCount: 'indefinite', fill: 'freeze'
-      }));
-      kids.push(ball);
+      if (opts.still) {
+        kids.push(svg('circle', { cx: s.x, cy: s.y, r: 7, class: 'dc-ball' }));
+      } else {
+        var ball = svg('circle', { r: 7, class: 'dc-ball' });
+        ball.appendChild(svg('animateMotion', {
+          path: d, dur: '1.6s', begin: (i * 0.5) + 's',
+          repeatCount: 'indefinite', fill: 'freeze'
+        }));
+        kids.push(ball);
+      }
     });
 
     /* props + numbered spots */
@@ -159,26 +165,36 @@
       kids.push(g);
     });
 
-    /* the player runs the circuit */
+    /* the player runs the circuit (still mode: parked at the start) */
     if (moveD) {
-      var totalLen = 0;
-      (choreo.paths || []).forEach(function (p) {
-        if (p && p.pts && p.kind !== 'pass') totalLen += len_of(p.pts);
-      });
-      var dur = Math.max(3, Math.min(9, totalLen / 80));
-      var player = svg('circle', { r: 10, class: 'dc-player' });
-      player.appendChild(svg('animateMotion', {
-        path: moveD, dur: dur + 's', repeatCount: 'indefinite'
-      }));
-      kids.push(player);
+      if (opts.still) {
+        var first = null;
+        (choreo.paths || []).some(function (p) {
+          if (p && p.pts && p.kind !== 'pass') { first = p.pts[0]; return true; }
+          return false;
+        });
+        if (first) kids.push(svg('circle', { cx: first[0], cy: first[1], r: 10, class: 'dc-player' }));
+      } else {
+        var totalLen = 0;
+        (choreo.paths || []).forEach(function (p) {
+          if (p && p.pts && p.kind !== 'pass') totalLen += len_of(p.pts);
+        });
+        var dur = Math.max(3, Math.min(9, totalLen / 80));
+        var player = svg('circle', { r: 10, class: 'dc-player' });
+        player.appendChild(svg('animateMotion', {
+          path: moveD, dur: dur + 's', repeatCount: 'indefinite'
+        }));
+        kids.push(player);
+      }
     } else if ((choreo.spots || []).length && !(choreo.shots || []).length) {
       /* stationary drill with no ball flight — player stands on spot 1 */
       var s0 = choreo.spots[0];
       kids.push(svg('circle', { cx: s0.x, cy: s0.y, r: 10, class: 'dc-player' }));
     }
 
-    /* the one-line "how to read this" — clarity beat any legend we tried */
-    if (choreo.note) {
+    /* the one-line "how to read this" — clarity beat any legend we tried.
+       Skipped in still thumbs: 15px text on a 90px-wide tile is lint. */
+    if (choreo.note && !opts.still) {
       kids.push(svg('rect', { x: 0, y: VIEW_H - 26, width: 500, height: 26, class: 'dc-note__bg' }));
       kids.push(svg('text', { x: 250, y: VIEW_H - 8, 'text-anchor': 'middle', class: 'dc-note' },
         [document.createTextNode(choreo.note)]));
@@ -187,7 +203,7 @@
     return svg('svg', {
       viewBox: '0 0 500 ' + VIEW_H,
       role: 'img', 'aria-label': opts.label || 'Drill choreography',
-      class: 'dc-court',
+      class: 'dc-court' + (opts.still ? ' dc-court--still' : ''),
       style: 'display:block;width:100%;height:auto;background:' + (opts.bg || '#FFFFFF')
     }, kids);
   }

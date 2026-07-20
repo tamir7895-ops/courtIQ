@@ -829,9 +829,15 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 @keyframes dc-steady{ 0%, 100% { transform: translateX(-16px); } 50% { transform: translateX(16px); } }
 .dc-note    { fill: #6B7280; font: 600 15px var(--d-font, sans-serif); }
 .dc-note__bg{ fill: #FFFFFF; opacity: .85; }
+/* still thumbs (collapsed list cards): the real diagram, frozen */
+.dc-court--still .dc-spot, .dc-court--still .dc-p--dribble,
+.dc-court--still .dc-p--pass, .dc-court--still .dc-p--slide,
+.dc-court--still .dc-st, .dc-court--still .dc-tick { animation: none; }
+.dc-court--still .dc-tick { opacity: 1; }
 @media (prefers-reduced-motion: reduce) {
   .dc-spot, .dc-p--dribble, .dc-p--pass, .dc-p--slide,
   .dc-st, .dc-tick { animation: none; }
+  .dc-tick { opacity: 1; }
 }
 
 /* ── plan proposal card — the coach hands over the clipboard ──── */

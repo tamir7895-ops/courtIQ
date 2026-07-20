@@ -61,7 +61,16 @@
 
     var head = h('div', { class: 'dl12-head' }, [
       h('div', { class: 'dl12-thumb' }, [
-        V12.courtThumb(d.focus_area, i, { label: d.name })
+        /* the SAME diagram the open card animates, frozen — a thumb that
+           doesn't match its drill promises the wrong thing */
+        (function () {
+          try {
+            var c = window.V12DrillChoreo && window.V12DrillCourt &&
+                    window.V12DrillChoreo.get(d);
+            if (c) return window.V12DrillCourt.render(c, { label: d.name, still: true });
+          } catch (e) {}
+          return V12.courtThumb(d.focus_area, i, { label: d.name });
+        })()
       ]),
       h('div', { class: 'dl12-main' }, [
         h('div', { class: 'dl12-name', text: d.name || 'Untitled' }),
