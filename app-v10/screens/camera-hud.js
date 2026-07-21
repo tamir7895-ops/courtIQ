@@ -223,6 +223,21 @@
     try { return window.__lastPreflight || {}; } catch (e) { return {}; }
   }
 
+  /* Everything that marks "the session really begins NOW" -- used by BOTH
+     gate buttons (the skip path used to miss all of it: dead clock, dirty
+     count for any session started without a rim lock). */
+  function beginSessionBookkeeping() {
+    sessionStartAt = Date.now();
+    try {
+      var eng0 = window.ShotDetectionEngine;
+      if (eng0 && eng0.resetStats) eng0.resetStats();
+      shotBaseline = readEngineStats().att;
+      window.__v10SessionShots = [];
+      var n0 = document.getElementById('v10-cam-num');
+      if (n0) n0.textContent = '0';
+    } catch (e) {}
+  }
+
   /* Is the hoop being seen RIGHT NOW?
      This used to be `pf.hoop || pf.rimLocked` — and neither field exists.
      The engine emits preflight as { ready, checks:{ball,hoop,player},
@@ -246,7 +261,7 @@
       var sig = d.cx + ',' + d.cy + ',' + d.score;
       var now = Date.now();
       if (sig !== _hoopSig) { _hoopSig = sig; _hoopSigAt = now; }
-      if (now - _hoopSigAt < 1500) return true;   // still updating = still seen
+      if (now - _hoopSigAt < 3000) return true;   // still updating = still seen
       return false;                                // frozen = hoop gone
     }
     return pfSeen;
@@ -287,29 +302,7 @@
         if (!gatePassed) return;
         if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.say('Recording'); }
         gateEl.style.display = 'none';
-        sessionStartAt = Date.now();   // the clock starts when shooting does
-        /* The engine runs during the whole walk-up phase, so by the time the
-           user actually taps Start it has already counted the shots taken
-           while framing the hoop — the session opened on a non-zero count
-           ("it counted a shot I never took"). Zero it at the real start. */
-        try {
-          var eng0 = window.ShotDetectionEngine;
-          if (eng0 && eng0.resetStats) eng0.resetStats();
-          /* The count the HUD shows comes from the legacy screen's DOM
-             counters (#st-attempts), not from engine.stats, so resetting the
-             engine alone leaves the old number on screen. Take a baseline at
-             the real start and display the delta. */
-          shotBaseline = readEngineStats().att;
-          /* The clip is now genuinely being recorded, and the encoder shares
-             the chip with YOLOX + pose. The accurate verdicts come from the
-             offline pass over that clip, so the live engine can back right
-             off — that headroom goes to a cleaner recording, which is what
-             the accuracy actually depends on now. */
-          if (eng0) eng0._lowPowerMode = true;
-          window.__v10SessionShots = [];
-          var n0 = document.getElementById('v10-cam-num');
-          if (n0) n0.textContent = '0';
-        } catch (e) {}
+        beginSessionBookkeeping();
         onStart();
       }
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
@@ -336,6 +329,9 @@
           window.__v11RimLockAtRecord = false;
           if (window.V11Audio) window.V11Audio.arm();
           gateEl.style.display = 'none';
+          /* Court bug: this skip path never did the session-start
+             bookkeeping -- the clock stayed 0:00 all session. */
+          beginSessionBookkeeping();
           onStart();
         }
       }, [h('span', { text: 'Record anyway' })])
@@ -379,7 +375,7 @@
     if (seen) { lostSince = 0; }
     else if (!lostSince) { lostSince = now; }
 
-    var lost = !!lostSince && (now - lostSince) > 1500;
+    var lost = !!lostSince && (now - lostSince) > 3000;
     /* Word-level status now lives in the right-side checklist
        (updateChecklist); this keeps only the full-screen lost wash. */
     if (lost !== wasLost) {

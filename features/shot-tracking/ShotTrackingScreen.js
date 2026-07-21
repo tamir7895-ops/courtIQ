@@ -904,8 +904,13 @@
       // hoops live in the upper-central portion of any sensible framing.
       // X 0.15-0.85: rejects far-corner detections. Y 0.05-0.55: rejects
       // floor / ceiling-extreme misclassifications.
-      if (hoop.cx < 0.15 || hoop.cx > 0.85 || hoop.cy < 0.05 || hoop.cy > 0.55) return;
-      if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
+      /* Court report 2026-07-21: real handheld framing put the hoop near the
+         frame EDGE and the old X 0.15-0.85 gate rejected every detection --
+         "LOST THE HOOP" with the hoop clearly visible on screen. Widened to
+         accept any sane framing; the verifier + cluster lock still reject
+         corner junk. Min size halved for genuine court distance. */
+      if (hoop.cx < 0.04 || hoop.cx > 0.96 || hoop.cy < 0.03 || hoop.cy > 0.65) return;
+      if (hoop.bw < 0.012 || hoop.bh < 0.004) return;
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
       if (hoop.score < 0.10) return;
 

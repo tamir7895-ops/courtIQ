@@ -527,10 +527,19 @@
             var totalFrames = Math.max(1, Math.floor(duration * fps));
             var frame = 0;
             onStage('Analyzing every frame…');
+            /* Stuck-watchdog. Court report: "analyze never finishes" -- a
+               damaged recording can wedge the seek loop. If no frame
+               completes for 25s, fail CLEANLY instead of hanging forever. */
+            var lastAdvanceAt = Date.now(), watchdogDead = false;
+            var watchdog = setInterval(function () {
+              if (Date.now() - lastAdvanceAt > 25000) { clearInterval(watchdog); watchdogDead = true; }
+            }, 5000);
 
             function step() {
-              if (signal && signal.aborted) { cleanup(); reject(new Error('aborted')); return; }
-              if (frame >= totalFrames) { finishRun(); return; }
+              if (signal && signal.aborted) { clearInterval(watchdog); cleanup(); reject(new Error('aborted')); return; }
+              if (watchdogDead) { cleanup(); reject(new Error('analysis stalled (unreadable recording)')); return; }
+              if (frame >= totalFrames) { clearInterval(watchdog); finishRun(); return; }
+              lastAdvanceAt = Date.now();
               var t = Math.min(duration - 0.001, frame * dt);
               seekTo(video, t).then(function () {
                 return eng.processFrameOffline();

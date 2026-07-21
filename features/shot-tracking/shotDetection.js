@@ -46,7 +46,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
+  var BALL_CONFIDENCE      = 0.035; // Court 2026-07-21: 0.05 gave ball 0% outdoors at distance
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
   // YOLOX cadence is hardcoded as `_frameCount % 6 === 0` below. 6 was picked as a
