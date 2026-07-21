@@ -729,7 +729,14 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
    rim is static, and if it's outside the crop it's outside for the whole
    clip. */
 .v11-gate {
-  position: fixed; inset: 0; z-index: 62; pointer-events: auto;
+  /* 250010, NOT 62. The legacy #shot-tracking-screen sits at z 200002 and
+     the v10 chrome layer at 250000 — at 62 this gate spent its whole life
+     BURIED under the camera screen. On-device nobody ever saw it, nobody
+     ever tapped Start, so everything wired to that tap (session clock,
+     count baseline, recording start) silently never ran. Desktop tests
+     kept "passing" because programmatic .click() works on covered
+     elements — the fix was only ever visible to a human holding a phone. */
+  position: fixed; inset: 0; z-index: 250010; pointer-events: auto;
   background: linear-gradient(180deg, rgba(6,13,24,.55) 0%, rgba(6,13,24,.9) 72%);
   display: flex; flex-direction: column; justify-content: flex-end;
   padding: var(--s-5) var(--s-5) calc(var(--s-6) + var(--safe-bottom));
