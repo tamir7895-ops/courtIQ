@@ -586,22 +586,22 @@
     scene.appendChild(me);
     host.appendChild(scene);
 
-    /* the training tools moved in with the staff — library + plan */
+    /* the training tools moved in with the staff — library + plan.
+       Bigger cards (the Track button left this page), ghost icon corner
+       like the home doors. */
+    function toolDoor(mod, icon, label, go) {
+      return h('button', {
+        class: 'c12-tools__b c12-tools__b--' + mod, type: 'button', 'aria-label': label,
+        onclick: function () { ctx.go(go); }
+      }, [
+        h('div', { class: 'c12-tools__ic' }, [h('i', { class: 'ph-fill ' + icon })]),
+        h('span', { class: 'c12-tools__t', text: label }),
+        h('i', { class: 'ph-fill ' + icon + ' c12-tools__bg', 'aria-hidden': 'true' })
+      ]);
+    }
     host.appendChild(h('div', { class: 'c12-tools' }, [
-      h('button', {
-        class: 'c12-tools__b c12-tools__b--lib', type: 'button',
-        onclick: function () { ctx.go('drill-library'); }
-      }, [
-        h('i', { class: 'ph-fill ph-barbell' }),
-        h('span', { text: 'Drill library' })
-      ]),
-      h('button', {
-        class: 'c12-tools__b c12-tools__b--plan', type: 'button',
-        onclick: function () { ctx.go('plan'); }
-      }, [
-        h('i', { class: 'ph-fill ph-calendar-check' }),
-        h('span', { text: 'Training plan' })
-      ])
+      toolDoor('lib', 'ph-barbell', 'Drill library', 'drill-library'),
+      toolDoor('plan', 'ph-clipboard-text', 'Training plan', 'plan')
     ]));
 
     /* claims made on another device land here — pull once per launch,
@@ -613,13 +613,8 @@
       }, function () {});
     }
 
-    /* the primary action rides right under the gym + tools */
-    host.appendChild(V12.btn({
-      label: 'Track a session', icon: 'ph-play-circle', variant: 'green',
-      onClick: function () { ctx.go('camera-hud'); }
-    }));
-
-    /* the film-status strip + calendar close the page */
+    /* the film-status strip + calendar close the page (TRACK A SESSION
+       left — the Track tab and home door already own that action) */
     host.appendChild(grid);
   }
 

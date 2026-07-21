@@ -1070,19 +1070,37 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .c12-id--wide .c12-id__n { margin: 0; }
 .c12-id--wide .c12-id__s { margin: 2px 0 0; }
 
-/* the training tools under the gym — library + plan doors */
+/* the training tools under the gym — big doors, ghost icon corner */
 .c12-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .c12-tools__b {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  border: 2px solid var(--d-line, #E5E7EB); border-radius: 14px;
-  background: var(--d-bg, #FFFFFF); cursor: pointer; min-height: 52px;
-  font: 800 13.5px var(--d-font, sans-serif); color: var(--d-ink, #0A2850);
+  position: relative; overflow: hidden; cursor: pointer;
+  display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: space-between; gap: 8px; text-align: left;
+  border: 2px solid var(--d-line, #E5E7EB); border-radius: 18px;
+  background: var(--d-bg, #FFFFFF); min-height: clamp(96px, 15dvh, 122px);
+  padding: 12px 14px 14px;
+  font: 800 15px var(--d-font, sans-serif); color: var(--d-ink, #0A2850);
   box-shadow: 0 3px 0 var(--d-line, #E5E7EB);
   transition: transform .06s linear, box-shadow .06s linear;
 }
 .c12-tools__b:active { transform: translateY(3px); box-shadow: none; }
-.c12-tools__b--lib i { color: var(--d-blue, #1C7ED6); font-size: 18px; }
-.c12-tools__b--plan i { color: var(--d-green, #47C012); font-size: 18px; }
+.c12-tools__ic {
+  width: 34px; height: 34px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 19px; position: relative; z-index: 1;
+}
+.c12-tools__b--lib  .c12-tools__ic { background: #E3F0FB; }
+.c12-tools__b--lib  .c12-tools__ic i { color: var(--d-blue, #1C7ED6); }
+.c12-tools__b--plan .c12-tools__ic { background: #E4F8D8; }
+.c12-tools__b--plan .c12-tools__ic i { color: var(--d-green, #47C012); }
+.c12-tools__t { position: relative; z-index: 1; line-height: 1.2; }
+.c12-tools__bg {
+  position: absolute; right: -10px; bottom: -12px;
+  font-size: 74px; opacity: .1; transform: rotate(-12deg);
+  pointer-events: none;
+}
+.c12-tools__b--lib  .c12-tools__bg { color: var(--d-blue, #1C7ED6); }
+.c12-tools__b--plan .c12-tools__bg { color: var(--d-green, #47C012); }
 
 /* the coach's daily challenge card, top of his room */
 .c12-chal {
