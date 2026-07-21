@@ -702,6 +702,19 @@
       } catch (e) {}
     }
 
+    /* iOS suspends the WebView the moment the screen locks or the app is
+       backgrounded — a court-length analysis (2-3x clip length) then
+       freezes mid-run and reads as "analyze is dead". Hold a screen wake
+       lock for the duration and SAY the phone has to stay open. */
+    var wakeLock = null;
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (wl) { wakeLock = wl; }).catch(function () {});
+      }
+    } catch (e) {}
+    function releaseWake() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
+    stageEl.textContent = 'Keep the app open — analysing…';
+
     var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
       fps: 30,
@@ -726,6 +739,7 @@
       onStage: function (s) { stageEl.textContent = s; },
       onFrame: drawLive
     }).then(function (res) {
+      releaseWake();
       // Device benchmark readout (M2): post-session shows engine + timing —
       // readable straight off an iPhone screen, no Web Inspector needed.
       try {
@@ -798,7 +812,7 @@
         setNav(true);
         window.app.go('post-session');
       });
-    }).catch(function () { fallbackToRealtime(); });
+    }).catch(function () { releaseWake(); fallbackToRealtime(); });
   }
 
   function render(args) {
