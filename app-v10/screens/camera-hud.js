@@ -149,8 +149,9 @@
       el.classList.toggle('is-warn', !on && !!warn);
     }
     setRow('hoop', rimSeen());
-    setRow('ball', eng && eng._diagLastBallAt && (now - eng._diagLastBallAt < 2000));
-    setRow('player', eng && eng._diagLastPlayerAt && (now - eng._diagLastPlayerAt < 2000));
+    var detWin = eng && eng._recordingIdle ? 5500 : 2000;   // idle = one pass/2.5s
+    setRow('ball', eng && eng._diagLastBallAt && (now - eng._diagLastBallAt < detWin));
+    setRow('player', eng && eng._diagLastPlayerAt && (now - eng._diagLastPlayerAt < detWin));
     var rec = null;
     try { rec = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState(); } catch (e) {}
     // rec is a FAULT when off: an unrecorded session cannot be analysed.
@@ -232,6 +233,14 @@
       var eng0 = window.ShotDetectionEngine;
       if (eng0 && eng0.resetStats) eng0.resetStats();
       shotBaseline = readEngineStats().att;
+      /* Mutual exclusion pivot: the walk-up ran the engine at full rate
+         (rim lock needs it); from here the RECORDING owns the chip and the
+         engine drops to its framing watchdog. */
+      try {
+        if (window.ShotTrackingScreen && window.ShotTrackingScreen.beginSessionRecording) {
+          window.ShotTrackingScreen.beginSessionRecording();
+        }
+      } catch (e) {}
       window.__v10SessionShots = [];
       var n0 = document.getElementById('v10-cam-num');
       if (n0) n0.textContent = '0';
@@ -261,7 +270,8 @@
       var sig = d.cx + ',' + d.cy + ',' + d.score;
       var now = Date.now();
       if (sig !== _hoopSig) { _hoopSig = sig; _hoopSigAt = now; }
-      if (now - _hoopSigAt < 3000) return true;   // still updating = still seen
+      var freshWin = (eng && eng._recordingIdle) ? 6500 : 3000;   // idle = one pass/2.5s
+      if (now - _hoopSigAt < freshWin) return true;   // still updating = still seen
       return false;                                // frozen = hoop gone
     }
     return pfSeen;
@@ -375,7 +385,9 @@
     if (seen) { lostSince = 0; }
     else if (!lostSince) { lostSince = now; }
 
-    var lost = !!lostSince && (now - lostSince) > 3000;
+    var engL = window.ShotDetectionEngine;
+    var lostWin = (engL && engL._recordingIdle) ? 7000 : 3000;
+    var lost = !!lostSince && (now - lostSince) > lostWin;
     /* Word-level status now lives in the right-side checklist
        (updateChecklist); this keeps only the full-screen lost wash. */
     if (lost !== wasLost) {
@@ -475,7 +487,12 @@
        enterSummaryPhase captures it synchronously, but the recorder resolves
        async — clearing on unmount would race a legitimate hand-off. It is
        one-shot (nulls itself) and re-registered per mount. */
-    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._lowPowerMode = false; } catch (e) {}
+    try {
+      if (window.ShotDetectionEngine) {
+        window.ShotDetectionEngine._lowPowerMode = false;
+        window.ShotDetectionEngine._recordingIdle = false;
+      }
+    } catch (e) {}
     if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
     v10Layer = null;
     if (gateEl && gateEl.parentNode) gateEl.parentNode.removeChild(gateEl);

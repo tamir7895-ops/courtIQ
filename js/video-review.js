@@ -121,9 +121,12 @@
     }
 
     try {
-      _mediaRecorder = mimeType
-        ? new MediaRecorder(stream, { mimeType: mimeType })
-        : new MediaRecorder(stream);   // let the platform pick
+      /* Bounded encoder: with no cap the browser scales bitrate to the
+         input -- a heavyweight 720p encode competing with inference. 3 Mbps
+         is plenty for an analysis clip (the analyser downscales to 640). */
+      var recOpts = { videoBitsPerSecond: 3000000 };
+      if (mimeType) recOpts.mimeType = mimeType;
+      _mediaRecorder = new MediaRecorder(stream, recOpts);
     } catch (e) {
       console.warn('[VideoReview] MediaRecorder init failed:', e);
       return false;

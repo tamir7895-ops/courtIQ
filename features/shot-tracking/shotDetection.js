@@ -46,7 +46,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.035; // Court 2026-07-21: 0.05 gave ball 0% outdoors at distance
+  var BALL_CONFIDENCE      = 0.05;  // validated floor; the court "ball 0%" was encoder contention, not this
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
   // YOLOX cadence is hardcoded as `_frameCount % 6 === 0` below. 6 was picked as a
@@ -799,6 +799,16 @@
        analysis — backs the YOLOX cadence right off so the video encoder gets
        the chip. See _adaptiveDivisor. */
     _lowPowerMode: false,
+    /* RECORD-MODE IDLE. Proven by a controlled experiment (2026-07-21):
+       MediaRecorder's encoder competing with YOLOX on the same GPU is what
+       collapsed on-court inference from 149ms to 6.7s -- cutting ONLY the
+       recording mid-session dropped latency 60% instantly, and a session
+       with no recording stays flat. So while the session clip is being
+       recorded the engine runs a framing WATCHDOG only: one full pass every
+       ~2.5s (rim still framed? liveness), pose off. The verdicts come from
+       the offline pass over the clip afterwards -- full-rate live inference
+       during recording bought nothing and cost everything. */
+    _recordingIdle: false,
     _mlMissCount: 0,
     _frameCount: 0,
     _detectorType: 'none',   // 'yolox' | 'none'
@@ -1486,6 +1496,10 @@
       var rafPoll = function () {
         if (!self.isRunning) { self._poseRafId = null; return; }
         self._poseRafId = requestAnimationFrame(rafPoll);
+        // Record-mode idle: pose is a second model on the same chip and its
+        // triggers feed the LIVE state machine only -- verdicts come from
+        // the offline pass, so during recording it is pure contention.
+        if (self._recordingIdle) return;
         // L34: skip while the source video is paused/ended — every pose
         // call would return the SAME cached skeleton against an advancing
         // wall-clock, and the peak/set-point heuristics would read that as
@@ -1781,6 +1795,15 @@
         return;
       }
       if (self.videoEl.readyState < 2) { self._scheduleDetection(); return; }
+      // Record-mode idle: one full pass every ~2.5s, nothing in between --
+      // the encoder owns the chip while the clip (the accuracy-bearing
+      // artifact) is being written. See _recordingIdle above.
+      if (self._recordingIdle) {
+        var nowIdle = Date.now();
+        if (nowIdle - (self._lastIdlePassAt || 0) < 2500) { self._scheduleDetection(); return; }
+        self._lastIdlePassAt = nowIdle;
+        self._idleForceInfer = true;   // this pass must actually run YOLOX
+      }
       // L37.3: on resume, drop the stale prev-frame buffers so the next
       // tick rebuilds baselines from a current frame instead of diffing
       // against pre-pause pixels (the resume burst was the primary cause
@@ -1871,8 +1894,9 @@
          backends keep the conservative 6. */
       self._frameCount++;
       var yoloxDivisor = self._adaptiveDivisor();
-      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % yoloxDivisor === 0) {
+      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && (self._frameCount % yoloxDivisor === 0 || self._idleForceInfer)) {
         self._isDetecting = true;
+        self._idleForceInfer = false;
         self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall);
       }
 

@@ -421,7 +421,26 @@
     }, 300);
   }
 
+  /* The session truly begins: start the clip (the accuracy-bearing
+     artifact) and drop the engine to its framing watchdog. Called by the
+     v10 chrome from the gate's Start tap. Engine idles ONLY if recording
+     actually started -- a failed recorder must not half-disable live. */
+  function beginSessionRecording() {
+    var ok = false;
+    try {
+      if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
+        ok = !!VideoReview.startRecording(stream);
+      }
+    } catch (e) { ok = false; }
+    try {
+      var eng = window.ShotDetectionEngine;
+      if (eng) eng._recordingIdle = ok;
+    } catch (e) {}
+    return ok;
+  }
+
   function closeScreen() {
+    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._recordingIdle = false; } catch (e) {}
     stopCamera();
     stopTracking();
     phase = 'idle';
@@ -1188,10 +1207,12 @@
           }
         }
 
-        // Start video recording for replay
-        if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
-          VideoReview.startRecording(stream);
-        }
+        // Recording does NOT start here any more. It starts when the user
+        // taps Start (beginSessionRecording): the walk-up gate needs the
+        // engine at full rate to lock the rim, and recording+full-rate
+        // inference is exactly the proven contention that collapsed
+        // on-court performance. Mutual exclusion: gate = engine full rate,
+        // session = recording + engine idle watchdog.
 
         // Show learning status
         if (window.AdaptiveLearning) {
@@ -2260,6 +2281,7 @@
 
   function enterSummaryPhase() {
     phase = 'summary';
+    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._recordingIdle = false; } catch (e) {}
 
     /* v10 record-then-analyse hand-off. When the v10 session UI is driving
        and has registered a clip consumer, the recorded session is HANDED
@@ -2896,7 +2918,8 @@
   window.ShotTrackingScreen = {
     open:         openScreen,
     close:        closeScreen,
-    openFromFile: openFromFile
+    openFromFile: openFromFile,
+    beginSessionRecording: beginSessionRecording
   };
 
 })();

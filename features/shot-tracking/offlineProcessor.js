@@ -350,6 +350,7 @@
                opposite regime — it must see EVERY frame, and it is where the
                accuracy comes from — so never inherit a stale throttle. */
             eng._lowPowerMode = false;
+            eng._recordingIdle = false;   // offline must see EVERY frame
             if (eng.isRunning) { try { eng.stop(); } catch (e) {} }
             eng._offlineMode = true;
             try { eng.start(video); } catch (e) { fail(e); return; }
