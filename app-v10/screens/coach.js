@@ -437,8 +437,6 @@
       ])
     ]));
 
-    host.appendChild(grid);
-
     /* ── THE GYM — the Duolingo world, on our court ─────────────────
        One guided scene, not an open map: the real half court, the four
        coaches standing at their spots, and YOUR avatar. Tap a coach and
@@ -493,6 +491,9 @@
     });
     scene.appendChild(me);
     host.appendChild(scene);
+
+    /* the film-status card + calendar follow the court */
+    host.appendChild(grid);
 
     /* your team — honest empty state until a social backend exists */
     host.appendChild(V12.card({
