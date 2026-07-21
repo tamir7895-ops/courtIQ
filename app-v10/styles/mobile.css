@@ -39,9 +39,21 @@ html, body {
 html body #app,
 html body[data-screen] #app {
   position: absolute;
-  inset: 0;
-  height: auto;
+  top: 0; left: 0; right: 0;
+  /* Height comes from dvh, NOT from `inset: 0` on a fixed ancestor.
+     Those are the same number on desktop, which is why this class of bug
+     only ever shows up on a phone: html/body are position:fixed, so their
+     box is the LAYOUT viewport, which stays tall while the browser's URL
+     bar / toolbar eats real estate off the bottom. #app then sizes itself
+     to a viewport taller than the one you can actually see — its content
+     fits (scrollHeight === clientHeight, so there is nothing to scroll)
+     while the last rows sit below the glass. That is exactly the report:
+     "the bottom cards are cut off and I can't scroll to them."
+     100dvh tracks the VISIBLE viewport, so the scroller is never taller
+     than the screen and any overflow becomes real, scrollable overflow. */
+  height: 100dvh;
   min-height: 0;
+  max-height: 100dvh;
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
@@ -54,6 +66,19 @@ html body[data-screen] #app {
   scrollbar-width: none;
 }
 #app::-webkit-scrollbar { display: none; }
+
+/* Slack under the last row. tokens.css pads the scroller by exactly the
+   nav's own height (64px + safe-bottom), which leaves the final card
+   clearing the bar by ~10px — no margin for the places those two numbers
+   drift apart: env(safe-area-inset-bottom) resolving differently under
+   the scaled 390px canvas mobile.js pins, sub-pixel rounding, or a home
+   indicator drawn over the bar. When they drift the wrong way the last
+   card tucks under the nav with nothing left to scroll. 28px of real
+   slack costs one short swipe and makes that impossible. */
+html body #app,
+html body[data-screen] #app {
+  padding-bottom: calc(64px + var(--safe-bottom, 0px) + 28px);
+}
 
 /* ── 2 · app-grade touch surface ───────────────────────────────── */
 * {
