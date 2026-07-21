@@ -120,15 +120,28 @@
       } catch (e) { /* isTypeSupported can throw on exotic builds */ }
     }
 
-    try {
-      /* Bounded encoder: with no cap the browser scales bitrate to the
-         input -- a heavyweight 720p encode competing with inference. 3 Mbps
-         is plenty for an analysis clip (the analyser downscales to 640). */
-      var recOpts = { videoBitsPerSecond: 3000000 };
-      if (mimeType) recOpts.mimeType = mimeType;
-      _mediaRecorder = new MediaRecorder(stream, recOpts);
-    } catch (e) {
-      console.warn('[VideoReview] MediaRecorder init failed:', e);
+    /* Bounded encoder (3 Mbps) -- but NEVER let an options combo kill the
+       recording: Safari/iOS can throw on option sets Chrome accepts, and a
+       constructor throw here silently produced a session with NO clip
+       ("straight to summary, no analyze"). Cascade from most- to
+       least-specific and take the first constructor that works. */
+    var recAttempts = [];
+    if (mimeType) {
+      recAttempts.push({ mimeType: mimeType, videoBitsPerSecond: 3000000 });
+      recAttempts.push({ mimeType: mimeType });
+    }
+    recAttempts.push({ videoBitsPerSecond: 3000000 });
+    recAttempts.push(null);   // bare constructor, platform defaults
+    _mediaRecorder = null;
+    for (var ai = 0; ai < recAttempts.length && !_mediaRecorder; ai++) {
+      try {
+        _mediaRecorder = recAttempts[ai]
+          ? new MediaRecorder(stream, recAttempts[ai])
+          : new MediaRecorder(stream);
+      } catch (e) { /* try the next shape */ }
+    }
+    if (!_mediaRecorder) {
+      console.warn('[VideoReview] MediaRecorder init failed on every option shape');
       return false;
     }
     _recordingMime = _mediaRecorder.mimeType || mimeType || '';
@@ -165,16 +178,25 @@
         return;
       }
 
-      _mediaRecorder.onstop = function () {
-        var blob = new Blob(_chunks, { type: _mediaRecorder.mimeType || 'video/webm' });
+      var recRef = _mediaRecorder;
+      var finish = function () {
+        var blob = new Blob(_chunks, { type: (recRef && recRef.mimeType) || _recordingMime || 'video/webm' });
         var shots = _shotTimestamps.slice();
         _chunks = [];
         _shotTimestamps = [];
         _mediaRecorder = null;
-        resolve({ blob: blob, shots: shots });
+        resolve({ blob: blob.size > 0 ? blob : null, shots: shots });
+      };
+      recRef.onstop = function () {
+        /* iOS records mp4 as a single chunk and can fire dataavailable
+           AFTER onstop -- resolving immediately built an EMPTY blob. Give a
+           trailing chunk a moment to land before assembling. */
+        if (_chunks.length === 0) setTimeout(finish, 800);
+        else finish();
       };
 
-      _mediaRecorder.stop();
+      try { recRef.requestData(); } catch (e) { /* flush what exists; not all builds support it */ }
+      recRef.stop();
     });
   }
 
