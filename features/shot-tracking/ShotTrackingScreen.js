@@ -904,8 +904,13 @@
       // hoops live in the upper-central portion of any sensible framing.
       // X 0.15-0.85: rejects far-corner detections. Y 0.05-0.55: rejects
       // floor / ceiling-extreme misclassifications.
-      if (hoop.cx < 0.15 || hoop.cx > 0.85 || hoop.cy < 0.05 || hoop.cy > 0.55) return;
-      if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
+      /* Court report 2026-07-21: real handheld framing put the hoop near the
+         frame EDGE and the old X 0.15-0.85 gate rejected every detection --
+         "LOST THE HOOP" with the hoop clearly visible on screen. Widened to
+         accept any sane framing; the verifier + cluster lock still reject
+         corner junk. Min size halved for genuine court distance. */
+      if (hoop.cx < 0.04 || hoop.cx > 0.96 || hoop.cy < 0.03 || hoop.cy > 0.65) return;
+      if (hoop.bw < 0.012 || hoop.bh < 0.004) return;
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
       if (hoop.score < 0.10) return;
 
@@ -2256,6 +2261,17 @@
   function enterSummaryPhase() {
     phase = 'summary';
 
+    /* v10 record-then-analyse hand-off. When the v10 session UI is driving
+       and has registered a clip consumer, the recorded session is HANDED
+       OVER for offline analysis instead of ending on the legacy summary —
+       the offline pass over the clip is where the accurate made/miss
+       verdicts come from. The hook is captured synchronously because
+       stopRecording() resolves async and the v10 chrome may clear the
+       global while we wait. */
+    var v10Hook = (document.body.classList.contains('v10-cam-active') &&
+                   typeof window.__v10OnSessionClip === 'function')
+      ? window.__v10OnSessionClip : null;
+
     // Stop video recording and save
     if (typeof VideoReview !== 'undefined') {
       VideoReview.stopRecording().then(function (data) {
@@ -2266,7 +2282,24 @@
           var replayBtn = document.getElementById('st-video-replay-btn');
           if (replayBtn) replayBtn.style.display = '';
         }
-      }).catch(function () {});
+        if (v10Hook) { try { v10Hook(data && data.blob ? data : null); } catch (e) {} }
+      }).catch(function () {
+        if (v10Hook) { try { v10Hook(null); } catch (e) {} }
+      });
+    } else if (v10Hook) {
+      try { v10Hook(null); } catch (e) {}
+    }
+
+    if (v10Hook) {
+      /* Claim the flow BEFORE closing: watchTrackerClose auto-routes to
+         post-session ~150ms after this screen closes, and the v10 leave
+         observer tears down whatever overlay is up when the route changes —
+         together they were deleting the analysis UI out from under the
+         processor. The flag suppresses both; the analysis flow clears it
+         when it routes to its own result. */
+      window.__v10AnalysisOwnsFlow = true;
+      closeScreen();
+      return;   // v10 owns the rest of the flow
     }
 
     stopCamera();

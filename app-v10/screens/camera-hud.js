@@ -223,6 +223,21 @@
     try { return window.__lastPreflight || {}; } catch (e) { return {}; }
   }
 
+  /* Everything that marks "the session really begins NOW" -- used by BOTH
+     gate buttons (the skip path used to miss all of it: dead clock, dirty
+     count for any session started without a rim lock). */
+  function beginSessionBookkeeping() {
+    sessionStartAt = Date.now();
+    try {
+      var eng0 = window.ShotDetectionEngine;
+      if (eng0 && eng0.resetStats) eng0.resetStats();
+      shotBaseline = readEngineStats().att;
+      window.__v10SessionShots = [];
+      var n0 = document.getElementById('v10-cam-num');
+      if (n0) n0.textContent = '0';
+    } catch (e) {}
+  }
+
   /* Is the hoop being seen RIGHT NOW?
      This used to be `pf.hoop || pf.rimLocked` — and neither field exists.
      The engine emits preflight as { ready, checks:{ball,hoop,player},
@@ -246,7 +261,7 @@
       var sig = d.cx + ',' + d.cy + ',' + d.score;
       var now = Date.now();
       if (sig !== _hoopSig) { _hoopSig = sig; _hoopSigAt = now; }
-      if (now - _hoopSigAt < 1500) return true;   // still updating = still seen
+      if (now - _hoopSigAt < 3000) return true;   // still updating = still seen
       return false;                                // frozen = hoop gone
     }
     return pfSeen;
@@ -287,29 +302,7 @@
         if (!gatePassed) return;
         if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.say('Recording'); }
         gateEl.style.display = 'none';
-        sessionStartAt = Date.now();   // the clock starts when shooting does
-        /* The engine runs during the whole walk-up phase, so by the time the
-           user actually taps Start it has already counted the shots taken
-           while framing the hoop — the session opened on a non-zero count
-           ("it counted a shot I never took"). Zero it at the real start. */
-        try {
-          var eng0 = window.ShotDetectionEngine;
-          if (eng0 && eng0.resetStats) eng0.resetStats();
-          /* The count the HUD shows comes from the legacy screen's DOM
-             counters (#st-attempts), not from engine.stats, so resetting the
-             engine alone leaves the old number on screen. Take a baseline at
-             the real start and display the delta. */
-          shotBaseline = readEngineStats().att;
-          /* The clip is now genuinely being recorded, and the encoder shares
-             the chip with YOLOX + pose. The accurate verdicts come from the
-             offline pass over that clip, so the live engine can back right
-             off — that headroom goes to a cleaner recording, which is what
-             the accuracy actually depends on now. */
-          if (eng0) eng0._lowPowerMode = true;
-          window.__v10SessionShots = [];
-          var n0 = document.getElementById('v10-cam-num');
-          if (n0) n0.textContent = '0';
-        } catch (e) {}
+        beginSessionBookkeeping();
         onStart();
       }
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
@@ -336,6 +329,9 @@
           window.__v11RimLockAtRecord = false;
           if (window.V11Audio) window.V11Audio.arm();
           gateEl.style.display = 'none';
+          /* Court bug: this skip path never did the session-start
+             bookkeeping -- the clock stayed 0:00 all session. */
+          beginSessionBookkeeping();
           onStart();
         }
       }, [h('span', { text: 'Record anyway' })])
@@ -379,7 +375,7 @@
     if (seen) { lostSince = 0; }
     else if (!lostSince) { lostSince = now; }
 
-    var lost = !!lostSince && (now - lostSince) > 1500;
+    var lost = !!lostSince && (now - lostSince) > 3000;
     /* Word-level status now lives in the right-side checklist
        (updateChecklist); this keeps only the full-screen lost wash. */
     if (lost !== wasLost) {
@@ -475,7 +471,10 @@
   function unmountChrome() {
     /* Leaving the session: hand the engine back its full cadence, or the
        next non-recorded use (and the offline analyser, which drives the same
-       engine) would inherit the throttle. */
+       engine) would inherit the throttle. The clip hook is NOT cleared here:
+       enterSummaryPhase captures it synchronously, but the recorder resolves
+       async — clearing on unmount would race a legitimate hand-off. It is
+       one-shot (nulls itself) and re-registered per mount. */
     try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._lowPowerMode = false; } catch (e) {}
     if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
     v10Layer = null;
@@ -542,6 +541,7 @@
     var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--tomato)', borderRadius: '99px', transition: 'width .25s ease' } });
     var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', opacity: '0.9' }, text: '0%' });
     var stageEl = h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '13px', opacity: '0.85', marginTop: '2px' }, text: 'Loading models…' });
+    var diagEl = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: '0.45', marginTop: '2px' }, text: '' });
 
     // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
     // The processor hands back every analyzed frame + detections via
@@ -597,7 +597,8 @@
       liveCount,
       h('div', { style: { width: '72%', maxWidth: '320px', height: 'clamp(7px, 1dvh, 9px)', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(3px, 0.7dvh, 6px)', overflow: 'hidden', flexShrink: '0' } }, [bar]),
       pct,
-      stageEl
+      stageEl,
+      diagEl
     ]);
     document.body.appendChild(overlay);
     v10Layer = overlay;
@@ -688,6 +689,7 @@
     }
 
     function fallbackToRealtime() {
+      window.__v10AnalysisOwnsFlow = false;
       try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
       v10Layer = null;
       try {
@@ -696,16 +698,44 @@
       } catch (e) {}
     }
 
+    /* iOS suspends the WebView the moment the screen locks or the app is
+       backgrounded — a court-length analysis (2-3x clip length) then
+       freezes mid-run and reads as "analyze is dead". Hold a screen wake
+       lock for the duration and SAY the phone has to stay open. */
+    var wakeLock = null;
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (wl) { wakeLock = wl; }).catch(function () {});
+      }
+    } catch (e) {}
+    function releaseWake() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
+    stageEl.textContent = 'Keep the app open — analysing…';
+
     var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
       fps: 30,
       // Show the execution provider alongside progress: on a phone WebView
       // that fell back to wasm this is the whole explanation for a slow
       // analyze, and it is otherwise invisible.
-      onProgress: function (f) { var p = Math.round(f * 100); bar.style.width = p + '%'; pct.textContent = p + '% · ' + backendLabel(); },
+      onProgress: function (f) {
+        var p = Math.round(f * 100);
+        bar.style.width = p + '%';
+        /* Remaining-time estimate from the measured rate so far. Held back
+           until 4% so one slow model-load frame cannot produce a wild
+           number; simple linear projection is honest enough at this scale. */
+        var eta = '';
+        if (f > 0.04) {
+          var remMs = (Date.now() - analysisT0) * (1 / f - 1);
+          var mm = Math.floor(remMs / 60000), ss = Math.round((remMs % 60000) / 1000);
+          eta = ' · ~' + (mm > 0 ? mm + 'm ' + ('0' + ss).slice(-2) + 's' : ss + 's') + ' left';
+        }
+        pct.textContent = p + '%' + eta;
+        diagEl.textContent = backendLabel();
+      },
       onStage: function (s) { stageEl.textContent = s; },
       onFrame: drawLive
     }).then(function (res) {
+      releaseWake();
       // Device benchmark readout (M2): post-session shows engine + timing —
       // readable straight off an iPhone screen, no Web Inspector needed.
       try {
@@ -730,9 +760,11 @@
         overlay.appendChild(h('i', { class: 'ph-bold ph-basketball', style: { fontSize: '48px', color: 'var(--mustard)', marginBottom: '12px' } }));
         overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '900', letterSpacing: '0.05em' }, text: 'NO SHOTS DETECTED' }));
         overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '14px', marginTop: '10px', opacity: '0.85', maxWidth: '320px', lineHeight: '1.5' }, text: reason }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', opacity: '0.5' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) }));
+        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', opacity: '0.5' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
+          ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') }));
         var backBtn = h('button', { style: { marginTop: '22px', padding: '12px 28px', background: 'var(--tomato)', color: 'var(--cream)', border: 'none', borderRadius: '10px', fontFamily: 'var(--font-display)', fontWeight: '900', letterSpacing: '0.05em', fontSize: '14px', cursor: 'pointer' }, text: 'BACK' });
         backBtn.addEventListener('click', function () {
+          window.__v10AnalysisOwnsFlow = false;
           try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
           v10Layer = null;
           document.body.classList.remove('v10-cam-active');
@@ -742,6 +774,11 @@
         overlay.appendChild(backBtn);
         return;
       }
+      /* Results are in — say so out loud. The user was told to walk away
+         while the clip is analysed; audio + a buzz is what actually reaches
+         them when the phone is face-up on a bench. */
+      try { if (window.V11Audio && window.V11Audio.say) window.V11Audio.say('Analysis complete'); } catch (e) {}
+      try { if (navigator.vibrate) navigator.vibrate([40, 90, 40]); } catch (e) {}
       // Post-session renders ONLY window.__v10SessionShots — populate it
       // from the offline results exactly like the real-time listener does.
       window.__v10SessionMode = 'verdict';   // upload = full made/miss recap
@@ -764,13 +801,14 @@
         };
       });
       return saveOfflineSession(res).then(function () {
+        window.__v10AnalysisOwnsFlow = false;
         try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
         v10Layer = null;
         document.body.classList.remove('v10-cam-active');
         setNav(true);
         window.app.go('post-session');
       });
-    }).catch(function () { fallbackToRealtime(); });
+    }).catch(function () { releaseWake(); fallbackToRealtime(); });
   }
 
   function render(args) {
@@ -824,6 +862,33 @@
       // fills live as the engine dispatches v10:shot events per shot.
       mountChrome();
       startPolling();
+
+      /* Record-then-analyse: when the user ends the session,
+         ShotTrackingScreen hands the recorded clip here instead of showing
+         its legacy summary, and the SAME offline pipeline that scores
+         uploads (9/9 on real footage) scores the session. One-shot: the
+         hook nulls itself so a stale consumer can never fire twice. */
+      window.__v10OnSessionClip = function (data) {
+        window.__v10OnSessionClip = null;
+        unmountChrome();
+        if (data && data.blob) {
+          var mime = data.blob.type || 'video/webm';
+          var name = 'session.' + (mime.indexOf('mp4') >= 0 ? 'mp4' : 'webm');
+          var file;
+          try { file = new File([data.blob], name, { type: mime }); }
+          catch (e) { file = data.blob; }   // Blob works too — process() only createObjectURLs it
+          document.body.classList.add('v10-cam-active');
+          runOfflineUpload(file, ctx);
+        } else {
+          /* No clip captured (recorder unsupported / failed) — the live
+             counter recap is all the truth we have; land there instead of
+             stranding the user. */
+          window.__v10AnalysisOwnsFlow = false;
+          document.body.classList.remove('v10-cam-active');
+          setNav(true);
+          ctx.go('post-session');
+        }
+      };
     }
 
     // Watch the tracker close to clean up our chrome too.
@@ -846,6 +911,7 @@
 
     // If user uses the v10 nav (rare; nav is hidden) — clean up before route change.
     var leaveObs = new MutationObserver(function () {
+      if (window.__v10AnalysisOwnsFlow) return;   // analysis overlay owns v10Layer now
       if (document.body.getAttribute('data-screen') !== 'camera-hud') {
         unmountChrome();
         document.body.classList.remove('v10-cam-active');
