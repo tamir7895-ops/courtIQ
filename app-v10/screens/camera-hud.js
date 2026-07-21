@@ -187,7 +187,14 @@
       _diagWin = { runs: runs, hits: hits, t: now };
     }
     var gpu = (typeof navigator !== 'undefined' && navigator.gpu) ? '' : ' no-webgpu';
-    return be + ' · ' + ms + _diagShown + gpu;
+    /* A failed recorder is otherwise invisible — put its own error string
+       on the badge so a device report can simply read it out. */
+    var recTxt = '';
+    try {
+      var recSt = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState();
+      if (recSt && !recSt.active && recSt.err) recTxt = ' · rec✗ ' + recSt.err;
+    } catch (e) {}
+    return be + ' · ' + ms + _diagShown + gpu + recTxt;
   }
 
   /* ── Find engine state at runtime ─────────────────────────────── */

@@ -19,6 +19,7 @@
   var _recordingStartTime = 0;
   var _shotTimestamps = [];
   var _recordingMime = '';
+  var _recError = '';        // last start/construct failure, for on-screen diagnosis
 
   /* ── IndexedDB ─────────────────────────────────────────── */
   function openDB() {
@@ -120,42 +121,49 @@
       } catch (e) { /* isTypeSupported can throw on exotic builds */ }
     }
 
-    /* Bounded encoder (3 Mbps) -- but NEVER let an options combo kill the
-       recording: Safari/iOS can throw on option sets Chrome accepts, and a
-       constructor throw here silently produced a session with NO clip
-       ("straight to summary, no analyze"). Cascade from most- to
-       least-specific and take the first constructor that works. */
-    var recAttempts = [];
+    /* FULL attempt cascade -- constructor AND start() together. Safari can
+       accept an options object at construction and only throw at start()
+       (validation is deferred), which is exactly what a build #39 device
+       test showed: constructor cascade alone still left REC orange. Each
+       attempt builds a FRESH recorder, wires handlers, starts, and is only
+       accepted when state === 'recording'. Timeslice order: mp4 prefers
+       ONE blob at stop (chunked mp4 truncates on iOS) but falls back to
+       1s chunks (a truncated clip beats NO clip); webm keeps 1s chunks
+       first -- the long-validated Chrome/Android path. */
+    var shapes = [];
     if (mimeType) {
-      recAttempts.push({ mimeType: mimeType, videoBitsPerSecond: 3000000 });
-      recAttempts.push({ mimeType: mimeType });
+      shapes.push({ mimeType: mimeType, videoBitsPerSecond: 3000000 });
+      shapes.push({ mimeType: mimeType });
     }
-    recAttempts.push({ videoBitsPerSecond: 3000000 });
-    recAttempts.push(null);   // bare constructor, platform defaults
-    _mediaRecorder = null;
-    for (var ai = 0; ai < recAttempts.length && !_mediaRecorder; ai++) {
-      try {
-        _mediaRecorder = recAttempts[ai]
-          ? new MediaRecorder(stream, recAttempts[ai])
-          : new MediaRecorder(stream);
-      } catch (e) { /* try the next shape */ }
+    shapes.push({ videoBitsPerSecond: 3000000 });
+    shapes.push(null);
+    var isMp4 = /mp4/.test(mimeType || '');
+    var slices = isMp4 ? [undefined, 1000] : [1000, undefined];
+
+    _mediaRecorder = null; _recError = '';
+    outer:
+    for (var si = 0; si < shapes.length; si++) {
+      for (var ti = 0; ti < slices.length; ti++) {
+        var rec = null;
+        try {
+          rec = shapes[si] ? new MediaRecorder(stream, shapes[si]) : new MediaRecorder(stream);
+        } catch (eC) { _recError = 'ctor:' + (eC && (eC.name || eC.message) || '?'); continue; }
+        rec.ondataavailable = function (e) {
+          if (e.data && e.data.size > 0) _chunks.push(e.data);
+        };
+        try {
+          if (slices[ti] != null) rec.start(slices[ti]); else rec.start();
+        } catch (eS) { _recError = 'start:' + (eS && (eS.name || eS.message) || '?'); continue; }
+        if (rec.state === 'recording') { _mediaRecorder = rec; break outer; }
+        _recError = 'state:' + rec.state;
+      }
     }
     if (!_mediaRecorder) {
-      console.warn('[VideoReview] MediaRecorder init failed on every option shape');
+      console.warn('[VideoReview] recording could not start:', _recError);
       return false;
     }
     _recordingMime = _mediaRecorder.mimeType || mimeType || '';
     try { console.info('[VideoReview] recording as', _recordingMime || '(platform default)'); } catch (e) {}
-
-    _mediaRecorder.ondataavailable = function (e) {
-      if (e.data && e.data.size > 0) _chunks.push(e.data);
-    };
-
-    /* Timeslice is a webm feature. iOS records mp4, and chunked mp4 from
-       MediaRecorder is broken there -- sessions came back with only the
-       first seconds. mp4 records as ONE blob delivered at stop(). */
-    if (/mp4/.test(_recordingMime)) _mediaRecorder.start();
-    else _mediaRecorder.start(1000); // webm: 1-second chunks
     return true;
   }
 
@@ -420,7 +428,8 @@
     return {
       active: !!(_mediaRecorder && _mediaRecorder.state === 'recording'),
       mime: _recordingMime,
-      supported: isSupported()
+      supported: isSupported(),
+      err: _recError || null
     };
   }
 
