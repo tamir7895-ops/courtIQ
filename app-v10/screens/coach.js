@@ -613,20 +613,8 @@
     /* the film-status card + calendar follow the court */
     host.appendChild(grid);
 
-    /* your team — honest empty state until a social backend exists */
-    host.appendChild(V12.card({
-      class: 'c12-team', bgIcon: 'ph-users-three', bgTone: 'purple',
-      onClick: function () { ctx.go('social'); }, label: 'Your team'
-    }, [
-      h('div', { class: 'c12-team__t', text: 'YOUR TEAM' }),
-      h('div', { class: 'c12-team__s',
-        text: 'Nobody on the roster yet. Invite friends and their sessions show up here.' }),
-      h('div', { class: 'c12-team__cta' }, [
-        h('i', { class: 'ph-bold ph-user-plus' }),
-        h('span', { text: 'Invite friends' })
-      ])
-    ]));
-
+    /* YOUR TEAM used to sit here — it belongs on the Social tab, which
+       already owns friends, leaderboard and the invite flow. */
     host.appendChild(V12.btn({
       label: 'Track a session', icon: 'ph-play-circle', variant: 'green',
       onClick: function () { ctx.go('camera-hud'); }
