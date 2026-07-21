@@ -16,15 +16,15 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=4f77ce7" />
-<link rel="stylesheet" href="styles/components.css?v=4f77ce7" />
-<link rel="stylesheet" href="styles/v11.css?v=4f77ce7" />
-<link rel="stylesheet" href="styles/v12.css?v=4f77ce7" />
-<link rel="stylesheet" href="styles/mobile.css?v=4f77ce7" />
-<link rel="stylesheet" href="styles/studio.css?v=4f77ce7" />
+<link rel="stylesheet" href="styles/tokens.css?v=ef3b902" />
+<link rel="stylesheet" href="styles/components.css?v=ef3b902" />
+<link rel="stylesheet" href="styles/v11.css?v=ef3b902" />
+<link rel="stylesheet" href="styles/v12.css?v=ef3b902" />
+<link rel="stylesheet" href="styles/mobile.css?v=ef3b902" />
+<link rel="stylesheet" href="styles/studio.css?v=ef3b902" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=4f77ce7" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=ef3b902" />
 </head>
 <body>
 
@@ -188,15 +188,15 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/courtPosition.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/courtCalibration.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/shotService.js?v=4f77ce7"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=4f77ce7"></script>
+<script src="../features/shot-tracking/v2/config.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/shotService.js?v=ef3b902"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=ef3b902"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -215,22 +215,22 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=4f77ce7"></script>
-<script src="lib/data.js?v=4f77ce7"></script>
-<script src="lib/courtiq.js?v=4f77ce7"></script>
-<script src="lib/court.js?v=4f77ce7"></script>
-<script src="lib/drill-court.js?v=4f77ce7"></script>
-<script src="lib/audio.js?v=4f77ce7"></script>
-<script src="lib/reveal.js?v=4f77ce7"></script>
-<script src="lib/v11.js?v=4f77ce7"></script>
-<script src="lib/v12.js?v=4f77ce7"></script>
-<script src="lib/avatar.js?v=4f77ce7"></script>
-<script src="lib/plan.js?v=4f77ce7"></script>
-<script src="lib/challenges.js?v=4f77ce7"></script>
-<script src="lib/coach-insights.js?v=4f77ce7"></script>
-<script src="lib/coach-ai.js?v=4f77ce7"></script>
-<script src="lib/nav.js?v=4f77ce7"></script>
-<script src="lib/mobile.js?v=4f77ce7"></script>
+<script src="lib/ui.js?v=ef3b902"></script>
+<script src="lib/data.js?v=ef3b902"></script>
+<script src="lib/courtiq.js?v=ef3b902"></script>
+<script src="lib/court.js?v=ef3b902"></script>
+<script src="lib/drill-court.js?v=ef3b902"></script>
+<script src="lib/audio.js?v=ef3b902"></script>
+<script src="lib/reveal.js?v=ef3b902"></script>
+<script src="lib/v11.js?v=ef3b902"></script>
+<script src="lib/v12.js?v=ef3b902"></script>
+<script src="lib/avatar.js?v=ef3b902"></script>
+<script src="lib/plan.js?v=ef3b902"></script>
+<script src="lib/challenges.js?v=ef3b902"></script>
+<script src="lib/coach-insights.js?v=ef3b902"></script>
+<script src="lib/coach-ai.js?v=ef3b902"></script>
+<script src="lib/nav.js?v=ef3b902"></script>
+<script src="lib/mobile.js?v=ef3b902"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
      ?studio in the URL so it can be opened on a real phone against a LAN
      dev server. Never ships to a production build. -->
@@ -247,31 +247,31 @@
               location.search.indexOf('studio') >= 0;
     if (!dev) return;
     var s = document.createElement('script');
-    s.src = 'lib/studio.js?v=4f77ce7';
+    s.src = 'lib/studio.js?v=ef3b902';
     document.head.appendChild(s);
   })();
 </script>
-<script src="auth-state.js?v=4f77ce7"></script>
-<script src="app.js?v=4f77ce7"></script>
+<script src="auth-state.js?v=ef3b902"></script>
+<script src="app.js?v=ef3b902"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/home.js?v=4f77ce7"></script>
-<script src="screens/track.js?v=4f77ce7"></script>
-<script src="screens/train.js?v=4f77ce7"></script>
-<script src="screens/coach.js?v=4f77ce7"></script>
-<script src="screens/me.js?v=4f77ce7"></script>
-<script src="screens/social.js?v=4f77ce7"></script>
-<script src="screens/auth.js?v=4f77ce7"></script>
-<script src="screens/session-prep.js?v=4f77ce7"></script>
-<script src="screens/camera-hud.js?v=4f77ce7"></script>
-<script src="screens/post-session.js?v=4f77ce7"></script>
-<script src="screens/onboarding.js?v=4f77ce7"></script>
-<script src="screens/drill-library.js?v=4f77ce7"></script>
-<script src="screens/workout-player.js?v=4f77ce7"></script>
-<script src="screens/avatar-customizer.js?v=4f77ce7"></script>
-<script src="screens/shop.js?v=4f77ce7"></script>
-<script src="screens/plan.js?v=4f77ce7"></script>
-<script src="screens/notifications.js?v=4f77ce7"></script>
+<script src="screens/home.js?v=ef3b902"></script>
+<script src="screens/track.js?v=ef3b902"></script>
+<script src="screens/train.js?v=ef3b902"></script>
+<script src="screens/coach.js?v=ef3b902"></script>
+<script src="screens/me.js?v=ef3b902"></script>
+<script src="screens/social.js?v=ef3b902"></script>
+<script src="screens/auth.js?v=ef3b902"></script>
+<script src="screens/session-prep.js?v=ef3b902"></script>
+<script src="screens/camera-hud.js?v=ef3b902"></script>
+<script src="screens/post-session.js?v=ef3b902"></script>
+<script src="screens/onboarding.js?v=ef3b902"></script>
+<script src="screens/drill-library.js?v=ef3b902"></script>
+<script src="screens/workout-player.js?v=ef3b902"></script>
+<script src="screens/avatar-customizer.js?v=ef3b902"></script>
+<script src="screens/shop.js?v=ef3b902"></script>
+<script src="screens/plan.js?v=ef3b902"></script>
+<script src="screens/notifications.js?v=ef3b902"></script>
 
 <script>
   // Bootstrap after all scripts load
