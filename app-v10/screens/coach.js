@@ -330,6 +330,36 @@
        the scout's real derived lines. sync() first pulls the account's
        memory row (other device, reinstall) — resolves instantly for
        guests or once already synced this launch. */
+    /* the coach's daily challenge sits at the top of his room —
+       real progress only, XP on claim */
+    (function challengeCard() {
+      if (!window.V12Challenges) return;
+      var s = window.V12Challenges.state(coach.id, data);
+      if (!s || s.claimed) return;
+      var pct = Math.round(s.done / s.total * 100);
+      var bar = h('div', { class: 'c12-chal__bar' }, [
+        h('div', { class: 'c12-chal__fill', style: { width: pct + '%' } })
+      ]);
+      var btn = h('button', {
+        class: 'c12-chal__btn', type: 'button', disabled: s.complete ? undefined : 'disabled',
+        onclick: function () {
+          if (window.V12Challenges.claim(coach.id, data)) {
+            btn.disabled = true;
+            btn.textContent = '+' + window.V12Challenges.XP + ' XP';
+            try { if (window.V10UI && window.V10UI.confetti) window.V10UI.confetti({ count: 16 }); } catch (e) {}
+          }
+        }
+      }, [h('span', { text: s.complete ? 'Claim +' + window.V12Challenges.XP + ' XP' : s.done + '/' + s.total })]);
+      thread.appendChild(h('div', { class: 'c12-chal' }, [
+        h('div', { class: 'c12-chal__hd' }, [
+          h('i', { class: 'ph-fill ph-basketball' }),
+          h('span', { text: s.title.toUpperCase() })
+        ]),
+        h('div', { class: 'c12-chal__task', text: s.task }),
+        bar, btn
+      ]));
+    })();
+
     function replay() {
       var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
       if (past.length) {
@@ -407,35 +437,62 @@
       ])
     ]));
 
-    /* chat door — the GM */
-    grid.appendChild(V12.card({
-      tint: 'blue', class: 'c12-door', bgIcon: 'ph-chat-circle-dots', bgTone: 'blue',
-      onClick: function () { chatView(host, ctx, data, function () { mainView(host, ctx, data); }, COACHES[0]); },
-      label: 'Chat with the GM'
-    }, [
-      h('img', { class: 'c12-door__face', src: coachFace(COACHES[0], 96), alt: '' }),
-      h('div', { class: 'c12-door__t', text: 'THE SCOUT · GM' }),
-      h('div', { class: 'c12-door__s', text: (scoutLines(data)[0] || '').slice(0, 64) + '…' })
-    ]));
-
     host.appendChild(grid);
 
-    /* the specialists — every coach a character, every character a lane */
-    host.appendChild(h('div', { class: 'd-label c12-staff__label', text: 'YOUR COACHING STAFF' }));
-    var staff = h('div', { class: 'c12-staff' });
-    COACHES.slice(1).forEach(function (c) {
-      staff.appendChild(h('button', {
-        class: 'c12-staff__tile', type: 'button', 'aria-label': c.name + ' — ' + c.role,
+    /* ── THE GYM — the Duolingo world, on our court ─────────────────
+       One guided scene, not an open map: the real half court, the four
+       coaches standing at their spots, and YOUR avatar. Tap a coach and
+       your player walks over, then the conversation opens. A pulsing
+       ball badge on a coach means his daily challenge is waiting. */
+    host.appendChild(h('div', { class: 'd-label c12-staff__label', text: 'THE GYM — WALK UP TO A COACH' }));
+    var SPOTS = {                    /* % of the scene box, x/y */
+      gm:     { x: 50, y: 56 },      /* free-throw line — runs the floor */
+      splash: { x: 82, y: 26 },      /* right corner three — his office */
+      flow:   { x: 18, y: 40 },      /* left wing — space to dance */
+      tank:   { x: 72, y: 84 },      /* sideline — cones and pain */
+      player: { x: 28, y: 88 }       /* you, walking in from the corner */
+    };
+    var scene = h('div', { class: 'c12-gym' });
+    try {
+      scene.appendChild(window.V12DrillCourt.render({}, { still: true, label: 'The gym' }));
+    } catch (e) { scene.appendChild(V12.courtThumb('Shooting', 0, { label: 'The gym' })); }
+
+    var walking = false;
+    var me = h('img', {
+      class: 'c12-gym__me', alt: 'You',
+      src: V12.avatarUrl(data.prof),
+      style: { left: SPOTS.player.x + '%', top: SPOTS.player.y + '%' }
+    });
+
+    COACHES.forEach(function (c) {
+      var chal = window.V12Challenges ? window.V12Challenges.state(c.id, data) : null;
+      var badge = (chal && !chal.claimed)
+        ? h('span', { class: 'c12-gym__badge' + (chal.complete ? ' is-ready' : '') }, [
+            h('i', { class: 'ph-fill ph-basketball' })
+          ])
+        : null;
+      scene.appendChild(h('button', {
+        class: 'c12-gym__coach', type: 'button',
+        'aria-label': 'Walk to ' + c.name + ' — ' + c.role,
+        style: { left: SPOTS[c.id].x + '%', top: SPOTS[c.id].y + '%' },
         onclick: function () {
-          chatView(host, ctx, data, function () { mainView(host, ctx, data); }, c);
+          if (walking) return;
+          walking = true;
+          me.classList.add('is-walking');
+          me.style.left = (SPOTS[c.id].x - 11) + '%';
+          me.style.top = SPOTS[c.id].y + '%';
+          setTimeout(function () {
+            chatView(host, ctx, data, function () { mainView(host, ctx, data); }, c);
+          }, 900);
         }
       }, [
-        h('img', { class: 'c12-staff__face', src: coachFace(c, 96), alt: '' }),
-        h('div', { class: 'c12-staff__n', text: c.name }),
-        h('div', { class: 'c12-staff__r', text: c.short })
-      ]));
+        h('img', { class: 'c12-gym__face', src: coachFace(c, 96), alt: '' }),
+        h('span', { class: 'c12-gym__name', text: c.name }),
+        badge
+      ].filter(Boolean)));
     });
-    host.appendChild(staff);
+    scene.appendChild(me);
+    host.appendChild(scene);
 
     /* your team — honest empty state until a social backend exists */
     host.appendChild(V12.card({

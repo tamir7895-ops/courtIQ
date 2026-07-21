@@ -899,6 +899,92 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   .c12-msg, .c12-board { animation: none; }
 }
 
+/* ── THE GYM — the world scene: court, coaches, your avatar ───── */
+.c12-gym {
+  position: relative; border: 2px solid var(--d-line, #E5E7EB);
+  border-radius: 18px; overflow: hidden; background: #FFFFFF;
+  box-shadow: 0 3px 0 var(--d-line, #E5E7EB);
+}
+.c12-gym > svg { display: block; width: 100%; height: auto; opacity: .9; }
+.c12-gym__coach {
+  position: absolute; transform: translate(-50%, -50%);
+  background: none; border: 0; padding: 0; cursor: pointer;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transition: transform .12s ease;
+}
+.c12-gym__coach:active { transform: translate(-50%, -50%) scale(.92); }
+.c12-gym__face {
+  width: 46px; height: 46px; border-radius: 50%;
+  border: 2.5px solid var(--d-ink, #0A2850); background: #F6F7F9;
+  box-shadow: 0 3px 6px rgba(10, 40, 80, .25);
+  animation: gym-idle 3s ease-in-out infinite;
+}
+.c12-gym__coach:nth-child(3) .c12-gym__face { animation-delay: .7s; }
+.c12-gym__coach:nth-child(4) .c12-gym__face { animation-delay: 1.4s; }
+.c12-gym__coach:nth-child(5) .c12-gym__face { animation-delay: 2.1s; }
+@keyframes gym-idle { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
+.c12-gym__name {
+  font: 800 10.5px var(--d-font, sans-serif); color: var(--d-ink, #0A2850);
+  background: #FFFFFF; border: 1.5px solid var(--d-line, #E5E7EB);
+  border-radius: 999px; padding: 1px 7px;
+}
+.c12-gym__badge {
+  position: absolute; top: -6px; right: -8px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: var(--d-orange, #FF9F1C); color: #FFFFFF;
+  display: flex; align-items: center; justify-content: center; font-size: 12px;
+  border: 2px solid #FFFFFF;
+  animation: gym-badge 1.6s ease-in-out infinite;
+}
+.c12-gym__badge.is-ready { background: var(--d-green, #47C012); }
+@keyframes gym-badge { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.18); } }
+.c12-gym__me {
+  position: absolute; transform: translate(-50%, -50%);
+  width: 42px; height: 42px; border-radius: 50%;
+  border: 3px solid var(--d-orange, #FF9F1C); background: #F6F7F9;
+  box-shadow: 0 3px 6px rgba(10, 40, 80, .3); z-index: 2;
+  transition: left .9s cubic-bezier(.45, .05, .55, .95), top .9s cubic-bezier(.45, .05, .55, .95);
+}
+.c12-gym__me.is-walking { animation: gym-walk .3s ease-in-out infinite; }
+@keyframes gym-walk {
+  0%, 100% { margin-top: 0; }
+  50% { margin-top: -5px; }
+}
+
+/* the coach's daily challenge card, top of his room */
+.c12-chal {
+  border: 2px solid var(--d-orange, #FF9F1C); border-radius: 14px;
+  background: #FFF9F0; padding: 12px 14px; margin: 4px 0 8px 40px;
+}
+.c12-chal__hd {
+  display: flex; align-items: center; gap: 6px;
+  font: 800 11px var(--d-font, sans-serif); letter-spacing: .06em;
+  color: var(--d-orange-deep, #E8590C);
+}
+.c12-chal__task { font: 700 14px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); margin: 4px 0 8px; }
+.c12-chal__bar {
+  height: 10px; border-radius: 999px; background: #F1E4D2; overflow: hidden;
+}
+.c12-chal__fill {
+  height: 100%; border-radius: 999px; background: var(--d-orange, #FF9F1C);
+  transition: width .4s ease;
+}
+.c12-chal__btn {
+  margin-top: 10px; width: 100%; height: 38px; border: 0; border-radius: 10px;
+  font: 800 13px var(--d-font, sans-serif); cursor: pointer;
+  background: var(--d-green, #47C012); color: #FFFFFF;
+  box-shadow: 0 3px 0 var(--d-green-deep, #2F9204);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.c12-chal__btn:active { transform: translateY(3px); box-shadow: none; }
+.c12-chal__btn:disabled {
+  background: #F1E4D2; color: var(--d-orange-deep, #E8590C);
+  box-shadow: none; cursor: default;
+}
+@media (prefers-reduced-motion: reduce) {
+  .c12-gym__face, .c12-gym__badge, .c12-gym__me.is-walking { animation: none; }
+}
+
 /* ── the coaching staff — Duolingo cast, basketball edition ───── */
 .c12-staff__label { margin: 14px 2px 8px; }
 .c12-staff {
