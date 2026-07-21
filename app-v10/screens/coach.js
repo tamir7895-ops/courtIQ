@@ -103,13 +103,24 @@
     }
 
     var live = !!(window.V12CoachAI && window.V12CoachAI.signedIn());
-    var thread = h('div', { class: 'c12-thread' });
+    var thread = h('div', { class: 'c12-thread c12-thread--' + coach.id });
     var chips = h('div', { class: 'c12-chips' });
     var busy = false;
 
+    /* Starter chips greet an empty room; the moment a real exchange
+       exists they are furniture in the way — fade them out. */
+    var chipsGone = false;
+    function dropChips() {
+      if (chipsGone) return;
+      chipsGone = true;
+      chips.classList.add('is-leaving');
+      setTimeout(function () { chips.remove(); }, 260);
+    }
+
     function coachSay(text) {
       var b = h('div', { class: 'c12-msg c12-msg--coach' }, [
-        h('div', { class: 'c12-msg__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
+        /* the coach's own face on every bubble — characters, not icons */
+        h('img', { class: 'c12-msg__face c12-msg__face--img', src: coachFace(coach, 64), alt: '' }),
         h('div', { class: 'c12-msg__bubble', text: text })
       ]);
       thread.appendChild(b);
@@ -126,6 +137,52 @@
       var t = coachSay('…');
       t.classList.add('c12-msg--typing');
       return t;
+    }
+
+    /* ── the tactics board ──────────────────────────────────────────
+       When a coach names a drill, he pulls out the clipboard: the
+       drill's real choreography, framed like a coach's board, with a
+       button that starts it. Detection is by exact library name in
+       the reply — the server prompt tells coaches to name drills
+       verbatim, and this is why. */
+    function drillBoard(text) {
+      try {
+        if (!window.V12DrillChoreo || !window.V12DrillCourt || typeof _DRILLS_DB === 'undefined') return;
+        var hit = null, low = String(text || '').toLowerCase();
+        for (var i = 0; i < _DRILLS_DB.length; i++) {
+          if (low.indexOf(_DRILLS_DB[i].name.toLowerCase()) >= 0) { hit = _DRILLS_DB[i]; break; }
+        }
+        if (!hit) return;
+        var c = window.V12DrillChoreo.get(hit);
+        if (!c) return;
+        var board = h('div', { class: 'c12-board' }, [
+          h('div', { class: 'c12-board__hd' }, [
+            h('i', { class: 'ph-fill ph-clipboard' }),
+            h('span', { text: coach.name.toUpperCase() + "'S BOARD" })
+          ]),
+          window.V12DrillCourt.render(c, { label: hit.name }),
+          h('div', { class: 'c12-board__ft' }, [
+            h('div', { class: 'c12-board__n', text: hit.name }),
+            h('button', {
+              class: 'c12-board__go', type: 'button',
+              onclick: function () {
+                try {
+                  sessionStorage.setItem('courtiq_v11_drill', JSON.stringify({
+                    id: hit.id, name: hit.name,
+                    reps: hit.reps_or_sets ? parseInt(String(hit.reps_or_sets), 10) || 30 : 30,
+                    mins: hit.duration_minutes || 8,
+                    focus: hit.focus_area || 'Skill',
+                    description: hit.description || ''
+                  }));
+                } catch (e) {}
+                ctx.go('workout-player');
+              }
+            }, [h('i', { class: 'ph-fill ph-play-circle' }), h('span', { text: 'Run it' })])
+          ])
+        ]);
+        thread.appendChild(board);
+        thread.scrollTop = thread.scrollHeight;
+      } catch (e) { /* the board is a bonus — never break the chat for it */ }
     }
 
     /* The coach proposed a program — render it as a card with the ONE
@@ -157,6 +214,9 @@
           btn.textContent = 'In your plan';
           if (msg) coachSay(msg);
           try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
+          try {
+            if (window.V10UI && window.V10UI.confetti) window.V10UI.confetti({ count: 18 });
+          } catch (e2) {}
         }
       }, [
         h('i', { class: 'ph-fill ph-hammer' }),
@@ -191,6 +251,8 @@
     function send(q) {
       if (busy || !q) return;
       userSay(q);
+      dropChips();
+      try { if (navigator.vibrate) navigator.vibrate(10); } catch (e0) {}
       if (!live) {
         setTimeout(function () { coachSay(localAnswer(q)); }, 380);
         return;
@@ -200,6 +262,7 @@
       window.V12CoachAI.ask(q, data, ctx).then(function (r) {
         t.remove(); busy = false;
         coachSay(r.text);
+        drillBoard(r.text);
         if (r.proposal) proposalCard(r.proposal);
         if (r.confirmation) coachSay(r.confirmation);
       }).catch(function (e) {
@@ -270,11 +333,14 @@
     function replay() {
       var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
       if (past.length) {
+        dropChips();             /* mid-conversation: no starter chips */
         past.forEach(function (m) {
           if (m.role === 'user') userSay(m.content);
           else {
             /* strip any action line from stored assistant turns */
-            coachSay(m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, ''));
+            var clean = m.content.replace(/@@ACTION\s+\{[^\n]*\}\s*$/, '').replace(/\s+$/, '');
+            coachSay(clean);
+            drillBoard(clean);   /* boards survive reopening the chat */
           }
         });
       } else if (coach.id === 'gm') {

@@ -115,7 +115,11 @@ const PLAYBOOK =
   "- Gaps of 3+ days beat any drill talk: the first prescription is showing " +
   "up. Short frequent sessions beat rare marathons.\n" +
   "- Drill names come verbatim from the DRILL LIBRARY so the player can find " +
-  "them in the app; fit total time to their real session lengths.\n\n" +
+  "them in the app; fit total time to their real session lengths. Naming a " +
+  "drill PULLS UP YOUR TACTICS BOARD — its court diagram appears under your " +
+  "message. So when the player asks how a drill works, or you prescribe one, " +
+  "name exactly ONE library drill and walk them through what the board " +
+  "shows: the spots, the movement, where the ball goes.\n\n" +
 
   "THE APP — what CourtIQ has and where (for guiding the player):\n" +
   "- Home: Court IQ score (0-99, from the best 5 sessions of the last 30 " +

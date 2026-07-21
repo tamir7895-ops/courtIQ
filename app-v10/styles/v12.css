@@ -840,6 +840,65 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   .dc-tick { opacity: 1; }
 }
 
+/* ── chat life — entrances, faces, accents, the tactics board ── */
+.c12-msg { animation: c12-pop .28s cubic-bezier(.2, .9, .3, 1.2) both; }
+@keyframes c12-pop {
+  from { opacity: 0; transform: translateY(10px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.c12-msg__face--img {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid var(--d-ink, #0A2850); background: #F6F7F9;
+  flex: 0 0 auto; object-fit: cover;
+}
+/* each coach paints his own bubbles */
+.c12-thread--splash .c12-msg--coach .c12-msg__bubble { border-color: #F783AC; }
+.c12-thread--flow   .c12-msg--coach .c12-msg__bubble { border-color: #69DB7C; }
+.c12-thread--tank   .c12-msg--coach .c12-msg__bubble { border-color: #FFA94D; }
+.c12-chips { transition: opacity .25s ease, transform .25s ease; }
+.c12-chips.is-leaving { opacity: 0; transform: translateY(6px); pointer-events: none; }
+
+/* the coach's clipboard — a real board, pulled out mid-conversation */
+.c12-board {
+  margin: 4px 0 4px 40px;
+  border: 3px solid var(--d-ink, #0A2850); border-radius: 16px;
+  overflow: hidden; background: #FFFFFF;
+  box-shadow: 0 4px 0 rgba(10, 40, 80, .3);
+  animation: c12-board-in .38s cubic-bezier(.2, .9, .3, 1.15) both;
+}
+@keyframes c12-board-in {
+  from { opacity: 0; transform: translateY(14px) rotate(-1.5deg) scale(.94); }
+  to   { opacity: 1; transform: translateY(0) rotate(0) scale(1); }
+}
+.c12-board__hd {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--d-ink, #0A2850); color: #FFFFFF;
+  font: 800 11px var(--d-font, sans-serif); letter-spacing: .08em;
+  padding: 7px 12px;
+}
+.c12-board__hd i { font-size: 14px; }
+.c12-board__ft {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px; border-top: 1px solid var(--d-line, #E5E7EB);
+}
+.c12-board__n {
+  flex: 1; min-width: 0; font: 800 13px var(--d-font, sans-serif);
+  color: var(--d-ink, #0A2850);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.c12-board__go {
+  display: flex; align-items: center; gap: 6px; border: 0; cursor: pointer;
+  background: var(--d-green, #47C012); color: #fff;
+  font: 800 12px var(--d-font, sans-serif);
+  padding: 8px 14px; border-radius: 10px;
+  box-shadow: 0 3px 0 var(--d-green-deep, #2F9204);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.c12-board__go:active { transform: translateY(3px); box-shadow: none; }
+@media (prefers-reduced-motion: reduce) {
+  .c12-msg, .c12-board { animation: none; }
+}
+
 /* ── the coaching staff — Duolingo cast, basketball edition ───── */
 .c12-staff__label { margin: 14px 2px 8px; }
 .c12-staff {
