@@ -45,6 +45,9 @@ html body[data-screen] #app {
   overflow-y: auto;
   overflow-x: hidden;
   -webkit-overflow-scrolling: touch;
+  /* explicit: vertical panning always belongs to this scroller — belt
+     and suspenders for WKWebView with the native scroll view disabled */
+  touch-action: pan-y;
   /* contain, not none: interior scroll must not chain to the shell —
      this is exactly the "page moves while I scroll" complaint. */
   overscroll-behavior: contain;
