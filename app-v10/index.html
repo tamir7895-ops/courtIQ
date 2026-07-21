@@ -34,23 +34,36 @@
      ring later — same slot, heavier asset. -->
 <div id="boot-splash" aria-hidden="true">
   <div class="bs-wrap">
-    <!-- the logo's basketball, spinning on its own axis at center -->
+    <!-- FINGER SPIN, like the reference video: the ball spins about the
+         VERTICAL axis on the fingertip. The sphere and its lighting stay
+         still; the seam lines wrap around it horizontally — that is what
+         sells rotation-about-Y — plus the small balance wobble. -->
     <svg class="bs-ball" viewBox="0 0 100 100">
       <defs>
-        <radialGradient id="bsG" cx="35%" cy="30%" r="85%">
+        <radialGradient id="bsG" cx="35%" cy="28%" r="90%">
           <stop offset="0" stop-color="#FF8F45"/>
           <stop offset=".6" stop-color="#E8590C"/>
           <stop offset="1" stop-color="#B23F05"/>
         </radialGradient>
+        <clipPath id="bsClip"><circle cx="50" cy="50" r="46"/></clipPath>
       </defs>
-      <circle cx="50" cy="50" r="46" fill="url(#bsG)"/>
-      <g fill="none" stroke="#7A2E08" stroke-width="3" opacity=".85">
-        <path d="M4 50 h92"/>
-        <path d="M50 4 v92"/>
-        <path d="M17 17 q33 20 0 66"/>
-        <path d="M83 17 q-33 20 0 66"/>
+      <g class="bs-wobble">
+        <circle cx="50" cy="50" r="46" fill="url(#bsG)"/>
+        <g clip-path="url(#bsClip)">
+          <!-- equator: fixed, it doesn't move when spinning about Y -->
+          <path d="M4 50 q46 12 92 0" fill="none" stroke="#7A2E08" stroke-width="3" opacity=".8"/>
+          <!-- longitudes: march sideways = the spin. Pattern repeats every 46px -->
+          <g class="bs-seams" fill="none" stroke="#7A2E08" stroke-width="3" opacity=".8">
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(-46 0)"/>
+            <path d="M27 4 q0 46 0 92" transform="translate(-46 0)"/>
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0"/>
+            <path d="M27 4 q0 46 0 92"/>
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(46 0)"/>
+            <path d="M27 4 q0 46 0 92" transform="translate(46 0)"/>
+          </g>
+        </g>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#8a3a0c" stroke-width="2.5"/>
       </g>
-      <circle cx="50" cy="50" r="46" fill="none" stroke="#8a3a0c" stroke-width="2.5"/>
     </svg>
     <div class="bs-tip"></div>
   </div>
@@ -63,17 +76,23 @@
   }
   #boot-splash.is-done { opacity: 0; pointer-events: none; }
   .bs-wrap { position: relative; width: 96px; height: 118px; text-align: center; }
-  .bs-ball {
-    width: 84px; height: 84px; margin: 0 auto; display: block;
-    animation: bs-spin .9s linear infinite;
+  .bs-ball { width: 84px; height: 84px; margin: 0 auto; display: block; }
+  .bs-seams { animation: bs-wrap 0.55s linear infinite; }
+  @keyframes bs-wrap { to { transform: translateX(46px); } }
+  .bs-wobble {
+    transform-origin: 50px 96px;              /* pivots on the fingertip */
+    animation: bs-wobble 1.4s ease-in-out infinite;
+  }
+  @keyframes bs-wobble {
+    0%, 100% { transform: rotate(-3.5deg); }
+    50%      { transform: rotate(3.5deg); }
   }
   /* the fingertip the ball spins on */
   .bs-tip {
-    width: 12px; height: 18px; margin: 4px auto 0;
+    width: 12px; height: 18px; margin: 2px auto 0;
     border-radius: 7px 7px 9px 9px; background: #0A2850;
   }
-  @keyframes bs-spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .bs-ball { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .bs-seams, .bs-wobble { animation: none; } }
 </style>
 
 <main id="app" role="main"></main>
