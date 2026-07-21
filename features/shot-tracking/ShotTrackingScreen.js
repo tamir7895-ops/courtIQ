@@ -553,6 +553,8 @@
           videoEl.removeEventListener('loadedmetadata', onMeta);
           resizeCanvas();
         });
+        camConstraints = constraints;
+        startCamWatchdog();
       })
       .catch(function (err) {
         console.error('Camera access failed:', err);
@@ -575,7 +577,78 @@
       });
   }
 
+  /* ── Dead-feed watchdog ────────────────────────────────────────
+     Observed on-court: a session opened to a BLACK camera for ~40s (feed
+     attached but no frames), then recovered on its own. Neither currentTime
+     (advances with zero frames) nor requestVideoFrameCallback (never fires
+     when the element isn't composited) honestly report feed liveness, so the
+     watchdog probes PIXELS: a 16×16 draw of the frame, summed. A live camera
+     always varies (sensor noise); a dead or black feed is bit-identical. No
+     change for >4s — reopen getUserMedia instead of waiting it out. If a
+     recording was running it is restarted on the fresh stream (the pre-stall
+     part of the clip is lost — a shorter clip beats a dead session). Status
+     is surfaced on window.__camStatus for the HUD. */
+  var camWatchdog = null, camLastAdvanceAt = 0, camRestarts = 0;
+  var camConstraints = null;   // startCamera's constraints, for watchdog reopen
+  var camProbeCv = null, camProbeCtx = null, camLastSum = -1;
+  function camFrameSum() {
+    if (!camProbeCtx) {
+      camProbeCv = document.createElement('canvas');
+      camProbeCv.width = 16; camProbeCv.height = 16;
+      camProbeCtx = camProbeCv.getContext('2d', { willReadFrequently: true });
+    }
+    camProbeCtx.drawImage(videoEl, 0, 0, 16, 16);
+    var d = camProbeCtx.getImageData(0, 0, 16, 16).data, s = 0;
+    for (var i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2];
+    return s;
+  }
+  function startCamWatchdog() {
+    stopCamWatchdog();
+    camLastAdvanceAt = Date.now(); camRestarts = 0; camLastSum = -1;
+    window.__camStatus = 'ok';
+    camWatchdog = setInterval(function () {
+      if (!videoEl || !stream) return;
+      try {
+        var sum = camFrameSum();
+        if (sum !== camLastSum) { camLastSum = sum; camLastAdvanceAt = Date.now(); }
+      } catch (e) { /* frame not drawable yet — leave the clock running */ }
+      if (Date.now() - camLastAdvanceAt < 4000) { window.__camStatus = 'ok'; return; }
+      var stalled = Date.now() - camLastAdvanceAt;
+      if (stalled > 4000 && camRestarts < 3) {
+        camRestarts++;
+        window.__camStatus = 'restarting';
+        console.warn('[Camera] feed stalled ' + Math.round(stalled / 1000) + 's — reopening (attempt ' + camRestarts + ')');
+        var wasRecording = false;
+        try { wasRecording = !!(typeof VideoReview !== 'undefined' && VideoReview.recordingState().active); } catch (e) {}
+        try { if (wasRecording) VideoReview.stopRecording(); } catch (e) {}
+        try { stream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+        navigator.mediaDevices.getUserMedia(camConstraints || { video: true, audio: false }).then(function (s2) {
+          stream = s2;
+          videoEl.srcObject = s2;
+          videoEl.play();
+          camLastAdvanceAt = Date.now();
+          window.__camStatus = 'ok';
+          if (wasRecording) {
+            try {
+              if (VideoReview.startRecording(stream)) {
+                window.__recStartNote = 'cam-restarted';
+                try { window.ShotDetectionEngine._recordingIdle = true; } catch (e) {}
+              }
+            } catch (e) {}
+          }
+        }).catch(function () { window.__camStatus = 'stalled'; });
+      } else if (stalled > 4000) {
+        window.__camStatus = 'stalled';
+      }
+    }, 1200);
+  }
+  function stopCamWatchdog() {
+    if (camWatchdog) { clearInterval(camWatchdog); camWatchdog = null; }
+    window.__camStatus = null;
+  }
+
   function stopCamera() {
+    stopCamWatchdog();
     if (stream) {
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
@@ -2313,6 +2386,9 @@
 
     // Stop video recording and save
     if (typeof VideoReview !== 'undefined') {
+      /* Intentional stop — clear any lingering start-note so the diag badge
+         doesn't misread the (rightly) inactive recorder as a failure. */
+      window.__recStartNote = '';
       VideoReview.stopRecording().then(function (data) {
         if (data && data.blob) {
           _videoReviewData = data;

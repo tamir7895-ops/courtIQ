@@ -229,6 +229,7 @@
      This is read with the phone in your hand, so it uses normal type. */
   var gateEl = null, rimStreak = 0, gatePassed = false;
   var sessionStartAt = 0;   // set when the user taps Start (not at mount)
+  var sessionWake = null;    // screen wake lock held for the whole session
   var shotBaseline   = 0;   // attempts already counted during walk-up
 
   function readPreflight() {
@@ -238,7 +239,32 @@
   /* Everything that marks "the session really begins NOW" -- used by BOTH
      gate buttons (the skip path used to miss all of it: dead clock, dirty
      count for any session started without a rim lock). */
+  /* A tripod session dies silently when iOS auto-locks the screen (30-60s
+     default) — the app suspends, recording and engine freeze mid-session.
+     Hold a screen wake lock from Start to session end. Re-acquired on
+     visibilitychange because iOS releases wake locks when the app is
+     backgrounded and does NOT re-grant them automatically. */
+  function acquireSessionWake() {
+    try {
+      if (navigator.wakeLock && navigator.wakeLock.request) {
+        navigator.wakeLock.request('screen').then(function (wl) {
+          sessionWake = wl;
+        }).catch(function () {});
+      }
+    } catch (e) {}
+  }
+  function releaseSessionWake() {
+    try { if (sessionWake) { sessionWake.release(); sessionWake = null; } } catch (e) {}
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible' && sessionStartAt &&
+        document.body.classList.contains('v10-cam-active')) {
+      acquireSessionWake();
+    }
+  });
+
   function beginSessionBookkeeping() {
+    acquireSessionWake();
     sessionStartAt = Date.now();
     try {
       var eng0 = window.ShotDetectionEngine;
@@ -429,6 +455,18 @@
         if (beEl.textContent !== lbl) beEl.textContent = lbl;
       }
       if (gatePassed) updateLive(); else updateGate();
+      /* Camera watchdog status outranks hoop status on the banner — a dead
+         feed is why the screen is black, and "Lost the hoop" over a black
+         screen reads as a model failure instead of a camera one. */
+      var camSt = window.__camStatus;
+      var lostEl2 = document.getElementById('v11-hud-lost');
+      if (lostEl2 && camSt && camSt !== 'ok') {
+        lostEl2.textContent = camSt === 'restarting' ? 'Camera restarting…' : 'Camera stalled';
+        lostEl2.style.display = 'block';
+      } else if (lostEl2 && /Camera/.test(lostEl2.textContent) && (!camSt || camSt === 'ok')) {
+        lostEl2.textContent = 'Lost the hoop';
+        lostEl2.style.display = 'none';
+      }
     }, 250);
   }
 
@@ -492,6 +530,7 @@
   }
 
   function unmountChrome() {
+    releaseSessionWake();
     /* Leaving the session: hand the engine back its full cadence, or the
        next non-recorded use (and the offline analyser, which drives the same
        engine) would inherit the throttle. The clip hook is NOT cleared here:
@@ -741,7 +780,12 @@
 
     var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
-      fps: 30,
+      /* 15, not 30. Measured against the full hand-annotated GT suite
+         (night_b/c/d + portrait_v3): verdicts at 15fps are IDENTICAL to
+         30fps (16/17, same per-video breakdown), while 10fps loses a make.
+         Half the frames = half the wait the user actually feels after
+         every session. */
+      fps: 15,
       // Show the execution provider alongside progress: on a phone WebView
       // that fell back to wasm this is the whole explanation for a slow
       // analyze, and it is otherwise invisible.

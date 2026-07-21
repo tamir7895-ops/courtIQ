@@ -18,6 +18,7 @@ med = lambda a: sorted(a)[len(a) // 2] if a else 0.0
 
 SUF = ""
 FORCE = None
+SUBSAMPLE = int(os.environ.get("SB_SUBSAMPLE", "1"))
 for _a in sys.argv:
     if _a.startswith("--suf="):
         SUF = _a.split("=", 1)[1]
@@ -251,6 +252,12 @@ def load_video(tag):
             if all(abs(o[0] - k[0]) + abs(o[1] - k[1]) > 0.02 for k in keep): keep.append(o)
             if len(keep) >= 5: break
         obs.append(keep)
+    if SUBSAMPLE > 1:
+        obs = obs[::SUBSAMPLE]
+        rings = rings[::SUBSAMPLE]
+        N = len(obs)
+        global FPS
+        FPS = 30.0 / SUBSAMPLE
     if TRACKFILL:
         obs = trackfill_obs(obs, N)
     return rep, N, rings, half, obs

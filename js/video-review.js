@@ -148,13 +148,19 @@
         try {
           rec = shapes[si] ? new MediaRecorder(stream, shapes[si]) : new MediaRecorder(stream);
         } catch (eC) { _recError = 'ctor:' + (eC && (eC.name || eC.message) || '?'); continue; }
-        rec.ondataavailable = function (e) {
-          if (e.data && e.data.size > 0) _chunks.push(e.data);
-        };
+        /* Chunks are captured PER RECORDER, not into the shared module array:
+           a superseded recorder (camera-watchdog restart) can emit a late
+           chunk after its replacement already started, and must not leak it
+           into the new clip. */
+        var cq = [];
+        rec._cq = cq;
+        rec.ondataavailable = (function (q) {
+          return function (e) { if (e.data && e.data.size > 0) q.push(e.data); };
+        })(cq);
         try {
           if (slices[ti] != null) rec.start(slices[ti]); else rec.start();
         } catch (eS) { _recError = 'start:' + (eS && (eS.name || eS.message) || '?'); continue; }
-        if (rec.state === 'recording') { _mediaRecorder = rec; break outer; }
+        if (rec.state === 'recording') { _mediaRecorder = rec; _chunks = cq; break outer; }
         _recError = 'state:' + rec.state;
       }
     }
@@ -187,19 +193,26 @@
       }
 
       var recRef = _mediaRecorder;
+      var myChunks = recRef._cq || _chunks;
       var finish = function () {
-        var blob = new Blob(_chunks, { type: (recRef && recRef.mimeType) || _recordingMime || 'video/webm' });
+        var blob = new Blob(myChunks, { type: (recRef && recRef.mimeType) || _recordingMime || 'video/webm' });
         var shots = _shotTimestamps.slice();
-        _chunks = [];
-        _shotTimestamps = [];
-        _mediaRecorder = null;
+        myChunks.length = 0;
+        /* Release module state only while still the OWNER — a camera-watchdog
+           restart may have installed a replacement recorder while this one's
+           onstop (plus the iOS 800ms trailing-chunk wait) was in flight, and
+           nulling _mediaRecorder here silently killed the replacement's clip. */
+        if (_mediaRecorder === recRef) {
+          _mediaRecorder = null;
+          _shotTimestamps = [];
+        }
         resolve({ blob: blob.size > 0 ? blob : null, shots: shots });
       };
       recRef.onstop = function () {
         /* iOS records mp4 as a single chunk and can fire dataavailable
            AFTER onstop -- resolving immediately built an EMPTY blob. Give a
            trailing chunk a moment to land before assembling. */
-        if (_chunks.length === 0) setTimeout(finish, 800);
+        if (myChunks.length === 0) setTimeout(finish, 800);
         else finish();
       };
 
