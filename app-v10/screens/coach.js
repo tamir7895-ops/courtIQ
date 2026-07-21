@@ -583,6 +583,24 @@
     scene.appendChild(me);
     host.appendChild(scene);
 
+    /* the training tools moved in with the staff — library + plan */
+    host.appendChild(h('div', { class: 'c12-tools' }, [
+      h('button', {
+        class: 'c12-tools__b c12-tools__b--lib', type: 'button',
+        onclick: function () { ctx.go('drill-library'); }
+      }, [
+        h('i', { class: 'ph-fill ph-barbell' }),
+        h('span', { text: 'Drill library' })
+      ]),
+      h('button', {
+        class: 'c12-tools__b c12-tools__b--plan', type: 'button',
+        onclick: function () { ctx.go('plan'); }
+      }, [
+        h('i', { class: 'ph-fill ph-calendar-check' }),
+        h('span', { text: 'Training plan' })
+      ])
+    ]));
+
     /* claims made on another device land here — pull once per launch,
        repaint the badges if anything new arrived */
     if (window.V12Challenges && window.V12Challenges.sync && !mainView._chalSynced) {

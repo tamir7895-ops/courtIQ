@@ -183,14 +183,31 @@
             ? 'No drills in this category yet.' : 'Drill database not loaded.' })
         ]));
       }
-      rows.forEach(function (d, i) {
+      /* 178 cards × an SVG each in one synchronous pass blocked the main
+         thread for the whole entry animation — that jank read as "the
+         transition is broken". First 30 land instantly, the rest stream
+         in 30 per frame; a repaint (or leaving) cancels the stream. */
+      var BATCH = 30, cursor = 0;
+      var myPaint = (paint._gen = (paint._gen || 0) + 1);
+      function addCard(d, i) {
         var isOpen = state.openId === d.id;
         list.appendChild(drillCard(d, i, isOpen, function () {
           state.openId = isOpen ? null : d.id;
           paint();
         }, ctx));
-      });
+      }
+      /* setTimeout, not rAF: rAF never fires in a backgrounded webview,
+         which would freeze the stream until the app is foregrounded. */
+      function pump() {
+        if (paint._gen !== myPaint || !list.isConnected) return;
+        var end = Math.min(rows.length, cursor + BATCH);
+        for (; cursor < end; cursor++) addCard(rows[cursor], cursor);
+        if (cursor < rows.length) setTimeout(pump, 16);
+      }
+      var first = Math.min(rows.length, BATCH);
+      for (; cursor < first; cursor++) addCard(rows[cursor], cursor);
       host.appendChild(list);
+      if (cursor < rows.length) setTimeout(pump, 16);
     }
 
     paint();

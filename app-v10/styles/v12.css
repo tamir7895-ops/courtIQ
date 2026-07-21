@@ -156,11 +156,17 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
   background-repeat: no-repeat, repeat, repeat;
 }
 
-/* HOME: the page IS the viewport. Rows compress via dvh clamps
-   instead of scrolling. */
+/* Every navigation renders into its own throwaway container (app.js);
+   display:contents keeps it invisible to layout so #app's flex/gap
+   rules keep working exactly as before. */
+.v12-page { display: contents; }
+
+/* HOME: rows still compress via dvh clamps to FIT one viewport when
+   they can — but the page may scroll when content outgrows the fold.
+   The old hard lock (height:100dvh + overflow:hidden) silently CLIPPED
+   anything past the fold on phones: "scrolling doesn't work". */
 body[data-screen="home"] #app {
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
   gap: clamp(8px, 1.4dvh, 14px);
 }
 
@@ -1029,6 +1035,20 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   0%, 100% { margin-top: 0; }
   50% { margin-top: -5px; }
 }
+
+/* the training tools under the gym — library + plan doors */
+.c12-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+.c12-tools__b {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  border: 2px solid var(--d-line, #E5E7EB); border-radius: 14px;
+  background: var(--d-bg, #FFFFFF); cursor: pointer; min-height: 52px;
+  font: 800 13.5px var(--d-font, sans-serif); color: var(--d-ink, #0A2850);
+  box-shadow: 0 3px 0 var(--d-line, #E5E7EB);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.c12-tools__b:active { transform: translateY(3px); box-shadow: none; }
+.c12-tools__b--lib i { color: var(--d-blue, #1C7ED6); font-size: 18px; }
+.c12-tools__b--plan i { color: var(--d-green, #47C012); font-size: 18px; }
 
 /* the coach's daily challenge card, top of his room */
 .c12-chal {

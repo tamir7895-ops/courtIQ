@@ -28,6 +28,42 @@
 </head>
 <body>
 
+<!-- Boot splash: the brand mark with the ball circling the fingertip.
+     Pure CSS (0 bytes of network), removed with a fade the moment the
+     first screen composes. A Higgsfield video version can replace the
+     ring later — same slot, heavier asset. -->
+<div id="boot-splash" aria-hidden="true">
+  <div class="bs-wrap">
+    <img class="bs-logo" src="assets/logo.svg" alt="" />
+    <div class="bs-orbit"><div class="bs-ball"></div></div>
+  </div>
+</div>
+<style>
+  #boot-splash {
+    position: fixed; inset: 0; z-index: 9999; background: #FFFFFF;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .35s ease;
+  }
+  #boot-splash.is-done { opacity: 0; pointer-events: none; }
+  .bs-wrap { position: relative; width: 108px; height: 108px; }
+  .bs-logo {
+    position: absolute; inset: 14px; width: 80px; height: 80px;
+    animation: bs-breathe 1.6s ease-in-out infinite;
+  }
+  .bs-orbit {
+    position: absolute; inset: 0; animation: bs-spin 1.15s linear infinite;
+  }
+  .bs-ball {
+    position: absolute; top: -2px; left: 50%; margin-left: -7px;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #FF8F45, #E8590C 65%, #B23F05);
+    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+  }
+  @keyframes bs-spin { to { transform: rotate(360deg); } }
+  @keyframes bs-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+  @media (prefers-reduced-motion: reduce) { .bs-orbit, .bs-logo { animation: none; } }
+</style>
+
 <main id="app" role="main"></main>
 
 <!-- ג”€ג”€ג”€ Preview-mode flag (skip auth redirects when no session) ג”€ג”€ג”€ -->
@@ -208,7 +244,18 @@
 <script>
   // Bootstrap after all scripts load
   document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () { window.app && window.app.bootstrap(); }, 50);
+    setTimeout(function () {
+      if (window.app) window.app.bootstrap();
+      /* first frame after the first screen composes: fade the splash */
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          var sp = document.getElementById('boot-splash');
+          if (!sp) return;
+          sp.classList.add('is-done');
+          setTimeout(function () { sp.remove(); }, 400);
+        }, 250);
+      });
+    }, 50);
   });
 </script>
 

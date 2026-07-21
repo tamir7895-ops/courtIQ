@@ -259,7 +259,7 @@
       ]);
     }
     return h('div', { class: 'h12-doors' }, [
-      door('lib', 'ph-barbell', 'Drill library', 'drill-library'),
+      door('lib', 'ph-calendar-check', 'Training plan', 'plan'),
       door('start', 'ph-basketball', 'Start session', 'camera-hud')
     ]);
   }
