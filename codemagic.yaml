@@ -18,6 +18,19 @@ workflows:
     name: iOS → TestFlight
     instance_type: mac_mini_m2
     max_build_duration: 45
+    # Without this block the workflow only ever starts from a manual
+    # "Start new build" click in the Codemagic UI — which is why a push to
+    # master shipped the web fix to Pages (GitHub Actions) while TestFlight
+    # sat on the previous build. Scoped to master so feature branches don't
+    # burn mac_mini_m2 minutes; requires the Codemagic app to be connected
+    # to the repo with its webhook registered.
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: master
+          include: true
+          source: true
     integrations:
       app_store_connect: courtiq-asc
     environment:
