@@ -425,18 +425,21 @@
     while (host.firstChild) host.removeChild(host.firstChild);
     host.appendChild(V12.header('Coach', 'Your corner of the gym.'));
 
-    var grid = h('div', { class: 'c12-grid' });
+    /* film status + calendar — stacked full-width, not a cramped grid */
+    var grid = h('div', { class: 'c12-stack2' });
 
-    /* coach identity — print DNA: paper + navy border + offset shadow */
+    /* coach identity — a wide strip: face left, film status right */
     grid.appendChild(V12.card({
-      tint: 'ink', class: 'c12-id', bgIcon: 'ph-strategy', bgTone: 'green'
+      tint: 'ink', class: 'c12-id c12-id--wide', bgIcon: 'ph-strategy', bgTone: 'green'
     }, [
       h('div', { class: 'c12-id__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
-      h('div', { class: 'c12-id__n', text: 'THE SCOUT' }),
-      h('div', { class: 'c12-id__s', text: data.t.vatt ? data.t.vatt + ' scored shots on film' : 'Waiting on film' })
+      h('div', { class: 'c12-id__txt' }, [
+        h('div', { class: 'c12-id__n', text: 'THE SCOUT' }),
+        h('div', { class: 'c12-id__s', text: data.t.vatt ? data.t.vatt + ' scored shots on film' : 'Waiting on film' })
+      ])
     ]));
 
-    /* training calendar (tall, right) */
+    /* training calendar — full width */
     grid.appendChild(V12.card({ class: 'c12-calcard' }, [
       h('div', { class: 'd-label', text: 'TRAINING CALENDAR' }),
       calendar(data.sessions),
@@ -610,15 +613,14 @@
       }, function () {});
     }
 
-    /* the film-status card + calendar follow the court */
-    host.appendChild(grid);
-
-    /* YOUR TEAM used to sit here — it belongs on the Social tab, which
-       already owns friends, leaderboard and the invite flow. */
+    /* the primary action rides right under the gym + tools */
     host.appendChild(V12.btn({
       label: 'Track a session', icon: 'ph-play-circle', variant: 'green',
       onClick: function () { ctx.go('camera-hud'); }
     }));
+
+    /* the film-status strip + calendar close the page */
+    host.appendChild(grid);
   }
 
   function render(args) {

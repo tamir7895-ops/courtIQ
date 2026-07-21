@@ -1060,6 +1060,16 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   50% { margin-top: -5px; }
 }
 
+/* film strip + calendar, stacked full width under the primary action */
+.c12-stack2 { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+.c12-id--wide {
+  flex-direction: row !important; align-items: center;
+  gap: 14px; text-align: left; min-height: 0;
+}
+.c12-id--wide .c12-id__txt { flex: 1; min-width: 0; }
+.c12-id--wide .c12-id__n { margin: 0; }
+.c12-id--wide .c12-id__s { margin: 2px 0 0; }
+
 /* the training tools under the gym — library + plan doors */
 .c12-tools { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
 .c12-tools__b {

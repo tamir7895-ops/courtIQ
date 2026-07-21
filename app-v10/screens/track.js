@@ -372,22 +372,8 @@
           // user has ticked "don't show this again"
           onClick: function () { ctx.go('session-prep'); }
         }));
-        host.appendChild(h('div', { class: 't12-doors' }, [
-          V12.card({
-            press: true, bgIcon: 'ph-barbell', bgTone: 'ink', class: 't12-door',
-            onClick: function () { ctx.go('drill-library'); }, label: 'Drill library'
-          }, [
-            h('i', { class: 'ph-fill ph-barbell t12-door__ic' }),
-            h('div', { class: 't12-door__t', text: 'Drill library' })
-          ]),
-          V12.card({
-            press: true, tint: 'blue', bgIcon: 'ph-clipboard-text', bgTone: 'blue', class: 't12-door',
-            onClick: function () { ctx.go('plan'); }, label: 'Customize your training plan'
-          }, [
-            h('i', { class: 'ph-fill ph-clipboard-text t12-door__ic t12-door__ic--blue' }),
-            h('div', { class: 't12-door__t', text: 'Customize your training plan' })
-          ])
-        ]));
+        /* the library/plan doors moved home + to the coach tab —
+           Track stays about tracking */
       }
       paint();
     });
