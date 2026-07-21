@@ -192,9 +192,13 @@
     var recTxt = '';
     try {
       var recSt = window.VideoReview && window.VideoReview.recordingState && window.VideoReview.recordingState();
-      if (recSt && !recSt.active && recSt.err) recTxt = ' · rec✗ ' + recSt.err;
+      if (recSt && !recSt.active) {
+        var why = recSt.err || window.__recStartNote || '';
+        if (why) recTxt = ' · rec✗ ' + why;
+      }
     } catch (e) {}
-    return be + ' · ' + ms + _diagShown + gpu + recTxt;
+    var bld = window.__COURTIQ_BUILD ? window.__COURTIQ_BUILD.split(' ')[0] + ' · ' : '';
+    return bld + be + ' · ' + ms + _diagShown + gpu + recTxt;
   }
 
   /* ── Find engine state at runtime ─────────────────────────────── */

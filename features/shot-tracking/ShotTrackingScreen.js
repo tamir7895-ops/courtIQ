@@ -428,10 +428,27 @@
   function beginSessionRecording() {
     var ok = false;
     try {
-      if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
+      if (typeof VideoReview === 'undefined') { window.__recStartNote = 'no-module'; }
+      else if (!VideoReview.isSupported())    { window.__recStartNote = 'no-MediaRecorder'; }
+      else if (!stream)                       { window.__recStartNote = 'no-stream'; }
+      else {
         ok = !!VideoReview.startRecording(stream);
+        window.__recStartNote = ok ? '' : 'start-failed';
+        if (!ok) {
+          /* one retry, next tick -- covers transient stream states */
+          setTimeout(function () {
+            try {
+              if (!VideoReview.recordingState().active && stream) {
+                if (VideoReview.startRecording(stream)) {
+                  window.__recStartNote = '';
+                  try { window.ShotDetectionEngine._recordingIdle = true; } catch (e) {}
+                }
+              }
+            } catch (e) {}
+          }, 1200);
+        }
       }
-    } catch (e) { ok = false; }
+    } catch (e) { ok = false; window.__recStartNote = 'threw:' + (e && (e.name || e.message) || '?'); }
     try {
       var eng = window.ShotDetectionEngine;
       if (eng) eng._recordingIdle = ok;

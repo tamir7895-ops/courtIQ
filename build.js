@@ -128,4 +128,15 @@ if (process.env.BUILD_TARGET === 'mobile-only') {
   console.log('✓ Created www/index.html (redirect → app-v10/index.html)');
 }
 
+// Version stamp -- the on-device diagnostic badge shows this, so "which
+// build is the phone ACTUALLY running" is never a guessing game again.
+try {
+  const { execSync } = require('child_process');
+  const hash = execSync('git rev-parse --short HEAD').toString().trim();
+  const stamp = hash + ' ' + new Date().toISOString().slice(5, 16).replace('T', ' ');
+  fs.writeFileSync(path.join(DEST, 'version.js'),
+    'window.__COURTIQ_BUILD = ' + JSON.stringify(stamp) + ';\n');
+  console.log('version stamp: ' + stamp);
+} catch (e) { console.warn('version stamp skipped:', e.message); }
+
 console.log('\n✅ Build complete → www/');
