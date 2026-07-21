@@ -1,285 +1,163 @@
-/* app-v10/screens/avatar-customizer.js
-   AVATAR CUSTOMIZER — sub-page from Me. Accent: cream / ME.
-   Lets the player pick a DiceBear avataaars seed + accent color, with a live
-   preview. SAVE CHANGES writes `courtiq_avatar_url` to localStorage so the
-   header pill + Me hero immediately reflect the new avatar.
+/* app-v10/screens/avatar-customizer.js — v12
+   AVATAR CREATOR — a deep character builder on the shared engine
+   (lib/avatar.js). Six panels — Face / Hair / Beard / Fit / Gear /
+   Court — each a set of option tiles. Free options apply instantly;
+   premium ones show a coin price and unlock on tap when you can
+   afford them. Live preview updates on every pick; SAVE writes the
+   params every other screen reads.
    ============================================================ */
 (function () {
   'use strict';
-  var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
+  var h = window.V10UI.h, V12 = window.V12, A = window.V12Avatar;
 
-  var TABS = ['STYLE', 'COLOR', 'SEED'];
-
-  // DiceBear avataaars background palette (avataaars accepts hex w/o '#').
-  var COLORS = [
-    { id: 'FF4F1F', label: 'ORANGE', token: 'orange'  },
-    { id: 'EAB939', label: 'MUSTARD', token: 'mustard' },
-    { id: '7A9E7E', label: 'SAGE',   token: 'sage'    },
-    { id: 'F4E9D1', label: 'CREAM',  token: 'cream'   }
-  ];
-
-  // Curated seed presets — each maps to a stable DiceBear avataaars result.
-  var STYLES = [
-    { id: 'sniper',  label: 'SNIPER',  icon: 'ph-crosshair-simple' },
-    { id: 'guard',   label: 'GUARD',   icon: 'ph-lightning'        },
-    { id: 'wing',    label: 'WING',    icon: 'ph-wind'             },
-    { id: 'big',     label: 'BIG',     icon: 'ph-shield'           }
-  ];
-
-  var SEEDS = [
-    { id: 'alpha',   label: 'ALPHA',  icon: 'ph-star'         },
-    { id: 'bravo',   label: 'BRAVO',  icon: 'ph-fire'         },
-    { id: 'echo',    label: 'ECHO',   icon: 'ph-soccer-ball'  },
-    { id: 'flash',   label: 'FLASH',  icon: 'ph-flame'        }
-  ];
-
-  function buildAvatarUrl(seed, bgHex) {
-    return 'https://api.dicebear.com/9.x/avataaars/png?seed=' +
-      encodeURIComponent(seed) + '&backgroundColor=' + bgHex;
-  }
-
-  // Resolve current saved pick from localStorage (if any) so the screen
-  // opens on the user's last-saved state, not a hardcoded default.
-  function loadPicks(profile) {
-    var defaults = {
-      STYLE: 'sniper',
-      COLOR: 'FF4F1F',
-      SEED:  (profile && profile.name) ? profile.name.toLowerCase().replace(/\s+/g, '-') : 'alpha'
-    };
-    try {
-      var raw = localStorage.getItem('courtiq_avatar_picks');
-      if (raw) {
-        var p = JSON.parse(raw);
-        return {
-          STYLE: p.STYLE || defaults.STYLE,
-          COLOR: p.COLOR || defaults.COLOR,
-          SEED:  p.SEED  || defaults.SEED
-        };
-      }
-    } catch (e) {}
-    return defaults;
-  }
-
-  function savePicks(picks, url) {
-    try {
-      localStorage.setItem('courtiq_avatar_picks', JSON.stringify(picks));
-      localStorage.setItem('courtiq_avatar_url', url);
-    } catch (e) {}
-  }
-
-  // Compose a stable seed from STYLE + SEED so each combination is unique.
-  function composedSeed(picks) {
-    return (picks.STYLE || 'sniper') + '-' + (picks.SEED || 'alpha');
-  }
-
-  function avatarPreview(profile, picks) {
-    var name = (profile.name || 'PLAYER').toUpperCase();
-    var url  = buildAvatarUrl(composedSeed(picks), picks.COLOR);
-    var ini  = (profile.initial || (profile.name || 'A')[0] || 'A').toUpperCase();
-
-    var img = h('img', {
-      src: url, alt: ini,
-      style: {
-        width: '100%', height: '100%', objectFit: 'cover',
-        display: 'block', borderRadius: '50%'
-      },
-      onerror: function () {
-        this.parentNode.textContent = ini;
-        this.parentNode.style.display = 'flex';
-        this.parentNode.style.alignItems = 'center';
-        this.parentNode.style.justifyContent = 'center';
-        this.parentNode.style.fontFamily = 'var(--font-display)';
-        this.parentNode.style.fontSize = '64px';
-        this.parentNode.style.fontWeight = '900';
-        this.parentNode.style.color = 'var(--cream)';
-      }
-    });
-
-    var circle = h('div', {
-      style: {
-        width: '120px', height: '120px',
-        background: 'linear-gradient(135deg, var(--orange) 0%, var(--mustard) 100%)',
-        border: '3px solid var(--cream)',
-        boxShadow: '0 0 0 2px var(--ink), 4px 4px 0 var(--orange)',
-        borderRadius: '50%',
-        overflow: 'hidden',
-        margin: '0 auto'
-      }
-    }, [img]);
-
-    var styleLabel = (function () {
-      var s = STYLES.filter(function (x) { return x.id === picks.STYLE; })[0];
-      return s ? s.label : 'SNIPER';
-    })();
-
-    return h('div', {
-      class: 'v10-hero v10-hero--ink',
-      style: { flexDirection: 'column', textAlign: 'center', alignItems: 'center', padding: '18px 14px' }
-    }, [
-      h('div', { class: 'v10-hero__main', style: { textAlign: 'center' } }, [
-        h('div', { class: 'v10-hero__eyebrow', style: { justifyContent: 'center', marginBottom: '8px' } }, [
-          icon('ph-user'), h('span', { text: 'YOUR AVATAR' })
-        ]),
-        circle,
-        h('div', { class: 'v10-hero__headline', style: { marginTop: '10px', fontSize: '26px' }, text: name }),
-        h('div', { class: 'v10-hero__sub', text: styleLabel + ' BUILD' })
-      ])
-    ]);
-  }
-
-  function tabChips(active, onPick) {
-    return h('div', { class: 'v10-chips' }, TABS.map(function (t) {
-      return h('button', {
-        class: 'v10-chip' + (t === active ? ' is-active' : ''),
-        onclick: function () { onPick(t); },
-        text: t
-      });
-    }));
-  }
-
-  function optionTile(o, active, onPick) {
-    var accent = active ? 'mustard' : 'orange';
-    return h('div', {
-      class: 'v10-tile v10-tile--' + accent,
-      style: active ? { background: 'var(--mustard)', color: 'var(--ink)' } : null,
-      onclick: function () { onPick(o.id); }
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('i', { class: 'ph-bold ' + o.icon + ' v10-tile__icon v10-tile__icon--' + (active ? 'mustard' : 'orange') }),
-        h('span', { class: 'v10-tile__num', text: active ? 'ON' : '' })
-      ]),
-      h('div', { class: 'v10-tile__title', text: o.label }),
-      h('div', { class: 'v10-tile__meta', text: o.id.toUpperCase() })
-    ]);
-  }
-
-  function colorTile(c, active, onPick) {
-    var accent = active ? 'mustard' : 'orange';
-    return h('div', {
-      class: 'v10-tile v10-tile--' + accent,
-      style: active ? { background: 'var(--mustard)', color: 'var(--ink)' } : null,
-      onclick: function () { onPick(c.id); }
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('div', {
-          style: {
-            width: '22px', height: '22px', borderRadius: '50%',
-            background: '#' + c.id,
-            border: '2px solid var(--ink)',
-            boxShadow: '2px 2px 0 var(--ink)'
-          }
-        }),
-        h('span', { class: 'v10-tile__num', text: active ? 'ON' : '' })
-      ]),
-      h('div', { class: 'v10-tile__title', text: c.label }),
-      h('div', { class: 'v10-tile__meta', text: '#' + c.id })
-    ]);
-  }
-
-  function optionsFor(tab) {
-    if (tab === 'STYLE') return STYLES;
-    if (tab === 'SEED')  return SEEDS;
-    return []; // COLOR handled separately
+  function toast(msg, bad) {
+    var old = document.querySelector('.av12-toast');
+    if (old) old.remove();
+    var t = h('div', { class: 'av12-toast' + (bad ? ' is-bad' : ''), text: msg });
+    document.body.appendChild(t);
+    setTimeout(function () { t.classList.add('is-in'); }, 10);
+    setTimeout(function () { t.classList.remove('is-in'); setTimeout(function () { t.remove(); }, 220); }, 1900);
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx = args.ctx;
-    var state = {
-      tab: 'STYLE',
-      profile: {},
-      picks: loadPicks({})
-    };
+    var host = args.host, ctx = args.ctx;
+    var params = A.load();
+    var tab = 'face';
 
-    function paint(profile) {
-      state.profile = profile || {};
-      // Re-resolve defaults now that we know the profile name (only if
-      // localStorage didn't already supply one).
-      state.picks = loadPicks(state.profile);
+    return ctx.data.getProfile().then(function (prof) {
+      var seed = (prof && prof.name) || 'courtiq';
 
-      while (host.firstChild) host.removeChild(host.firstChild);
-      host.appendChild(ctx.ui.headerPill({ profile: state.profile }));
+      var preview, coinChip, panel;
 
-      var previewHost = h('div');
-      var bentoHost   = h('div');
-      var chipsHost   = h('div');
-      var gridHost    = h('div');
+      function previewUrl() { return A.buildUrl(params, { seed: seed, size: 240 }); }
+
+      function bandColor() {
+        var o = A.opt('background', params.background);
+        return o && o.bgv ? '#' + o.bgv[0] : '#FFB800';
+      }
 
       function refreshPreview() {
-        while (previewHost.firstChild) previewHost.removeChild(previewHost.firstChild);
-        previewHost.appendChild(avatarPreview(state.profile, state.picks));
+        preview.style.backgroundColor = bandColor();
+        var img = preview.querySelector('img');
+        img.src = previewUrl();
       }
-      function refreshBento() {
-        while (bentoHost.firstChild) bentoHost.removeChild(bentoHost.firstChild);
-        var styleObj = STYLES.filter(function (x) { return x.id === state.picks.STYLE; })[0] || STYLES[0];
-        var colorObj = COLORS.filter(function (x) { return x.id === state.picks.COLOR; })[0] || COLORS[0];
-        var seedObj  = SEEDS.filter(function (x) { return x.id === state.picks.SEED;  })[0] || { label: 'CUSTOM' };
-        bentoHost.appendChild(ctx.ui.bento([
-          { variant: 'orange',  icon: styleObj.icon, value: styleObj.label, label: 'STYLE' },
-          { variant: 'mustard', icon: 'ph-palette',  value: colorObj.label, label: 'COLOR' },
-          { variant: 'sage',    icon: seedObj.icon || 'ph-star', value: seedObj.label || state.picks.SEED.toUpperCase(), label: 'SEED' }
-        ]));
+      function refreshCoins() {
+        coinChip.querySelector('.av12-coins__n').textContent = String(A.coins());
       }
-      function refreshChips() {
-        while (chipsHost.firstChild) chipsHost.removeChild(chipsHost.firstChild);
-        chipsHost.appendChild(tabChips(state.tab, function (t) {
-          state.tab = t;
-          refreshChips();
-          refreshGrid();
-        }));
-      }
-      function refreshGrid() {
-        while (gridHost.firstChild) gridHost.removeChild(gridHost.firstChild);
-        if (state.tab === 'COLOR') {
-          gridHost.appendChild(h('div', { class: 'v10-grid' }, COLORS.map(function (c) {
-            return colorTile(c, state.picks.COLOR === c.id, function (id) {
-              state.picks.COLOR = id;
-              refreshPreview();
-              refreshBento();
-              refreshGrid();
-            });
-          })));
+
+      /* one option tile */
+      function tile(cat, o) {
+        var c = A.CAT[cat];
+        var active = params[cat] === o.id;
+        var owned = A.isOwned(o.id);
+        var locked = !owned && o.cost > 0;
+
+        var kids = [];
+        if (c.swatch) {
+          kids.push(h('span', { class: 'av12-tile__sw', style: { background: '#' + o.v } }));
+        } else if (o.grad) {
+          kids.push(h('span', { class: 'av12-tile__sw',
+            style: { background: 'linear-gradient(135deg,#' + o.bgv[0] + ',#' + o.bgv[1] + ')' } }));
+        } else if (o.bgv) {
+          kids.push(h('span', { class: 'av12-tile__sw', style: { background: '#' + o.bgv[0] } }));
+        } else if (o.off) {
+          kids.push(h('i', { class: 'ph-bold ph-prohibit av12-tile__ic' }));
         } else {
-          var opts = optionsFor(state.tab);
-          gridHost.appendChild(h('div', { class: 'v10-grid' }, opts.map(function (o) {
-            return optionTile(o, state.picks[state.tab] === o.id, function (id) {
-              state.picks[state.tab] = id;
-              refreshPreview();
-              refreshBento();
-              refreshGrid();
-            });
-          })));
+          kids.push(h('i', { class: 'ph-fill ' + (c.icon || 'ph-circle') + ' av12-tile__ic' }));
         }
+        if (o.label && !c.swatch) kids.push(h('span', { class: 'av12-tile__l', text: o.label }));
+        if (locked) {
+          kids.push(h('span', { class: 'av12-tile__cost' }, [
+            h('i', { class: 'ph-fill ph-coin' }),
+            h('span', { text: String(o.cost) })
+          ]));
+        }
+
+        var el = h('button', {
+          class: 'av12-tile' + (active ? ' is-active' : '') + (locked ? ' is-locked' : '') +
+                 (c.swatch ? ' av12-tile--sw' : ''),
+          type: 'button', 'aria-pressed': active ? 'true' : 'false',
+          title: (o.label || '') + (locked ? ' — ' + o.cost + ' coins' : ''),
+          onclick: function () {
+            if (locked) {
+              var r = A.buy(o.id);
+              toast(r.msg, !r.ok);
+              if (!r.ok) return;
+              refreshCoins();
+            }
+            params[cat] = o.id;
+            A.save(params);           // persist live so preview & header agree
+            refreshPreview();
+            paintPanel();
+          }
+        }, kids);
+        return el;
       }
 
-      refreshPreview();
-      refreshBento();
-      refreshChips();
-      refreshGrid();
+      function catRow(cat) {
+        var c = A.CAT[cat];
+        var row = h('div', { class: 'av12-cat' }, [
+          h('div', { class: 'd-label av12-cat__l', text: c.label }),
+          h('div', { class: c.swatch ? 'av12-swatches' : 'av12-tiles' },
+            c.options.map(function (o) { return tile(cat, o); }))
+        ]);
+        return row;
+      }
 
-      host.appendChild(previewHost);
-      host.appendChild(bentoHost);
-      host.appendChild(ctx.ui.ribbon({ icon: 'ph-paint-brush-broad', title: 'CUSTOMIZE', meta: 'TAP TO PICK' }));
-      host.appendChild(chipsHost);
-      host.appendChild(gridHost);
+      function paintPanel() {
+        while (panel.firstChild) panel.removeChild(panel.firstChild);
+        var t = A.TABS.filter(function (x) { return x.id === tab; })[0] || A.TABS[0];
+        t.cats.forEach(function (cat) { panel.appendChild(catRow(cat)); });
+      }
 
-      // Flex spacer pushes CTA to the bottom of the viewport while keeping
-      // the content packed at the top.
-      host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '8px' } }));
+      /* ── compose ── */
+      host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+        h('button', {
+          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          onclick: function () { ctx.go('me'); }
+        }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+        h('div', { style: { flex: '1' } }, [
+          h('div', { class: 'c12-chat-hd__t', text: 'Create your baller' }),
+          h('div', { class: 'c12-chat-hd__s', text: 'Every look is yours — cool gear costs coins' })
+        ]),
+        (function () {
+          coinChip = h('div', { class: 'av12-coins' }, [
+            h('i', { class: 'ph-fill ph-coin' }),
+            h('span', { class: 'av12-coins__n', text: String(A.coins()) })
+          ]);
+          return coinChip;
+        })()
+      ]));
 
-      host.appendChild(ctx.ui.cta({
-        variant: 'orange',
-        icon: 'ph-check',
-        label: 'SAVE CHANGES',
-        onClick: function () {
-          var url = buildAvatarUrl(composedSeed(state.picks), state.picks.COLOR);
-          savePicks(state.picks, url);
-          ctx.go('me');
-        }
+      preview = h('div', { class: 'av12-preview' }, [
+        h('img', { src: previewUrl(), alt: 'Your avatar', class: 'av12-preview__img' })
+      ]);
+      preview.style.backgroundColor = bandColor();
+      host.appendChild(preview);
+
+      host.appendChild(V12.seg(A.TABS.map(function (t) { return { id: t.id, label: t.label }; }),
+        tab, function (n) { tab = n; paintPanel(); }));
+
+      panel = h('div', { class: 'av12-panel' });
+      host.appendChild(panel);
+      paintPanel();
+
+      host.appendChild(V12.btn({
+        label: 'Save look', icon: 'ph-check',
+        onClick: function () { A.save(params); toast('Saved'); ctx.go('me'); }
       }));
-    }
-
-    ctx.data.getProfile().then(paint, function () { paint({}); });
+      host.appendChild(V12.card({
+        press: true, class: 'av12-shoplink', bgIcon: 'ph-storefront', bgTone: 'gold',
+        onClick: function () { ctx.go('shop'); }, label: 'Shop'
+      }, [
+        h('i', { class: 'ph-fill ph-storefront av12-shoplink__ic' }),
+        h('div', {}, [
+          h('div', { class: 'av12-shoplink__t', text: 'Coin shop' }),
+          h('div', { class: 'av12-shoplink__s', text: 'Spend coins on gear, hair & courts' })
+        ]),
+        h('i', { class: 'ph-bold ph-caret-right av12-shoplink__chev' })
+      ]));
+    });
   }
 
   window.app.register('avatar-customizer', render);

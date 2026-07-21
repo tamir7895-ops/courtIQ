@@ -1,799 +1,369 @@
-/* app-v10/screens/me.js
-   ME tab — Profile / Trophies / Social / Shop sub-tabs. Cream-accented
-   hero with avatar + xp bar, 4-bento, achievements grid, milestone pin.
+/* app-v10/screens/me.js — v12
+   PROFILE — the sketch, top to bottom:
+
+     avatar (big)
+     name · LV · XP BAR
+     SHOP · EDIT PROFILE
+     □ □ □ □   (trophy preview)
+     SETTINGS · TROPHIES
+
+   XP and level are BACK by explicit user decision (the Duolingo
+   reference) — v11 removed them, the sketch restored them. They're
+   real numbers from XPSystem; the bar draws only when a real next
+   threshold exists (COURTIQ_LEVELS), never from an invented curve.
+
+   Views: main / trophies / settings / edit. All in-screen, one back
+   button, no hidden nav.
    ============================================================ */
 (function () {
   'use strict';
-  var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
+  var h = window.V10UI.h, V12 = window.V12;
 
-  var SUB_TABS = ['Profile', 'Trophies', 'Social', 'Shop'];
-
-  function buildChips(active, onPick) {
-    return h('div', { class: 'v10-chips' }, SUB_TABS.map(function (label) {
-      return h('div', {
-        class: 'v10-chip' + (label === active ? ' is-active' : ''),
-        onclick: function () { onPick(label); }
-      }, [label.toUpperCase()]);
-    }));
-  }
-
-  // Resolve the real DiceBear avatar URL (saved by avatar-customizer in
-  // localStorage as 'courtiq_avatar_url'). Falls back to a deterministic
-  // avataaars seed if nothing's saved yet.
-  function avatarUrl(profile) {
-    try {
-      var saved = localStorage.getItem('courtiq_avatar_url');
-      if (saved) return saved;
-    } catch (e) {}
-    var seed = encodeURIComponent((profile && (profile.name || profile.id)) || 'CourtIQ');
-    return 'https://api.dicebear.com/9.x/avataaars/png?seed=' + seed + '&backgroundColor=FF4F1F';
-  }
-
-  function bigAvatar(profile, ctx) {
-    var url = avatarUrl(profile);
-    var img = h('img', {
-      src: url,
-      alt: 'Avatar',
-      style: {
-        width: '100%', height: '100%', objectFit: 'cover',
-        display: 'block', borderRadius: '50%'
-      },
-      onerror: function () {
-        // If DiceBear fetch fails, fall back to initial letter.
-        var ini = (profile.initial || (profile.name || 'A')[0] || 'A').toUpperCase();
-        this.parentNode.textContent = ini;
-        this.parentNode.style.display = 'flex';
-        this.parentNode.style.alignItems = 'center';
-        this.parentNode.style.justifyContent = 'center';
-        this.parentNode.style.fontFamily = 'var(--font-display)';
-        this.parentNode.style.fontSize = '64px';
-        this.parentNode.style.fontWeight = '900';
-        this.parentNode.style.color = 'var(--cream)';
-      }
-    });
-    return h('div', {
-      style: {
-        width: 'clamp(80px, 14dvh, 120px)',
-        height: 'clamp(80px, 14dvh, 120px)',
-        borderRadius: '50%',
-        background: 'linear-gradient(135deg, var(--orange) 0%, var(--mustard) 100%)',
-        border: '3px solid var(--cream)',
-        boxShadow: '0 0 0 2px var(--ink)',
-        overflow: 'hidden',
-        margin: '0 auto',
-        cursor: 'pointer'
-      },
-      onclick: function () {
-        if (ctx && ctx.go) ctx.go('avatar-customizer');
-        else if (window.app && window.app.go) window.app.go('avatar-customizer');
-      }
-    }, [img]);
-  }
-
-  function xpBar(profile) {
-    var xp = profile.xp || 11200;
-    var xpNext = profile.xpNext || 15000;
-    var pct = Math.min(100, Math.round((xp / xpNext) * 100));
-    var bar = h('div', {
-      style: {
-        width: '100%',
-        height: '10px',
-        background: 'var(--cream)',
-        border: '1.5px solid var(--cream)',
-        marginTop: '10px',
-        position: 'relative',
-        overflow: 'hidden'
-      }
-    }, [
-      h('div', {
-        style: {
-          width: pct + '%',
-          height: '100%',
-          background: 'var(--orange)'
-        }
-      })
-    ]);
-    var label = h('div', {
-      style: {
-        fontFamily: 'var(--font-mono)',
-        fontSize: '10px',
-        color: 'var(--cream)',
-        marginTop: '6px',
-        letterSpacing: '0.08em',
-        opacity: '0.9'
-      },
-      text: xp.toLocaleString() + ' / ' + xpNext.toLocaleString() + ' XP'
-    });
-    return h('div', { style: { width: '100%', marginTop: '14px' } }, [bar, label]);
-  }
-
-  function buildHero(profile, ctx) {
-    var name = (profile.name || 'PLAYER').toUpperCase();
-    var caption = 'LV ' + (profile.level || 14) + ' · ' + (profile.position || 'SNIPER').toUpperCase();
-
-    return h('div', {
-      class: 'v10-hero v10-hero--ink',
-      style: {
-        flexDirection: 'column',
-        alignItems: 'center',
-        textAlign: 'center',
-        padding: 'clamp(12px, 2.4dvh, 22px) 14px'
-      }
-    }, [
-      bigAvatar(profile, ctx),
-      h('div', {
-        style: {
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(24px, 4.2dvh, 32px)',
-          fontWeight: '900',
-          color: 'var(--cream)',
-          marginTop: 'clamp(8px, 1.6dvh, 14px)',
-          letterSpacing: '-0.6px',
-          textTransform: 'uppercase',
-          lineHeight: '1'
-        },
-        text: name
-      }),
-      h('div', {
-        style: {
-          fontFamily: 'var(--font-display)',
-          fontSize: '11px',
-          fontWeight: '700',
-          color: 'var(--orange)',
-          marginTop: 'clamp(3px, 0.8dvh, 6px)',
-          letterSpacing: '0.22em',
-          textTransform: 'uppercase'
-        },
-        text: caption
-      }),
-      xpBar(profile)
-    ]);
-  }
-
-  function renderProfile(host, ctx, profile) {
-    // Hero with big avatar (clickable → avatar-customizer)
-    host.appendChild(buildHero(profile, ctx));
-
-    // 4-bento — every number real (merged sessions + earned badges)
-    var streakVal = profile.streak || 0;
-    var earned = loadEarnedMap();
-    var badgeCount = TROPHY_CATALOG.filter(function (b) { return !!earned[b.id]; }).length;
-    var bentoHost = h('div');
-    host.appendChild(bentoHost);
-    ctx.data.getTotals().then(function (t) {
-      bentoHost.appendChild(ctx.ui.bento([
-        {                    icon: 'ph-flag',       value: t.sessions, label: 'SESSIONS' },
-        { variant: 'orange', icon: 'ph-trophy',     value: badgeCount, label: 'BADGES' },
-        { variant: 'mustard',icon: 'ph-basketball', value: t.shots,    label: 'SHOTS' },
-        { variant: 'sage',   icon: 'ph-fire',       value: streakVal,  label: 'STREAK',
-          iconExtra: streakVal >= 3 ? 'v10-flicker' : '' }
-      ]));
-    });
-
-    // Spacer
-    host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
-
-    // CTA → Trophies sub-tab
-    host.appendChild(ctx.ui.cta({
-      variant: 'mustard',
-      icon: 'ph-trophy',
-      label: 'VIEW ALL ACHIEVEMENTS',
-      onClick: function () {
-        var chip = Array.from(document.querySelectorAll('.v10-chip')).find(function (c) {
-          return c.textContent === 'TROPHIES';
-        });
-        if (chip) chip.click();
-      }
-    }));
-
-    host.appendChild(buildAccountSection(ctx));
-  }
-
-  /* ── ACCOUNT (M3): sign in/out + App-Store-required deletion ── */
-  function accountRow(opts) {
-    return h('div', {
-      class: 'v10-row',
-      style: Object.assign({ boxShadow: '2px 2px 0 var(--ink)', cursor: opts.onclick ? 'pointer' : 'default' }, opts.style || {}),
-      onclick: opts.onclick
-    }, [
-      h('div', { class: 'v10-row__num' }, [icon(opts.icon)]),
-      h('div', { class: 'v10-row__main' }, [
-        h('div', { class: 'v10-row__title', text: opts.title }),
-        opts.sub ? h('div', { class: 'v10-row__sub', text: opts.sub }) : null
-      ].filter(Boolean)),
-      opts.onclick ? h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')]) : null
-    ].filter(Boolean));
-  }
-
-  function buildAccountSection(ctx) {
-    var wrap = h('div', { style: { display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '12px' } });
-    wrap.appendChild(ctx.ui.ribbon({ icon: 'ph-user-circle', title: 'ACCOUNT', meta: '' }));
-
-    var user = window.V10Auth && window.V10Auth.user();
-    if (!user) {
-      wrap.appendChild(accountRow({
-        icon: 'ph-sign-in',
-        title: 'SIGN IN / CREATE ACCOUNT',
-        sub: 'Sync sessions, XP and streaks across devices',
-        onclick: function () { ctx.go('auth'); }
-      }));
-      return wrap;
-    }
-
-    wrap.appendChild(accountRow({
-      icon: 'ph-envelope-simple',
-      title: (user.email || 'SIGNED IN').toUpperCase(),
-      sub: 'Signed in'
-    }));
-    wrap.appendChild(accountRow({
-      icon: 'ph-sign-out',
-      title: 'SIGN OUT',
-      onclick: function () {
-        window.V10Auth.signOut().then(function () { ctx.go('me'); });
-      }
-    }));
-    wrap.appendChild(accountRow({
-      icon: 'ph-trash',
-      title: 'DELETE ACCOUNT',
-      sub: 'Permanently erases your account and all data',
-      style: { background: 'rgba(255,79,31,0.08)' },
-      onclick: function () {
-        // Two explicit confirmations — deletion is irreversible.
-        if (!window.confirm('Delete your CourtIQ account?\n\nThis permanently erases your profile, sessions, shots and XP. There is no undo.')) return;
-        if (!window.confirm('Last check — really delete everything?')) return;
-        window.V10Auth.deleteAccount().then(function () {
-          alert('Your account was deleted.');
-          ctx.go('home');
-        }).catch(function (e) {
-          alert('Deletion failed: ' + ((e && e.message) || 'network error') + '\nPlease try again.');
-        });
-      }
-    }));
-    return wrap;
-  }
-
-  /* ── Trophy catalog (mirrors BADGES in js/badges.js) ─────
-     The engine keeps its BADGES table inside an IIFE, so we
-     keep a fallback catalog here. Earned state is pulled from
-     window.BadgeSystem.getEarned() when available. */
-  var TROPHY_CATALOG = [
-    /* Tier: GOLD — milestone streaks */
-    { id: 'streak-3',     tier: 'GOLD',   name: '3-Day Fire',      desc: 'Train 3 days in a row',                req: '3 day streak' },
-    { id: 'streak-7',     tier: 'GOLD',   name: 'Week Warrior',    desc: 'Train 7 days in a row',                req: '7 day streak' },
-    { id: 'streak-14',    tier: 'GOLD',   name: 'Two-Week Beast',  desc: 'Train 14 days in a row',               req: '14 day streak' },
-    { id: 'streak-30',    tier: 'GOLD',   name: 'Iron Will',       desc: 'Train 30 days in a row',               req: '30 day streak' },
-    /* Tier: SILVER — session + cumulative */
-    { id: 'hot-hand',     tier: 'SILVER', name: 'Hot Hand',        desc: '30+ shots in one session',             req: '30 shot session' },
-    { id: 'sniper',       tier: 'SILVER', name: 'Sniper',          desc: '80%+ accuracy, 10+ shots',             req: '80% / 10 shots' },
-    { id: 'marathon',     tier: 'SILVER', name: 'Marathon',        desc: '5+ sessions in one week',              req: '5 sessions / week' },
-    { id: '3pt-100',      tier: 'SILVER', name: 'Downtown Legend', desc: '100 lifetime three-pointers',          req: '100 lifetime 3PT' },
-    { id: 'shots-500',    tier: 'SILVER', name: 'Shot Machine',    desc: '500 lifetime shots',                   req: '500 lifetime shots' },
-    { id: 'xp-1000',      tier: 'SILVER', name: 'XP Grinder',      desc: '1,000 total XP earned',                req: '1K XP earned' },
-    /* Tier: BRONZE — activity first-times */
-    { id: 'first-ai',     tier: 'BRONZE', name: 'AI Rookie',       desc: 'Complete first AI shot tracking',      req: 'First AI session' },
-    { id: 'first-drill',  tier: 'BRONZE', name: 'Gym Rat',         desc: 'Complete your first drill',            req: 'First drill' },
-    { id: 'first-timer',  tier: 'BRONZE', name: 'Timer Pro',       desc: 'Complete first workout timer',         req: 'First timer' },
-    { id: 'first-session',tier: 'BRONZE', name: 'Day One',         desc: 'Log your first training session',      req: 'First session' },
-    { id: 'customizer',   tier: 'BRONZE', name: 'Style Icon',      desc: 'Customize your avatar',                req: 'Avatar customized' }
+  /* Mirrors BADGES in js/badges.js (kept inside its IIFE there). */
+  var TROPHIES = [
+    { id: 'streak-3',      tier: 'gold',   icon: 'ph-fire',        name: '3-Day Fire',     req: '3 day streak' },
+    { id: 'streak-7',      tier: 'gold',   icon: 'ph-fire-simple', name: 'Week Warrior',   req: '7 day streak' },
+    { id: 'streak-14',     tier: 'gold',   icon: 'ph-flame',       name: 'Two-Week Beast', req: '14 day streak' },
+    { id: 'streak-30',     tier: 'gold',   icon: 'ph-trophy',      name: 'Iron Will',      req: '30 day streak' },
+    { id: 'hot-hand',      tier: 'silver', icon: 'ph-hand-fist',   name: 'Hot Hand',       req: '30 shots in a session' },
+    { id: 'sniper',        tier: 'silver', icon: 'ph-crosshair',   name: 'Sniper',         req: '80% on 10+ shots' },
+    { id: 'marathon',      tier: 'silver', icon: 'ph-path',        name: 'Marathon',       req: '5 sessions in a week' },
+    { id: '3pt-100',       tier: 'silver', icon: 'ph-basketball',  name: 'Downtown',       req: '100 lifetime 3PT' },
+    { id: 'shots-500',     tier: 'silver', icon: 'ph-medal',       name: 'Shot Machine',   req: '500 lifetime shots' },
+    { id: 'first-ai',      tier: 'bronze', icon: 'ph-robot',       name: 'AI Rookie',      req: 'First tracked session' },
+    { id: 'first-drill',   tier: 'bronze', icon: 'ph-barbell',     name: 'Gym Rat',        req: 'First drill' },
+    { id: 'first-session', tier: 'bronze', icon: 'ph-flag',        name: 'Day One',        req: 'First session' },
+    { id: 'customizer',    tier: 'bronze', icon: 'ph-user-focus',  name: 'Style Icon',     req: 'Avatar customised' }
   ];
 
-  var TIER_META = {
-    GOLD:   { accent: 'mustard', icon: 'ph-trophy',       sub: 'TIER · STREAK' },
-    SILVER: { accent: 'ink',     icon: 'ph-medal',        sub: 'TIER · SESSION & TOTAL' },
-    BRONZE: { accent: 'sage',    icon: 'ph-shield-check', sub: 'TIER · ACTIVITY' }
-  };
-
-  function formatBadgeDate(ts) {
-    if (!ts) return '';
-    try {
-      var d = new Date(ts);
-      var months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-      return months[d.getMonth()] + ' ' + d.getDate();
-    } catch (_) { return ''; }
-  }
-
-  function loadEarnedMap() {
-    /* Build {id: timestamp} from BadgeSystem if available */
+  function earnedMap() {
     var map = {};
     try {
       if (typeof BadgeSystem !== 'undefined' && BadgeSystem.getEarned) {
-        var arr = BadgeSystem.getEarned() || [];
-        arr.forEach(function (b) { if (b && b.id) map[b.id] = b.ts || Date.now(); });
+        (BadgeSystem.getEarned() || []).forEach(function (b) { map[(b && b.id) || b] = true; });
       }
-    } catch (_) { /* fall through to mock */ }
-
-    /* Demo fallback: if nothing earned, mark a handful so the screen
-       has visual weight. Real data wins as soon as it exists. */
-    if (Object.keys(map).length === 0) {
-      var now = Date.now();
-      var day = 86400000;
-      map = {
-        'streak-3':     now - 18 * day,
-        'streak-7':     now - 1  * day,
-        'hot-hand':     now - 4  * day,
-        'sniper':       now - 9  * day,
-        '3pt-100':      now - 12 * day,
-        'first-ai':     now - 30 * day,
-        'first-drill':  now - 28 * day,
-        'first-session':now - 30 * day,
-        'first-timer':  now - 25 * day,
-        'customizer':   now - 22 * day,
-        'xp-1000':      now - 6  * day,
-        'shots-500':    now - 14 * day
-      };
-    }
+    } catch (e) {}
     return map;
   }
 
-  function tierSectionHeader(tier) {
-    var meta = TIER_META[tier];
-    return h('div', {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: '14px',
-        marginBottom: '6px',
-        paddingBottom: '4px',
-        borderBottom: '1.5px dashed var(--ink)'
+  /* Real XP curve or no bar at all. */
+  function xpNext(xp) {
+    try {
+      var L = window.COURTIQ_LEVELS;
+      if (L && L.length) {
+        for (var i = 0; i < L.length; i++) {
+          if (xp < L[i].threshold) return L[i].threshold;
+        }
       }
-    }, [
-      h('div', {
-        style: {
-          display: 'flex',
-          alignItems: 'center',
-          gap: '6px',
-          fontFamily: 'var(--font-display)',
-          fontWeight: '900',
-          fontSize: '13px',
-          letterSpacing: '0.18em',
-          color: 'var(--ink)',
-          textTransform: 'uppercase'
-        }
-      }, [
-        h('i', { class: 'ph-bold ' + meta.icon, style: { color: 'var(--' + meta.accent + ')', fontSize: '14px' } }),
-        h('span', { text: tier })
-      ]),
-      h('span', {
-        style: {
-          fontFamily: 'var(--font-mono)',
-          fontSize: '9px',
-          color: 'var(--muted)',
-          letterSpacing: '0.06em'
-        },
-        text: meta.sub
-      })
-    ]);
+    } catch (e) {}
+    return null;
   }
 
-  function trophyRow(badge, idx, earnedMap) {
-    var num = (idx < 9 ? '0' : '') + (idx + 1);
-    var earned = !!earnedMap[badge.id];
-    var dateStr = earned ? formatBadgeDate(earnedMap[badge.id]) : 'LOCKED';
-    var rightColor = earned ? 'var(--orange)' : 'var(--muted)';
-    var rightIcon  = earned ? 'ph-check-circle' : 'ph-lock-simple';
-
-    var row = h('div', {
-      class: 'v10-row',
-      style: earned ? null : { opacity: '0.42' }
-    }, [
-      h('div', { class: 'v10-row__num', text: num }),
-      h('div', { class: 'v10-row__main' }, [
-        h('div', { class: 'v10-row__title', text: badge.name.toUpperCase() }),
-        h('div', {
-          class: 'v10-row__sub',
-          style: { fontStyle: 'italic', fontFamily: 'var(--font-body)' },
-          text: badge.desc + (earned ? '' : ' · ' + badge.req)
-        })
-      ]),
-      h('div', {
-        style: {
-          display: 'flex',
-          alignItems: 'center',
-          gap: '4px',
-          color: rightColor,
-          fontFamily: 'var(--font-display)',
-          fontWeight: '900',
-          fontSize: '10px',
-          letterSpacing: '0.14em'
-        }
-      }, [
-        h('i', { class: 'ph-bold ' + rightIcon, style: { fontSize: '12px' } }),
-        h('span', { text: dateStr })
-      ])
-    ]);
-    return row;
+  function backBtn(onBack) {
+    return h('button', {
+      class: 'c12-back', type: 'button', 'aria-label': 'Back', onclick: onBack
+    }, [h('i', { class: 'ph-bold ph-arrow-left' })]);
   }
 
-  function renderTrophies(host, ctx) {
-    var earnedMap = loadEarnedMap();
-    var totalBadges = TROPHY_CATALOG.length;
-    var earnedCount = TROPHY_CATALOG.filter(function (b) { return !!earnedMap[b.id]; }).length;
+  /* ── trophies view ────────────────────────────────────────────*/
+  function trophiesView(host, ctx, back) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    var earned = earnedMap();
+    var got = TROPHIES.filter(function (t) { return earned[t.id]; }).length;
 
-    host.appendChild(ctx.ui.ribbon({
-      icon: 'ph-trophy',
-      title: 'ALL BADGES',
-      meta: earnedCount + ' OF ' + totalBadges
-    }));
-
-    /* Group by tier, preserving catalog order */
-    var byTier = { GOLD: [], SILVER: [], BRONZE: [] };
-    TROPHY_CATALOG.forEach(function (b) {
-      if (byTier[b.tier]) byTier[b.tier].push(b);
-    });
-
-    /* Index counter is global for stable 01..15 numbering */
-    var idx = 0;
-    ['GOLD', 'SILVER', 'BRONZE'].forEach(function (tier) {
-      var items = byTier[tier];
-      if (!items || !items.length) return;
-      host.appendChild(tierSectionHeader(tier));
-      items.forEach(function (b) {
-        host.appendChild(trophyRow(b, idx, earnedMap));
-        idx++;
-      });
-    });
-
-    /* Footer CTA — go earn more by starting a tracked session */
-    host.appendChild(h('div', { style: { marginTop: '12px' } }, [
-      ctx.ui.cta({
-        variant: 'mustard',
-        icon: 'ph-target',
-        label: 'EARN MORE — START TRACKING',
-        onClick: function () { ctx.go('camera-hud'); }
-      })
-    ]));
-  }
-
-  function renderSocial(host, ctx) {
-    host.appendChild(ctx.ui.ribbon({
-      icon: 'ph-chat-circle',
-      title: 'TEAMMATES',
-      meta: 'SOON'
-    }));
-    // Honest gate (M4): team features ship with the squad beta — no fake
-    // friends list until real teammates exist.
-    host.appendChild(h('div', { class: 'v10-row', style: { boxShadow: '2px 2px 0 var(--ink)' } }, [
-      h('div', { class: 'v10-row__num' }, [icon('ph-users-three')]),
-      h('div', { class: 'v10-row__main' }, [
-        h('div', { class: 'v10-row__title', text: 'SQUAD MODE IS COMING' }),
-        h('div', { class: 'v10-row__sub', text: 'Team leaderboards and live sessions land with the squad beta. Your stats already count.' })
+    host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+      backBtn(back),
+      h('div', {}, [
+        h('div', { class: 'c12-chat-hd__t', text: 'Trophies' }),
+        h('div', { class: 'c12-chat-hd__s', text: got + ' of ' + TROPHIES.length + ' — all earned on the court' })
       ])
     ]));
-    var friends = [];
-    friends.forEach(function (f) {
-      host.appendChild(h('div', { class: 'v10-row' }, [
-        h('div', { class: 'v10-row__num', text: f.n }),
-        h('div', { class: 'v10-row__main' }, [
-          h('div', { class: 'v10-row__title', text: f.t }),
-          h('div', { class: 'v10-row__sub', text: f.s })
-        ]),
-        f.r ? h('div', {
-          class: 'v10-row__right',
-          style: { color: f.r === 'LIVE' ? 'var(--sage)' : 'var(--muted)', fontSize: '11px' },
-          text: f.r
-        }) : null
+
+    var grid = h('div', { class: 'm12-trogrid' });
+    TROPHIES.forEach(function (t) {
+      var isE = !!earned[t.id];
+      grid.appendChild(h('div', {
+        class: 'm12-tro' + (isE ? ' is-earned is-' + t.tier : ''),
+        title: t.req
+      }, [
+        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + t.icon }),
+        h('div', { class: 'm12-tro__n', text: t.name }),
+        h('div', { class: 'm12-tro__d', text: isE ? 'Earned' : t.req })
       ]));
     });
-  }
-
-  /* ── Shop catalog ─────────────────────────────────────────
-     Avatar cosmetics come from window.AvatarShop.SHOP_ITEMS
-     (with ownership checks). Plans + drill packs are hard-
-     coded since they don't live in avatar-shop.js. */
-  var COSMETIC_ICON_MAP = {
-    /* accessories */
-    headband:  'ph-sun-horizon',
-    sweatband: 'ph-drop',
-    armband:   'ph-barbell',
-    glasses:   'ph-sunglasses',
-    chain:     'ph-link',
-    durag:     'ph-crown-simple',
-    /* hair */
-    mohawk:    'ph-lightning',
-    waves:     'ph-wave-sine',
-    cornrows:  'ph-flame',
-    /* beard */
-    goatee:    'ph-user-focus',
-    chinstrap: 'ph-user-circle'
-  };
-
-  var COSMETIC_FALLBACK = [
-    { id: 'headband',  name: 'Headband',     desc: 'Classic terry headband',   cost: 50,  type: 'accessory' },
-    { id: 'glasses',   name: 'Sport Shades', desc: 'Wraparound sport shades',  cost: 100, type: 'accessory' },
-    { id: 'chain',     name: 'Gold Chain',   desc: 'Gold chain · IQ pendant',  cost: 150, type: 'accessory' },
-    { id: 'durag',     name: 'Navy Durag',   desc: 'Pro tier swag',            cost: 200, type: 'accessory' },
-    { id: 'mohawk',    name: 'Mohawk',       desc: 'Tall central crest',       cost: 80,  type: 'hair' },
-    { id: 'cornrows',  name: 'Cornrows',     desc: 'Tight braided rows',       cost: 120, type: 'hair' }
-  ];
-
-  function loadShopCatalog() {
-    var raw;
-    try {
-      if (typeof AvatarShop !== 'undefined' && Array.isArray(AvatarShop.SHOP_ITEMS)) {
-        raw = AvatarShop.SHOP_ITEMS;
-      }
-    } catch (_) { /* fall through */ }
-    if (!raw || !raw.length) raw = COSMETIC_FALLBACK;
-
-    /* Sort: accessories first (most visual), then hair, then beard */
-    var order = { accessory: 0, hair: 1, beard: 2 };
-    return raw.slice().sort(function (a, b) {
-      var oa = order[a.type] != null ? order[a.type] : 9;
-      var ob = order[b.type] != null ? order[b.type] : 9;
-      if (oa !== ob) return oa - ob;
-      return (a.cost || 0) - (b.cost || 0);
-    });
-  }
-
-  function shopCoins() {
-    try {
-      if (typeof AvatarShop !== 'undefined' && AvatarShop.getCoins) {
-        return AvatarShop.getCoins() || 0;
-      }
-    } catch (_) {}
-    return 0;
-  }
-
-  function isShopItemOwned(id) {
-    try {
-      if (typeof AvatarShop !== 'undefined' && AvatarShop.isOwned) {
-        return !!AvatarShop.isOwned(id);
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  function cosmeticTile(item, accent, idx, ctx) {
-    var icon = COSMETIC_ICON_MAP[item.id] || 'ph-sparkle';
-    var owned = isShopItemOwned(item.id);
-    var num = '#' + (idx < 9 ? '0' : '') + (idx + 1);
-    var priceLabel = owned ? 'OWNED' : (item.cost + ' XP');
-
-    return h('div', {
-      class: 'v10-tile v10-tile--' + accent,
-      style: { cursor: 'pointer' },
-      onclick: function () { if (ctx && ctx.go) ctx.go('avatar-customizer'); }
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('i', { class: 'ph-bold ' + icon + ' v10-tile__icon v10-tile__icon--' + accent }),
-        h('span', { class: 'v10-tile__num', text: num })
-      ]),
-      h('div', { class: 'v10-tile__title', text: (item.name || 'ITEM').toUpperCase() }),
-      h('div', { class: 'v10-tile__meta', text: priceLabel + ' · ' + (item.type || 'COSMETIC').toUpperCase() })
-    ]);
-  }
-
-  function subHeader(label, meta) {
-    return h('div', {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginTop: '14px',
-        marginBottom: '6px',
-        paddingBottom: '4px',
-        borderBottom: '1.5px dashed var(--ink)'
-      }
-    }, [
-      h('div', {
-        style: {
-          fontFamily: 'var(--font-display)',
-          fontWeight: '900',
-          fontSize: '12px',
-          letterSpacing: '0.18em',
-          color: 'var(--ink)',
-          textTransform: 'uppercase'
-        },
-        text: label
-      }),
-      meta ? h('span', {
-        style: {
-          fontFamily: 'var(--font-mono)',
-          fontSize: '9px',
-          color: 'var(--muted)',
-          letterSpacing: '0.06em'
-        },
-        text: meta
-      }) : null
-    ]);
-  }
-
-  function planTile(opts) {
-    /* Full-width subscription tile — ink-fill style */
-    return h('div', {
-      class: 'v10-row',
-      style: {
-        background: opts.bg || 'var(--ink)',
-        color: 'var(--cream)',
-        borderColor: 'var(--ink)',
-        padding: '12px 14px',
-        boxShadow: opts.shadow || '3px 3px 0 var(--orange)'
-      }
-    }, [
-      h('i', {
-        class: 'ph-bold ' + (opts.icon || 'ph-shield-star'),
-        style: {
-          fontSize: '26px',
-          color: opts.iconColor || 'var(--mustard)',
-          minWidth: '28px'
-        }
-      }),
-      h('div', { class: 'v10-row__main' }, [
-        h('div', {
-          class: 'v10-row__title',
-          style: { color: 'var(--cream)' },
-          text: opts.name
-        }),
-        h('div', {
-          class: 'v10-row__sub',
-          style: { color: 'var(--cream)', opacity: '0.82', fontStyle: 'italic' },
-          text: opts.desc
-        })
-      ]),
-      h('div', {
-        style: {
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-end',
-          gap: '2px'
-        }
-      }, [
-        h('div', {
-          style: {
-            fontFamily: 'var(--font-display)',
-            fontSize: '16px',
-            fontWeight: '900',
-            color: opts.priceColor || 'var(--mustard)',
-            letterSpacing: '-0.4px'
-          },
-          text: opts.price
-        }),
-        h('div', {
-          style: {
-            fontFamily: 'var(--font-mono)',
-            fontSize: '8px',
-            color: 'var(--cream)',
-            opacity: '0.7',
-            letterSpacing: '0.08em'
-          },
-          text: opts.priceMeta || 'PER MONTH'
-        })
-      ])
-    ]);
-  }
-
-  function drillPackRow(item, idx, ctx) {
-    var num = (idx < 9 ? '0' : '') + (idx + 1);
-    return h('div', {
-      class: 'v10-row',
-      style: { cursor: 'pointer' },
-      onclick: function () { if (ctx && ctx.go) ctx.go('drill-library'); }
-    }, [
-      h('div', { class: 'v10-row__num', text: num }),
-      h('i', {
-        class: 'ph-bold ' + item.icon,
-        style: { fontSize: '20px', color: 'var(--' + item.accent + ')', minWidth: '24px' }
-      }),
-      h('div', { class: 'v10-row__main' }, [
-        h('div', { class: 'v10-row__title', text: item.name.toUpperCase() }),
-        h('div', {
-          class: 'v10-row__sub',
-          style: { fontStyle: 'italic', fontFamily: 'var(--font-body)' },
-          text: item.desc
-        })
-      ]),
-      h('div', { class: 'v10-row__right', text: item.price })
-    ]);
-  }
-
-  function renderShop(host, ctx) {
-    var coins = shopCoins();
-    var coinLabel = coins > 0 ? coins.toLocaleString() + ' COINS' : 'XP · CASH';
-
-    host.appendChild(ctx.ui.ribbon({
-      icon: 'ph-shopping-bag',
-      title: 'SHOP',
-      meta: coinLabel
-    }));
-
-    /* ── Cosmetics 2x2 grid (4 items, cycle accents) ── */
-    host.appendChild(subHeader('AVATAR COSMETICS', 'XP UNLOCKS'));
-
-    var catalog = loadShopCatalog();
-    var accents = ['orange', 'sage', 'mustard', 'ink-fill'];
-    var grid = h('div', { class: 'v10-grid' }, catalog.slice(0, 4).map(function (item, i) {
-      /* ink-fill tile reads the title differently; map to 'ink' accent token */
-      var accent = accents[i % accents.length];
-      /* badgeTile-style ink fill if last cell */
-      if (accent === 'ink-fill') {
-        var icon = COSMETIC_ICON_MAP[item.id] || 'ph-sparkle';
-        var owned = isShopItemOwned(item.id);
-        return h('div', {
-          class: 'v10-tile v10-tile--ink-fill',
-          style: { cursor: 'pointer' },
-          onclick: function () { if (ctx && ctx.go) ctx.go('avatar-customizer'); }
-        }, [
-          h('div', { class: 'v10-tile__top' }, [
-            h('i', {
-              class: 'ph-bold ' + icon,
-              style: { color: 'var(--mustard)', fontSize: '18px' }
-            }),
-            h('span', {
-              class: 'v10-tile__num',
-              style: { color: 'var(--cream)', opacity: '0.7' },
-              text: owned ? 'OWNED' : item.cost + ' XP'
-            })
-          ]),
-          h('div', { class: 'v10-tile__title', text: (item.name || 'ITEM').toUpperCase() }),
-          h('div', {
-            class: 'v10-tile__meta',
-            style: { color: 'var(--cream)', opacity: '0.7' },
-            text: (item.type || 'COSMETIC').toUpperCase()
-          })
-        ]);
-      }
-      return cosmeticTile(item, accent, i, ctx);
-    }));
     host.appendChild(grid);
+  }
 
-    /* ── Plans (full-width row tiles) ── */
-    host.appendChild(subHeader('PLANS', 'PRO · ELITE'));
-    host.appendChild(planTile({
-      name: 'CourtIQ Pro',
-      desc: 'Unlimited AI sessions · cloud sync · all drills',
-      icon: 'ph-shield-star',
-      iconColor: 'var(--mustard)',
-      price: '$4.99',
-      priceColor: 'var(--mustard)',
-      priceMeta: 'PER MONTH',
-      shadow: '3px 3px 0 var(--orange)'
-    }));
-    host.appendChild(planTile({
-      name: 'CourtIQ Elite',
-      desc: 'Coach reviews · pro analytics · early features',
-      icon: 'ph-crown',
-      iconColor: 'var(--orange)',
-      bg: 'var(--orange)',
-      price: '$9.99',
-      priceColor: 'var(--cream)',
-      priceMeta: 'PER MONTH',
-      shadow: '3px 3px 0 var(--ink)'
-    }));
+  /* ── settings view ────────────────────────────────────────────*/
+  function settingsView(host, ctx, back) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+    host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+      backBtn(back),
+      h('div', {}, [h('div', { class: 'c12-chat-hd__t', text: 'Settings' })])
+    ]));
 
-    /* ── Drill packs (2 rows) ── */
-    host.appendChild(subHeader('DRILL PACKS', 'XP UNLOCKS'));
-    [
-      { icon: 'ph-target',        name: 'Aim Trainer',    desc: '20 precision drills · catch & shoot', price: '2K XP',  accent: 'sage'   },
-      { icon: 'ph-arrows-clockwise', name: 'Footwork Pro', desc: '15 movement drills · pivot · stride', price: '1.5K XP', accent: 'mustard' }
-    ].forEach(function (item, i) {
-      host.appendChild(drillPackRow(item, i, ctx));
+    var signedIn = !!(ctx.data.isSignedIn && ctx.data.isSignedIn());
+
+    function row(icon, title, sub, onClick, danger) {
+      return V12.card({ press: true, onClick: onClick, label: title, class: 'm12-set' }, [
+        h('i', { class: 'ph-bold ' + icon + ' m12-set__ic' + (danger ? ' m12-set__ic--danger' : '') }),
+        h('div', { class: 'm12-set__main' }, [
+          h('div', { class: 'm12-set__t' + (danger ? ' m12-set__t--danger' : ''), text: title }),
+          sub ? h('div', { class: 'm12-set__s', text: sub }) : null
+        ].filter(Boolean)),
+        h('i', { class: 'ph-bold ph-caret-right m12-set__chev' })
+      ]);
+    }
+
+    if (!signedIn) {
+      host.appendChild(row('ph-user-circle', 'Sign in / create account',
+        'Sync sessions, streak and Court IQ across devices.',
+        function () { ctx.go('auth'); }));
+    }
+    host.appendChild(row('ph-user-focus', 'Customise avatar',
+      'How you show up on the court.',
+      function () { ctx.go('avatar-customizer'); }));
+    host.appendChild(row('ph-bell', 'Notifications', null,
+      function () { ctx.go('notifications'); }));
+
+    if (signedIn) {
+      host.appendChild(row('ph-sign-out', 'Sign out', null, function () {
+        if (window.V10Auth && window.V10Auth.signOut) {
+          window.V10Auth.signOut().then(function () { ctx.go('home'); });
+        }
+      }));
+      host.appendChild(row('ph-trash', 'Delete account',
+        'Removes your account and synced data. Cannot be undone.',
+        function () {
+          if (window.confirm('Delete your account and all synced data? This cannot be undone.') &&
+              window.V10Auth && window.V10Auth.deleteAccount) {
+            window.V10Auth.deleteAccount().then(function () { ctx.go('home'); });
+          }
+        }, true));
+    }
+  }
+
+  /* ── edit profile view — the full data card, editable ──────────
+     Everything the combine collected about the player, in one place:
+     name, position, play style, and the measurables. Reads the same
+     localStorage keys onboarding writes so the two round-trip, and
+     re-renders me on save so the header + id card reflect it. */
+  function lsGet(k, d) { try { return localStorage.getItem(k) || d; } catch (e) { return d; } }
+
+  function editView(host, ctx, prof, back) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+
+    /* current values from storage (fall back to profile / sane defaults) */
+    var cur = {
+      name: (prof.name && prof.name !== 'Rookie') ? prof.name : (lsGet('courtiq_profile_name', '') || ''),
+      position: lsGet('courtiq_profile_position', '') || (prof.position || ''),
+      playStyle: lsGet('courtiq_profile_playstyle', '') || '',
+      height: parseInt(lsGet('courtiq_profile_height', '74'), 10) || 74,
+      weight: parseInt(lsGet('courtiq_profile_weight', '175'), 10) || 175,
+      age: parseInt(lsGet('courtiq_profile_age', '17'), 10) || 17,
+      hand: lsGet('courtiq_profile_hand', 'R') || 'R'
+    };
+
+    host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+      backBtn(back),
+      h('div', {}, [
+        h('div', { class: 'c12-chat-hd__t', text: 'Edit my data' }),
+        h('div', { class: 'c12-chat-hd__s', text: 'Your combine card — change anything' })
+      ])
+    ]));
+
+    var scroll = h('div', { class: 'me12-editscroll' });
+    host.appendChild(scroll);
+
+    /* helpers reusing the onboarding control styles */
+    function slider(label, val, min, max, unit, key) {
+      var out = h('span', { class: 'onb12-slider__v', text: val + (unit || '') });
+      var input = h('input', { type: 'range', min: String(min), max: String(max), value: String(val), class: 'onb12-range' });
+      input.addEventListener('input', function () {
+        cur[key] = parseInt(input.value, 10);
+        out.textContent = input.value + (unit || '');
+      });
+      return h('div', { class: 'onb12-slider' }, [
+        h('div', { class: 'onb12-slider__top' }, [h('span', { class: 'd-label', text: label }), out]), input
+      ]);
+    }
+    function pickRow(label, opts, key, cols) {
+      var wrap = h('div', { class: cols === 2 ? 'onb12-two' : 'onb12-grid3' });
+      function paintPills() {
+        while (wrap.firstChild) wrap.removeChild(wrap.firstChild);
+        opts.forEach(function (o) {
+          wrap.appendChild(h('button', {
+            class: 'onb12-pill' + (cur[key] === o.id ? ' is-active' : ''), type: 'button',
+            onclick: function () { cur[key] = o.id; paintPills(); }
+          }, [
+            h('div', { class: 'onb12-pill__l', text: o.l }),
+            o.s ? h('div', { class: 'onb12-pill__s', text: o.s }) : null
+          ].filter(Boolean)));
+        });
+      }
+      paintPills();
+      return h('div', {}, [h('div', { class: 'd-label', style: { marginBottom: '7px' }, text: label }), wrap]);
+    }
+
+    var nameIn = h('input', {
+      class: 'onb12-input', type: 'text', maxlength: '24',
+      placeholder: 'Your name', value: cur.name,
+      oninput: function (e) { cur.name = e.target.value; }
     });
+
+    scroll.appendChild(h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'd-label', text: 'NAME' }), nameIn,
+      pickRow('Position', [
+        { id: 'PG', l: 'Point' }, { id: 'SG', l: 'Shooting' }, { id: 'SF', l: 'Small F' },
+        { id: 'PF', l: 'Power F' }, { id: 'C', l: 'Center' }
+      ], 'position', 3),
+      pickRow('Play style', [
+        { id: 'sniper', l: 'Sniper' }, { id: 'slasher', l: 'Slasher' },
+        { id: 'floor-general', l: 'Floor Gen' }, { id: 'lockdown', l: 'Lockdown' }
+      ], 'playStyle', 2),
+      slider('Height', cur.height, 60, 90, '"', 'height'),
+      slider('Weight', cur.weight, 100, 320, ' lb', 'weight'),
+      slider('Age', cur.age, 10, 60, ' yr', 'age'),
+      pickRow('Shooting hand', [{ id: 'L', l: 'Lefty' }, { id: 'R', l: 'Righty' }], 'hand', 2)
+    ]));
+
+    host.appendChild(V12.btn({
+      label: 'Save', icon: 'ph-check',
+      onClick: function () {
+        try {
+          localStorage.setItem('courtiq_profile_name', (cur.name || '').trim() || 'Rookie');
+          localStorage.setItem('courtiq_profile_position', cur.position || '');
+          localStorage.setItem('courtiq_profile_playstyle', cur.playStyle || '');
+          localStorage.setItem('courtiq_profile_height', String(cur.height));
+          localStorage.setItem('courtiq_profile_weight', String(cur.weight));
+          localStorage.setItem('courtiq_profile_age', String(cur.age));
+          localStorage.setItem('courtiq_profile_hand', cur.hand || 'R');
+        } catch (e) {}
+        window.app.go('me');
+      }
+    }));
+    host.appendChild(V12.card({
+      press: true, onClick: function () { ctx.go('avatar-customizer'); },
+      label: 'Customise avatar', class: 'm12-set'
+    }, [
+      h('i', { class: 'ph-bold ph-user-focus m12-set__ic' }),
+      h('div', { class: 'm12-set__main' }, [
+        h('div', { class: 'm12-set__t', text: 'Customise avatar' })
+      ]),
+      h('i', { class: 'ph-bold ph-caret-right m12-set__chev' })
+    ]));
+  }
+
+  /* ── main view ────────────────────────────────────────────────*/
+  function mainView(host, ctx, prof, iq, totals) {
+    while (host.firstChild) host.removeChild(host.firstChild);
+
+    /* the Duolingo band — the character's world owns the top third,
+       edge to edge, tinted with the avatar's own background color */
+    var url = V12.avatarUrl(prof);
+    var bandColor = (url.match(/backgroundColor=([0-9A-Fa-f]{6})/) || [])[1] || 'FFB800';
+    var band = h('div', {
+      class: 'm12-band',
+      role: 'button', tabindex: '0', 'aria-label': 'Customise avatar',
+      onclick: function () { ctx.go('avatar-customizer'); },
+      onkeydown: V12.activates(function () { ctx.go('avatar-customizer'); })
+    }, [
+      h('div', { class: 'm12-band__edit' }, [h('i', { class: 'ph-bold ph-pencil-simple' })])
+    ]);
+    band.style.backgroundColor = '#' + bandColor;
+    band.style.backgroundImage = 'url(' + url + ')';
+    host.appendChild(band);
+
+    /* name + level + XP bar */
+    var xp = prof.xp || 0;
+    var next = xpNext(xp);
+    host.appendChild(V12.card({ tint: 'ink', class: 'm12-id', bgIcon: 'ph-lightning', bgTone: 'gold' }, [
+      h('div', { class: 'm12-id__row' }, [
+        h('div', { class: 'm12-id__n', text: prof.name || 'Rookie' }),
+        h('div', { class: 'm12-id__lv', text: 'LV ' + (prof.level || 1) })
+      ]),
+      h('div', { class: 'm12-id__m',
+        text: (prof.position || 'PLAYER') + (iq ? ' · Court IQ ' + iq.score + ' · ' + iq.tier : ' · Unrated') }),
+      V12.xpBar(xp, next)
+    ]));
+
+    /* shop / edit profile */
+    host.appendChild(h('div', { class: 'm12-two' }, [
+      V12.card({
+        tint: 'gold', press: true, bgIcon: 'ph-storefront', bgTone: 'gold', class: 'm12-doortile',
+        onClick: function () { ctx.go('shop'); }, label: 'Shop'
+      }, [
+        h('i', { class: 'ph-fill ph-storefront m12-doortile__ic m12-doortile__ic--gold' }),
+        h('div', { class: 'm12-doortile__t', text: 'SHOP' })
+      ]),
+      V12.card({
+        press: true, bgIcon: 'ph-pencil-simple-line', bgTone: 'ink', class: 'm12-doortile',
+        onClick: function () { editView(host, ctx, prof, function () { mainView(host, ctx, prof, iq, totals); }); },
+        label: 'Edit profile'
+      }, [
+        h('i', { class: 'ph-fill ph-pencil-simple-line m12-doortile__ic' }),
+        h('div', { class: 'm12-doortile__t', text: 'EDIT PROFILE' })
+      ])
+    ]));
+
+    /* trophy preview — earned first, then nearest to earn */
+    var earned = earnedMap();
+    var sorted = TROPHIES.slice().sort(function (a, b) {
+      return (earned[b.id] ? 1 : 0) - (earned[a.id] ? 1 : 0);
+    }).slice(0, 4);
+    var openTrophies = function () {
+      trophiesView(host, ctx, function () { mainView(host, ctx, prof, iq, totals); });
+    };
+    host.appendChild(h('div', {
+      class: 'm12-preview', role: 'button', tabindex: '0', 'aria-label': 'Trophies',
+      onclick: openTrophies, onkeydown: V12.activates(openTrophies)
+    }, sorted.map(function (t) {
+      var isE = !!earned[t.id];
+      return h('div', { class: 'm12-mini' + (isE ? ' is-earned is-' + t.tier : ''), title: t.name }, [
+        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + t.icon })
+      ]);
+    })));
+
+    /* career strip — denominated in basketball */
+    host.appendChild(h('div', { class: 'm12-career' }, [
+      { v: totals.sessions || 0, l: 'SESSIONS' },
+      { v: totals.shots || 0, l: 'SHOTS' },
+      { v: prof.streak || 0, l: 'STREAK' }
+    ].map(function (s) {
+      return h('div', { class: 'm12-career__i' }, [
+        h('div', { class: 'd-num m12-career__v', text: String(s.v) }),
+        h('div', { class: 'd-label', text: s.l })
+      ]);
+    })));
+
+    /* settings / trophies */
+    host.appendChild(h('div', { class: 'm12-two' }, [
+      V12.card({
+        press: true, bgIcon: 'ph-gear-six', bgTone: 'ink', class: 'm12-doortile',
+        onClick: function () { settingsView(host, ctx, function () { mainView(host, ctx, prof, iq, totals); }); },
+        label: 'Settings'
+      }, [
+        h('i', { class: 'ph-fill ph-gear-six m12-doortile__ic' }),
+        h('div', { class: 'm12-doortile__t', text: 'SETTINGS' })
+      ]),
+      V12.card({
+        press: true, bgIcon: 'ph-trophy', bgTone: 'gold', class: 'm12-doortile',
+        onClick: openTrophies, label: 'Trophies'
+      }, [
+        h('i', { class: 'ph-fill ph-trophy m12-doortile__ic m12-doortile__ic--gold' }),
+        h('div', { class: 'm12-doortile__t', text: 'TROPHIES' })
+      ])
+    ]));
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx  = args.ctx;
-    var active = 'Profile';
-
-    ctx.data.getProfile().then(function (profile) {
-      host.appendChild(ctx.ui.headerPill({ profile: profile }));
-
-      var body = h('div', {});
-      host.appendChild(buildChips(active, function (next) {
-        active = next;
-        while (body.firstChild) body.removeChild(body.firstChild);
-        paint();
-      }));
-      host.appendChild(body);
-
-      function paint() {
-        if (active === 'Profile')  return renderProfile(body, ctx, profile);
-        if (active === 'Trophies') return renderTrophies(body, ctx);
-        if (active === 'Social')   return renderSocial(body, ctx);
-        if (active === 'Shop')     return renderShop(body, ctx);
-      }
-      paint();
+    var host = args.host, ctx = args.ctx;
+    return Promise.all([
+      ctx.data.getProfile(),
+      window.V10CourtIQ.get(),
+      ctx.data.getTotals()
+    ]).then(function (r) {
+      mainView(host, ctx, r[0] || {}, r[1], r[2] || { sessions: 0, shots: 0 });
     });
   }
 

@@ -18,6 +18,8 @@
   var _chunks = [];
   var _recordingStartTime = 0;
   var _shotTimestamps = [];
+  var _recordingMime = '';
+  var _recError = '';        // last start/construct failure, for on-screen diagnosis
 
   /* ── IndexedDB ─────────────────────────────────────────── */
   function openDB() {
@@ -97,26 +99,77 @@
     _shotTimestamps = [];
     _recordingStartTime = Date.now();
 
-    var mimeType = 'video/webm;codecs=vp9';
-    if (!MediaRecorder.isTypeSupported(mimeType)) {
-      mimeType = 'video/webm;codecs=vp8';
-      if (!MediaRecorder.isTypeSupported(mimeType)) {
-        mimeType = 'video/webm';
+    /* Codec probe. This used to try ONLY webm — and iOS/WKWebView does not
+       support webm at all. So on iPhone every branch failed, the last
+       unsupported type was handed to the constructor anyway, it threw, and
+       recording silently never started: the session looked normal and there
+       was simply no clip at the end. mp4 is what Safari records, so it has
+       to be in the list. webm stays FIRST so Android/Chrome keep the exact
+       behaviour they already had, and an empty type (browser default) is the
+       final safety net rather than passing something known-unsupported. */
+    var CANDIDATES = [
+      'video/webm;codecs=vp9',
+      'video/webm;codecs=vp8',
+      'video/webm',
+      'video/mp4;codecs=avc1',   // iOS / Safari
+      'video/mp4'
+    ];
+    var mimeType = null;
+    for (var ci = 0; ci < CANDIDATES.length; ci++) {
+      try {
+        if (MediaRecorder.isTypeSupported(CANDIDATES[ci])) { mimeType = CANDIDATES[ci]; break; }
+      } catch (e) { /* isTypeSupported can throw on exotic builds */ }
+    }
+
+    /* FULL attempt cascade -- constructor AND start() together. Safari can
+       accept an options object at construction and only throw at start()
+       (validation is deferred), which is exactly what a build #39 device
+       test showed: constructor cascade alone still left REC orange. Each
+       attempt builds a FRESH recorder, wires handlers, starts, and is only
+       accepted when state === 'recording'. Timeslice order: mp4 prefers
+       ONE blob at stop (chunked mp4 truncates on iOS) but falls back to
+       1s chunks (a truncated clip beats NO clip); webm keeps 1s chunks
+       first -- the long-validated Chrome/Android path. */
+    var shapes = [];
+    if (mimeType) {
+      shapes.push({ mimeType: mimeType, videoBitsPerSecond: 3000000 });
+      shapes.push({ mimeType: mimeType });
+    }
+    shapes.push({ videoBitsPerSecond: 3000000 });
+    shapes.push(null);
+    var isMp4 = /mp4/.test(mimeType || '');
+    var slices = isMp4 ? [undefined, 1000] : [1000, undefined];
+
+    _mediaRecorder = null; _recError = '';
+    outer:
+    for (var si = 0; si < shapes.length; si++) {
+      for (var ti = 0; ti < slices.length; ti++) {
+        var rec = null;
+        try {
+          rec = shapes[si] ? new MediaRecorder(stream, shapes[si]) : new MediaRecorder(stream);
+        } catch (eC) { _recError = 'ctor:' + (eC && (eC.name || eC.message) || '?'); continue; }
+        /* Chunks are captured PER RECORDER, not into the shared module array:
+           a superseded recorder (camera-watchdog restart) can emit a late
+           chunk after its replacement already started, and must not leak it
+           into the new clip. */
+        var cq = [];
+        rec._cq = cq;
+        rec.ondataavailable = (function (q) {
+          return function (e) { if (e.data && e.data.size > 0) q.push(e.data); };
+        })(cq);
+        try {
+          if (slices[ti] != null) rec.start(slices[ti]); else rec.start();
+        } catch (eS) { _recError = 'start:' + (eS && (eS.name || eS.message) || '?'); continue; }
+        if (rec.state === 'recording') { _mediaRecorder = rec; _chunks = cq; break outer; }
+        _recError = 'state:' + rec.state;
       }
     }
-
-    try {
-      _mediaRecorder = new MediaRecorder(stream, { mimeType: mimeType });
-    } catch (e) {
-      console.warn('[VideoReview] MediaRecorder init failed:', e);
+    if (!_mediaRecorder) {
+      console.warn('[VideoReview] recording could not start:', _recError);
       return false;
     }
-
-    _mediaRecorder.ondataavailable = function (e) {
-      if (e.data && e.data.size > 0) _chunks.push(e.data);
-    };
-
-    _mediaRecorder.start(1000); // 1-second chunks
+    _recordingMime = _mediaRecorder.mimeType || mimeType || '';
+    try { console.info('[VideoReview] recording as', _recordingMime || '(platform default)'); } catch (e) {}
     return true;
   }
 
@@ -139,16 +192,32 @@
         return;
       }
 
-      _mediaRecorder.onstop = function () {
-        var blob = new Blob(_chunks, { type: _mediaRecorder.mimeType || 'video/webm' });
+      var recRef = _mediaRecorder;
+      var myChunks = recRef._cq || _chunks;
+      var finish = function () {
+        var blob = new Blob(myChunks, { type: (recRef && recRef.mimeType) || _recordingMime || 'video/webm' });
         var shots = _shotTimestamps.slice();
-        _chunks = [];
-        _shotTimestamps = [];
-        _mediaRecorder = null;
-        resolve({ blob: blob, shots: shots });
+        myChunks.length = 0;
+        /* Release module state only while still the OWNER — a camera-watchdog
+           restart may have installed a replacement recorder while this one's
+           onstop (plus the iOS 800ms trailing-chunk wait) was in flight, and
+           nulling _mediaRecorder here silently killed the replacement's clip. */
+        if (_mediaRecorder === recRef) {
+          _mediaRecorder = null;
+          _shotTimestamps = [];
+        }
+        resolve({ blob: blob.size > 0 ? blob : null, shots: shots });
+      };
+      recRef.onstop = function () {
+        /* iOS records mp4 as a single chunk and can fire dataavailable
+           AFTER onstop -- resolving immediately built an EMPTY blob. Give a
+           trailing chunk a moment to land before assembling. */
+        if (myChunks.length === 0) setTimeout(finish, 800);
+        else finish();
       };
 
-      _mediaRecorder.stop();
+      try { recRef.requestData(); } catch (e) { /* flush what exists; not all builds support it */ }
+      recRef.stop();
     });
   }
 
@@ -363,8 +432,23 @@
   /* ── Init ───────────────────────────────────────────────── */
   purgeOld().catch(function () {});
 
+  /* Is a clip actually being captured right now, and in what container?
+     Recording failing is invisible from the outside — the session looks
+     completely normal and the clip is simply missing afterwards — so the
+     HUD reads this to tell the user the truth while there is still time
+     to do something about it. */
+  function recordingState() {
+    return {
+      active: !!(_mediaRecorder && _mediaRecorder.state === 'recording'),
+      mime: _recordingMime,
+      supported: isSupported(),
+      err: _recError || null
+    };
+  }
+
   window.VideoReview = {
     isSupported: isSupported,
+    recordingState: recordingState,
     startRecording: startRecording,
     recordShotEvent: recordShotEvent,
     stopRecording: stopRecording,

@@ -1,0 +1,106 @@
+/* CourtIQ v12 — THE APP SHELL
+   ------------------------------------------------------------------
+   What separates "a website on a phone" from "an app":
+
+   1. THE BODY NEVER SCROLLS. On the web the page scrolls, so the
+      browser gives you rubber-banding, a scrollbar, a URL bar that
+      collapses, and a nav that floats on a moving surface. An app has a
+      LOCKED shell: html/body are fixed to the viewport, and the only
+      thing that scrolls is the content region INSIDE it. The nav sits on
+      the shell, so it physically cannot move.
+
+   2. NOTHING IS SELECTABLE, NOTHING FLASHES. Long-press on a website
+      selects text and pops a callout; tapping flashes a grey highlight.
+      Apps do neither. Inputs keep selection — they're the one place a
+      user actually edits text.
+
+   3. TOUCH IS THE INPUT. touch-action: manipulation kills the
+      double-tap-zoom delay; inputs render at ≥16px so iOS doesn't zoom
+      the page when the keyboard opens; scrollbars don't exist.
+   ============================================================ */
+
+/* ── 1 · the locked shell ──────────────────────────────────────── */
+html, body {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  overscroll-behavior: none;   /* no chain, no glow, no pull-to-refresh */
+  width: 100%;
+  height: 100%;
+}
+
+/* The ONE scroller. Everything the user reads lives here; the nav and
+   any fixed chrome live on the shell above it.
+
+   Selector note: `html body #app` + [data-screen] duplicates exist to
+   OUTRANK v11/v12's `body:is([data-screen=…]) #app` rules (1,1,1) —
+   a bare #app loses that fight and the body quietly stays the scroller,
+   which is the exact bug this file exists to kill. */
+html body #app,
+html body[data-screen] #app {
+  position: absolute;
+  inset: 0;
+  height: auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  /* explicit: vertical panning always belongs to this scroller — belt
+     and suspenders for WKWebView with the native scroll view disabled */
+  touch-action: pan-y;
+  /* contain, not none: interior scroll must not chain to the shell —
+     this is exactly the "page moves while I scroll" complaint. */
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+#app::-webkit-scrollbar { display: none; }
+
+/* ── 2 · app-grade touch surface ───────────────────────────────── */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+body {
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+/* The one place selection is the point. 16px floor: below it, focusing
+   an input makes iOS zoom the whole page — the single most "this is a
+   website" moment an app can have. */
+input, textarea, [contenteditable] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+input, textarea, select {
+  font-size: max(16px, 1em);
+}
+
+/* Images and SVGs are UI, not content — no drag ghosts, no long-press
+   save sheet on the court diagrams. */
+img, svg { -webkit-user-drag: none; user-drag: none; }
+
+/* ── 3 · tab slide transitions ─────────────────────────────────
+   Direction-aware: the incoming screen slides from the side you swiped
+   toward, 240ms expo-out — quick, precise, no bounce. The old fade
+   stays for programmatic jumps (taps on cards, deep links). */
+.v12-slide-l { animation: v12SlideL 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+.v12-slide-r { animation: v12SlideR 240ms cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes v12SlideL {
+  from { transform: translateX(26%); opacity: .4; }
+  to   { transform: translateX(0);   opacity: 1; }
+}
+@keyframes v12SlideR {
+  from { transform: translateX(-26%); opacity: .4; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Live drag feedback — the page follows the finger while the gesture is
+   open, then either commits (slide anim) or snaps back. */
+#app.is-dragging { transition: none; }
+#app.is-snapback { transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .v12-slide-l, .v12-slide-r { animation: none; }
+  #app.is-snapback { transition: none; }
+}

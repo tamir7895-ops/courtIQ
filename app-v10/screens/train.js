@@ -1,294 +1,324 @@
-/* app-v10/screens/train.js
-   TRAIN tab — For You / All Drills / Plans sub-tabs.
-   Default "For You": mustard hero, 4-bento (drills/week/streak/intensity),
-   WORKOUT PLAN ribbon, 2x2 drill grid, coach-note pin, start-workout CTA.
+/* app-v10/screens/train.js — v11
+   TRAIN tab. Dark shell, the scout's plan on paper.
+
+   Two ideas, both stolen deliberately:
+
+   1. RUNNA — the headline is not a metric, it's a NAMED OBJECT to go do.
+      Runna won the crowded 2024-26 running market by being *less* designed,
+      and its hero is "5 × 800m @ 4:15" — a prescription, not a measurement.
+      A training screen answers "what do I do today", not "how am I doing".
+
+   2. DUOLINGO — the path. Their 2022 redesign replaced a branching tree
+      with one serpentine chain because learners couldn't tell if they were
+      using it "the right way". One node is live; the rest are quiet. That's
+      structure, not skin — we take the chain and leave the owl.
+
+   The old screen had FOR YOU / ALL DRILLS / PLANS plus a stat quad plus a
+   hero plus a plan list: four ways to ask the same question. Now: one
+   prescription, one path.
    ============================================================ */
 (function () {
   'use strict';
   var h = window.V10UI.h, icon = window.V10UI.icon;
+  var V = window.V11;
 
-  var SUBS = [
-    { id: 'foryou',  label: 'For You' },
-    { id: 'all',     label: 'All Drills' },
-    { id: 'plans',   label: 'Plans' }
-  ];
+  var TABS = [{ id: 'today', label: 'TODAY' }, { id: 'library', label: 'LIBRARY' }];
+  var LS_DONE = 'courtiq_v11_drills_done';
 
-  // Tile accent rotation for drills coming from real data.
-  var ACCENTS = ['orange', 'sage', 'mustard', 'ink-fill'];
-
-  function chips(active, onPick) {
-    var row = h('div', { class: 'v10-chips' });
-    SUBS.forEach(function (s) {
-      var cls = 'v10-chip' + (s.id === active ? ' is-active' : '');
-      row.appendChild(h('button', {
-        class: cls,
-        onClick: function () { onPick(s.id); }
-      }, [s.label]));
-    });
-    return row;
+  /* Which drills are finished today. Real state — a path whose nodes don't
+     remember is just a picture of a path. */
+  function doneToday() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(LS_DONE) || '{}');
+      return raw.date === new Date().toISOString().slice(0, 10) ? (raw.ids || []) : [];
+    } catch (e) { return []; }
+  }
+  function markDone(id) {
+    try {
+      var ids = doneToday();
+      if (ids.indexOf(id) < 0) ids.push(id);
+      localStorage.setItem(LS_DONE, JSON.stringify({
+        date: new Date().toISOString().slice(0, 10), ids: ids
+      }));
+    } catch (e) {}
   }
 
-  function heroForYou(firstDrill, drillsTotal) {
-    var name = (firstDrill && firstDrill.name) ? firstDrill.name.toUpperCase() : 'FORM SHOOTING';
-    var reps = (firstDrill && firstDrill.reps) ? firstDrill.reps : 50;
-    var mins = (firstDrill && firstDrill.mins) ? firstDrill.mins : 8;
-    var focus = (firstDrill && firstDrill.focus) ? firstDrill.focus.toUpperCase() : 'SHOOTING';
-    return h('div', { class: 'v10-hero v10-hero--mustard' }, [
-      h('div', { class: 'v10-hero__main' }, [
-        h('div', { class: 'v10-hero__eyebrow' }, [
-          icon('ph-barbell'),
-          h('span', { text: 'DRILL 1 OF ' + (drillsTotal || 3) + ' · ' + reps + ' REPS' })
+  function totalMins(drills) {
+    return drills.reduce(function (n, d) { return n + (d.mins || 0); }, 0);
+  }
+
+  /* The prescription. One thing to do, named. */
+  function rx(drills, done) {
+    var left = drills.filter(function (d) { return done.indexOf(d.id) < 0; });
+    var complete = !left.length;
+    var focus = {};
+    drills.forEach(function (d) { focus[d.focus || 'Skill'] = 1; });
+    var keys = Object.keys(focus);
+    var name = complete ? 'SESSION DONE'
+      : (keys.length === 1 ? keys[0].toUpperCase() + ' BLOCK' : 'MIXED BLOCK');
+    return h('div', { class: 'v11-rx' }, [
+      h('div', { class: 'v11-rx__eye', text: complete ? 'TODAY · COMPLETE' : 'TODAY' }),
+      h('div', { class: 'v11-rx__t', text: name }),
+      h('div', {
+        class: 'v11-rx__s',
+        text: complete
+          ? 'All ' + drills.length + ' drills logged. Anything past here is profit.'
+          : left.length + ' of ' + drills.length + ' drills left — ' +
+            drills.map(function (d) { return d.reps + '×' + d.name.split(' ')[0]; }).join(' · ')
+      }),
+      h('div', { class: 'v11-rx__meta' }, [
+        h('div', { class: 'v11-rx__m' }, [
+          h('i', { class: 'ph-fill ph-clock' }),
+          h('span', { text: totalMins(drills) + ' MIN' })
         ]),
-        h('div', { class: 'v10-hero__headline', text: name + ' /' }),
-        h('div', { class: 'v10-hero__headline', text: focus }),
-        h('div', { class: 'v10-hero__sub', text: 'Est. ' + mins + ' min' })
+        h('div', { class: 'v11-rx__m' }, [
+          h('i', { class: 'ph-fill ph-barbell' }),
+          h('span', { text: drills.length + ' DRILLS' })
+        ])
       ])
     ]);
   }
 
-  function bentoRow(opts) {
-    opts = opts || {};
-    var streak = opts.streak || 0;
-    var week = opts.week || 0;
-    var drillsTotal = opts.drillsTotal != null ? opts.drillsTotal : 3;
-    return window.V10UI.bento([
-      { variant: 'mustard', icon: 'ph-barbell',   value: '1/' + drillsTotal,  label: 'DRILLS' },
-      { variant: 'orange',  icon: 'ph-flag',      value: week,     label: 'THIS WEEK' },
-      { variant: undefined, icon: 'ph-fire',      value: streak,   label: 'STREAK',
-        iconExtra: streak >= 3 ? 'v10-flicker' : '' },
-      { variant: 'ink',     icon: 'ph-lightning', value: 'MED',    label: 'INTENSITY' }
-    ]);
-  }
+  /* The path — SUGGESTS an order, never enforces one.
 
-  function drillTile(d, idx, onClick) {
-    var tone = d.tone || ACCENTS[idx % ACCENTS.length];
-    var cls = 'v10-tile v10-tile--' + tone;
-    var iconName = d.icon || 'ph-basketball';
-    var iconCls = 'ph-bold ' + iconName + ' v10-tile__icon';
-    if (tone && tone !== 'ink-fill') iconCls += ' v10-tile__icon--' + tone;
-    var num = d.num || ('0' + (idx + 1)).slice(-2);
-    var reps = d.reps != null ? d.reps : 30;
-    var mins = d.mins != null ? d.mins : 6;
-    var meta = d.meta || (reps + ' REPS · ' + mins + ' MIN');
-    var title = (d.title || d.name || 'DRILL').toUpperCase();
-    return h('div', {
-      class: cls,
-      onclick: onClick || function () {}
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('i', { class: iconCls }),
-        h('div', { class: 'v10-tile__num', text: num })
-      ]),
-      h('div', { class: 'v10-tile__title', text: title }),
-      h('div', { class: 'v10-tile__meta',  text: meta })
-    ]);
-  }
+     I built this with locks first, because that's what Duolingo does, and
+     that was wrong. A path encodes PREREQUISITES, and basketball has none:
+     the Mikan drill does not unlock the jumpshot, and a layup is not a
+     gateway to a corner three. Any lock here would be fabricated — and
+     fabricated gating is exactly what produced Duolingo's backlash.
 
-  function moreTile(remaining, onClick) {
-    return h('div', {
-      class: 'v10-tile v10-tile--ink-fill',
-      onclick: onClick
-    }, [
-      h('div', { class: 'v10-tile__top' }, [
-        h('i', { class: 'ph-bold ph-list v10-tile__icon' }),
-        h('div', { class: 'v10-tile__num', text: '+' + remaining })
-      ]),
-      h('div', { class: 'v10-tile__title', text: 'VIEW ALL' }),
-      h('div', { class: 'v10-tile__meta', style: { color: 'var(--cream)' } }, [
-        document.createTextNode('SEE LIBRARY '),
-        h('i', { class: 'ph-bold ph-arrow-right' })
-      ])
-    ]);
-  }
+     Every non-language adopter reached the same conclusion independently:
+     Chess.com keeps the first lesson of every course open, Simply Piano
+     warns instead of locking, and Peloton spent years hard-locking its
+     Programs before retreating in 2025 to "suggested, not required".
+     Runna never locked at all. The convergent rule: PRESCRIBE BY DEFAULT,
+     NEVER LOCK.
 
-  function drillGrid(drills, ctx, switchTo) {
-    var grid = h('div', { class: 'v10-grid' });
-    var picks = (drills || []).slice(0, 3);
-    var iconRotation = ['ph-crosshair-simple', 'ph-lightning', 'ph-target', 'ph-basketball'];
-    picks.forEach(function (d, i) {
-      grid.appendChild(drillTile({
-        title: d.name,
-        reps: d.reps,
-        mins: d.mins,
-        icon: iconRotation[i % iconRotation.length],
-        tone: ACCENTS[i % ACCENTS.length]
-      }, i, function () { ctx.go('workout-player'); }));
-    });
-    // Fill missing real drills with placeholders so the grid is always 2x2.
-    while (grid.children.length < 3) {
-      var idx = grid.children.length;
-      grid.appendChild(drillTile({
-        title: 'Drill ' + (idx + 1),
-        reps: 25,
-        mins: 6,
-        icon: iconRotation[idx % iconRotation.length],
-        tone: ACCENTS[idx % ACCENTS.length]
-      }, idx, function () { ctx.go('workout-player'); }));
+     There's a second reason, and it's the one that matters on a bad week:
+     a grid resets, a path accuses. Skip drill 2 under a lock model and you
+     are visibly stranded on it — the UI now blames you for a rest day the
+     sport actually requires.
+
+     So we keep what the path is genuinely good for — legibility, "what do
+     I do next" — and drop the lie about ordering. One node says START
+     HERE; the rest are open. */
+  function path(drills, done, ctx) {
+    var nextIdx = -1;
+    for (var i = 0; i < drills.length; i++) {
+      if (done.indexOf(drills[i].id) < 0) { nextIdx = i; break; }
     }
-    // 4th slot = "VIEW ALL" → switch to All Drills sub-tab.
-    var remaining = Math.max(0, ((drills && drills.length) || 0) - 3);
-    grid.appendChild(moreTile(remaining || 8, function () { switchTo('all'); }));
-    return grid;
-  }
-
-  function renderForYou(host, ctx, switchTo) {
-    Promise.all([
-      ctx.data.getProfile(),
-      ctx.data.getWeekStats(),
-      ctx.data.getDrills(),
-      ctx.data.getCoachVerdict()
-    ]).then(function (results) {
-      var profile = results[0] || {};
-      var week    = results[1] || {};
-      var drills  = results[2] || [];
-      var coach   = results[3] || {};
-
-      var firstDrill = drills[0] || null;
-      var drillsTotal = drills.length || 3;
-      var planMins = (drills || []).reduce(function (n, d) { return n + (d.mins || 6); }, 0) || 20;
-
-      host.appendChild(heroForYou(firstDrill, drillsTotal));
-      host.appendChild(bentoRow({
-        streak: profile.streak,
-        week: week.sessions || 0,
-        drillsTotal: drillsTotal
-      }));
-      host.appendChild(window.V10UI.ribbon({
-        icon: 'ph-barbell',
-        title: 'WORKOUT PLAN',
-        meta: drillsTotal + ' DRILLS · ' + planMins + ' MIN'
-      }));
-      host.appendChild(drillGrid(drills, ctx, switchTo));
-      if (coach && coach.verdict) {
-        host.appendChild(window.V10UI.pinCard({
-          tab:  'COACH NOTE',
-          body: coach.verdict,
-          highlight: coach.highlight,
-          sig:  'COACH'
-        }));
-      }
-
-      // Flex spacer pushes the CTA toward the bottom of the viewport.
-      host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
-
-      host.appendChild(window.V10UI.cta({
-        variant: 'orange',
-        icon: 'ph-play-circle',
-        label: 'START WORKOUT',
-        onClick: function () { ctx.go('workout-player'); }
-      }));
-    });
-  }
-
-  function renderAll(host, ctx) {
-    host.appendChild(window.V10UI.ribbon({
-      icon: 'ph-barbell',
-      title: 'ALL DRILLS',
-      meta: 'LIBRARY'
-    }));
-    var rows = [
-      { num: '01', title: 'Form Shooting',   sub: '50 reps · 8 min',  right: 'EASY' },
-      { num: '02', title: 'Catch & Shoot',   sub: '30 reps · 6 min',  right: 'EASY' },
-      { num: '03', title: 'Quick Draw',      sub: '20 reps · 4 min',  right: 'MED'  },
-      { num: '04', title: 'Free Throws',     sub: '40 reps · 10 min', right: 'EASY' },
-      { num: '05', title: 'Pull-Up Jumper',  sub: '25 reps · 7 min',  right: 'HARD' },
-      { num: '06', title: 'Step-Back Three', sub: '20 reps · 6 min',  right: 'HARD' }
-    ];
-
-    // Try to enrich with real drills if available.
-    ctx.data.getDrills().then(function (real) {
-      if (real && real.length) {
-        real.slice(0, rows.length).forEach(function (d, i) {
-          rows[i] = {
-            num:   ('0' + (i + 1)).slice(-2),
-            title: d.name || rows[i].title,
-            sub:   (d.reps || 30) + ' reps · ' + (d.mins || 6) + ' min',
-            right: i < 2 ? 'EASY' : (i < 4 ? 'MED' : 'HARD')
-          };
-        });
-      }
-      rows.forEach(function (r) {
-        host.appendChild(h('div', {
-          class: 'v10-row',
-          onclick: function () { ctx.go('drill-library'); }
-        }, [
-          h('div', { class: 'v10-row__num', text: r.num }),
-          h('div', { class: 'v10-row__main' }, [
-            h('div', { class: 'v10-row__title', text: r.title }),
-            h('div', { class: 'v10-row__sub',   text: r.sub })
-          ]),
-          h('div', { class: 'v10-row__right', text: r.right })
-        ]));
-      });
-
-      host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
-      host.appendChild(window.V10UI.cta({
-        variant: 'orange',
-        icon: 'ph-books',
-        label: 'OPEN FULL LIBRARY',
-        onClick: function () { ctx.go('drill-library'); }
-      }));
-    });
-  }
-
-  function renderPlans(host, ctx) {
-    host.appendChild(window.V10UI.ribbon({
-      icon: 'ph-flag',
-      title: 'WORKOUT PLANS',
-      meta: 'CHOOSE A TRACK'
-    }));
-    var rows = [
-      { num: 'A', title: 'Sniper Builder',     sub: '5 drills · 28 min', right: 'NEW'  },
-      { num: 'B', title: 'Footwork Friday',    sub: '4 drills · 22 min', right: 'PRO'  },
-      { num: 'C', title: 'Free Throw Mastery', sub: '3 drills · 15 min', right: 'EASY' }
-    ];
-    rows.forEach(function (r) {
-      host.appendChild(h('div', {
-        class: 'v10-row',
-        onclick: function () { ctx.go('workout-player'); }
+    var wrap = h('div', { class: 'v11-path' });
+    drills.forEach(function (d, i) {
+      var isDone = done.indexOf(d.id) >= 0;
+      var isNext = i === nextIdx;
+      var open = function () {
+        markDone(d.id);
+        try { sessionStorage.setItem('courtiq_v11_drill', JSON.stringify(d)); } catch (e) {}
+        ctx.go('workout-player');
+      };
+      var main = [
+        h('div', { class: 'v11-node__t', text: d.name }),
+        h('div', { class: 'v11-node__s', text: d.reps + ' REPS · ' + d.mins + ' MIN' })
+      ];
+      if (isNext) main.push(h('div', { class: 'v11-node__now', text: 'START HERE' }));
+      wrap.appendChild(h('button', {
+        class: 'v11-node ' + (isDone ? 'is-done' : isNext ? 'is-next' : 'is-open'),
+        type: 'button',
+        'aria-current': isNext ? 'step' : null,
+        title: isDone ? 'Done — tap to run it again'
+                      : (isNext ? 'Suggested next' : 'Open — tap to jump here'),
+        onclick: open
       }, [
-        h('div', { class: 'v10-row__num', text: r.num }),
-        h('div', { class: 'v10-row__main' }, [
-          h('div', { class: 'v10-row__title', text: r.title }),
-          h('div', { class: 'v10-row__sub',   text: r.sub })
+        h('div', { class: 'v11-node__dot' }, [
+          h('i', { class: 'ph-fill ' + (isDone ? 'ph-check' : 'ph-play') })
         ]),
-        h('div', { class: 'v10-row__right', text: r.right })
+        h('div', { class: 'v11-node__main' }, main)
       ]));
     });
+    return wrap;
+  }
 
-    host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '4px' } }));
-    host.appendChild(window.V10UI.cta({
-      variant: 'orange',
-      icon: 'ph-play-circle',
-      label: 'START FIRST PLAN',
-      onClick: function () { ctx.go('workout-player'); }
-    }));
+  function renderLibrary(sheet, ctx, drills) {
+    sheet.appendChild(V.sheetHd('YOUR DRILLS', drills.length + ' TODAY'));
+    drills.forEach(function (d) {
+      sheet.appendChild(h('div', {
+        class: 'v10-row', style: { boxShadow: '2px 2px 0 var(--ink)', cursor: 'pointer' },
+        onclick: function () { ctx.go('drill-library'); }
+      }, [
+        h('div', { class: 'v10-row__main' }, [
+          h('div', { class: 'v10-row__title', text: d.name }),
+          h('div', { class: 'v10-row__sub',
+            text: (d.focus || 'Skill') + ' · ' + d.reps + ' reps · ' + d.mins + ' min' })
+        ]),
+        h('i', { class: 'ph-bold ph-arrow-right', style: { color: 'var(--muted)' } })
+      ]));
+    });
+    sheet.appendChild(h('div', {
+      class: 'v10-reels-link', onclick: function () { ctx.go('drill-library'); }
+    }, [
+      icon('ph-barbell'),
+      h('span', { text: 'FULL DRILL LIBRARY' }),
+      h('i', { class: 'ph-bold ph-arrow-right v10-reels-link__arrow' })
+    ]));
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx  = args.ctx;
-    var sub  = 'foryou';
+    var host = args.host, ctx = args.ctx;
+    var tab = 'today';
 
-    function switchTo(id) { sub = id; paint(); }
+    return Promise.all([
+      ctx.data.getProfile(),
+      ctx.data.getPlanDrills ? ctx.data.getPlanDrills() : ctx.data.getDrills(),
+      ctx.data.getZones ? ctx.data.getZones() : {}
+    ]).then(function (r) {
+      var profile = r[0] || {};
+      var drills = r[1] || [];
+      var zones = r[2] || {};
+      var prefs = ctx.data.getPlanPrefs ? ctx.data.getPlanPrefs() : null;
 
-    function paint() {
-      while (host.firstChild) host.removeChild(host.firstChild);
-      // Make the host a column flex container so the spacer can push the CTA down.
-      host.style.display = 'flex';
-      host.style.flexDirection = 'column';
-      host.style.minHeight = '100%';
+      /* ── DRILL OF THE DAY — aimed at the real weakness ──────────
+         Worst RATED zone from the last 30 days picks the drill; with
+         no rated zones there is no fake diagnosis — just the form
+         fundamentals. The reason line says WHY, with the real number. */
+      function drillOfTheDay() {
+        var C = window.V11Court;
+        var worst = null, worstPct = 101;
+        Object.keys(zones).forEach(function (k) {
+          var z = zones[k];
+          if (!z || C.state(z) !== 'rated') return;
+          var p = Math.round(z.made * 100 / z.vatt);
+          if (p < worstPct) { worstPct = p; worst = k; }
+        });
+        var MAP = {
+          lc: 'Corner Specialist Routine', rc: 'Corner Specialist Routine',
+          lw: 'Relocation Threes', rw: 'Relocation Threes',
+          top: 'Step-Back Three',
+          ml: 'Mid-Range Pull-Up', mr: 'Mid-Range Pull-Up',
+          topmid: 'Elbow Jumper Series', pnt: 'Mikan Drill'
+        };
+        var name = worst ? MAP[worst] : 'Form Shooting Close Range';
+        var hit = null, DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : [];
+        for (var i = 0; i < DB.length; i++) if (DB[i].name === name) { hit = DB[i]; break; }
+        if (!hit) return null;
+        var zoneName = worst
+          ? (C.LABEL[worst] || worst).replace(/^L /, 'left ').replace(/^R /, 'right ').toLowerCase()
+          : '';
+        var reason = worst
+          ? 'Targets your ' + zoneName + ' — ' + worstPct + '% over 30 days'
+          : 'No rated zones yet — groove the base first';
+        var thumb = null;
+        try {
+          var ch = window.V12DrillChoreo && window.V12DrillChoreo.get(hit);
+          if (ch) thumb = window.V12DrillCourt.render(ch, { still: true, label: hit.name });
+        } catch (e) {}
+        return h('div', { class: 'tr12-dotd' }, [
+          h('div', { class: 'tr12-dotd__hd' }, [
+            h('i', { class: 'ph-fill ph-star' }),
+            h('span', { text: 'DRILL OF THE DAY' })
+          ]),
+          h('div', { class: 'tr12-dotd__row' }, [
+            thumb ? h('div', { class: 'tr12-dotd__thumb' }, [thumb]) : null,
+            h('div', { class: 'tr12-dotd__main' }, [
+              h('div', { class: 'tr12-dotd__n', text: hit.name }),
+              h('div', { class: 'tr12-dotd__r', text: reason }),
+              h('button', {
+                class: 'tr12-dotd__go', type: 'button',
+                onclick: function () {
+                  try {
+                    sessionStorage.setItem('courtiq_v11_drill', JSON.stringify({
+                      id: hit.id, name: hit.name,
+                      reps: hit.reps_or_sets ? parseInt(String(hit.reps_or_sets), 10) || 30 : 30,
+                      mins: hit.duration_minutes || 10,
+                      focus: hit.focus_area || 'Shooting',
+                      description: hit.description || ''
+                    }));
+                  } catch (e2) {}
+                  ctx.go('workout-player');
+                }
+              }, [h('i', { class: 'ph-fill ph-play-circle' }), h('span', { text: 'Start' })])
+            ]),
+          ].filter(Boolean))
+        ]);
+      }
 
-      ctx.data.getProfile().then(function (profile) {
-        host.appendChild(ctx.ui.headerPill({ profile: profile }));
-        host.appendChild(chips(sub, switchTo));
-        if (sub === 'all')        renderAll(host, ctx);
-        else if (sub === 'plans') renderPlans(host, ctx);
-        else                      renderForYou(host, ctx, switchTo);
-      });
-    }
+      function paint() {
+        while (host.firstChild) host.removeChild(host.firstChild);
+        var done = doneToday();
+        var left = drills.filter(function (d) { return done.indexOf(d.id) < 0; });
 
-    paint();
+        host.appendChild(h('div', { class: 'c12-chat-hd' }, [
+          h('button', {
+            class: 'c12-back', type: 'button', 'aria-label': 'Back',
+            onclick: function () { ctx.go('track'); }
+          }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+          h('div', {}, [
+            h('div', { class: 'c12-chat-hd__t', text: 'Your training plan' }),
+            h('div', { class: 'c12-chat-hd__s', text: 'What to do today — not how you did.' })
+          ])
+        ]));
+        host.appendChild(window.V12.seg([
+          { id: 'today', label: 'Today' }, { id: 'library', label: 'Library' }
+        ], tab, function (n) { tab = n; paint(); }));
+
+        /* the plan the drills came from — one tap to reshape it */
+        var FL = { shooting: 'Shooting', handles: 'Ball handling', finishing: 'Finishing',
+                   defense: 'Defense', conditioning: 'Conditioning', passing: 'Passing' };
+        var focusTxt = prefs && prefs.focus && prefs.focus.length
+          ? prefs.focus.map(function (f) { return FL[f] || f; }).join(' · ')
+          : 'Balanced — set your focus';
+        host.appendChild(window.V12.card({
+          press: true, class: 'tr12-plan', bgIcon: 'ph-sliders', bgTone: 'blue',
+          onClick: function () { ctx.go('plan'); }, label: 'Plan settings'
+        }, [
+          h('div', { style: { flex: '1', minWidth: '0' } }, [
+            h('div', { class: 'tr12-plan__l', text: 'YOUR PLAN' }),
+            h('div', { class: 'tr12-plan__v', text: (prefs ? (prefs.days || 4) + ' days · ' + (prefs.minutes || 30) + 'm · ' : '') + focusTxt })
+          ]),
+          h('i', { class: 'ph-bold ph-caret-right', style: { color: 'var(--d-mute)' } })
+        ]));
+
+        if (tab === 'today') {
+          var dotd = drillOfTheDay();
+          if (dotd) host.appendChild(dotd);
+        }
+
+        var sheet = V.sheet();
+        host.appendChild(sheet);
+
+        if (!drills.length) {
+          sheet.appendChild(V.sheetHd('TODAY'));
+          sheet.appendChild(V.empty('ph-barbell', 'NO PLAN YET',
+            'Open the drill library and pick a focus — your plan builds from there.'));
+        } else if (tab === 'today') {
+          sheet.appendChild(rx(drills, done));
+          sheet.appendChild(V.sheetHd('THE ORDER',
+            (drills.length - left.length) + '/' + drills.length));
+          sheet.appendChild(path(drills, done, ctx));
+          sheet.appendChild(h('div', {
+            class: 'v11-basis',
+            text: 'A suggested order, not a rule. Nothing here is locked — ' +
+                  'start wherever you want.'
+          }));
+        } else {
+          renderLibrary(sheet, ctx, drills);
+        }
+
+        var foot = h('div', { class: 'v11-foot' });
+        if (drills.length && tab === 'today') {
+          foot.appendChild(V.cta({
+            icon: left.length ? 'ph-play-circle' : 'ph-crosshair-simple',
+            label: left.length ? 'Start workout' : 'Go shoot',
+            onClick: function () { ctx.go(left.length ? 'workout-player' : 'camera-hud'); }
+          }));
+        }
+        foot.appendChild(V.cta({
+          ghost: true, label: 'Browse all drills',
+          onClick: function () { ctx.go('drill-library'); }
+        }));
+        host.appendChild(foot);
+      }
+      paint();
+    });
   }
 
   window.app.register('train', render);

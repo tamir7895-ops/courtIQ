@@ -225,7 +225,7 @@
      free by using the standard bento/hero classes. */
   function animateCounts(root) {
     if (REDUCED || !root || !root.querySelectorAll) return;
-    var els = root.querySelectorAll('.v10-bento__num, .v10-hero__num, .v10-hero__aside-num');
+    var els = root.querySelectorAll('.v10-bento__num, .v10-hero__num, .v10-hero__aside-num, .d-num, .h12-badge__v');
     for (var i = 0; i < els.length; i++) {
       var walker = els[i].childNodes;
       for (var j = 0; j < walker.length; j++) {

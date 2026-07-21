@@ -154,6 +154,86 @@
     return passScan('red') || passScan('orange');
   }
 
+  /* ── Ball-track gap interpolation (bridge detection dropout at the rim) ──
+     The made/miss classifier is only as good as the ball signal it sees.
+     YOLOX drops the ball for a handful of frames at the exact through-rim
+     moment (net occlusion, motion blur, tiny distant ball) — measured on
+     the night_c 1.1s make: a 6-frame gap at the crossing (f46→f52) broke the
+     dwell-run continuity and the make was scored a miss. Competitor trackers
+     (avishah3, chonyy, NEX/HomeCourt) all agree: don't classify off raw
+     per-frame detections — associate them into a track and interpolate the
+     gap, then decide against the continuous trajectory.
+
+     Greedy constant-velocity association over the near-rim obs; for each pair
+     of consecutive REAL anchors in a track separated by a short gap, insert
+     linearly-interpolated points into the intervening frames. We ONLY bridge
+     BETWEEN two real detections — never extrapolate past the last one (that
+     is the L31 ghost bug where a constant-velocity phantom sailed off-frame
+     and fired false triggers). Interpolated points carry a modest synthetic
+     score so they clear the ball floor but never dominate a real detection.
+     Validated on GT (scratch/score_batch.py SB_TRACKFILL): 15/17 → 16/17
+     with zero regressions; stable for maxGap 6-12. obs is mutated in place
+     (new arrays are pushed onto the per-frame lists). */
+  function bridgeTrackGaps(obs, N, maxGap, synthS) {
+    maxGap = maxGap || 8; synthS = synthS || 0.12;
+    var openT = [], tracks = [];
+    for (var f = 0; f < N; f++) {
+      var cand = obs[f].slice().sort(function (a, b) { return b.s - a.s; });
+      var used = new Array(cand.length);
+      for (var ti = 0; ti < openT.length; ti++) {
+        var tr = openT[ti];
+        var last = tr.pts[tr.pts.length - 1];
+        var dt = f - tr.lastF;
+        var px = last.x + tr.vx * dt, py = last.y + tr.vy * dt;
+        var gate = 0.045 + 0.02 * (dt - 1);
+        var best = -1, bd = gate;
+        for (var ci = 0; ci < cand.length; ci++) {
+          if (used[ci]) continue;
+          var dist = Math.abs(cand[ci].x - px) + Math.abs(cand[ci].y - py);
+          if (dist < bd) { best = ci; bd = dist; }
+        }
+        if (best >= 0) {
+          used[best] = true;
+          var d = cand[best], step = Math.max(1, f - last.frame);
+          tr.vx = 0.4 * tr.vx + 0.6 * (d.x - last.x) / step;
+          tr.vy = 0.4 * tr.vy + 0.6 * (d.y - last.y) / step;
+          tr.pts.push({ frame: f, x: d.x, y: d.y }); tr.lastF = f;
+        }
+      }
+      for (var ci2 = 0; ci2 < cand.length; ci2++) {
+        if (!used[ci2] && cand[ci2].s >= 0.05) {
+          openT.push({ pts: [{ frame: f, x: cand[ci2].x, y: cand[ci2].y }],
+                       vx: 0, vy: 0, lastF: f });
+        }
+      }
+      var keep = [];
+      for (var ki = 0; ki < openT.length; ki++) {
+        if (f - openT[ki].lastF > maxGap) tracks.push(openT[ki]);
+        else keep.push(openT[ki]);
+      }
+      openT = keep;
+    }
+    for (var oi = 0; oi < openT.length; oi++) tracks.push(openT[oi]);
+    for (var tj = 0; tj < tracks.length; tj++) {
+      var pts = tracks[tj].pts;
+      if (pts.length < 2) continue;
+      for (var a = 0; a < pts.length - 1; a++) {
+        var pa = pts[a], pb = pts[a + 1], gap = pb.frame - pa.frame;
+        if (gap < 2 || gap > maxGap) continue;
+        for (var g = 1; g < gap; g++) {
+          var r = g / gap, fi = pa.frame + g;
+          var xf = pa.x + r * (pb.x - pa.x), yf = pa.y + r * (pb.y - pa.y);
+          var dup = false;
+          for (var pi = 0; pi < obs[fi].length; pi++) {
+            if (Math.abs(obs[fi][pi].x - xf) + Math.abs(obs[fi][pi].y - yf) < 0.02) { dup = true; break; }
+          }
+          if (!dup) obs[fi].push({ x: xf, y: yf, s: synthS, filled: true });
+        }
+      }
+    }
+    return obs;
+  }
+
   /* Verdict for one attempt window — PURE function shared by the final
      pass-2 classification AND the live display layer, so what the user
      watches during analysis is the exact same math as the saved result.
@@ -247,6 +327,9 @@
 
         var run = function () {
           var duration = video.duration || 0;
+          // Infinity slips past a falsy check: totalFrames became Infinity,
+          // progress stuck at 0 and the seek loop never terminated.
+          if (!isFinite(duration)) { fail(new Error('video duration unavailable (unseekable recording)')); return; }
           if (!duration || !video.videoWidth) { fail(new Error('video has no duration/dimensions')); return; }
 
           onStage('Loading model…');
@@ -262,6 +345,12 @@
             prevOnFrame = eng.onFrameDetections;
 
             eng._offlineMode = true;
+            /* Belt and braces: the live session sets _lowPowerMode while
+               recording to give the encoder the chip. Offline analysis is the
+               opposite regime — it must see EVERY frame, and it is where the
+               accuracy comes from — so never inherit a stale throttle. */
+            eng._lowPowerMode = false;
+            eng._recordingIdle = false;   // offline must see EVERY frame
             if (eng.isRunning) { try { eng.stop(); } catch (e) {} }
             eng._offlineMode = true;
             try { eng.start(video); } catch (e) { fail(e); return; }
@@ -439,10 +528,19 @@
             var totalFrames = Math.max(1, Math.floor(duration * fps));
             var frame = 0;
             onStage('Analyzing every frame…');
+            /* Stuck-watchdog. Court report: "analyze never finishes" -- a
+               damaged recording can wedge the seek loop. If no frame
+               completes for 25s, fail CLEANLY instead of hanging forever. */
+            var lastAdvanceAt = Date.now(), watchdogDead = false;
+            var watchdog = setInterval(function () {
+              if (Date.now() - lastAdvanceAt > 25000) { clearInterval(watchdog); watchdogDead = true; }
+            }, 5000);
 
             function step() {
-              if (signal && signal.aborted) { cleanup(); reject(new Error('aborted')); return; }
-              if (frame >= totalFrames) { finishRun(); return; }
+              if (signal && signal.aborted) { clearInterval(watchdog); cleanup(); reject(new Error('aborted')); return; }
+              if (watchdogDead) { cleanup(); reject(new Error('analysis stalled (unreadable recording)')); return; }
+              if (frame >= totalFrames) { clearInterval(watchdog); finishRun(); return; }
+              lastAdvanceAt = Date.now();
               var t = Math.min(duration - 0.001, frame * dt);
               seekTo(video, t).then(function () {
                 return eng.processFrameOffline();
@@ -589,6 +687,12 @@
               try { console.log('[OfflineProcessor] pass2 —', JSON.stringify(diag)); } catch (e) {}
 
               if (!ring) {
+                // No ring -> no verdicts possible. Say how much raw ball
+                // signal existed so a remote report can tell a hoop failure
+                // from a ball failure.
+                var rawBallF = 0;
+                for (var rbi = 0; rbi < rows.length; rbi++) if (rows[rbi].balls.length) rawBallF++;
+                diag.rawBallFrames = rawBallF;
                 cleanup();
                 resolve({ shots: [], total: 0, made: 0, missed: 0, rawTotal: 0,
                           duration: duration, frames: rows.length, rim: null, diag: diag });
@@ -683,6 +787,10 @@
                 }
                 obs.push(near);
               }
+              // Bridge short detection dropouts at the rim so a make whose
+              // through-rim frames vanished still shows a continuous crossing
+              // (see bridgeTrackGaps — validated 15/17 → 16/17 on GT).
+              bridgeTrackGaps(obs, rows.length, 8, 0.12);
 
               // Global fixture map (v7 mode): the net-knot detects as a
               // "ball" in up to ~1/3 of ALL frames at a fixed ring-relative
@@ -754,6 +862,19 @@
                 var end = (i + 1 < arrivals.length) ? arrivals[i + 1].start - 1 : rows.length - 1;
                 return [a.start, Math.min(end, a.start + CAP)];
               });
+              // Ball-signal census for the zero-shots diagnostic: rim locked
+              // but 0 windows means the ball was never seen ABOVE the ring —
+              // these numbers separate "no ball detections at all" from
+              // "ball seen near the rim but never above the plane".
+              var nearBallF = 0, rawBallF2 = 0;
+              for (var bfi = 0; bfi < rows.length; bfi++) {
+                if (rows[bfi].balls.length) rawBallF2++;
+                if (obs[bfi].length) nearBallF++;
+              }
+              diag.rawBallFrames  = rawBallF2;
+              diag.nearRimFrames  = nearBallF;
+              diag.aboveRingFrames = aboveIdx.length;
+              diag.windows = windows.length;
 
               // ── Verdicts ───────────────────────────────────────
               function bestObs(i) {
@@ -908,6 +1029,16 @@
                   if (eng._classifyV10Zone)  v10Zone  = eng._classifyV10Zone(feetX, feetY, rimZoneObj, eng.threePtDistance || 0) || v10Zone;
                   if (eng._classifyShotZone) shotZone = eng._classifyShotZone({ x: feetX, y: feetY }, rimZoneObj, eng.threePtDistance || 0) || shotZone;
                 } catch (e) { /* zones are cosmetic */ }
+                // Court calibration (when present): true court coords + real
+                // distance from the shooter's feet; overrides the image-space
+                // zone heuristic. See courtPosition.js.
+                var court = null;
+                try {
+                  if (window.CourtPosition && window.CourtPosition.isCalibrated()) {
+                    court = window.CourtPosition.locate(feetX, feetY);
+                    if (court) v10Zone = court.zone;
+                  }
+                } catch (e) { court = null; }
                 // small trajectory record: rim-area best obs across the window
                 var traj = [];
                 for (var ti = w0; ti <= w1 && traj.length < 40; ti++) {
@@ -920,6 +1051,9 @@
                   shotX: feetX, shotY: feetY,
                   launchPoint: { x: feetX, y: feetY },
                   v10Zone: v10Zone, shotZone: shotZone,
+                  courtX: court ? +court.x.toFixed(2) : null,
+                  courtZ: court ? +court.z.toFixed(2) : null,
+                  shotDistM: court ? +court.dist.toFixed(2) : null,
                   trajectory: traj,
                   __videoT: tShot,
                   triggerSrc: 'offline-timeline'
@@ -985,9 +1119,37 @@
         // kick forces the media pipeline to spin up even in background;
         // multiple ready events + a readyState poll cover the rest.
         var started = false;
+        /* MediaRecorder webm (a recorded live session) ships WITHOUT a
+           duration header — video.duration reads Infinity, which slipped
+           past the falsy check, made totalFrames Infinity, pinned progress
+           at 0 and turned the seek loop non-terminating. The standard
+           repair: seek far past the end once; the browser scans the file,
+           fires durationchange with the real length, and everything
+           downstream works unchanged. One attempt only — if the duration
+           still is not finite, run() now fails it cleanly. */
+        var durationFixTried = false;
+        function fixInfiniteDuration() {
+          durationFixTried = true;
+          var done = false;
+          function finish() {
+            if (done) return;
+            done = true;
+            try { video.currentTime = 0; } catch (e) {}
+            tryRun();
+          }
+          video.addEventListener('durationchange', function dc() {
+            if (isFinite(video.duration)) {
+              video.removeEventListener('durationchange', dc);
+              finish();
+            }
+          });
+          try { video.currentTime = 1e9; } catch (e) { finish(); return; }
+          setTimeout(finish, 4000);   // stall guard — proceed and let run() judge
+        }
         function tryRun() {
           if (started) return;
           if (video.readyState >= 2 && video.videoWidth > 0) {
+            if (!isFinite(video.duration) && !durationFixTried) { fixInfiniteDuration(); return; }
             started = true;
             try { video.pause(); } catch (e) {}
             try { video.currentTime = 0; } catch (e) {}

@@ -1,412 +1,365 @@
-/* app-v10/screens/onboarding.js
-   ONBOARDING — 7-step combine intake.
-   No bottom nav, no header pill — its own focused layout.
+/* app-v10/screens/onboarding.js — v12
+   THE COMBINE — a real intake that actually shapes the plan.
+
+   Ten steps in the white v12 grammar. The first four scout the player
+   (identity, position, style, self-rated skills); the middle four
+   build the training plan (schedule, gear, focus, goals) and are
+   PERSISTED to courtiq_plan_prefs so train.js prescribes from them;
+   the last two synthesize and report. Nothing is theater — the grade,
+   the strengths/gaps and the plan summary are all derived from what
+   the user entered.
    ============================================================ */
 (function () {
   'use strict';
-  var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
-  var ribbon = window.V10UI.ribbon, cta = window.V10UI.cta;
+  var h = window.V10UI.h, V12 = window.V12;
 
-  var STEP_TITLES = [
-    'IDENTITY',
-    'POSITION',
-    'PLAY STYLE',
-    'SELF-SCOUT',
-    'GOALS',
-    'PROCESSING',
-    'SCOUTING REPORT'
+  var STEPS = [
+    'identity', 'position', 'style', 'scout',
+    'schedule', 'gear', 'focus', 'goals',
+    'processing', 'report'
   ];
+  var TITLES = {
+    identity: 'Who are you', position: 'Your spot', style: 'Your game',
+    scout: 'Rate yourself', schedule: 'Your schedule', gear: 'Your gear',
+    focus: 'What matters', goals: 'Your goals',
+    processing: 'Building your plan', report: 'Your combine card'
+  };
 
-  function ensureState() {
-    if (!window._v10Onboarding) {
-      window._v10Onboarding = {
-        step: 1,
-        name: 'ALEX',
-        height: 75,        // inches
-        weight: 180,
-        age: 18,
-        hand: 'R',
-        position: null,
-        playStyle: null,
+  function ensure() {
+    if (!window._v12Onb) {
+      window._v12Onb = {
+        i: 0,
+        name: '', height: 74, weight: 175, age: 17, hand: 'R',
+        position: null, playStyle: null,
         skills: { shoot: 6, handle: 5, pass: 5, defend: 5, finish: 6, iq: 6 },
-        goals: [],
-        host: null,
-        ctx: null
+        days: 4, minutes: 30, equipment: ['ball', 'hoop'],
+        focus: [], goals: []
       };
     }
-    return window._v10Onboarding;
+    return window._v12Onb;
   }
 
-  function stepHeader(state) {
-    return h('div', { style: { marginBottom: '14px' } }, [
-      h('div', {
-        style: {
-          fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: '800',
-          letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--orange)'
-        },
-        text: 'STEP ' + state.step + ' OF 7'
-      }),
-      h('div', {
-        style: {
-          fontFamily: 'var(--font-display)', fontSize: '32px', fontWeight: '900',
-          color: 'var(--ink)', letterSpacing: '-0.6px', lineHeight: '1',
-          textTransform: 'uppercase', marginTop: '4px'
-        },
-        text: STEP_TITLES[state.step - 1]
-      })
-    ]);
-  }
-
-  function labeledSlider(label, val, min, max, unit, onChange) {
-    var valEl = h('span', { class: 'mono', text: val + (unit || '') });
+  /* ── little v12 controls ─────────────────────────────────────*/
+  function slider(label, val, min, max, unit, onChange) {
+    var out = h('span', { class: 'onb12-slider__v', text: val + (unit || '') });
     var input = h('input', {
       type: 'range', min: String(min), max: String(max), value: String(val),
-      style: { width: '100%', accentColor: 'var(--orange)' }
+      class: 'onb12-range'
     });
     input.addEventListener('input', function () {
-      valEl.textContent = input.value + (unit || '');
-      if (onChange) onChange(parseInt(input.value, 10));
+      out.textContent = input.value + (unit || '');
+      onChange(parseInt(input.value, 10));
     });
-    return h('div', { style: { marginBottom: '12px' } }, [
-      h('div', {
-        style: { display: 'flex', justifyContent: 'space-between', marginBottom: '4px',
-          fontFamily: 'var(--font-display)', fontSize: '11px', fontWeight: '800',
-          letterSpacing: '0.14em', textTransform: 'uppercase' }
-      }, [
-        h('span', { text: label }),
-        valEl
+    return h('div', { class: 'onb12-slider' }, [
+      h('div', { class: 'onb12-slider__top' }, [
+        h('span', { class: 'd-label', text: label }), out
       ]),
       input
     ]);
   }
 
-  function gridButton(label, active, onClick) {
+  function pill(label, active, onClick, sub) {
     return h('button', {
-      onclick: onClick,
-      style: {
-        background: active ? 'var(--ink)' : 'var(--cream)',
-        color: active ? 'var(--cream)' : 'var(--ink)',
-        border: '1.5px solid var(--ink)', padding: '14px 8px',
-        fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: '900',
-        letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer'
-      },
-      text: label
+      class: 'onb12-pill' + (active ? ' is-active' : ''), type: 'button',
+      onclick: onClick
+    }, [
+      h('div', { class: 'onb12-pill__l', text: label }),
+      sub ? h('div', { class: 'onb12-pill__s', text: sub }) : null
+    ].filter(Boolean));
+  }
+
+  function chip(label, active, onClick) {
+    return h('button', {
+      class: 'onb12-chip' + (active ? ' is-active' : ''), type: 'button',
+      text: label, onclick: onClick
     });
   }
 
-  function renderStep1(state) {
-    return h('div', null, [
-      h('label', {
-        style: { display: 'block', fontFamily: 'var(--font-display)', fontSize: '11px',
-          fontWeight: '800', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: '4px' },
-        text: 'NAME'
-      }),
-      h('input', {
-        type: 'text', value: state.name,
-        style: { width: '100%', padding: '10px', border: '1.5px solid var(--ink)',
-          background: 'var(--cream)', fontFamily: 'var(--font-display)', fontSize: '18px',
-          fontWeight: '700', textTransform: 'uppercase', marginBottom: '16px' },
-        oninput: function (e) { state.name = e.target.value.toUpperCase(); }
-      }),
-      labeledSlider('HEIGHT', state.height, 60, 90, '"', function (v) { state.height = v; }),
-      labeledSlider('WEIGHT', state.weight, 100, 320, ' LB', function (v) { state.weight = v; }),
-      labeledSlider('AGE', state.age, 10, 50, ' YR', function (v) { state.age = v; }),
-      h('div', { style: { display: 'flex', gap: '6px', marginTop: '8px' } }, ['L', 'R'].map(function (hand) {
-        return gridButton(hand + '-HAND', state.hand === hand, function () {
-          state.hand = hand; renderCurrent();
-        });
+  function grid(cls, kids) { return h('div', { class: cls }, kids); }
+
+  /* ── step bodies ─────────────────────────────────────────────*/
+  function stepIdentity(s, rerender) {
+    var name = h('input', {
+      class: 'onb12-input', type: 'text', maxlength: '20',
+      placeholder: 'Your name', value: s.name,
+      oninput: function (e) { s.name = e.target.value; }
+    });
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'd-label', text: 'NAME' }), name,
+      slider('Height', s.height, 60, 90, '"', function (v) { s.height = v; }),
+      slider('Weight', s.weight, 100, 320, ' lb', function (v) { s.weight = v; }),
+      slider('Age', s.age, 10, 60, ' yr', function (v) { s.age = v; }),
+      h('div', { class: 'd-label', text: 'SHOOTING HAND' }),
+      grid('onb12-two', ['L', 'R'].map(function (hd) {
+        return pill(hd === 'L' ? 'Lefty' : 'Righty', s.hand === hd,
+          function () { s.hand = hd; rerender(); });
       }))
     ]);
   }
 
-  function renderStep2(state) {
-    var positions = ['PG', 'SG', 'SF', 'PF', 'C'];
-    return h('div', null, [
-      h('p', { class: 'body-italic', style: { marginBottom: '14px', color: 'var(--muted)' },
-        text: 'Pick the position you play most often.' }),
-      h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' } },
-        positions.map(function (p) {
-          return gridButton(p, state.position === p, function () {
-            state.position = p; renderCurrent();
-          });
-        }))
+  function stepPosition(s, rerender) {
+    var POS = [
+      { id: 'PG', l: 'Point', s: 'Run the show' },
+      { id: 'SG', l: 'Shooting', s: 'Get buckets' },
+      { id: 'SF', l: 'Small F', s: 'Do it all' },
+      { id: 'PF', l: 'Power F', s: 'Bang inside' },
+      { id: 'C',  l: 'Center', s: 'Own the paint' }
+    ];
+    return h('div', { class: 'onb12-body' }, [
+      grid('onb12-grid3', POS.map(function (p) {
+        return pill(p.l, s.position === p.id, function () { s.position = p.id; rerender(); }, p.s);
+      }))
     ]);
   }
 
-  function renderStep3(state) {
-    var styles = [
-      { id: 'sniper', name: 'SNIPER', sub: 'Lives behind the arc.' },
-      { id: 'slasher', name: 'SLASHER', sub: 'Attacks the rim relentlessly.' },
-      { id: 'floor-general', name: 'FLOOR GENERAL', sub: 'Sees the play before it happens.' },
-      { id: 'lockdown', name: 'LOCKDOWN', sub: 'Defense wins games.' }
+  function stepStyle(s, rerender) {
+    var ST = [
+      { id: 'sniper', l: 'Sniper', s: 'Lives behind the arc' },
+      { id: 'slasher', l: 'Slasher', s: 'Attacks the rim' },
+      { id: 'floor-general', l: 'Floor General', s: 'Sees it first' },
+      { id: 'lockdown', l: 'Lockdown', s: 'Defense wins' }
     ];
-    return h('div', null, styles.map(function (s) {
-      var active = state.playStyle === s.id;
-      return h('div', {
-        onclick: function () { state.playStyle = s.id; renderCurrent(); },
-        style: {
-          background: active ? 'var(--ink)' : 'var(--cream)',
-          color: active ? 'var(--cream)' : 'var(--ink)',
-          border: '1.5px solid var(--ink)', padding: '12px',
-          marginBottom: '6px', cursor: 'pointer',
-          boxShadow: active ? '3px 3px 0 var(--orange)' : 'none'
-        }
-      }, [
-        h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '18px',
-          fontWeight: '900', letterSpacing: '-0.3px', textTransform: 'uppercase' },
-          text: s.name }),
-        h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic',
-          fontSize: '12px', marginTop: '2px', opacity: '0.85' }, text: s.sub })
-      ]);
+    return h('div', { class: 'onb12-body' }, ST.map(function (x) {
+      return pill(x.l, s.playStyle === x.id, function () { s.playStyle = x.id; rerender(); }, x.s);
     }));
   }
 
-  function renderStep4(state) {
-    var skills = [
-      { key: 'shoot', label: 'SHOOTING' },
-      { key: 'handle', label: 'BALL HANDLE' },
-      { key: 'pass', label: 'PASSING' },
-      { key: 'defend', label: 'DEFENSE' },
-      { key: 'finish', label: 'FINISHING' },
-      { key: 'iq', label: 'COURT IQ' }
+  function stepScout(s) {
+    var SK = [
+      { k: 'shoot', l: 'Shooting' }, { k: 'handle', l: 'Ball handling' },
+      { k: 'pass', l: 'Passing' }, { k: 'defend', l: 'Defense' },
+      { k: 'finish', l: 'Finishing' }, { k: 'iq', l: 'Court IQ' }
     ];
-    return h('div', null, [
-      h('p', { class: 'body-italic', style: { marginBottom: '14px', color: 'var(--muted)' },
-        text: 'Rate yourself honestly — 0 (rough) to 10 (elite).' })
-    ].concat(skills.map(function (s) {
-      return labeledSlider(s.label, state.skills[s.key], 0, 10, '/10', function (v) { state.skills[s.key] = v; });
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'onb12-hint', text: 'Rate yourself 0–10. The court gets the final say later.' })
+    ].concat(SK.map(function (x) {
+      return slider(x.l, s.skills[x.k], 0, 10, '/10', function (v) { s.skills[x.k] = v; });
     })));
   }
 
-  function renderStep5(state) {
-    var goals = ['MAKE VARSITY', 'WIN STARTING JOB', 'COLLEGE LOOKS', 'NBA DRAFT', 'STAY HEALTHY', 'BEAT MY BROTHER', 'TOURNAMENT MVP', 'JUST LOVE THE GAME'];
-    return h('div', null, [
-      h('p', { class: 'body-italic', style: { marginBottom: '14px', color: 'var(--muted)' },
-        text: 'Pick all that apply. We tune your plan around these.' }),
-      h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '6px' } }, goals.map(function (g) {
-        var active = state.goals.indexOf(g) >= 0;
-        return h('button', {
-          onclick: function () {
-            var i = state.goals.indexOf(g);
-            if (i >= 0) state.goals.splice(i, 1); else state.goals.push(g);
-            renderCurrent();
-          },
-          style: {
-            background: active ? 'var(--orange)' : 'var(--cream)',
-            color: active ? 'var(--cream)' : 'var(--ink)',
-            border: '1.5px solid var(--ink)', padding: '8px 12px',
-            fontFamily: 'var(--font-display)', fontSize: '12px', fontWeight: '800',
-            letterSpacing: '0.12em', textTransform: 'uppercase', cursor: 'pointer'
-          },
-          text: g
-        });
+  function stepSchedule(s) {
+    return h('div', { class: 'onb12-body' }, [
+      slider('Days per week', s.days, 1, 7, '', function (v) { s.days = v; }),
+      h('div', { class: 'd-label', text: 'SESSION LENGTH' }),
+      grid('onb12-grid4', [15, 30, 45, 60].map(function (m) {
+        return pill(m + 'm', s.minutes === m, function () { s.minutes = m; }, null);
+      })),
+      h('div', { class: 'onb12-hint', text: 'We size each session to fit — shorter days get tighter blocks.' })
+    ]);
+  }
+
+  function stepGear(s, rerender) {
+    var GEAR = [
+      { id: 'ball', l: 'Ball' }, { id: 'hoop', l: 'A hoop' },
+      { id: 'cones', l: 'Cones' }, { id: 'gym', l: 'Gym access' },
+      { id: 'weights', l: 'Weights' }, { id: 'partner', l: 'A partner' }
+    ];
+    function toggle(id) {
+      var i = s.equipment.indexOf(id);
+      if (i >= 0) s.equipment.splice(i, 1); else s.equipment.push(id);
+      rerender();
+    }
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'onb12-hint', text: 'Pick everything you can get to. Drills that need gear you don’t have get skipped.' }),
+      grid('onb12-chips', GEAR.map(function (g) {
+        return chip(g.l, s.equipment.indexOf(g.id) >= 0, function () { toggle(g.id); });
       }))
     ]);
   }
 
-  function renderStep6(state) {
-    var loadingSteps = [
-      'ANALYZING MEASURABLES',
-      'CROSS-REFERENCING STYLE',
-      'BUILDING ARCHETYPE',
-      'COMPILING REPORT'
+  function stepFocus(s, rerender) {
+    var FOCUS = [
+      { id: 'shooting', l: 'Shooting' }, { id: 'handles', l: 'Ball handling' },
+      { id: 'finishing', l: 'Finishing' }, { id: 'defense', l: 'Defense' },
+      { id: 'conditioning', l: 'Conditioning' }, { id: 'passing', l: 'Passing' }
     ];
-    var idx = 0;
-    var list = h('div', null, loadingSteps.map(function (s, i) {
-      return h('div', {
-        'data-step': String(i),
-        style: {
-          fontFamily: 'var(--font-display)', fontSize: '14px', fontWeight: '800',
-          letterSpacing: '0.14em', textTransform: 'uppercase', padding: '10px 0',
-          borderBottom: '1px dashed var(--ink)', color: 'var(--muted)',
-          display: 'flex', alignItems: 'center', gap: '10px'
-        }
-      }, [
-        h('i', { 'data-mark': String(i), class: 'ph-bold ph-circle', style: { fontSize: '14px' } }),
-        h('span', { text: s })
-      ]);
-    }));
-    var dots = h('div', {
-      style: { fontFamily: 'var(--font-display)', fontSize: '28px', fontWeight: '900',
-        color: 'var(--orange)', textAlign: 'center', margin: '20px 0', letterSpacing: '0.5em' },
-      text: '...'
-    });
-    var wrap = h('div', null, [
-      ribbon({ title: 'BUILDING REPORT', icon: 'ph-cpu', meta: 'LIVE' }),
-      dots,
-      list
+    function toggle(id) {
+      var i = s.focus.indexOf(id);
+      if (i >= 0) s.focus.splice(i, 1);
+      else { if (s.focus.length >= 3) s.focus.shift(); s.focus.push(id); }
+      rerender();
+    }
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'onb12-hint', text: 'Pick up to 3 — your plan leans hardest on these, in order.' }),
+      grid('onb12-chips', FOCUS.map(function (f) {
+        var rank = s.focus.indexOf(f.id);
+        var el = chip((rank >= 0 ? (rank + 1) + '. ' : '') + f.l, rank >= 0, function () { toggle(f.id); });
+        return el;
+      }))
     ]);
-    var dotCount = 0;
-    var dotTimer = setInterval(function () {
-      dotCount = (dotCount + 1) % 4;
-      dots.textContent = '.'.repeat(dotCount || 1) + ' '.repeat(3 - (dotCount || 1));
-    }, 300);
-    var stepTimer = setInterval(function () {
-      if (idx >= loadingSteps.length) {
-        clearInterval(stepTimer); clearInterval(dotTimer);
-        setTimeout(function () { ensureState().step = 7; renderCurrent(); }, 400);
+  }
+
+  function stepGoals(s, rerender) {
+    var G = ['Make varsity', 'Win a starting job', 'College looks', 'Go pro',
+             'Stay healthy', 'Beat my rival', 'Tournament MVP', 'Love the game'];
+    function toggle(g) {
+      var i = s.goals.indexOf(g);
+      if (i >= 0) s.goals.splice(i, 1); else s.goals.push(g);
+      rerender();
+    }
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'onb12-hint', text: 'Pick all that apply — we tune the tone around these.' }),
+      grid('onb12-chips', G.map(function (g) {
+        return chip(g, s.goals.indexOf(g) >= 0, function () { toggle(g); });
+      }))
+    ]);
+  }
+
+  function stepProcessing(s, host, rerender) {
+    var lines = ['Reading your measurables', 'Cross-referencing your style',
+                 'Sizing sessions to your week', 'Compiling your plan'];
+    var wrap = h('div', { class: 'onb12-body onb12-proc' });
+    var rows = lines.map(function (t, i) {
+      var r = h('div', { class: 'onb12-proc__row', 'data-i': String(i) }, [
+        h('i', { class: 'ph-bold ph-circle onb12-proc__mk' }),
+        h('span', { text: t })
+      ]);
+      wrap.appendChild(r);
+      return r;
+    });
+    var i = 0;
+    var timer = setInterval(function () {
+      if (i >= rows.length) {
+        clearInterval(timer);
+        setTimeout(function () { s.i++; rerender(); }, 450);
         return;
       }
-      var row = list.querySelector('[data-step="' + idx + '"]');
-      var mark = list.querySelector('[data-mark="' + idx + '"]');
-      if (row) row.style.color = 'var(--ink)';
-      if (mark) { mark.className = 'ph-bold ph-check'; mark.style.color = 'var(--sage)'; }
-      idx++;
-    }, 700);
+      rows[i].classList.add('is-done');
+      rows[i].querySelector('.onb12-proc__mk').className = 'ph-fill ph-check-circle onb12-proc__mk';
+      i++;
+    }, 650);
     return wrap;
   }
 
-  function renderStep7(state) {
-    var grade = 'B+';
-    var archetype = state.playStyle === 'sniper' ? 'PERIMETER SNIPER'
-      : state.playStyle === 'slasher' ? 'DOWNHILL SLASHER'
-      : state.playStyle === 'floor-general' ? 'FLOOR GENERAL'
-      : state.playStyle === 'lockdown' ? 'PERIMETER LOCKDOWN'
-      : 'TWO-WAY WING';
-    var court = h('div', { class: 'v10-court', style: { padding: '18px' } }, [
-      h('div', { class: 'v10-court__eyebrow' }, [icon('ph-shield-star'), h('span', { text: 'SCOUT GRADE' })]),
-      h('div', {
-        style: { fontFamily: 'var(--font-display)', fontSize: '72px', fontWeight: '900',
-          color: 'var(--cream)', letterSpacing: '-3px', lineHeight: '1', textShadow: '2px 2px 0 var(--ink)' },
-        text: grade
-      }),
-      h('div', {
-        style: { fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '800',
-          color: 'var(--cream)', letterSpacing: '0.14em', textTransform: 'uppercase', marginTop: '6px',
-          textShadow: '1px 1px 0 var(--ink)' },
-        text: archetype
-      })
-    ]);
+  function stepReport(s) {
+    var SKILL_L = { shoot: 'Shooting', handle: 'Ball handling', pass: 'Passing',
+                    defend: 'Defense', finish: 'Finishing', iq: 'Court IQ' };
+    var entries = Object.keys(s.skills).map(function (k) { return { k: k, v: s.skills[k] }; })
+      .sort(function (a, b) { return b.v - a.v; });
+    var avg = entries.reduce(function (n, e) { return n + e.v; }, 0) / entries.length;
+    var grade = avg >= 8.5 ? 'A' : avg >= 7.5 ? 'A-' : avg >= 6.5 ? 'B+'
+              : avg >= 5.5 ? 'B' : avg >= 4.5 ? 'B-' : avg >= 3.5 ? 'C+' : 'C';
+    var arche = s.playStyle === 'sniper' ? 'PERIMETER SNIPER'
+      : s.playStyle === 'slasher' ? 'DOWNHILL SLASHER'
+      : s.playStyle === 'floor-general' ? 'FLOOR GENERAL'
+      : s.playStyle === 'lockdown' ? 'PERIMETER LOCKDOWN' : 'TWO-WAY WING';
+    var focusL = { shooting: 'Shooting', handles: 'Ball handling', finishing: 'Finishing',
+                   defense: 'Defense', conditioning: 'Conditioning', passing: 'Passing' };
+    var focusText = s.focus.length ? s.focus.map(function (f) { return focusL[f]; }).join(' · ')
+                                   : 'Balanced';
 
-    function card(title, items, accent, ribbonIcon) {
-      return h('div', {
-        style: {
-          background: 'var(--cream)', border: '1.5px solid var(--ink)',
-          padding: '10px 12px 12px', marginBottom: '8px',
-          boxShadow: accent === 'sage' ? 'var(--sh-sage)' : 'var(--sh-orange-sm)'
-        }
-      }, [
-        ribbon({ title: title, icon: ribbonIcon, meta: items.length + ' / ' + items.length })
-      ].concat(items.map(function (t) {
-        return h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic',
-          fontSize: '13px', color: 'var(--ink)', padding: '2px 0' }, text: '— ' + t });
-      })));
-    }
-
-    // Avatar preview from real DiceBear seed (state.name) — persisted on completion.
-    var avatarSeed = encodeURIComponent(state.name || 'PROFILE');
-    var avatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + avatarSeed;
-    try {
-      var stored = localStorage.getItem('courtiq_avatar_url');
-      if (stored) avatarUrl = stored;
-    } catch (e) {}
-    var avatarStrip = h('div', {
-      style: { display: 'flex', alignItems: 'center', gap: '12px',
-        background: 'var(--cream)', border: '1.5px solid var(--ink)',
-        padding: '10px 12px', marginBottom: '8px', boxShadow: 'var(--sh-ink-sm)' }
-    }, [
-      h('img', {
-        src: avatarUrl, alt: 'avatar',
-        style: { width: '52px', height: '52px', border: '1.5px solid var(--ink)',
-          background: 'var(--cream)' }
-      }),
-      h('div', null, [
-        h('div', {
-          style: { fontFamily: 'var(--font-display)', fontSize: '18px', fontWeight: '900',
-            letterSpacing: '-0.3px', textTransform: 'uppercase', color: 'var(--ink)' },
-          text: state.name || 'PROFILE'
-        }),
-        h('div', {
-          style: { fontFamily: 'var(--font-display)', fontSize: '10px', fontWeight: '800',
-            letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--muted)', marginTop: '2px' },
-          text: (state.position || '—') + ' · ' + state.height + '" · ' + state.hand + '-HAND'
-        })
+    return h('div', { class: 'onb12-body' }, [
+      V12.card({ tint: 'gold', class: 'onb12-card' }, [
+        h('div', { class: 'd-label', text: 'SELF-SCOUT GRADE' }),
+        h('div', { class: 'onb12-grade', text: grade }),
+        h('div', { class: 'onb12-arche', text: arche })
+      ]),
+      V12.card({ tint: 'ink', class: 'onb12-plan' }, [
+        h('div', { class: 'd-label', text: 'YOUR PLAN' }),
+        h('div', { class: 'onb12-plan__row' }, [
+          h('i', { class: 'ph-fill ph-calendar-check' }),
+          h('span', { text: s.days + ' days/week · ' + s.minutes + ' min a session' })
+        ]),
+        h('div', { class: 'onb12-plan__row' }, [
+          h('i', { class: 'ph-fill ph-target' }),
+          h('span', { text: 'Focus: ' + focusText })
+        ]),
+        h('div', { class: 'onb12-plan__row' }, [
+          h('i', { class: 'ph-fill ph-barbell' }),
+          h('span', { text: 'Gear: ' + (s.equipment.length ? s.equipment.join(', ') : 'bodyweight') })
+        ])
       ])
-    ]);
-
-    return h('div', null, [
-      court,
-      avatarStrip,
-      card('STRENGTHS', ['Quick release', 'Good court vision', 'Plays bigger than height'], 'sage', 'ph-flame'),
-      card('GAPS TO CLOSE', ['Left-hand finishing', 'Off-ball defense', 'Free throw consistency'], 'orange', 'ph-target')
     ]);
   }
 
-  function renderCurrent() {
-    var state = ensureState();
-    var host = state.host;
-    if (!host) return;
-    while (host.firstChild) host.removeChild(host.firstChild);
-
-    host.appendChild(stepHeader(state));
-
-    var content;
-    switch (state.step) {
-      case 1: content = renderStep1(state); break;
-      case 2: content = renderStep2(state); break;
-      case 3: content = renderStep3(state); break;
-      case 4: content = renderStep4(state); break;
-      case 5: content = renderStep5(state); break;
-      case 6: content = renderStep6(state); break;
-      case 7: content = renderStep7(state); break;
-      default: content = h('div', { text: 'Unknown step' });
-    }
-    host.appendChild(h('div', { style: { marginBottom: '20px' } }, [content]));
-
-    // Bottom buttons (hide on loading step)
-    if (state.step === 6) return;
-
-    var backLabel = state.step === 1 ? 'CANCEL' : 'BACK';
-    var nextLabel = state.step === 7 ? 'ENTER COURTIQ' : (state.step === 5 ? 'BUILD REPORT' : 'CONTINUE');
-
-    host.appendChild(h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '8px', marginTop: '8px' } }, [
-      cta({
-        variant: 'secondary', label: backLabel,
-        onClick: function () {
-          if (state.step === 1) {
-            if (state.ctx) state.ctx.go('home');
-          } else {
-            state.step--; renderCurrent();
-          }
-        }
-      }),
-      cta({
-        variant: 'orange', icon: state.step === 7 ? 'ph-arrow-right' : 'ph-caret-right',
-        label: nextLabel,
-        onClick: function () {
-          if (state.step === 7) {
-            // Persist a minimal profile so home/me/coach pick it up via localStorage.
-            try {
-              localStorage.setItem('courtiq_profile_name', state.name || 'PROFILE');
-              localStorage.setItem('courtiq_profile_position', state.position || '');
-              localStorage.setItem('courtiq_profile_hand', state.hand || 'R');
-              localStorage.setItem('courtiq_profile_height', String(state.height));
-              localStorage.setItem('courtiq_profile_playstyle', state.playStyle || '');
-              localStorage.setItem('courtiq_onboarded', '1');
-              if (!localStorage.getItem('courtiq_avatar_url')) {
-                localStorage.setItem('courtiq_avatar_url',
-                  'https://api.dicebear.com/7.x/avataaars/svg?seed=' +
-                  encodeURIComponent(state.name || 'PROFILE'));
-              }
-            } catch (e) {}
-            window._v10Onboarding = null;
-            if (state.ctx) state.ctx.go('home');
-            return;
-          }
-          state.step++;
-          renderCurrent();
-        }
-      })
-    ]));
+  function persist(s) {
+    try {
+      localStorage.setItem('courtiq_profile_name', s.name || 'Rookie');
+      localStorage.setItem('courtiq_profile_position', s.position || '');
+      localStorage.setItem('courtiq_profile_hand', s.hand || 'R');
+      localStorage.setItem('courtiq_profile_height', String(s.height));
+      localStorage.setItem('courtiq_profile_weight', String(s.weight));
+      localStorage.setItem('courtiq_profile_age', String(s.age));
+      localStorage.setItem('courtiq_profile_playstyle', s.playStyle || '');
+      localStorage.setItem('courtiq_plan_prefs', JSON.stringify({
+        days: s.days, minutes: s.minutes, equipment: s.equipment,
+        focus: s.focus, goals: s.goals, skills: s.skills
+      }));
+      localStorage.setItem('courtiq_onboarded', '1');
+    } catch (e) {}
   }
 
   function render(args) {
-    var host = args.host;
-    var ctx = args.ctx;
-    var state = ensureState();
-    state.host = host;
-    state.ctx = ctx;
-    renderCurrent();
+    var host = args.host, ctx = args.ctx;
+    var s = ensure();
+
+    function paint() {
+      while (host.firstChild) host.removeChild(host.firstChild);
+      var step = STEPS[s.i];
+      var last = STEPS.length - 1;
+
+      /* progress + title */
+      var bar = h('div', { class: 'onb12-progress' });
+      for (var k = 0; k < STEPS.length; k++) {
+        bar.appendChild(h('span', { class: 'onb12-progress__seg' + (k <= s.i ? ' is-on' : '') }));
+      }
+      host.appendChild(h('div', { class: 'onb12-head' }, [
+        bar,
+        h('div', { class: 'onb12-step', text: 'Step ' + (s.i + 1) + ' of ' + STEPS.length }),
+        h('div', { class: 'onb12-title', text: TITLES[step] })
+      ]));
+
+      var body;
+      switch (step) {
+        case 'identity': body = stepIdentity(s, paint); break;
+        case 'position': body = stepPosition(s, paint); break;
+        case 'style': body = stepStyle(s, paint); break;
+        case 'scout': body = stepScout(s); break;
+        case 'schedule': body = stepSchedule(s); break;
+        case 'gear': body = stepGear(s, paint); break;
+        case 'focus': body = stepFocus(s, paint); break;
+        case 'goals': body = stepGoals(s, paint); break;
+        case 'processing': body = stepProcessing(s, host, paint); break;
+        case 'report': body = stepReport(s); break;
+      }
+      var scroll = h('div', { class: 'onb12-scroll' }, [body]);
+      host.appendChild(scroll);
+
+      if (step === 'processing') return;  // auto-advances
+
+      var canNext = true;
+      if (step === 'identity') canNext = !!(s.name && s.name.trim());
+      if (step === 'position') canNext = !!s.position;
+      if (step === 'style') canNext = !!s.playStyle;
+      if (step === 'focus') canNext = s.focus.length > 0;
+
+      var nextLabel = step === 'report' ? 'Enter CourtIQ'
+        : step === 'goals' ? 'Build my plan' : 'Continue';
+
+      var foot = h('div', { class: 'onb12-foot' });
+      foot.appendChild(h('button', {
+        class: 'd-btn d-btn--ghost onb12-back', type: 'button',
+        onclick: function () {
+          if (s.i === 0) { ctx.go('home'); return; }
+          s.i = Math.max(0, s.i - (STEPS[s.i - 1] === 'processing' ? 2 : 1));
+          paint();
+        }
+      }, [h('span', { text: s.i === 0 ? 'Cancel' : 'Back' })]));
+      foot.appendChild(V12.btn({
+        label: nextLabel, icon: step === 'report' ? 'ph-arrow-right' : 'ph-caret-right',
+        onClick: function () {
+          if (!canNext) return;
+          if (step === 'report') { persist(s); window._v12Onb = null; ctx.go('home'); return; }
+          s.i++;
+          paint();
+        }
+      }));
+      foot.querySelector('.onb12-back');
+      if (!canNext) foot.lastChild.setAttribute('disabled', 'true');
+      host.appendChild(foot);
+    }
+
+    paint();
   }
 
   window.app.register('onboarding', render);

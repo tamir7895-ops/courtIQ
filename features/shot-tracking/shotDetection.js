@@ -46,7 +46,7 @@
   var MAX_HISTORY          = 50;   // Larger rolling buffer
   var MAX_GAP_FRAMES       = 24;   // Grace frames for ball vanishing (ball in air ~0.8s = ~24 frames)
   var MIN_MOVEMENT_PX      = 2;    // Lower jitter threshold
-  var BALL_CONFIDENCE      = 0.05;  // Raised threshold — 0.005 was too low, tracked players
+  var BALL_CONFIDENCE      = 0.05;  // validated floor; the court "ball 0%" was encoder contention, not this
   var MADE_MAX_FRAMES      = 22;   // More frames allowed for rim transit
   var DETECTION_INTERVAL   = 33;   // ~30 FPS color detection (YOLOX runs async every 6th frame)
   // YOLOX cadence is hardcoded as `_frameCount % 6 === 0` below. 6 was picked as a
@@ -108,11 +108,23 @@
     };
   }
 
+  // A7: gravity is a pixel/tick² quantity, so it scales with vertical
+  // resolution. The hand-tuned 0.6 default is anchored to a 720px-tall frame;
+  // on a 1024px portrait clip real gravity is ~1.4× that, on a 464px landscape
+  // clip ~0.6×. Using the fixed constant made the ghost coast too slowly on
+  // tall footage ("ball stalled mid-flight") and too fast on short footage.
+  // kf._gvh carries the tracker's current video height (set in updateTracker).
+  var KALMAN_GRAVITY_REF_H = 720;
+  function kalmanGravity(kf) {
+    return kf._gvh ? KALMAN_GRAVITY * (kf._gvh / KALMAN_GRAVITY_REF_H) : KALMAN_GRAVITY;
+  }
+
   function kalmanPredict(kf) {
+    var g = kalmanGravity(kf);
     // State prediction (constant velocity + gravity on Y)
     kf.x  += kf.vx;
-    kf.y  += kf.vy + KALMAN_GRAVITY * 0.5;
-    kf.vy += KALMAN_GRAVITY;
+    kf.y  += kf.vy + g * 0.5;
+    kf.vy += g;
     // Covariance grows with process noise
     kf.px  += kf.pvx + KALMAN_PROCESS_NOISE;
     kf.py  += kf.pvy + KALMAN_PROCESS_NOISE;
@@ -171,6 +183,7 @@
   function updateTracker(tracker, x, y) {
     var frameNum = tracker.frameCount++;
     var kf = tracker.kalman;
+    if (tracker._vh) kf._gvh = tracker._vh;   // A7: resolution-aware gravity
 
     if (x !== null && y !== null) {
       // Measurement available — update Kalman
@@ -782,6 +795,20 @@
     onDebugFrame: null,     // callback({ balls: [], hoops: [], shotState, kalman, frameCount })
     _isDetecting: false,
     _colorOnlyMode: false,
+    /* Set by the session UI while the clip is being recorded for offline
+       analysis — backs the YOLOX cadence right off so the video encoder gets
+       the chip. See _adaptiveDivisor. */
+    _lowPowerMode: false,
+    /* RECORD-MODE IDLE. Proven by a controlled experiment (2026-07-21):
+       MediaRecorder's encoder competing with YOLOX on the same GPU is what
+       collapsed on-court inference from 149ms to 6.7s -- cutting ONLY the
+       recording mid-session dropped latency 60% instantly, and a session
+       with no recording stays flat. So while the session clip is being
+       recorded the engine runs a framing WATCHDOG only: one full pass every
+       ~2.5s (rim still framed? liveness), pose off. The verdicts come from
+       the offline pass over the clip afterwards -- full-rate live inference
+       during recording bought nothing and cost everything. */
+    _recordingIdle: false,
     _mlMissCount: 0,
     _frameCount: 0,
     _detectorType: 'none',   // 'yolox' | 'none'
@@ -919,8 +946,19 @@
       // v7m5 (2026-07-15): val AP 77.01 vs 73.15, dish 14/14, night 6/7 —
       // the one loss is a projectively-degenerate front-rim deflection.
       // Structural false-balls (net-knot/rim-arc/foliage) no longer detect.
+      // B1 (2026-07-16): class-balance + night-oversample fine-tune from
+      // v7m5 (40ep, dark+ball x4 / dark x2 / ball x2 repeat-factor sampling,
+      // see training/v7/build_b1_dataset.py + courtiq_v7b1.py). Shipped as
+      // fp16 (10.1MB) via the same tools/quantize_fp16.py boundary-cast fix.
+      // Gates: val-AP 76.00 (v7m5 77.01, v6_polished 73.15). Lab verdicts
+      // (rules frozen) 15/17 vs v7m5's 12/15 — zero new false-makes/phantoms,
+      // 2 night misses recovered. FP16 byte-identical to FP32 in the lab.
+      // Real production JS engine (offline-ab.html) on WebGPU across all 4
+      // eval videos: zero regressions, fewer phantom windows on night_b/d,
+      // v3/night_c unchanged. Full gate log: courtiq-cv-free-improvements
+      // memory + training/v7/PLAN_M5_v7.md.
       var modelPath = window.COURTIQ_MODEL_URL ||
-        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7m5.onnx?v=v7m5');
+        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7b1_fp16.onnx?v=v7b1fp16');
 
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64
@@ -1458,6 +1496,10 @@
       var rafPoll = function () {
         if (!self.isRunning) { self._poseRafId = null; return; }
         self._poseRafId = requestAnimationFrame(rafPoll);
+        // Record-mode idle: pose is a second model on the same chip and its
+        // triggers feed the LIVE state machine only -- verdicts come from
+        // the offline pass, so during recording it is pure contention.
+        if (self._recordingIdle) return;
         // L34: skip while the source video is paused/ended — every pose
         // call would return the SAME cached skeleton against an advancing
         // wall-clock, and the peak/set-point heuristics would read that as
@@ -1753,6 +1795,15 @@
         return;
       }
       if (self.videoEl.readyState < 2) { self._scheduleDetection(); return; }
+      // Record-mode idle: one full pass every ~2.5s, nothing in between --
+      // the encoder owns the chip while the clip (the accuracy-bearing
+      // artifact) is being written. See _recordingIdle above.
+      if (self._recordingIdle) {
+        var nowIdle = Date.now();
+        if (nowIdle - (self._lastIdlePassAt || 0) < 2500) { self._scheduleDetection(); return; }
+        self._lastIdlePassAt = nowIdle;
+        self._idleForceInfer = true;   // this pass must actually run YOLOX
+      }
       // L37.3: on resume, drop the stale prev-frame buffers so the next
       // tick rebuilds baselines from a current frame instead of diffing
       // against pre-pause pixels (the resume burst was the primary cause
@@ -1774,10 +1825,21 @@
       var pw = self._procW || vw;
       var ph = self._procH || vh;
 
-      /* ── Color detection runs EVERY frame (not blocked by YOLOX) ── */
+      /* ── Color detection (fallback only) ──
+         A6: skip the per-frame orange pixel scan while ML is in control —
+         i.e. the last YOLOX inference detected the ball on a reliable
+         (WebGPU) backend. Color is only a fallback for when ML misses, so
+         scanning every frame during solid ML tracking is wasted CPU/battery
+         and thermal load. The moment ML misses (_mlMissCount>0) the scan
+         resumes, so the fallback is never actually lost. */
       var colorBall = null;
       if (canvasReady) {
-        colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+        var mlInControl = (self._backend === 'webgpu') && self._mlEverDetected && (self._mlMissCount === 0);
+        if (!mlInControl) {
+          colorBall = detectBallByColor(self._canvas, self._ctx, pw, ph);
+        } else {
+          self._colorSkipped = (self._colorSkipped || 0) + 1;
+        }
         self.tracker._vw = vw;
         self.tracker._vh = vh;
         // L37.4 (rim revert): L32 _estimateGlobalMotion call REMOVED.
@@ -1831,13 +1893,49 @@
          to ~2.7Hz (0-2 samples per shot arc). %3 restores ~5Hz. WASM
          backends keep the conservative 6. */
       self._frameCount++;
-      var yoloxDivisor = (self._backend === 'webgpu') ? 3 : 6;
-      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && self._frameCount % yoloxDivisor === 0) {
+      var yoloxDivisor = self._adaptiveDivisor();
+      if (self.model && !self._colorOnlyMode && !self._isDetecting && canvasReady && (self._frameCount % yoloxDivisor === 0 || self._idleForceInfer)) {
         self._isDetecting = true;
+        self._idleForceInfer = false;
         self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall);
       }
 
       self._scheduleDetection();
+    },
+
+    /* ── A3: adaptive YOLOX cadence ───────────────────────────────
+       Pick the frame divisor from measured inference latency instead of a
+       hardcoded constant. WASM stays at the conservative 6 (already a safe
+       floor for ~1.4s/inference). On WebGPU, where inference is tens of ms,
+       run as often as one inference takes (+1 frame headroom) so back-to-back
+       inferences don't starve the ~30Hz detection loop — clamped to [2,4].
+       Faster sampling on strong GPUs (2 vs the old fixed 3 → ~7.5Hz ball
+       sampling); automatic back-off on weak GPUs (4) so the loop never chokes. */
+    _adaptiveDivisor: function () {
+      if (this._backend !== 'webgpu') return 6;
+      var d;
+      if (!this._inferMsEMA || (this._inferSamples || 0) < 4) d = 3;  // warmup default
+      else d = Math.max(2, Math.min(4, Math.round(this._inferMsEMA / DETECTION_INTERVAL) + 1));
+      /* LOW-POWER: set while the session is being RECORDED for offline
+         analysis. The accurate made/miss verdicts come from the offline pass
+         over the finished clip (9/9 on real user footage) — the live engine
+         only has to hold the rim lock and prove liveness, it does not have to
+         sample the ball fast enough to judge shots. Meanwhile the video
+         encoder is now competing for the same chip, and measured headroom was
+         already thin (~60ms/inference against a 33ms frame). Backing the
+         cadence off hands that headroom to the encoder, which makes the
+         RECORDING cleaner — and the recording is what the accuracy actually
+         comes from now. */
+      /* DISABLED for now. Backing the live cadence off to ~3/sec was premature:
+         it optimised for an architecture that is not wired yet. Until the
+         recorded clip is actually handed to the offline analyser at the end of
+         a session, the LIVE view is the only output the user has — and at 3
+         inferences/sec a ball in flight simply falls between samples. The
+         encoder turned out to cost only ~60 -> 70-80ms anyway, so this was not
+         where the load was. Re-enable only once offline hand-off ships AND the
+         live view is no longer the thing being judged. */
+      // if (this._lowPowerMode) d = Math.max(d * 3, 9);
+      return d;
     },
 
     /* ── YOLOX ONNX inference (async) ─────────────────────────── */
@@ -1896,8 +1994,14 @@
           }
           dlog('[YOLOX-DBG] input range: ' + mn.toFixed(1) + ' - ' + mx.toFixed(1) + ' len=' + chwBuf.length);
         }
+        self._inferT0 = (typeof performance !== 'undefined') ? performance.now() : Date.now();
         return self.model.run({ images: inputTensor });
       }).then(function (results) {
+        // A3: track inference latency (EMA) to drive the adaptive cadence.
+        var _now = (typeof performance !== 'undefined') ? performance.now() : Date.now();
+        var _dt = _now - (self._inferT0 || _now);
+        self._inferMsEMA = self._inferMsEMA ? (self._inferMsEMA * 0.8 + _dt * 0.2) : _dt;
+        self._inferSamples = (self._inferSamples || 0) + 1;
         var outputKey = Object.keys(results)[0];
         var outputData = results[outputKey].data;
         // Debug: log raw output stats — EVERY 30 FRAMES for v4 diagnosis
@@ -1975,12 +2079,37 @@
             ' hoop=' + hoopStr);
         }
 
+        // A2: ByteTrack stage-2 — before falling back to color, try to
+        // continue an active track from the low-confidence pool. This is the
+        // recovery path for dropped mid-air / through-net frames.
+        var assocBall = (mlBall || self._offlineMode) ? null
+          : self._associateLowConf(scaleX, scaleY, offsetX, offsetY, vw, vh);
+
+        // Diagnostics: count YOLOX runs and how many actually found a ball,
+        // so the on-screen badge can report a real ML ball-hit rate. This is
+        // the number that separates "the model can't see the ball" (test /
+        // distance / filmed-screen problem) from "the loop is too slow"
+        // (compute problem) — instead of guessing from an impression.
+        self._diagYoloxRuns = (self._diagYoloxRuns || 0) + 1;
+        if (mlBall) self._diagYoloxBallHits = (self._diagYoloxBallHits || 0) + 1;
+        // Freshness timestamps for the session checklist — "what is the
+        // model seeing right now", readable off the engine without the
+        // rAF-gated debug payload.
+        if (mlBall) self._diagLastBallAt = Date.now();
+
         if (mlBall) {
           self._mlMissCount = 0;
           self._mlEverDetected = true;
           self._lastDetSource = 'ml';
           self._lastDetConf = mlBall.score;
           self._processBallDetection(mlBall.cx * scaleX + offsetX, mlBall.cy * scaleY + offsetY, vw, vh);
+        } else if (assocBall) {
+          self._mlMissCount = 0;
+          self._lastDetSource = 'ml-assoc';
+          self._lastDetConf = assocBall.score;
+          if (self._assocCount == null) self._assocCount = 0;
+          self._assocCount++;
+          self._processBallDetection(assocBall.x, assocBall.y, vw, vh);
         } else if (colorBall && (self._mlMissCount < 30 || !self._mlEverDetected)) {
           // Color fallback: use if ML recently saw ball OR ML never detected anything
           // (ML may not work on all videos — e.g. outdoor, dark, screen recordings)
@@ -2108,6 +2237,7 @@
 
       var numDets = output.length / YOLOX_STRIDE;
       var ballCandidates = [];
+      var lowFloorBallCands = [];   // A2: ByteTrack stage-2 pool (≥0.02, below BALL_CONFIDENCE)
       var hoopCandidates = [];
       var playerCandidates = [];
       var frameArea = pw * ph;
@@ -2197,6 +2327,12 @@
 
         if (ballScore >= BALL_CONFIDENCE) {
           ballCandidates.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore });
+        } else if (ballScore >= 0.02) {
+          // A2: keep sub-threshold balls for ByteTrack stage-2 association.
+          // These are never used to START a track (that still needs a
+          // BALL_CONFIDENCE detection), only to CONTINUE an active one —
+          // exactly the mid-air / through-net frames YOLO drops.
+          lowFloorBallCands.push({ cx: cx, cy: cy, bw: bw, bh: bh, score: ballScore });
         }
       }
 
@@ -2217,6 +2353,8 @@
       var ballKeep   = this._greedyNMS(ballCandidates,   NMS_THRESH);
       var hoopKeep   = this._greedyNMS(hoopCandidates,   NMS_THRESH);
       var playerKeep = this._greedyNMS(playerCandidates, NMS_THRESH);
+      // Freshness timestamp for the session checklist (see _diagLastBallAt).
+      if (playerKeep.length > 0) this._diagLastPlayerAt = Date.now();
 
       // Store latest hoop detection for auto rim-lock (use UNFILTERED hoopKeep
       // here — the auto-lock needs the strongest raw signal). We rebuild a
@@ -2402,7 +2540,52 @@
         });
       }
 
+      // A2: expose the NMS'd low-confidence ball pool (proc-canvas coords) for
+      // ByteTrack stage-2 association in _runYoloxInference. Merge the accepted
+      // high-conf balls too so association can also lock onto a strong
+      // detection that the primary path happened to drop (e.g. NMS runner-up).
+      this._lowFloorBalls = this._greedyNMS(lowFloorBallCands.concat(ballKeep), 0.45);
+
       return ballKeep.length > 0 ? ballKeep[0] : null;
+    },
+
+    /* ── A2: ByteTrack stage-2 association ────────────────────────
+       When the primary (high-confidence) ball is missing but a track is
+       already in flight, recover the ball from the low-confidence pool by
+       matching to the Kalman prediction. Faithful ByteTrack: low-score
+       detections never start a track, only continue one. Gated tightly on
+       distance to the predicted position so static rim/net false-positives
+       (which don't move with the ball) can't hijack the track.
+       Returns full-video-space { x, y, score } or null. */
+    _associateLowConf: function (scaleX, scaleY, offsetX, offsetY, vw, vh) {
+      var pool = this._lowFloorBalls;
+      if (!pool || !pool.length) return null;
+      var tr = this.tracker;
+      if (!tr || !tr.isTracking) return null;
+      var kf = tr.kalman;
+      if (!kf || !kf.initialized) return null;
+
+      // Predict one detection-cadence ahead from the last Kalman estimate.
+      var divisor = this._adaptiveDivisor();
+      var px = kf.x + kf.vx * divisor;
+      var py = kf.y + kf.vy * divisor;
+      var speed = Math.sqrt(kf.vx * kf.vx + kf.vy * kf.vy);
+
+      // Gate radius: generous enough for a fast ball across the cadence gap,
+      // tight enough to exclude far false-positives. Scales with speed.
+      var minR = Math.max(0.05 * vw, 40);
+      var radius = Math.min(Math.max(minR, speed * divisor * 1.6), 0.28 * vw);
+      var r2 = radius * radius;
+
+      var best = null, bestD2 = r2;
+      for (var i = 0; i < pool.length; i++) {
+        var fx = pool[i].cx * scaleX + offsetX;
+        var fy = pool[i].cy * scaleY + offsetY;
+        var dx = fx - px, dy = fy - py;
+        var d2 = dx * dx + dy * dy;
+        if (d2 <= bestD2) { bestD2 = d2; best = { x: fx, y: fy, score: pool[i].score }; }
+      }
+      return best;
     },
 
     /* ── L11.2: Refine hoop Y by orange-rim color search ─────────
@@ -3968,6 +4151,17 @@
       if (v10fy != null && v10fy > 1.5) v10fy = v10fy / vh;
       var v10Zone = classifyV10Zone(v10fx, v10fy, this.rimZone, this.threePtDistance);
 
+      // COURT POSITION: when a per-session calibration exists, project the
+      // shooter's feet through the floor homography for TRUE court coords,
+      // real shot distance (meters) and an exact zone. The image-space
+      // classifyV10Zone stays as the uncalibrated fallback.
+      var court = null;
+      if (window.CourtPosition && window.CourtPosition.isCalibrated() &&
+          v10fx != null && v10fy != null) {
+        court = window.CourtPosition.locate(v10fx, v10fy);
+        if (court) v10Zone = court.zone;
+      }
+
       var shotData = {
         result: finalResult,
         shotX: normX,
@@ -3978,6 +4172,9 @@
         v10Zone: v10Zone,
         feetXNorm: v10fx,
         feetYNorm: v10fy,
+        courtX: court ? +court.x.toFixed(2) : null,   // meters, +X right of rim
+        courtZ: court ? +court.z.toFixed(2) : null,   // meters from rim toward court
+        shotDistM: court ? +court.dist.toFixed(2) : null,
         timestamp: now,
         triggerSrc: triggerSrc,           // 'pose' | 'ball' — for analytics + UI badge
         releaseConfidence: releaseConf    // 0-1 when pose-triggered, null otherwise

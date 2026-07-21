@@ -421,7 +421,43 @@
     }, 300);
   }
 
+  /* The session truly begins: start the clip (the accuracy-bearing
+     artifact) and drop the engine to its framing watchdog. Called by the
+     v10 chrome from the gate's Start tap. Engine idles ONLY if recording
+     actually started -- a failed recorder must not half-disable live. */
+  function beginSessionRecording() {
+    var ok = false;
+    try {
+      if (typeof VideoReview === 'undefined') { window.__recStartNote = 'no-module'; }
+      else if (!VideoReview.isSupported())    { window.__recStartNote = 'no-MediaRecorder'; }
+      else if (!stream)                       { window.__recStartNote = 'no-stream'; }
+      else {
+        ok = !!VideoReview.startRecording(stream);
+        window.__recStartNote = ok ? '' : 'start-failed';
+        if (!ok) {
+          /* one retry, next tick -- covers transient stream states */
+          setTimeout(function () {
+            try {
+              if (!VideoReview.recordingState().active && stream) {
+                if (VideoReview.startRecording(stream)) {
+                  window.__recStartNote = '';
+                  try { window.ShotDetectionEngine._recordingIdle = true; } catch (e) {}
+                }
+              }
+            } catch (e) {}
+          }, 1200);
+        }
+      }
+    } catch (e) { ok = false; window.__recStartNote = 'threw:' + (e && (e.name || e.message) || '?'); }
+    try {
+      var eng = window.ShotDetectionEngine;
+      if (eng) eng._recordingIdle = ok;
+    } catch (e) {}
+    return ok;
+  }
+
   function closeScreen() {
+    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._recordingIdle = false; } catch (e) {}
     stopCamera();
     stopTracking();
     phase = 'idle';
@@ -491,11 +527,14 @@
     // ── Live camera mode ─────────────────────────────────────────
     if (stream) return;
 
-    // 1280×720 chosen for visual quality of the live preview and the
-    // recorded video-replay clip. Detection itself downscales to 640px wide,
-    // so a smaller capture (e.g. 854×480) would save ~30% of camera/encoder
-    // power on battery-bound devices without affecting accuracy. Worth
-    // revisiting on mobile if thermal throttling becomes an issue.
+    // 1280×720. A 854×480 capture was tried to buy encoder headroom on the
+    // reasoning that detection downscales to 640 wide anyway — that reasoning
+    // was wrong for SMALL objects. The ball is only a few pixels; capturing it
+    // with fewer sensor pixels to begin with means less ball detail survives
+    // into the 640 input, and phone ISPs are often softer in low capture modes
+    // too. Measured cost of the encoder was only ~60ms -> 70-80ms, so this was
+    // never where the load was. Do not lower this again without measuring
+    // detection quality, not just frame cost.
     var constraints = {
       video: {
         facingMode: { ideal: 'environment' },
@@ -514,6 +553,8 @@
           videoEl.removeEventListener('loadedmetadata', onMeta);
           resizeCanvas();
         });
+        camConstraints = constraints;
+        startCamWatchdog();
       })
       .catch(function (err) {
         console.error('Camera access failed:', err);
@@ -536,7 +577,78 @@
       });
   }
 
+  /* ── Dead-feed watchdog ────────────────────────────────────────
+     Observed on-court: a session opened to a BLACK camera for ~40s (feed
+     attached but no frames), then recovered on its own. Neither currentTime
+     (advances with zero frames) nor requestVideoFrameCallback (never fires
+     when the element isn't composited) honestly report feed liveness, so the
+     watchdog probes PIXELS: a 16×16 draw of the frame, summed. A live camera
+     always varies (sensor noise); a dead or black feed is bit-identical. No
+     change for >4s — reopen getUserMedia instead of waiting it out. If a
+     recording was running it is restarted on the fresh stream (the pre-stall
+     part of the clip is lost — a shorter clip beats a dead session). Status
+     is surfaced on window.__camStatus for the HUD. */
+  var camWatchdog = null, camLastAdvanceAt = 0, camRestarts = 0;
+  var camConstraints = null;   // startCamera's constraints, for watchdog reopen
+  var camProbeCv = null, camProbeCtx = null, camLastSum = -1;
+  function camFrameSum() {
+    if (!camProbeCtx) {
+      camProbeCv = document.createElement('canvas');
+      camProbeCv.width = 16; camProbeCv.height = 16;
+      camProbeCtx = camProbeCv.getContext('2d', { willReadFrequently: true });
+    }
+    camProbeCtx.drawImage(videoEl, 0, 0, 16, 16);
+    var d = camProbeCtx.getImageData(0, 0, 16, 16).data, s = 0;
+    for (var i = 0; i < d.length; i += 4) s += d[i] + d[i + 1] + d[i + 2];
+    return s;
+  }
+  function startCamWatchdog() {
+    stopCamWatchdog();
+    camLastAdvanceAt = Date.now(); camRestarts = 0; camLastSum = -1;
+    window.__camStatus = 'ok';
+    camWatchdog = setInterval(function () {
+      if (!videoEl || !stream) return;
+      try {
+        var sum = camFrameSum();
+        if (sum !== camLastSum) { camLastSum = sum; camLastAdvanceAt = Date.now(); }
+      } catch (e) { /* frame not drawable yet — leave the clock running */ }
+      if (Date.now() - camLastAdvanceAt < 4000) { window.__camStatus = 'ok'; return; }
+      var stalled = Date.now() - camLastAdvanceAt;
+      if (stalled > 4000 && camRestarts < 3) {
+        camRestarts++;
+        window.__camStatus = 'restarting';
+        console.warn('[Camera] feed stalled ' + Math.round(stalled / 1000) + 's — reopening (attempt ' + camRestarts + ')');
+        var wasRecording = false;
+        try { wasRecording = !!(typeof VideoReview !== 'undefined' && VideoReview.recordingState().active); } catch (e) {}
+        try { if (wasRecording) VideoReview.stopRecording(); } catch (e) {}
+        try { stream.getTracks().forEach(function (tr) { tr.stop(); }); } catch (e) {}
+        navigator.mediaDevices.getUserMedia(camConstraints || { video: true, audio: false }).then(function (s2) {
+          stream = s2;
+          videoEl.srcObject = s2;
+          videoEl.play();
+          camLastAdvanceAt = Date.now();
+          window.__camStatus = 'ok';
+          if (wasRecording) {
+            try {
+              if (VideoReview.startRecording(stream)) {
+                window.__recStartNote = 'cam-restarted';
+                try { window.ShotDetectionEngine._recordingIdle = true; } catch (e) {}
+              }
+            } catch (e) {}
+          }
+        }).catch(function () { window.__camStatus = 'stalled'; });
+      } else if (stalled > 4000) {
+        window.__camStatus = 'stalled';
+      }
+    }, 1200);
+  }
+  function stopCamWatchdog() {
+    if (camWatchdog) { clearInterval(camWatchdog); camWatchdog = null; }
+    window.__camStatus = null;
+  }
+
   function stopCamera() {
+    stopCamWatchdog();
     if (stream) {
       stream.getTracks().forEach(function (t) { t.stop(); });
       stream = null;
@@ -901,8 +1013,13 @@
       // hoops live in the upper-central portion of any sensible framing.
       // X 0.15-0.85: rejects far-corner detections. Y 0.05-0.55: rejects
       // floor / ceiling-extreme misclassifications.
-      if (hoop.cx < 0.15 || hoop.cx > 0.85 || hoop.cy < 0.05 || hoop.cy > 0.55) return;
-      if (hoop.bw < 0.02 || hoop.bh < 0.005) return;
+      /* Court report 2026-07-21: real handheld framing put the hoop near the
+         frame EDGE and the old X 0.15-0.85 gate rejected every detection --
+         "LOST THE HOOP" with the hoop clearly visible on screen. Widened to
+         accept any sane framing; the verifier + cluster lock still reject
+         corner junk. Min size halved for genuine court distance. */
+      if (hoop.cx < 0.04 || hoop.cx > 0.96 || hoop.cy < 0.03 || hoop.cy > 0.65) return;
+      if (hoop.bw < 0.012 || hoop.bh < 0.004) return;
       if (hoop.bw > 0.30 || hoop.bh > 0.25) return;
       if (hoop.score < 0.10) return;
 
@@ -1180,10 +1297,12 @@
           }
         }
 
-        // Start video recording for replay
-        if (typeof VideoReview !== 'undefined' && VideoReview.isSupported() && stream) {
-          VideoReview.startRecording(stream);
-        }
+        // Recording does NOT start here any more. It starts when the user
+        // taps Start (beginSessionRecording): the walk-up gate needs the
+        // engine at full rate to lock the rim, and recording+full-rate
+        // inference is exactly the proven contention that collapsed
+        // on-court performance. Mutual exclusion: gate = engine full rate,
+        // session = recording + engine idle watchdog.
 
         // Show learning status
         if (window.AdaptiveLearning) {
@@ -2252,9 +2371,24 @@
 
   function enterSummaryPhase() {
     phase = 'summary';
+    try { if (window.ShotDetectionEngine) window.ShotDetectionEngine._recordingIdle = false; } catch (e) {}
+
+    /* v10 record-then-analyse hand-off. When the v10 session UI is driving
+       and has registered a clip consumer, the recorded session is HANDED
+       OVER for offline analysis instead of ending on the legacy summary —
+       the offline pass over the clip is where the accurate made/miss
+       verdicts come from. The hook is captured synchronously because
+       stopRecording() resolves async and the v10 chrome may clear the
+       global while we wait. */
+    var v10Hook = (document.body.classList.contains('v10-cam-active') &&
+                   typeof window.__v10OnSessionClip === 'function')
+      ? window.__v10OnSessionClip : null;
 
     // Stop video recording and save
     if (typeof VideoReview !== 'undefined') {
+      /* Intentional stop — clear any lingering start-note so the diag badge
+         doesn't misread the (rightly) inactive recorder as a failure. */
+      window.__recStartNote = '';
       VideoReview.stopRecording().then(function (data) {
         if (data && data.blob) {
           _videoReviewData = data;
@@ -2263,7 +2397,24 @@
           var replayBtn = document.getElementById('st-video-replay-btn');
           if (replayBtn) replayBtn.style.display = '';
         }
-      }).catch(function () {});
+        if (v10Hook) { try { v10Hook(data && data.blob ? data : null); } catch (e) {} }
+      }).catch(function () {
+        if (v10Hook) { try { v10Hook(null); } catch (e) {} }
+      });
+    } else if (v10Hook) {
+      try { v10Hook(null); } catch (e) {}
+    }
+
+    if (v10Hook) {
+      /* Claim the flow BEFORE closing: watchTrackerClose auto-routes to
+         post-session ~150ms after this screen closes, and the v10 leave
+         observer tears down whatever overlay is up when the route changes —
+         together they were deleting the analysis UI out from under the
+         processor. The flag suppresses both; the analysis flow clears it
+         when it routes to its own result. */
+      window.__v10AnalysisOwnsFlow = true;
+      closeScreen();
+      return;   // v10 owns the rest of the flow
     }
 
     stopCamera();
@@ -2860,7 +3011,8 @@
   window.ShotTrackingScreen = {
     open:         openScreen,
     close:        closeScreen,
-    openFromFile: openFromFile
+    openFromFile: openFromFile,
+    beginSessionRecording: beginSessionRecording
   };
 
 })();

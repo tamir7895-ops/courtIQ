@@ -1,9 +1,9 @@
 ﻿<!doctype html>
-<html lang="en" style="background:#FBF5E8">
+<html lang="en" style="background:#FFFFFF">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
-<meta name="theme-color" content="#FBF5E8" />
+<meta name="theme-color" content="#FFFFFF" />
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" />
 <meta http-equiv="Expires" content="0" />
@@ -16,13 +16,84 @@
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
 <link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=d2c4e7a" />
-<link rel="stylesheet" href="styles/components.css?v=d2c4e7a" />
+<link rel="stylesheet" href="styles/tokens.css?v=bb8817e" />
+<link rel="stylesheet" href="styles/components.css?v=bb8817e" />
+<link rel="stylesheet" href="styles/v11.css?v=bb8817e" />
+<link rel="stylesheet" href="styles/v12.css?v=bb8817e" />
+<link rel="stylesheet" href="styles/mobile.css?v=bb8817e" />
+<link rel="stylesheet" href="styles/studio.css?v=bb8817e" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=d2c4e7a" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=bb8817e" />
 </head>
 <body>
+
+<!-- Boot splash: the brand mark with the ball circling the fingertip.
+     Pure CSS (0 bytes of network), removed with a fade the moment the
+     first screen composes. A Higgsfield video version can replace the
+     ring later — same slot, heavier asset. -->
+<div id="boot-splash" aria-hidden="true">
+  <div class="bs-wrap">
+    <!-- FINGER SPIN, like the reference video: the ball spins about the
+         VERTICAL axis on the fingertip. The sphere and its lighting stay
+         still; the seam lines wrap around it horizontally — that is what
+         sells rotation-about-Y — plus the small balance wobble. -->
+    <svg class="bs-ball" viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="bsG" cx="35%" cy="28%" r="90%">
+          <stop offset="0" stop-color="#FF8F45"/>
+          <stop offset=".6" stop-color="#E8590C"/>
+          <stop offset="1" stop-color="#B23F05"/>
+        </radialGradient>
+        <clipPath id="bsClip"><circle cx="50" cy="50" r="46"/></clipPath>
+      </defs>
+      <g class="bs-wobble">
+        <circle cx="50" cy="50" r="46" fill="url(#bsG)"/>
+        <g clip-path="url(#bsClip)">
+          <!-- equator: fixed, it doesn't move when spinning about Y -->
+          <path d="M4 50 q46 12 92 0" fill="none" stroke="#7A2E08" stroke-width="3" opacity=".8"/>
+          <!-- longitudes: march sideways = the spin. Pattern repeats every 46px -->
+          <g class="bs-seams" fill="none" stroke="#7A2E08" stroke-width="3" opacity=".8">
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(-46 0)"/>
+            <path d="M27 4 q0 46 0 92" transform="translate(-46 0)"/>
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0"/>
+            <path d="M27 4 q0 46 0 92"/>
+            <path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(46 0)"/>
+            <path d="M27 4 q0 46 0 92" transform="translate(46 0)"/>
+          </g>
+        </g>
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#8a3a0c" stroke-width="2.5"/>
+      </g>
+    </svg>
+    <div class="bs-tip"></div>
+  </div>
+</div>
+<style>
+  #boot-splash {
+    position: fixed; inset: 0; z-index: 9999; background: #FFFFFF;
+    display: flex; align-items: center; justify-content: center;
+    transition: opacity .35s ease;
+  }
+  #boot-splash.is-done { opacity: 0; pointer-events: none; }
+  .bs-wrap { position: relative; width: 96px; height: 118px; text-align: center; }
+  .bs-ball { width: 84px; height: 84px; margin: 0 auto; display: block; }
+  .bs-seams { animation: bs-wrap 0.55s linear infinite; }
+  @keyframes bs-wrap { to { transform: translateX(46px); } }
+  .bs-wobble {
+    transform-origin: 50px 96px;              /* pivots on the fingertip */
+    animation: bs-wobble 1.4s ease-in-out infinite;
+  }
+  @keyframes bs-wobble {
+    0%, 100% { transform: rotate(-3.5deg); }
+    50%      { transform: rotate(3.5deg); }
+  }
+  /* the fingertip the ball spins on */
+  .bs-tip {
+    width: 12px; height: 18px; margin: 2px auto 0;
+    border-radius: 7px 7px 9px 9px; background: #0A2850;
+  }
+  @media (prefers-reduced-motion: reduce) { .bs-seams, .bs-wobble { animation: none; } }
+</style>
 
 <main id="app" role="main"></main>
 
@@ -33,15 +104,58 @@
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
-<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"></script>
+<!-- A10: ONNX Runtime is served from the APP BUNDLE, not a CDN. The native
+     (Capacitor) app already ships the YOLOX model locally, but the engine that
+     runs it was still fetched from jsdelivr — so shot tracking could not load
+     at all without internet (exactly the outdoor-court case) and was hostage to
+     a CDN outage. Vendored at /vendor/ort (copied into www/ by build.js).
+     wasmPaths must point at the same folder or ORT re-fetches the .wasm/.mjs
+     from the CDN default. The CDN <script> stays only as a last-resort fallback
+     if the local file is somehow missing from the bundle. -->
+<script src="../vendor/ort/ort.webgpu.min.js"></script>
+<script>
+  if (!window.ort) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/onnxruntime-web@1.20.1/dist/ort.webgpu.min.js" crossorigin="anonymous"><\/script>');
+  }
+</script>
+<script>
+  // The WebGPU (jsep) backend dynamically import()s an .mjs sidecar, and a
+  // dynamic import is REJECTED unless the response has a JavaScript MIME type.
+  // Capacitor's iOS WebViewAssetHandler has NO ".mjs" entry in its MIME table
+  // (Android does) — it would serve application/octet-stream and ORT would die
+  // with "Failed to fetch dynamically imported module", i.e. no shot detection
+  // at all on iOS. So the sidecar ships with a .js extension ("js" IS mapped on
+  // both platforms) and we point ORT straight at it. .wasm is mapped on both.
+  try {
+    if (window.ort && ort.env && ort.env.wasm) {
+      // ROOT-ABSOLUTE, not page-relative: ORT resolves wasmPaths.wasm/mjs
+      // relative to ort.webgpu.min.js's OWN script location (/vendor/ort/),
+      // not the page's URL. A page-relative '../vendor/ort/...' string
+      // doubled into '/vendor/vendor/ort/...' from there — 404, WebGPU
+      // dies, wasm-proxy/wasm-main-thread cascade-fail on the poisoned
+      // initWasm() singleton, and the engine silently drops to color-only
+      // (zero ML detection) in production. Confirmed via the shipped
+      // www/ build in a real browser tab, not just the isolated verify
+      // page — the isolated page used root-absolute paths already and
+      // never exercised this bug. www/ is the Capacitor webDir root on
+      // both iOS/Android, so '/vendor/...' is valid there too.
+      ort.env.wasm.wasmPaths = {
+        wasm: '/vendor/ort/ort-wasm-simd-threaded.jsep.wasm',
+        mjs:  '/vendor/ort/ort-wasm-simd-threaded.jsep.mjs.js'
+      };
+    }
+  } catch (e) { /* ORT resolves its own default if this fails */ }
+</script>
 
 <!-- ג”€ג”€ג”€ Engine: CourtIQ data + auth services ג”€ג”€ג”€ -->
+<script src="/version.js"></script>
 <script src="../js/env.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
+<script src="../js/drill-choreo.js"></script>
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
 <script src="../js/badges.js"></script>
@@ -50,21 +164,39 @@
 <script src="../js/daily-challenge.js"></script>
 <script src="../js/daily-workout.js"></script>
 <script src="../js/shot-analysis.js"></script>
+<!-- Session recording. ShotTrackingScreen calls VideoReview.startRecording()
+     on the camera stream and stopRecording() at the end, but this file was
+     never included here — so window.VideoReview was undefined in the v10 app
+     and NOTHING was ever recorded. Without it the record-then-analyse flow
+     has no clip to analyse at all. -->
+<script src="../js/video-review.js"></script>
 
-<!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection) -->
+<!-- MediaPipe Tasks Vision (Pose Landmarker for shooting-motion detection).
+     Served from the APP BUNDLE like ORT above — pose fired most shot triggers
+     on eval footage, so it must work offline too. The bundle ships as .mjs.js
+     (not .mjs) for the same Capacitor-iOS MIME reason as the ORT sidecar.
+     CDN import kept only as a fallback if the local file is missing. -->
 <script type="module">
-  import { PoseLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm';
-  window.__MP = { PoseLandmarker: PoseLandmarker, FilesetResolver: FilesetResolver };
+  var mod;
+  try {
+    mod = await import('../vendor/mediapipe/vision_bundle.mjs.js');
+  } catch (e) {
+    console.warn('[MP] local bundle failed (' + e.message + ') — falling back to CDN');
+    mod = await import('https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.14/+esm');
+  }
+  window.__MP = { PoseLandmarker: mod.PoseLandmarker, FilesetResolver: mod.FilesetResolver };
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/shotService.js?v=d2c4e7a"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=d2c4e7a"></script>
+<script src="../features/shot-tracking/v2/config.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/shotService.js?v=bb8817e"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=bb8817e"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -83,31 +215,79 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=d2c4e7a"></script>
-<script src="lib/data.js?v=d2c4e7a"></script>
-<script src="lib/nav.js?v=d2c4e7a"></script>
-<script src="auth-state.js?v=d2c4e7a"></script>
-<script src="app.js?v=d2c4e7a"></script>
+<script src="lib/ui.js?v=bb8817e"></script>
+<script src="lib/data.js?v=bb8817e"></script>
+<script src="lib/courtiq.js?v=bb8817e"></script>
+<script src="lib/court.js?v=bb8817e"></script>
+<script src="lib/drill-court.js?v=bb8817e"></script>
+<script src="lib/audio.js?v=bb8817e"></script>
+<script src="lib/reveal.js?v=bb8817e"></script>
+<script src="lib/v11.js?v=bb8817e"></script>
+<script src="lib/v12.js?v=bb8817e"></script>
+<script src="lib/avatar.js?v=bb8817e"></script>
+<script src="lib/plan.js?v=bb8817e"></script>
+<script src="lib/challenges.js?v=bb8817e"></script>
+<script src="lib/coach-insights.js?v=bb8817e"></script>
+<script src="lib/coach-ai.js?v=bb8817e"></script>
+<script src="lib/nav.js?v=bb8817e"></script>
+<script src="lib/mobile.js?v=bb8817e"></script>
+<!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
+     ?studio in the URL so it can be opened on a real phone against a LAN
+     dev server. Never ships to a production build. -->
+<script>
+  (function () {
+    /* NEVER inside the native app: Capacitor's webview origin is
+       capacitor://localhost (iOS) / https://localhost (Android), so a
+       plain hostname check would ship the dev Studio to every phone.
+       Caught before it ever reached a build; the guard stays first. */
+    if (window.Capacitor) return;
+    var host = location.hostname;
+    var dev = host === 'localhost' || host === '127.0.0.1' ||
+              /^192\.168\./.test(host) || /^10\./.test(host) ||
+              location.search.indexOf('studio') >= 0;
+    if (!dev) return;
+    var s = document.createElement('script');
+    s.src = 'lib/studio.js?v=bb8817e';
+    document.head.appendChild(s);
+  })();
+</script>
+<script src="auth-state.js?v=bb8817e"></script>
+<script src="app.js?v=bb8817e"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/home.js?v=d2c4e7a"></script>
-<script src="screens/track.js?v=d2c4e7a"></script>
-<script src="screens/train.js?v=d2c4e7a"></script>
-<script src="screens/coach.js?v=d2c4e7a"></script>
-<script src="screens/me.js?v=d2c4e7a"></script>
-<script src="screens/auth.js?v=d2c4e7a"></script>
-<script src="screens/camera-hud.js?v=d2c4e7a"></script>
-<script src="screens/post-session.js?v=d2c4e7a"></script>
-<script src="screens/onboarding.js?v=d2c4e7a"></script>
-<script src="screens/drill-library.js?v=d2c4e7a"></script>
-<script src="screens/workout-player.js?v=d2c4e7a"></script>
-<script src="screens/avatar-customizer.js?v=d2c4e7a"></script>
-<script src="screens/notifications.js?v=d2c4e7a"></script>
+<script src="screens/home.js?v=bb8817e"></script>
+<script src="screens/track.js?v=bb8817e"></script>
+<script src="screens/train.js?v=bb8817e"></script>
+<script src="screens/coach.js?v=bb8817e"></script>
+<script src="screens/me.js?v=bb8817e"></script>
+<script src="screens/social.js?v=bb8817e"></script>
+<script src="screens/auth.js?v=bb8817e"></script>
+<script src="screens/session-prep.js?v=bb8817e"></script>
+<script src="screens/camera-hud.js?v=bb8817e"></script>
+<script src="screens/post-session.js?v=bb8817e"></script>
+<script src="screens/onboarding.js?v=bb8817e"></script>
+<script src="screens/drill-library.js?v=bb8817e"></script>
+<script src="screens/workout-player.js?v=bb8817e"></script>
+<script src="screens/avatar-customizer.js?v=bb8817e"></script>
+<script src="screens/shop.js?v=bb8817e"></script>
+<script src="screens/plan.js?v=bb8817e"></script>
+<script src="screens/notifications.js?v=bb8817e"></script>
 
 <script>
   // Bootstrap after all scripts load
   document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(function () { window.app && window.app.bootstrap(); }, 50);
+    setTimeout(function () {
+      if (window.app) window.app.bootstrap();
+      /* first frame after the first screen composes: fade the splash */
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          var sp = document.getElementById('boot-splash');
+          if (!sp) return;
+          sp.classList.add('is-done');
+          setTimeout(function () { sp.remove(); }, 400);
+        }, 250);
+      });
+    }, 50);
   });
 </script>
 
