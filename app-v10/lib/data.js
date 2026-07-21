@@ -430,12 +430,6 @@
         if (wasActive && !isActive) {
           obs.disconnect();
           setTimeout(function () {
-            /* Record-then-analyse claims the flow at End Session: the clip
-               is being handed to the offline analyser, which routes to its
-               own result when done. Auto-routing here would render
-               post-session UNDER the analysis overlay and (via the leave
-               observer) tear that overlay down mid-analysis. */
-            if (window.__v10AnalysisOwnsFlow) return;
             if (window.app && window.app.go) window.app.go('post-session');
           }, 150);
         }

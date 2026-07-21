@@ -97,7 +97,7 @@
         ]),
         h('div', { class: 'sp12-step' }, [
           h('span', { class: 'sp12-step__n', text: '3' }),
-          h('span', { text: 'Every frame gets analysed — a chime sounds and your results open' })
+          h('span', { text: 'Every frame gets analysed — you\'ll get a notification' })
         ])
       ])
     ]));

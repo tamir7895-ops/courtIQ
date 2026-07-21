@@ -135,11 +135,7 @@
       if (e.data && e.data.size > 0) _chunks.push(e.data);
     };
 
-    /* Timeslice is a webm feature. iOS records mp4, and chunked mp4 from
-       MediaRecorder is broken there -- sessions came back with only the
-       first seconds. mp4 records as ONE blob delivered at stop(). */
-    if (/mp4/.test(_recordingMime)) _mediaRecorder.start();
-    else _mediaRecorder.start(1000); // webm: 1-second chunks
+    _mediaRecorder.start(1000); // 1-second chunks
     return true;
   }
 
