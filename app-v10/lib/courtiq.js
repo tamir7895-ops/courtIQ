@@ -149,8 +149,25 @@
     }).catch(function () { return null; });
   }
 
+  /* The score as it stood at N points back in time — same window math,
+     evaluated at earlier "now"s. Real history, not interpolation; a point
+     is null where there wasn't enough film yet. One fetch serves all. */
+  function getSeries(points, stepDays) {
+    points = points || 8; stepDays = stepDays || 5;
+    return window.V10Data.getSessions(200).then(function (sessions) {
+      var now = Date.now(), out = [];
+      for (var i = points - 1; i >= 0; i--) {
+        var t = now - i * stepDays * 86400000;
+        var w = scoreWindow(sessions, t);
+        out.push(w ? w.score : null);
+      }
+      return out;
+    }).catch(function () { return []; });
+  }
+
   window.V10CourtIQ = {
     get:          getCourtIQ,
+    series:       getSeries,
     sessionScore: sessionScore,
     tierOf:       tierOf,
     WINDOW_DAYS:  WINDOW_DAYS,

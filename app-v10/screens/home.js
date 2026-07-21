@@ -33,6 +33,81 @@
      rank, and the player's avatar on the right — where the basketball
      used to sit. Two tap targets: the body opens tracking, the avatar
      opens the profile. */
+  /* 30-ish day Court IQ trend — a real series (window math evaluated at
+     earlier dates), drawn only when there are two real points to join */
+  function spark(series) {
+    var pts = [];
+    (series || []).forEach(function (v, i) { if (v != null) pts.push([i, v]); });
+    if (pts.length < 2) return null;
+    var min = Infinity, max = -Infinity;
+    pts.forEach(function (p) { min = Math.min(min, p[1]); max = Math.max(max, p[1]); });
+    var span = Math.max(4, max - min);                 /* flat line still visible */
+    var W = 120, H = 26, n = series.length - 1;
+    var d = pts.map(function (p, j) {
+      var x = (p[0] / n) * (W - 6) + 3;
+      var y = H - 4 - ((p[1] - min) / span) * (H - 8);
+      return (j ? 'L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
+    }).join(' ');
+    var up = pts[pts.length - 1][1] >= pts[0][1];
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+    svg.setAttribute('class', 'h12-spark' + (up ? ' is-up' : ' is-down'));
+    svg.setAttribute('aria-label', 'Court IQ trend');
+    svg.innerHTML = '<path d="' + d + '" fill="none" stroke-width="2.5" ' +
+      'stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle r="3" cx="' + ((pts[pts.length - 1][0] / n) * (W - 6) + 3).toFixed(1) +
+      '" cy="' + (H - 4 - ((pts[pts.length - 1][1] - min) / span) * (H - 8)).toFixed(1) + '"/>';
+    return svg;
+  }
+
+  /* ── NEXT UP — the one thing to do right now ──────────────────
+     Priority: today's plan day (not done) → first uncollected coach
+     challenge → everything swept, go play. Real state only. */
+  function nextUp(sessions, ctx) {
+    var icon = 'ph-basketball', label = 'Track a session', go = 'track';
+    try {
+      var P = window.V12Plan;
+      var p = P && P.load();
+      var fid = p && P.todaysFocus(p);
+      if (fid && fid !== 'rest' && !P.isDone(p, P.todayISO())) {
+        icon = 'ph-calendar-check';
+        label = 'Today: ' + fid.toUpperCase() + ' · ' + (p.minutes || 30) + ' min';
+        go = 'plan';
+      } else if (window.V12Challenges) {
+        var open = null;
+        ['gm', 'splash', 'flow', 'tank'].some(function (id) {
+          var s = window.V12Challenges.state(id, { sessions: sessions });
+          if (s && !s.claimed) { open = s; return true; }
+          return false;
+        });
+        if (open) {
+          icon = 'ph-flag-banner';
+          label = open.complete
+            ? open.title + ' — ready to claim'
+            : open.task + ' (' + open.done + '/' + open.total + ')';
+          go = 'coach';
+        } else {
+          icon = 'ph-confetti';
+          label = 'Staff swept — free play. Track a session';
+          go = 'track';
+        }
+      }
+    } catch (e) {}
+    var open2 = function () { ctx.go(go); };
+    return h('div', {
+      class: 'h12-next', role: 'button', tabindex: '0',
+      'aria-label': 'Next up: ' + label,
+      onclick: open2, onkeydown: V12.activates(open2)
+    }, [
+      h('i', { class: 'ph-fill ' + icon }),
+      h('div', {}, [
+        h('div', { class: 'h12-next__lbl', text: 'NEXT UP' }),
+        h('div', { class: 'h12-next__t', text: label })
+      ]),
+      h('i', { class: 'ph-bold ph-caret-right h12-next__chev' })
+    ]);
+  }
+
   function summaryCard(prof, iq, fg, ctx) {
     var goTrack = function () { ctx.go('track'); };
     var goMe = function () { ctx.go('me'); };
@@ -197,13 +272,17 @@
       ctx.data.getWeekStats(),
       ctx.data.getCoachVerdict(),
       ctx.data.getZones(),
-      window.V10CourtIQ.get()
+      window.V10CourtIQ.get(),
+      window.V10CourtIQ.series ? window.V10CourtIQ.series(8, 5) : [],
+      ctx.data.getSessions ? ctx.data.getSessions(10) : []
     ]).then(function (r) {
       var prof   = r[0] || {};
       var week   = r[1] || { attempts: 0, sessions: 0, goal: 5, days: {} };
       var coach  = r[2];
       var zones  = r[3] || {};
       var iq     = r[4];
+      var series = r[5] || [];
+      var sessions = r[6] || [];
 
       /* FG% only past the same evidence floor the tracking screen uses */
       var made = 0, vatt = 0;
@@ -215,7 +294,16 @@
       var fg = vatt >= C.MIN_TOTAL ? Math.round(made * 100 / vatt) + '%'
              : (vatt ? made + '/' + vatt : '—');
 
-      host.appendChild(summaryCard(prof, iq, fg, ctx));
+      var sum = summaryCard(prof, iq, fg, ctx);
+      if (iq) {
+        var sp = spark(series);
+        if (sp) {
+          var mainCol = sum.querySelector('.h12-sum__main');
+          if (mainCol) mainCol.insertBefore(sp, mainCol.querySelector('.h12-sum__meta'));
+        }
+      }
+      host.appendChild(sum);
+      host.appendChild(nextUp(sessions, ctx));
       host.appendChild(statBadges(prof, week, fg, ctx));
       host.appendChild(coachRow(coach, ctx));
       /* normal rhythm top to bottom — no stretched void in the middle */

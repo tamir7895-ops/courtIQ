@@ -168,11 +168,78 @@
 
     return Promise.all([
       ctx.data.getProfile(),
-      ctx.data.getPlanDrills ? ctx.data.getPlanDrills() : ctx.data.getDrills()
+      ctx.data.getPlanDrills ? ctx.data.getPlanDrills() : ctx.data.getDrills(),
+      ctx.data.getZones ? ctx.data.getZones() : {}
     ]).then(function (r) {
       var profile = r[0] || {};
       var drills = r[1] || [];
+      var zones = r[2] || {};
       var prefs = ctx.data.getPlanPrefs ? ctx.data.getPlanPrefs() : null;
+
+      /* ── DRILL OF THE DAY — aimed at the real weakness ──────────
+         Worst RATED zone from the last 30 days picks the drill; with
+         no rated zones there is no fake diagnosis — just the form
+         fundamentals. The reason line says WHY, with the real number. */
+      function drillOfTheDay() {
+        var C = window.V11Court;
+        var worst = null, worstPct = 101;
+        Object.keys(zones).forEach(function (k) {
+          var z = zones[k];
+          if (!z || C.state(z) !== 'rated') return;
+          var p = Math.round(z.made * 100 / z.vatt);
+          if (p < worstPct) { worstPct = p; worst = k; }
+        });
+        var MAP = {
+          lc: 'Corner Specialist Routine', rc: 'Corner Specialist Routine',
+          lw: 'Relocation Threes', rw: 'Relocation Threes',
+          top: 'Step-Back Three',
+          ml: 'Mid-Range Pull-Up', mr: 'Mid-Range Pull-Up',
+          topmid: 'Elbow Jumper Series', pnt: 'Mikan Drill'
+        };
+        var name = worst ? MAP[worst] : 'Form Shooting Close Range';
+        var hit = null, DB = (typeof _DRILLS_DB !== 'undefined') ? _DRILLS_DB : [];
+        for (var i = 0; i < DB.length; i++) if (DB[i].name === name) { hit = DB[i]; break; }
+        if (!hit) return null;
+        var zoneName = worst
+          ? (C.LABEL[worst] || worst).replace(/^L /, 'left ').replace(/^R /, 'right ').toLowerCase()
+          : '';
+        var reason = worst
+          ? 'Targets your ' + zoneName + ' — ' + worstPct + '% over 30 days'
+          : 'No rated zones yet — groove the base first';
+        var thumb = null;
+        try {
+          var ch = window.V12DrillChoreo && window.V12DrillChoreo.get(hit);
+          if (ch) thumb = window.V12DrillCourt.render(ch, { still: true, label: hit.name });
+        } catch (e) {}
+        return h('div', { class: 'tr12-dotd' }, [
+          h('div', { class: 'tr12-dotd__hd' }, [
+            h('i', { class: 'ph-fill ph-star' }),
+            h('span', { text: 'DRILL OF THE DAY' })
+          ]),
+          h('div', { class: 'tr12-dotd__row' }, [
+            thumb ? h('div', { class: 'tr12-dotd__thumb' }, [thumb]) : null,
+            h('div', { class: 'tr12-dotd__main' }, [
+              h('div', { class: 'tr12-dotd__n', text: hit.name }),
+              h('div', { class: 'tr12-dotd__r', text: reason }),
+              h('button', {
+                class: 'tr12-dotd__go', type: 'button',
+                onclick: function () {
+                  try {
+                    sessionStorage.setItem('courtiq_v11_drill', JSON.stringify({
+                      id: hit.id, name: hit.name,
+                      reps: hit.reps_or_sets ? parseInt(String(hit.reps_or_sets), 10) || 30 : 30,
+                      mins: hit.duration_minutes || 10,
+                      focus: hit.focus_area || 'Shooting',
+                      description: hit.description || ''
+                    }));
+                  } catch (e2) {}
+                  ctx.go('workout-player');
+                }
+              }, [h('i', { class: 'ph-fill ph-play-circle' }), h('span', { text: 'Start' })])
+            ]),
+          ].filter(Boolean))
+        ]);
+      }
 
       function paint() {
         while (host.firstChild) host.removeChild(host.firstChild);
@@ -209,6 +276,11 @@
           ]),
           h('i', { class: 'ph-bold ph-caret-right', style: { color: 'var(--d-mute)' } })
         ]));
+
+        if (tab === 'today') {
+          var dotd = drillOfTheDay();
+          if (dotd) host.appendChild(dotd);
+        }
 
         var sheet = V.sheet();
         host.appendChild(sheet);

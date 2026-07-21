@@ -282,11 +282,21 @@
   /* Empty state with the mascot instead of a gray icon. */
   function empty(title, body, opts) {
     opts = opts || {};
-    return h('div', { class: 'd-empty d-empty--art' }, [
+    var kids = [
       h('div', { class: 'd-empty__art' }, [opts.hoop ? hoopScene(76) : mascot(64)]),
       h('div', { class: 'd-empty__t', text: title }),
       h('div', { class: 'd-empty__b', text: body })
-    ]);
+    ];
+    /* an empty state is an invitation, not a shrug — give it the door */
+    if (opts.cta && opts.onCta) {
+      kids.push(h('button', {
+        class: 'd-empty__cta', type: 'button', onclick: opts.onCta
+      }, [
+        h('i', { class: 'ph-fill ' + (opts.ctaIcon || 'ph-play-circle') }),
+        h('span', { text: opts.cta })
+      ]));
+    }
+    return h('div', { class: 'd-empty d-empty--art' }, kids);
   }
 
   window.V12 = {

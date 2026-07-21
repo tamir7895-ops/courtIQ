@@ -161,7 +161,8 @@
     if (!t.att) {
       box.appendChild(V12.empty('Nothing on the court yet',
         'Track a session or upload a video. Every shot lands on this map, zone by zone.',
-        { hoop: true }));
+        { hoop: true, cta: 'Start a session', ctaIcon: 'ph-video-camera',
+          onCta: function () { window.app.go('camera-hud'); } }));
       return;
     }
 
@@ -203,7 +204,9 @@
     return ctx.data.getSessions(15).then(function (rows) {
       if (!rows || !rows.length) {
         box.appendChild(V12.empty('No sessions yet',
-          'Your first session shows up here the moment you finish it.'));
+          'Your first session shows up here the moment you finish it.',
+          { cta: 'Track your first session', ctaIcon: 'ph-video-camera',
+            onCta: function () { ctx.go('camera-hud'); } }));
         return;
       }
       rows.forEach(function (s) {
@@ -243,7 +246,9 @@
     if (!rated.length) {
       box.appendChild(V12.empty('The scout needs evidence',
         'Once a zone reaches ' + C.MIN_VERDICTS +
-        ' scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.'));
+        ' scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.',
+        { cta: 'Record a session', ctaIcon: 'ph-video-camera',
+          onCta: function () { ctx.go('camera-hud'); } }));
       return;
     }
 

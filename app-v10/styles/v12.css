@@ -899,6 +899,70 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   .c12-msg, .c12-board { animation: none; }
 }
 
+/* ── empty states carry their own door ────────────────────────── */
+.d-empty__cta {
+  margin-top: 12px; display: inline-flex; align-items: center; gap: 7px;
+  border: 0; cursor: pointer; border-radius: 12px; padding: 10px 18px;
+  background: var(--d-green, #47C012); color: #FFFFFF;
+  font: 800 13px var(--d-font, sans-serif);
+  box-shadow: 0 3px 0 var(--d-green-deep, #2F9204);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.d-empty__cta:active { transform: translateY(3px); box-shadow: none; }
+
+/* ── train: DRILL OF THE DAY — aimed at the real weakness ─────── */
+.tr12-dotd {
+  border: 2px solid var(--d-orange, #FF9F1C); border-radius: 16px;
+  background: #FFF9F0; padding: 12px 14px; margin: 10px 0 2px;
+}
+.tr12-dotd__hd {
+  display: flex; align-items: center; gap: 6px;
+  font: 800 11px var(--d-font, sans-serif); letter-spacing: .07em;
+  color: var(--d-orange-deep, #E8590C); margin-bottom: 8px;
+}
+.tr12-dotd__row { display: flex; gap: 12px; align-items: center; }
+.tr12-dotd__thumb { flex: 0 0 108px; border-radius: 10px; overflow: hidden; border: 1.5px solid var(--d-line, #E5E7EB); }
+.tr12-dotd__main { flex: 1; min-width: 0; }
+.tr12-dotd__n { font: 800 15px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); }
+.tr12-dotd__r { font: 600 12px var(--d-font, sans-serif); color: var(--d-muted, #6B7280); margin: 2px 0 8px; }
+.tr12-dotd__go {
+  display: inline-flex; align-items: center; gap: 6px; border: 0; cursor: pointer;
+  background: var(--d-green, #47C012); color: #fff;
+  font: 800 12.5px var(--d-font, sans-serif); padding: 8px 16px; border-radius: 10px;
+  box-shadow: 0 3px 0 var(--d-green-deep, #2F9204);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.tr12-dotd__go:active { transform: translateY(3px); box-shadow: none; }
+
+/* ── post-session: the race against your previous self ────────── */
+.ps12-chip--vs.ps12-chip--up   { background: rgba(71, 192, 18, .22); }
+.ps12-chip--vs.ps12-chip--up span   { color: #7BE356; }
+.ps12-chip--vs.ps12-chip--down { background: rgba(255, 107, 107, .18); }
+.ps12-chip--vs.ps12-chip--down span { color: #FF8787; }
+
+/* ── home: IQ sparkline + NEXT UP strip ───────────────────────── */
+.h12-spark { display: block; width: 116px; height: 26px; margin: 2px 0 4px; }
+.h12-spark path, .h12-spark circle { stroke: var(--d-green, #47C012); }
+.h12-spark circle { fill: var(--d-green, #47C012); }
+.h12-spark.is-down path, .h12-spark.is-down circle { stroke: #FF8787; }
+.h12-spark.is-down circle { fill: #FF8787; }
+.h12-next {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  background: var(--d-bg, #FFFFFF); border: 2px solid var(--d-line, #E5E7EB);
+  border-radius: 14px; padding: 9px 12px; margin-top: 10px;
+  box-shadow: 0 3px 0 var(--d-line, #E5E7EB);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.h12-next:active { transform: translateY(3px); box-shadow: none; }
+.h12-next > i:first-child {
+  font-size: 20px; color: var(--d-orange, #FF9F1C);
+  background: #FFF4E3; border-radius: 10px; padding: 7px;
+}
+.h12-next__lbl { font: 800 9.5px var(--d-font, sans-serif); letter-spacing: .08em; color: var(--d-muted, #6B7280); }
+.h12-next__t { font: 800 13.5px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); }
+.h12-next > div { flex: 1; min-width: 0; }
+.h12-next__chev { color: var(--d-muted, #6B7280); }
+
 /* ── THE GYM — the world scene: court, coaches, your avatar ───── */
 .c12-gym {
   position: relative; border: 2px solid var(--d-line, #E5E7EB);

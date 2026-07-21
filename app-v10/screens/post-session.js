@@ -619,23 +619,50 @@
         ]));
       } else {
         /* the verdict hero — print card, one huge number, two chips */
+        var heroChips = h('div', { class: 'ps12-chips' }, [
+          h('div', { class: 'ps12-chip' }, [
+            h('i', { class: 'ph-fill ph-target' }),
+            h('span', { text: '3PT ' + (threeAtt ? threeMade + '/' + threeAtt : '—') })
+          ]),
+          h('div', { class: 'ps12-chip ps12-chip--fire' }, [
+            h('i', { class: 'ph-fill ph-fire' }),
+            h('span', { text: 'Best run ' + streak })
+          ])
+        ]);
         host.appendChild(h('div', { class: 'ps12-hero d-card d-card--ink' }, [
           h('div', { class: 'd-label', text: 'THIS SESSION' }),
           h('div', { class: 'ps12-num v10-bento__num' }, [
             document.createTextNode(made + ' / ' + att),
             h('span', { class: 'ps12-pct', text: pct + '%' })
           ]),
-          h('div', { class: 'ps12-chips' }, [
-            h('div', { class: 'ps12-chip' }, [
-              h('i', { class: 'ph-fill ph-target' }),
-              h('span', { text: '3PT ' + (threeAtt ? threeMade + '/' + threeAtt : '—') })
-            ]),
-            h('div', { class: 'ps12-chip ps12-chip--fire' }, [
-              h('i', { class: 'ph-fill ph-fire' }),
-              h('span', { text: 'Best run ' + streak })
-            ])
-          ])
+          heroChips
         ]));
+
+        /* vs LAST session — every session becomes a race against the
+           previous you. Progressive: the chip lands when the fetch does;
+           no scored previous session → no chip, never a fake baseline. */
+        if (att > 0 && window.V10Data && window.V10Data.getSessions) {
+          window.V10Data.getSessions(15).then(function (rows) {
+            var scored = (rows || []).filter(function (s) {
+              return s.total_made != null && (s.total_attempts || 0) > 0;
+            });
+            if (!scored.length) return;
+            /* the freshest row is usually THIS session (just saved) —
+               skip it when it's minutes old and matches our numbers */
+            var prev = scored[0];
+            var ageMin = (Date.now() - new Date(prev.created_at || prev.session_date).getTime()) / 60000;
+            if (ageMin < 20 && prev.total_attempts === att) prev = scored[1];
+            if (!prev) return;
+            var prevPct = Math.round(prev.total_made * 100 / prev.total_attempts);
+            var diff = pct - prevPct;
+            var tone = diff > 0 ? 'up' : (diff < 0 ? 'down' : 'flat');
+            var arrow = diff > 0 ? '▲' : (diff < 0 ? '▼' : '—');
+            heroChips.appendChild(h('div', { class: 'ps12-chip ps12-chip--vs ps12-chip--' + tone }, [
+              h('i', { class: 'ph-fill ph-arrows-left-right' }),
+              h('span', { text: 'Last: ' + prevPct + '% ' + arrow + (diff ? ' ' + Math.abs(diff) : '') })
+            ]));
+          }).catch(function () {});
+        }
       }
 
       /* Corrections — verdict sessions only. A counter session has no
