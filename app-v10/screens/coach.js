@@ -343,10 +343,18 @@
       var btn = h('button', {
         class: 'c12-chal__btn', type: 'button', disabled: s.complete ? undefined : 'disabled',
         onclick: function () {
-          if (window.V12Challenges.claim(coach.id, data)) {
+          var r = window.V12Challenges.claim(coach.id, data);
+          if (r) {
             btn.disabled = true;
-            btn.textContent = '+' + window.V12Challenges.XP + ' XP';
-            try { if (window.V10UI && window.V10UI.confetti) window.V10UI.confetti({ count: 16 }); } catch (e) {}
+            btn.textContent = r.bonus
+              ? '+' + window.V12Challenges.XP + ' XP · staff sweep +' + window.V12Challenges.BONUS + ' XP'
+              : '+' + window.V12Challenges.XP + ' XP';
+            try { if (window.V11Audio && V11Audio.ok) V11Audio.ok(); } catch (e0) {}
+            try {
+              if (window.V10UI && window.V10UI.confetti) {
+                window.V10UI.confetti({ count: r.bonus ? 40 : 16 });
+              }
+            } catch (e) {}
           }
         }
       }, [h('span', { text: s.complete ? 'Claim +' + window.V12Challenges.XP + ' XP' : s.done + '/' + s.total })]);
@@ -442,7 +450,13 @@
        coaches standing at their spots, and YOUR avatar. Tap a coach and
        your player walks over, then the conversation opens. A pulsing
        ball badge on a coach means his daily challenge is waiting. */
-    host.appendChild(h('div', { class: 'd-label c12-staff__label', text: 'THE GYM — WALK UP TO A COACH' }));
+    var claimedN = window.V12Challenges ? window.V12Challenges.claimedToday() : 0;
+    host.appendChild(h('div', {
+      class: 'd-label c12-staff__label',
+      text: claimedN > 0
+        ? 'THE GYM — ' + claimedN + '/4 CHALLENGES COLLECTED TODAY'
+        : 'THE GYM — WALK UP TO A COACH'
+    }));
     var SPOTS = {                    /* % of the scene box, x/y */
       gm:     { x: 50, y: 56 },      /* free-throw line — runs the floor */
       splash: { x: 82, y: 26 },      /* right corner three — his office */
@@ -454,6 +468,33 @@
     try {
       scene.appendChild(window.V12DrillCourt.render({}, { still: true, label: 'The gym' }));
     } catch (e) { scene.appendChild(V12.courtThumb('Shooting', 0, { label: 'The gym' })); }
+
+    /* props — the difference between a menu and a place */
+    var svgNS = 'http://www.w3.org/2000/svg';
+    function prop(x, y, w, inner, label) {
+      var el = document.createElementNS(svgNS, 'svg');
+      el.setAttribute('viewBox', '0 0 40 40');
+      el.setAttribute('class', 'c12-gym__prop');
+      el.setAttribute('aria-label', label || '');
+      el.setAttribute('style', 'left:' + x + '%;top:' + y + '%;width:' + w + 'px');
+      el.innerHTML = inner;
+      return el;
+    }
+    /* three cones by Tank's sideline */
+    scene.appendChild(prop(60, 90, 34,
+      '<path d="M6 30 L11 16 L16 30 Z" fill="#F5A623" stroke="#C97F0A"/>' +
+      '<path d="M17 32 L22 18 L27 32 Z" fill="#F5A623" stroke="#C97F0A"/>' +
+      '<path d="M28 30 L33 16 L38 30 Z" fill="#F5A623" stroke="#C97F0A"/>', 'Cones'));
+    /* ball rack in Splash's corner office */
+    scene.appendChild(prop(91, 33, 30,
+      '<rect x="4" y="18" width="32" height="14" rx="3" fill="none" stroke="#0A2850" stroke-width="2.5"/>' +
+      '<circle cx="12" cy="14" r="5" fill="#E8590C"/><circle cx="21" cy="14" r="5" fill="#E8590C"/>' +
+      '<circle cx="30" cy="14" r="5" fill="#E8590C"/>', 'Ball rack'));
+    /* the Scout's clipboard, leaning by his spot */
+    scene.appendChild(prop(58, 60, 22,
+      '<rect x="10" y="6" width="20" height="28" rx="3" fill="#FFFFFF" stroke="#0A2850" stroke-width="2.5"/>' +
+      '<rect x="16" y="3" width="8" height="6" rx="2" fill="#0A2850"/>' +
+      '<path d="M14 15 h12 M14 20 h12 M14 25 h8" stroke="#1C7ED6" stroke-width="2"/>', 'Clipboard'));
 
     var walking = false;
     var me = h('img', {
@@ -473,15 +514,21 @@
         class: 'c12-gym__coach', type: 'button',
         'aria-label': 'Walk to ' + c.name + ' — ' + c.role,
         style: { left: SPOTS[c.id].x + '%', top: SPOTS[c.id].y + '%' },
-        onclick: function () {
+        onclick: function (ev) {
           if (walking) return;
           walking = true;
+          try { if (window.V11Audio && V11Audio.tick) V11Audio.tick(); } catch (e0) {}
           me.classList.add('is-walking');
           me.style.left = (SPOTS[c.id].x - 11) + '%';
           me.style.top = SPOTS[c.id].y + '%';
+          /* he sees you coming — a beat of acknowledgement, then talk */
+          var coachBtn = ev.currentTarget;
+          setTimeout(function () {
+            coachBtn.appendChild(h('span', { class: 'c12-gym__hi', text: '…' }));
+          }, 650);
           setTimeout(function () {
             chatView(host, ctx, data, function () { mainView(host, ctx, data); }, c);
-          }, 900);
+          }, 1150);
         }
       }, [
         h('img', { class: 'c12-gym__face', src: coachFace(c, 96), alt: '' }),
@@ -491,6 +538,15 @@
     });
     scene.appendChild(me);
     host.appendChild(scene);
+
+    /* claims made on another device land here — pull once per launch,
+       repaint the badges if anything new arrived */
+    if (window.V12Challenges && window.V12Challenges.sync && !mainView._chalSynced) {
+      mainView._chalSynced = true;
+      window.V12Challenges.sync().then(function (changed) {
+        if (changed && host.querySelector('.c12-gym')) mainView(host, ctx, data);
+      }, function () {});
+    }
 
     /* the film-status card + calendar follow the court */
     host.appendChild(grid);

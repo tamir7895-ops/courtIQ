@@ -946,6 +946,21 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   transition: left .9s cubic-bezier(.45, .05, .55, .95), top .9s cubic-bezier(.45, .05, .55, .95);
 }
 .c12-gym__me.is-walking { animation: gym-walk .3s ease-in-out infinite; }
+.c12-gym__prop { position: absolute; transform: translate(-50%, -50%); pointer-events: none; opacity: .95; }
+.c12-gym__hi {
+  position: absolute; top: -26px; left: 60%;
+  background: #FFFFFF; border: 2px solid var(--d-ink, #0A2850);
+  border-radius: 10px 10px 10px 2px; padding: 0 8px;
+  font: 800 13px var(--d-font, sans-serif); color: var(--d-ink, #0A2850);
+  animation: c12-pop .25s ease both;
+}
+/* tight phones: smaller sprites so labels never collide with the edge */
+@media (max-width: 400px) {
+  .c12-gym__face { width: 38px; height: 38px; }
+  .c12-gym__me { width: 36px; height: 36px; }
+  .c12-gym__name { font-size: 9.5px; padding: 1px 5px; }
+  .c12-gym__badge { width: 17px; height: 17px; font-size: 10px; }
+}
 @keyframes gym-walk {
   0%, 100% { margin-top: 0; }
   50% { margin-top: -5px; }
