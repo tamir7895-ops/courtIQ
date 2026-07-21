@@ -677,6 +677,12 @@
               try { console.log('[OfflineProcessor] pass2 —', JSON.stringify(diag)); } catch (e) {}
 
               if (!ring) {
+                // No ring -> no verdicts possible. Say how much raw ball
+                // signal existed so a remote report can tell a hoop failure
+                // from a ball failure.
+                var rawBallF = 0;
+                for (var rbi = 0; rbi < rows.length; rbi++) if (rows[rbi].balls.length) rawBallF++;
+                diag.rawBallFrames = rawBallF;
                 cleanup();
                 resolve({ shots: [], total: 0, made: 0, missed: 0, rawTotal: 0,
                           duration: duration, frames: rows.length, rim: null, diag: diag });
@@ -846,6 +852,19 @@
                 var end = (i + 1 < arrivals.length) ? arrivals[i + 1].start - 1 : rows.length - 1;
                 return [a.start, Math.min(end, a.start + CAP)];
               });
+              // Ball-signal census for the zero-shots diagnostic: rim locked
+              // but 0 windows means the ball was never seen ABOVE the ring —
+              // these numbers separate "no ball detections at all" from
+              // "ball seen near the rim but never above the plane".
+              var nearBallF = 0, rawBallF2 = 0;
+              for (var bfi = 0; bfi < rows.length; bfi++) {
+                if (rows[bfi].balls.length) rawBallF2++;
+                if (obs[bfi].length) nearBallF++;
+              }
+              diag.rawBallFrames  = rawBallF2;
+              diag.nearRimFrames  = nearBallF;
+              diag.aboveRingFrames = aboveIdx.length;
+              diag.windows = windows.length;
 
               // ── Verdicts ───────────────────────────────────────
               function bestObs(i) {
