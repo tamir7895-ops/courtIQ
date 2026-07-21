@@ -480,21 +480,65 @@
       el.innerHTML = inner;
       return el;
     }
+    /* one cone, drawn like the real thing: lit from the left, a
+       reflective band, a base, and a soft ground shadow */
+    function coneAt(cx) {
+      return '<g transform="translate(' + cx + ' 0)">' +
+        '<ellipse cx="11" cy="33.5" rx="9" ry="2.4" fill="#000" opacity=".14"/>' +
+        '<path d="M5 31 L9.4 13 Q11 10.5 12.6 13 L17 31 Z" fill="url(#cqConeG)"/>' +
+        '<path d="M7.4 24.5 L8.5 20 L13.5 20 L14.6 24.5 Z" fill="#FFFFFF" opacity=".92"/>' +
+        '<rect x="3" y="30" width="16" height="3.6" rx="1.8" fill="#D97706"/>' +
+        '<rect x="3" y="30" width="16" height="1.6" rx="0.8" fill="#F59E0B"/>' +
+      '</g>';
+    }
+    var CONE_DEFS =
+      '<defs><linearGradient id="cqConeG" x1="0" y1="0" x2="1" y2="0">' +
+      '<stop offset="0" stop-color="#FFB84D"/><stop offset=".45" stop-color="#F59E0B"/>' +
+      '<stop offset="1" stop-color="#C2620A"/></linearGradient>' +
+      '<radialGradient id="cqBallG" cx=".35" cy=".3" r=".85">' +
+      '<stop offset="0" stop-color="#FF8F45"/><stop offset=".6" stop-color="#E8590C"/>' +
+      '<stop offset="1" stop-color="#B23F05"/></radialGradient>' +
+      '<linearGradient id="cqSteelG" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0" stop-color="#CBD2DC"/><stop offset=".5" stop-color="#9AA4B2"/>' +
+      '<stop offset="1" stop-color="#6C7684"/></linearGradient></defs>';
+    function ball(cx, cy, r) {
+      return '<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="url(#cqBallG)"/>' +
+        '<path d="M' + (cx - r) + ' ' + cy + ' a' + r + ' ' + r + ' 0 0 1 ' + (2 * r) + ' 0" ' +
+          'fill="none" stroke="#7A2E08" stroke-width=".9" opacity=".85"/>' +
+        '<path d="M' + cx + ' ' + (cy - r) + ' q' + (r * 0.9) + ' ' + r + ' 0 ' + (2 * r) + '" ' +
+          'fill="none" stroke="#7A2E08" stroke-width=".9" opacity=".85"/>' +
+        '<ellipse cx="' + (cx - r * 0.35) + '" cy="' + (cy - r * 0.45) + '" rx="' + (r * 0.32) + '" ry="' + (r * 0.2) + '" fill="#FFC49A" opacity=".7"/>';
+    }
+
     /* three cones by Tank's sideline */
-    scene.appendChild(prop(60, 90, 34,
-      '<path d="M6 30 L11 16 L16 30 Z" fill="#F5A623" stroke="#C97F0A"/>' +
-      '<path d="M17 32 L22 18 L27 32 Z" fill="#F5A623" stroke="#C97F0A"/>' +
-      '<path d="M28 30 L33 16 L38 30 Z" fill="#F5A623" stroke="#C97F0A"/>', 'Cones'));
-    /* ball rack in Splash's corner office */
-    scene.appendChild(prop(91, 33, 30,
-      '<rect x="4" y="18" width="32" height="14" rx="3" fill="none" stroke="#0A2850" stroke-width="2.5"/>' +
-      '<circle cx="12" cy="14" r="5" fill="#E8590C"/><circle cx="21" cy="14" r="5" fill="#E8590C"/>' +
-      '<circle cx="30" cy="14" r="5" fill="#E8590C"/>', 'Ball rack'));
-    /* the Scout's clipboard, leaning by his spot */
-    scene.appendChild(prop(58, 60, 22,
-      '<rect x="10" y="6" width="20" height="28" rx="3" fill="#FFFFFF" stroke="#0A2850" stroke-width="2.5"/>' +
-      '<rect x="16" y="3" width="8" height="6" rx="2" fill="#0A2850"/>' +
-      '<path d="M14 15 h12 M14 20 h12 M14 25 h8" stroke="#1C7ED6" stroke-width="2"/>', 'Clipboard'));
+    var cones = prop(60, 90, 44, CONE_DEFS, 'Cones');
+    cones.setAttribute('viewBox', '0 0 66 40');
+    cones.innerHTML += coneAt(0) + coneAt(22) + coneAt(44);
+    scene.appendChild(cones);
+
+    /* steel ball cart in Splash's corner office */
+    var rack = prop(91, 33, 36,
+      '<ellipse cx="20" cy="36.5" rx="15" ry="2.6" fill="#000" opacity=".14"/>' +
+      '<rect x="5" y="17" width="30" height="16" rx="4" fill="none" stroke="url(#cqSteelG)" stroke-width="3"/>' +
+      '<line x1="5" y1="25" x2="35" y2="25" stroke="url(#cqSteelG)" stroke-width="2"/>' +
+      '<circle cx="11" cy="35" r="2.6" fill="#3B4350"/><circle cx="29" cy="35" r="2.6" fill="#3B4350"/>' +
+      '<circle cx="11" cy="35" r="1" fill="#9AA4B2"/><circle cx="29" cy="35" r="1" fill="#9AA4B2"/>' +
+      ball(12, 13, 5.6) + ball(23, 14.5, 5.6) + ball(31, 11.5, 5.2),
+      'Ball cart');
+    scene.appendChild(rack);
+
+    /* the Scout's clipboard — court print and a metal clip */
+    scene.appendChild(prop(58, 60, 26,
+      '<ellipse cx="20" cy="36" rx="10" ry="2" fill="#000" opacity=".12"/>' +
+      '<rect x="9" y="5" width="22" height="30" rx="3.5" fill="#B4854D"/>' +
+      '<rect x="11.5" y="8.5" width="17" height="24" rx="2" fill="#FFF9EF"/>' +
+      '<path d="M14 30 A6 6 0 0 1 26 30" fill="none" stroke="#1C7ED6" stroke-width="1.4"/>' +
+      '<rect x="16.5" y="27" width="7" height="5.5" fill="none" stroke="#1C7ED6" stroke-width="1.2"/>' +
+      '<circle cx="20" cy="15" r="2.2" fill="none" stroke="#E8590C" stroke-width="1.3"/>' +
+      '<path d="M13 12 L18 20 M27 12 L22 20" stroke="#0A2850" stroke-width="1.2" stroke-dasharray="2 1.6"/>' +
+      '<rect x="14.5" y="2.5" width="11" height="6" rx="2.5" fill="url(#cqSteelG)"/>' +
+      '<rect x="17.5" y="0.8" width="5" height="4" rx="2" fill="#6C7684"/>',
+      'Clipboard'));
 
     var walking = false;
     var me = h('img', {
