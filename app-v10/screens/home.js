@@ -249,18 +249,22 @@
 
   /* ── Row 5: the two doors — square tiles glued under the challenge */
   function doors(ctx) {
+    /* the user's reference: bright card, small icon chip up top, the
+       label under it, and the same icon oversized + faded in the corner */
     function door(mod, icon, label, go) {
       return h('button', {
-        class: 'h12-door h12-door--' + mod, type: 'button',
+        class: 'h12-door2 h12-door2--' + mod, type: 'button',
+        'aria-label': label,
         onclick: function () { ctx.go(go); }
       }, [
-        h('i', { class: 'ph-fill ' + icon }),
-        h('span', { text: label })
+        h('div', { class: 'h12-door2__ic' }, [h('i', { class: 'ph-fill ' + icon })]),
+        h('span', { class: 'h12-door2__t', text: label }),
+        h('i', { class: 'ph-fill ' + icon + ' h12-door2__bg', 'aria-hidden': 'true' })
       ]);
     }
     return h('div', { class: 'h12-doors' }, [
-      door('lib', 'ph-calendar-check', 'Training plan', 'plan'),
-      door('start', 'ph-basketball', 'Start session', 'camera-hud')
+      door('plan', 'ph-clipboard-text', 'Customize your training plan', 'plan'),
+      door('start', 'ph-basketball', 'Start a session', 'camera-hud')
     ]);
   }
 

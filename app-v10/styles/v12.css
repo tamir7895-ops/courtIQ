@@ -941,6 +941,35 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .ps12-chip--vs.ps12-chip--down { background: rgba(255, 107, 107, .18); }
 .ps12-chip--vs.ps12-chip--down span { color: #FF8787; }
 
+/* ── home doors, take 2: bright cards with a ghost icon corner ── */
+.h12-door2 {
+  position: relative; overflow: hidden; cursor: pointer;
+  border: 0; border-radius: 18px; padding: 12px 14px 14px;
+  min-height: clamp(96px, 16dvh, 128px); width: 100%;
+  display: flex; flex-direction: column; align-items: flex-start;
+  justify-content: space-between; gap: 8px; text-align: left;
+  color: #FFFFFF; font: 800 15px var(--d-font, sans-serif);
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.h12-door2--plan  { background: #2B9FE8; box-shadow: 0 4px 0 #1878B8; }
+.h12-door2--start { background: var(--d-green, #47C012); box-shadow: 0 4px 0 var(--d-green-deep, #2F9204); }
+.h12-door2:active { transform: translateY(4px); box-shadow: none; }
+.h12-door2__ic {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: #FFFFFF; display: flex; align-items: center; justify-content: center;
+  font-size: 19px; position: relative; z-index: 1;
+}
+.h12-door2--plan  .h12-door2__ic i { color: #2B9FE8; }
+.h12-door2--start .h12-door2__ic i { color: var(--d-green, #47C012); }
+.h12-door2__t {
+  position: relative; z-index: 1; line-height: 1.2; max-width: 85%;
+}
+.h12-door2__bg {
+  position: absolute; right: -12px; bottom: -14px;
+  font-size: 84px; color: #FFFFFF; opacity: .22;
+  transform: rotate(-12deg); pointer-events: none;
+}
+
 /* ── home: IQ sparkline + NEXT UP strip ───────────────────────── */
 .h12-spark { display: block; width: 116px; height: 26px; margin: 2px 0 4px; }
 .h12-spark path, .h12-spark circle { stroke: var(--d-green, #47C012); }
