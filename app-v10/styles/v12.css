@@ -156,11 +156,6 @@ body:is([data-screen="home"], [data-screen="track"], [data-screen="train"],
   background-repeat: no-repeat, repeat, repeat;
 }
 
-/* Every navigation renders into its own throwaway container (app.js);
-   display:contents keeps it invisible to layout so #app's flex/gap
-   rules keep working exactly as before. */
-.v12-page { display: contents; }
-
 /* HOME: rows still compress via dvh clamps to FIT one viewport when
    they can — but the page may scroll when content outgrows the fold.
    The old hard lock (height:100dvh + overflow:hidden) silently CLIPPED

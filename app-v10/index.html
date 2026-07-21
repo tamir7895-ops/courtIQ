@@ -34,8 +34,25 @@
      ring later — same slot, heavier asset. -->
 <div id="boot-splash" aria-hidden="true">
   <div class="bs-wrap">
-    <img class="bs-logo" src="assets/logo.svg" alt="" />
-    <div class="bs-orbit"><div class="bs-ball"></div></div>
+    <!-- the logo's basketball, spinning on its own axis at center -->
+    <svg class="bs-ball" viewBox="0 0 100 100">
+      <defs>
+        <radialGradient id="bsG" cx="35%" cy="30%" r="85%">
+          <stop offset="0" stop-color="#FF8F45"/>
+          <stop offset=".6" stop-color="#E8590C"/>
+          <stop offset="1" stop-color="#B23F05"/>
+        </radialGradient>
+      </defs>
+      <circle cx="50" cy="50" r="46" fill="url(#bsG)"/>
+      <g fill="none" stroke="#7A2E08" stroke-width="3" opacity=".85">
+        <path d="M4 50 h92"/>
+        <path d="M50 4 v92"/>
+        <path d="M17 17 q33 20 0 66"/>
+        <path d="M83 17 q-33 20 0 66"/>
+      </g>
+      <circle cx="50" cy="50" r="46" fill="none" stroke="#8a3a0c" stroke-width="2.5"/>
+    </svg>
+    <div class="bs-tip"></div>
   </div>
 </div>
 <style>
@@ -45,23 +62,18 @@
     transition: opacity .35s ease;
   }
   #boot-splash.is-done { opacity: 0; pointer-events: none; }
-  .bs-wrap { position: relative; width: 108px; height: 108px; }
-  .bs-logo {
-    position: absolute; inset: 14px; width: 80px; height: 80px;
-    animation: bs-breathe 1.6s ease-in-out infinite;
-  }
-  .bs-orbit {
-    position: absolute; inset: 0; animation: bs-spin 1.15s linear infinite;
-  }
+  .bs-wrap { position: relative; width: 96px; height: 118px; text-align: center; }
   .bs-ball {
-    position: absolute; top: -2px; left: 50%; margin-left: -7px;
-    width: 14px; height: 14px; border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #FF8F45, #E8590C 65%, #B23F05);
-    box-shadow: 0 1px 3px rgba(0,0,0,.25);
+    width: 84px; height: 84px; margin: 0 auto; display: block;
+    animation: bs-spin .9s linear infinite;
+  }
+  /* the fingertip the ball spins on */
+  .bs-tip {
+    width: 12px; height: 18px; margin: 4px auto 0;
+    border-radius: 7px 7px 9px 9px; background: #0A2850;
   }
   @keyframes bs-spin { to { transform: rotate(360deg); } }
-  @keyframes bs-breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
-  @media (prefers-reduced-motion: reduce) { .bs-orbit, .bs-logo { animation: none; } }
+  @media (prefers-reduced-motion: reduce) { .bs-ball { animation: none; } }
 </style>
 
 <main id="app" role="main"></main>

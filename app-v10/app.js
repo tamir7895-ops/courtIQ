@@ -42,19 +42,10 @@
     /* A swipe lands on a NEW page — it starts at the top, like a pager,
        not wherever the last visit left the scroller. */
     if (slideDir) { try { h.scrollTop = 0; } catch (e) {} }
-    /* Each navigation renders into its OWN container. Async screens
-       (home fetches five things) used to keep appending into the shared
-       #app after the user had already navigated away — two screens
-       interleaved and the page came out broken. Now a stale render
-       writes into a detached div and nobody ever sees it.
-       display:contents keeps #app's flex/gap layout identical. */
-    var pageHost = document.createElement('div');
-    pageHost.className = 'v12-page';
-    h.appendChild(pageHost);
     var rendered = null;
     try {
       rendered = SCREENS[id]({
-        host: pageHost,
+        host: h,
         ctx: {
           go: go,
           data: window.V10Data,
