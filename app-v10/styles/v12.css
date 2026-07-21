@@ -952,7 +952,7 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   transition: transform .06s linear, box-shadow .06s linear;
 }
 .h12-door2--plan  { background: #2B9FE8; box-shadow: 0 4px 0 #1878B8; }
-.h12-door2--start { background: var(--d-green, #47C012); box-shadow: 0 4px 0 var(--d-green-deep, #2F9204); }
+.h12-door2--start { background: var(--d-orange, #FF9F1C); box-shadow: 0 4px 0 var(--d-orange-deep, #E8590C); }
 .h12-door2:active { transform: translateY(4px); box-shadow: none; }
 .h12-door2__ic {
   width: 34px; height: 34px; border-radius: 10px;
@@ -960,7 +960,7 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
   font-size: 19px; position: relative; z-index: 1;
 }
 .h12-door2--plan  .h12-door2__ic i { color: #2B9FE8; }
-.h12-door2--start .h12-door2__ic i { color: var(--d-green, #47C012); }
+.h12-door2--start .h12-door2__ic i { color: var(--d-orange, #FF9F1C); }
 .h12-door2__t {
   position: relative; z-index: 1; line-height: 1.2; max-width: 85%;
 }
