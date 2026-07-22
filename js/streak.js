@@ -36,6 +36,26 @@
   }
 
   /* ── Daily check-in ──────────────────────────────────────── */
+  /* ── Streak Freeze — a purchasable one-day bridge ─────────────── */
+  var LS_FREEZE = 'courtiq_streak_freeze';
+  function freezes() {
+    try { return parseInt(localStorage.getItem(LS_FREEZE) || '0', 10) || 0; } catch (e) { return 0; }
+  }
+  function addFreeze(n) {
+    try { localStorage.setItem(LS_FREEZE, String(freezes() + (n || 1))); } catch (e) {}
+  }
+  function useFreeze() {
+    var n = freezes();
+    if (n <= 0) return false;
+    try { localStorage.setItem(LS_FREEZE, String(n - 1)); } catch (e) { return false; }
+    return true;
+  }
+  function missedExactlyOneDay(lastDate) {
+    var d = new Date();
+    d.setDate(d.getDate() - 2);
+    return lastDate === d.toISOString().slice(0, 10);
+  }
+
   function checkIn() {
     var data = load();
     var t = todayStr();
@@ -48,6 +68,9 @@
 
     if (data.lastDate === yStr) {
       data.current += 1;               // consecutive day
+    } else if (data.lastDate && missedExactlyOneDay(data.lastDate) && useFreeze()) {
+      // a Streak Freeze bridges ONE missed day — bought with real coins
+      data.current += 1;
     } else {
       data.current = 1;                // streak broken, or first check-in
     }
@@ -140,6 +163,13 @@
   window.StreakSystem = {
     load:   load,
     render: render,
-    get:    function () { return load().current; }
+    get:    function () { return load().current; },
+    /* ShotTrackingScreen calls this on real session end — it was never
+       exported, so its `typeof === 'function'` guard silently skipped
+       and streaks never advanced from sessions. Found by the freeze
+       tests; the guard that was meant to protect hid the bug. */
+    checkIn: checkIn,
+    freezes: freezes,
+    addFreeze: addFreeze
   };
 })();

@@ -283,6 +283,16 @@
     return null;
   }
 
+  /* Spend coins on a non-catalog consumable (power-ups). Returns {ok,msg}. */
+  function spend(amount, label) {
+    var bal = coins();
+    if (bal < amount) return { ok: false, msg: 'Need ' + (amount - bal) + ' more coins' };
+    var s = loadShop();
+    s.spent += amount;
+    saveShop(s);
+    return { ok: true, msg: (label || 'Power-up') + ' purchased' };
+  }
+
   /* Buy: deduct coins, record ownership. Returns {ok, msg}. */
   function buy(id) {
     var o = findOpt(id);
@@ -321,7 +331,7 @@
   window.V12Avatar = {
     CAT: CAT, TABS: TABS, DEFAULTS: DEFAULTS,
     load: load, save: save, buildUrl: buildUrl, opt: opt,
-    coins: coins, isOwned: isOwned, buy: buy, equip: equip,
+    coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
     catalog: catalog, catOf: catOf, findOpt: findOpt
   };
 })();

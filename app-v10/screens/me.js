@@ -306,6 +306,49 @@
       ])
     ]));
 
+    /* ── PERSONAL RECORDS — walls to break, all from real film ────
+       Progressive: the card lands when the fetch does; a stat with no
+       evidence shows a dash, never an invented zero. */
+    var recHost = h('div', {});
+    host.appendChild(recHost);
+    if (ctx.data.getSessions) {
+      ctx.data.getSessions(200).then(function (rows) {
+        if (!recHost.isConnected) return;
+        var bestPct = null, bestLine = '—', dayMax = 0, total = 0, byDay = {};
+        (rows || []).forEach(function (s) {
+          var att = s.total_attempts || 0;
+          total += att;
+          var d = (s.session_date || s.created_at || '').slice(0, 10);
+          if (d) { byDay[d] = (byDay[d] || 0) + att; if (byDay[d] > dayMax) dayMax = byDay[d]; }
+          if (s.total_made != null && att >= 10) {
+            var p = Math.round(s.total_made * 100 / att);
+            if (bestPct === null || p > bestPct) {
+              bestPct = p; bestLine = p + '% (' + s.total_made + '/' + att + ')';
+            }
+          }
+        });
+        var bestStreak = 0;
+        try { bestStreak = (window.StreakSystem.load().best) || 0; } catch (e) {}
+        if (!total && !bestStreak) return;       /* nothing real to show yet */
+        function rec(icon, v, l) {
+          return h('div', { class: 'm12-rec' }, [
+            h('i', { class: 'ph-fill ' + icon }),
+            h('div', { class: 'm12-rec__v', text: v }),
+            h('div', { class: 'm12-rec__l', text: l })
+          ]);
+        }
+        recHost.appendChild(V12.card({ class: 'm12-records' }, [
+          h('div', { class: 'd-label', text: 'PERSONAL RECORDS' }),
+          h('div', { class: 'm12-recs' }, [
+            rec('ph-target', bestLine, 'Best session'),
+            rec('ph-basketball', dayMax ? String(dayMax) : '—', 'Most shots in a day'),
+            rec('ph-fire', bestStreak ? bestStreak + 'd' : '—', 'Longest streak'),
+            rec('ph-stack', String(total), 'Shots all-time')
+          ])
+        ]));
+      }).catch(function () {});
+    }
+
     /* trophy preview — earned first, then nearest to earn */
     var earned = earnedMap();
     var sorted = TROPHIES.slice().sort(function (a, b) {

@@ -54,6 +54,34 @@
         ])
       ]));
 
+      /* ── POWER-UPS — consumables, not cosmetics ─────────────────── */
+      var FREEZE_COST = 150;
+      var frz = (window.StreakSystem && StreakSystem.freezes) ? StreakSystem.freezes() : 0;
+      host.appendChild(h('div', { class: 'd-label shop12-sec__l' }, [h('span', { text: 'Power-ups' })]));
+      host.appendChild(h('button', {
+        class: 'shop12-item shop12-item--wide' + (bal < FREEZE_COST ? ' is-cant' : ''),
+        type: 'button',
+        onclick: function () {
+          if (!window.V12Avatar || !V12Avatar.spend || !window.StreakSystem) return;
+          var r = V12Avatar.spend(FREEZE_COST, 'Streak Freeze');
+          if (r.ok) {
+            StreakSystem.addFreeze(1);
+            toast('Streak Freeze armed — one missed day forgiven');
+            paint();
+          } else toast(r.msg);
+        }
+      }, [
+        h('i', { class: 'ph-fill ph-snowflake shop12-item__ic', style: { color: '#1C7ED6' } }),
+        h('div', { style: { flex: '1', minWidth: '0', textAlign: 'left' } }, [
+          h('div', { class: 'shop12-item__t', text: 'Streak Freeze' + (frz ? ' · ' + frz + ' armed' : '') }),
+          h('div', { class: 'shop12-item__s', text: 'Miss one day — the fire survives. Used automatically.' })
+        ]),
+        h('span', { class: 'shop12-item__buy' }, [
+          h('i', { class: 'ph-fill ph-coin' }),
+          h('span', { text: String(FREEZE_COST) })
+        ])
+      ]));
+
       /* group premium catalog by category label */
       var groups = {};
       A.catalog().forEach(function (row) {
