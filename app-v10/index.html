@@ -11,11 +11,12 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
 
 <!-- v10 design system (cache-bust via ?v=) -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
-<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
+<!-- Fonts + icons ship IN the bundle (vendor/, latin subsets only, woff2).
+     They came from CDNs before, which meant a court with no signal opened
+     the app with system fonts and empty icon boxes. ~830KB total. -->
+<link href="../vendor/fonts/fonts.css" rel="stylesheet">
+<link href="../vendor/phosphor/bold/style.css" rel="stylesheet">
+<link href="../vendor/phosphor/fill/style.css" rel="stylesheet">
 <link rel="stylesheet" href="styles/tokens.css?v=dev" />
 <link rel="stylesheet" href="styles/components.css?v=dev" />
 <link rel="stylesheet" href="styles/v11.css?v=dev" />

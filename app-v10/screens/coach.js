@@ -120,7 +120,7 @@
     function coachSay(text) {
       var b = h('div', { class: 'c12-msg c12-msg--coach' }, [
         /* the coach's own face on every bubble — characters, not icons */
-        h('img', { class: 'c12-msg__face c12-msg__face--img', src: coachFace(coach, 64), alt: '' }),
+        V12.faceImg({ class: 'c12-msg__face c12-msg__face--img', src: coachFace(coach, 64), alt: '' }),
         h('div', { class: 'c12-msg__bubble', text: text })
       ]);
       thread.appendChild(b);
@@ -307,7 +307,7 @@
         class: 'c12-back', type: 'button', 'aria-label': 'Back',
         onclick: back
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
-      h('img', { class: 'c12-chat-hd__face', src: coachFace(coach, 72), alt: '' }),
+      V12.faceImg({ class: 'c12-chat-hd__face', src: coachFace(coach, 72), alt: '' }),
       h('div', { style: { flex: '1', minWidth: '0' } }, [
         h('div', { class: 'c12-chat-hd__t', text: coach.name }),
         h('div', { class: 'c12-chat-hd__s',
@@ -587,7 +587,7 @@
       'Clipboard'));
 
     var walking = false;
-    var me = h('img', {
+    var me = V12.faceImg({
       class: 'c12-gym__me', alt: 'You',
       src: V12.avatarUrl(data.prof),
       style: { left: SPOTS.player.x + '%', top: SPOTS.player.y + '%' }
@@ -621,7 +621,7 @@
           }, 1150);
         }
       }, [
-        h('img', { class: 'c12-gym__face', src: coachFace(c, 96), alt: '' }),
+        V12.faceImg({ class: 'c12-gym__face', src: coachFace(c, 96), alt: '' }),
         h('span', { class: 'c12-gym__name', text: c.name }),
         badge
       ].filter(Boolean)));
