@@ -1751,6 +1751,48 @@ body[data-screen="onboarding"] #app {
 .onb12-foot .d-btn[disabled] { opacity: .4; pointer-events: none; }
 .onb12-back { min-height: 52px; }
 
+/* ── the coach cast hosts the combine ── */
+.onb12-guide {
+  flex: 0 0 auto; display: flex; gap: 10px; align-items: flex-start;
+  margin: 2px 0 4px;
+  animation: onb12pop .28s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.onb12-guide__face {
+  width: 44px; height: 44px; border-radius: 50%; flex: 0 0 auto;
+  border: 2px solid var(--d-line-2); background: #fff; object-fit: cover;
+}
+.onb12-guide__bubble {
+  background: #fff; border: 2px solid var(--d-line-2);
+  border-radius: 4px 16px 16px 16px; padding: 9px 12px;
+  box-shadow: 0 2px 0 var(--d-line-2);
+}
+.onb12-guide__name {
+  font-family: var(--d-font); font-weight: 800; font-size: 11px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--d-blue);
+}
+.onb12-guide--splash .onb12-guide__name { color: #E24E77; }
+.onb12-guide--flow .onb12-guide__name { color: var(--d-green); }
+.onb12-guide--tank .onb12-guide__name { color: var(--d-orange-deep); }
+.onb12-guide__text {
+  font-family: var(--d-font); font-weight: 600; font-size: 13.5px;
+  line-height: 1.45; color: var(--d-ink);
+}
+@keyframes onb12pop {
+  from { opacity: 0; transform: translateY(6px) scale(.97); }
+  to { opacity: 1; transform: none; }
+}
+
+.onb12-staff { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.onb12-staff__card {
+  background: #fff; border: 2px solid var(--d-line-2); border-radius: 16px;
+  padding: 14px 10px 12px; text-align: center;
+  box-shadow: 0 3px 0 var(--d-line-2);
+  animation: onb12pop .34s cubic-bezier(.34, 1.56, .64, 1) both;
+}
+.onb12-staff__face { width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 8px; display: block; }
+.onb12-staff__name { font-family: var(--d-font); font-weight: 800; font-size: 14px; color: var(--d-ink); }
+.onb12-staff__role { font-family: var(--d-font); font-weight: 600; font-size: 11px; color: var(--d-mute); margin-top: 1px; }
+
 /* plan chip on the training screen */
 .tr12-plan { display: flex; align-items: center; gap: 10px; padding: 11px 14px; margin-top: 10px; }
 .tr12-plan__l { font-family: var(--d-font); font-weight: 700; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--d-mute); }
