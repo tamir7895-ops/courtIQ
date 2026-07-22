@@ -95,19 +95,36 @@
         ])
       ]),
 
+      /* Boxed like everything else — a bare shadowed string over live
+         video is unreadable the moment the footage behind it is light. */
       h('div', { class: 'v11-hud__lost', id: 'v11-hud-lost', style: { display: 'none' },
         text: 'Lost the hoop' }),
+
+      /* The mark, quietly, for the whole session — this is the footage
+         the player shares. */
+      h('div', { class: 'v11-hud__brand' }, [
+        brandMark(22),
+        h('span', { class: 'v11-hud__brandname' }, [
+          document.createTextNode('COURT'), h('em', { text: 'IQ' })
+        ])
+      ]),
+
       /* DIAGNOSTIC: which ORT execution provider actually won on THIS
          device. Desktop Chrome gets webgpu; a phone WebView may silently
          fall back to wasm (~1.4s/inference), which starves the real-time
-         path — and that is invisible without saying so out loud. Tiny and
-         dimmed so it never competes with the one number that matters. */
-      h('div', { id: 'v10-backend-badge', style: {
-        position: 'absolute', top: 'calc(env(safe-area-inset-top, 0px) + 8px)', left: '10px',
-        font: '10px/1.4 ui-monospace, Menlo, monospace', color: 'rgba(255,255,255,0.55)',
-        background: 'rgba(0,0,0,0.35)', padding: '3px 7px', borderRadius: '6px',
-        letterSpacing: '0.04em', pointerEvents: 'none', zIndex: '5'
-      }, text: 'backend …' })
+         path — and that is invisible without saying so out loud. Debug
+         builds only: on a shipped session it is unexplained noise. */
+      window.__courtiqDebug ? h('div', { id: 'v10-backend-badge', class: 'v11-hud__diag',
+        text: 'backend …' }) : null
+    ].filter(Boolean));
+  }
+
+  /* The canonical CourtIQ ball — same geometry as the header pill mark. */
+  function brandMark(size) {
+    return svg('svg', { viewBox: '0 0 32 32', width: String(size), height: String(size) }, [
+      svg('circle', { cx: '16', cy: '16', r: '14', fill: '#FF4F1F' }),
+      svg('path', { d: 'M 16 2 L 16 30 M 2 16 L 30 16 M 6 6 Q 16 14 26 6 M 6 26 Q 16 18 26 26',
+        stroke: '#0A2850', 'stroke-width': '1.8', fill: 'none' })
     ]);
   }
 
@@ -612,7 +629,11 @@
     var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--d-orange)', borderRadius: '99px', transition: 'width .25s ease' } });
     var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--d-ink)', fontWeight: '700' }, text: '0%' });
     var stageEl = h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '600', fontSize: '13px', color: 'var(--d-body)', marginTop: '2px' }, text: 'Loading models…' });
-    var diagEl = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--d-mute)', marginTop: '2px' }, text: '' });
+    // Debug-only: engine/timing readout. Ships hidden — see __courtiqDebug.
+    var diagEl = h('div', { style: {
+      fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--d-mute)',
+      marginTop: '2px', display: window.__courtiqDebug ? 'block' : 'none'
+    }, text: '' });
 
     // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
     // The processor hands back every analyzed frame + detections via
@@ -662,6 +683,12 @@
         textAlign: 'center', overflow: 'hidden'
       }
     }, [
+      h('div', { class: 'v12-anl__brand' }, [
+        brandMark(20),
+        h('span', { class: 'v12-anl__brandname' }, [
+          document.createTextNode('COURT'), h('em', { text: 'IQ' })
+        ])
+      ]),
       loaderEl,
       h('div', { style: { fontFamily: 'var(--d-font)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', color: 'var(--d-ink)', flexShrink: '0' }, text: 'Analyzing your video' }),
       liveWrap,

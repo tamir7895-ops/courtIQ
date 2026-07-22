@@ -1598,24 +1598,30 @@
       // disappears, the canvas overlay loop itself is dead. If it
       // shows but rim/ball/pose stay blank, the engine callbacks are
       // silent (real detection isn't happening).
+      /* Debug-gated: this is a developer instrument, and on a shipped
+         session it reads as unexplained green noise over the player's
+         own footage. Turn it on with localStorage.courtiq_debug = '1'
+         (or ?debug=1) when diagnosing a device. */
       try {
-        var engHUD = window.ShotDetectionEngine;
-        var poseReady = window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady();
-        var ballTxt = currentBall ? currentBall.source[0].toUpperCase() : '-';
-        var rimTxt  = rimLocked ? 'L' : (rimCenter ? 'W' : '-');
-        var running = engHUD && engHUD.isRunning ? 'ON' : 'off';
-        var hud = 'ENG:' + running +
-                  ' RIM:' + rimTxt +
-                  ' POSE:' + (poseReady ? 'RDY' : '-') +
-                  ' BALL:' + ballTxt;
-        canvasCtx.save();
-        canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
-        canvasCtx.fillRect(6, 6, 220, 22);
-        canvasCtx.fillStyle = '#00ff88';
-        canvasCtx.font = 'bold 12px monospace';
-        canvasCtx.textBaseline = 'top';
-        canvasCtx.fillText(hud, 12, 10);
-        canvasCtx.restore();
+        if (window.__courtiqDebug) {
+          var engHUD = window.ShotDetectionEngine;
+          var poseReady = window.PoseDetector && window.PoseDetector.isReady && window.PoseDetector.isReady();
+          var ballTxt = currentBall ? currentBall.source[0].toUpperCase() : '-';
+          var rimTxt  = rimLocked ? 'L' : (rimCenter ? 'W' : '-');
+          var running = engHUD && engHUD.isRunning ? 'ON' : 'off';
+          var hud = 'ENG:' + running +
+                    ' RIM:' + rimTxt +
+                    ' POSE:' + (poseReady ? 'RDY' : '-') +
+                    ' BALL:' + ballTxt;
+          canvasCtx.save();
+          canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
+          canvasCtx.fillRect(6, 6, 220, 22);
+          canvasCtx.fillStyle = '#00ff88';
+          canvasCtx.font = 'bold 12px monospace';
+          canvasCtx.textBaseline = 'top';
+          canvasCtx.fillText(hud, 12, 10);
+          canvasCtx.restore();
+        }
       } catch (hudErr) { /* never fail the loop */ }
 
       // Draw rim zone indicator (dashed ring)
