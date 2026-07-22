@@ -126,6 +126,18 @@
     host.appendChild(row('ph-bell', 'Notifications', null,
       function () { ctx.go('notifications'); }));
 
+    /* training reminders — the toggle IS the row; tap flips it */
+    if (window.V12Notify) {
+      var on = window.V12Notify.enabled();
+      host.appendChild(row('ph-bell-ringing', 'Training reminders',
+        on ? 'On — plan days 17:30, streak saver 20:30'
+           : 'Off — no reminders from the staff',
+        function () {
+          window.V12Notify.setEnabled(!on);
+          settingsView(host, ctx, back);        /* repaint with new state */
+        }));
+    }
+
     if (signedIn) {
       host.appendChild(row('ph-sign-out', 'Sign out', null, function () {
         if (window.V10Auth && window.V10Auth.signOut) {
