@@ -2112,8 +2112,8 @@ body[data-screen="onboarding"] #app {
   padding: 16px 12px calc(12px + var(--safe-bottom));
 }
 .v11-gate__sheet {
-  background: var(--d-bg); border: 2px solid var(--d-line);
-  border-radius: 24px; box-shadow: 0 4px 0 var(--d-line-2);
+  background: var(--d-bg); border: 2px solid var(--d-ink);
+  border-radius: 24px; box-shadow: 0 4px 0 rgba(10,40,80,.35);
   padding: 18px 16px 16px;
   display: flex; flex-direction: column; gap: 12px;
 }
@@ -2162,32 +2162,85 @@ body[data-screen="onboarding"] #app {
 }
 .v11-gate .v11-cta--ghost:active { transform: translateY(4px); box-shadow: none; }
 
-/* ── live HUD: white cards floating on the feed ── */
-.v11-side__timer {
-  background: var(--d-bg); border: 2px solid var(--d-line);
-  border-radius: 14px; box-shadow: 0 3px 0 var(--d-line-2);
+/* ── live HUD: white cards floating on the feed ──
+   Every card here sits on LIVE VIDEO, which can be any brightness at
+   any moment. The app's hairline (--d-line) vanishes against a bright
+   gym floor, so session cards wear the NAVY border instead: it is the
+   one edge that holds against both a dark rim and a sunlit court. No
+   text ever floats bare over the feed — if it's on camera, it's boxed. */
+.v11-side__timer,
+.v11-side__checks,
+.v11-hud__chip,
+.v11-hud__lost,
+.v11-hud__brand,
+.v11-hud__diag {
+  background: var(--d-bg);
+  border: 2px solid var(--d-ink);
+  box-shadow: 0 3px 0 rgba(10,40,80,.35);
 }
+.v11-side__timer { border-radius: 14px; }
 .v11-side__time { color: var(--d-ink); }
 .v11-side__cap { background: rgba(10,40,80,.35); }
 .v11-side__capfill { background: var(--d-green); }
 .v11-side__capfill.is-near { background: var(--d-orange); }
-.v11-side__checks {
-  background: var(--d-bg); border: 2px solid var(--d-line);
-  border-radius: 14px; box-shadow: 0 3px 0 var(--d-line-2);
-}
+.v11-side__checks { border-radius: 14px; }
 .v11-check__dot { background: var(--d-line-2); }
 .v11-check.is-on .v11-check__dot { background: var(--d-green); box-shadow: none; }
 .v11-check.is-warn .v11-check__dot { background: var(--d-orange); }
-.v11-check__lbl { color: var(--d-mute); }
+/* --d-mute on white over video is exactly the "too light to read"
+   failure — session labels use the body ink instead. */
+.v11-check__lbl { color: var(--d-body); }
 .v11-check.is-on .v11-check__lbl { color: var(--d-ink); }
 .v11-check.is-warn .v11-check__lbl { color: var(--d-orange-deep); }
-.v11-hud__chip {
-  background: var(--d-bg); border: 2px solid var(--d-line);
-  border-radius: 16px; box-shadow: 0 3px 0 var(--d-line-2);
-  color: var(--d-ink);
-}
+.v11-hud__chip { border-radius: 16px; color: var(--d-ink); }
 .v11-hud__chipnum { color: var(--d-ink); }
-.v11-hud__chiplbl { color: var(--d-mute); }
+.v11-hud__chiplbl { color: var(--d-body); }
+
+/* the rim-lost warning: a card, not a floating shout */
+.v11-hud__lost {
+  left: 50%; right: auto; transform: translateX(-50%);
+  width: max-content; max-width: 84vw;
+  padding: 10px 18px; border-radius: 16px;
+  border-color: var(--d-orange);
+  box-shadow: 0 3px 0 var(--d-orange-deep);
+  font-family: var(--d-font); font-weight: 800; font-size: 16px;
+  letter-spacing: .02em; text-transform: none;
+  color: var(--d-orange-deep); text-shadow: none;
+}
+
+/* the mark, top-left, for the whole session */
+.v11-hud__brand {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 10px); left: 12px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 5px 11px 5px 7px; border-radius: 999px;
+  pointer-events: none; z-index: 5;
+}
+.v11-hud__brandname {
+  font-family: var(--d-font); font-weight: 900; font-size: 12px;
+  letter-spacing: .04em; color: var(--d-ink);
+}
+.v11-hud__brandname em { font-style: normal; color: var(--d-orange); }
+
+/* debug readout (hidden unless __courtiqDebug) */
+.v11-hud__diag {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 0px) + 52px); left: 12px;
+  font: 10px/1.4 ui-monospace, Menlo, monospace; color: var(--d-body);
+  padding: 4px 8px; border-radius: 8px;
+  pointer-events: none; z-index: 5;
+}
+
+/* analyzing screen brand lockup */
+.v12-anl__brand {
+  display: flex; align-items: center; gap: 7px;
+  margin-bottom: 10px; flex-shrink: 0;
+}
+.v12-anl__brandname {
+  font-family: var(--d-font); font-weight: 900; font-size: 13px;
+  letter-spacing: .04em; color: var(--d-ink);
+}
+.v12-anl__brandname em { font-style: normal; color: var(--d-orange); }
 
 /* ── END SESSION + confirm dialog (legacy st-* chrome) ── */
 body.v10-cam-active #st-stop-btn {
@@ -2207,8 +2260,8 @@ body.v10-cam-active .st-stop-text {
 }
 body.v10-cam-active .st-confirm-modal { background: rgba(10,40,80,.45); }
 body.v10-cam-active .st-confirm-box {
-  background: var(--d-bg); border: 2px solid var(--d-line);
-  border-radius: 20px; box-shadow: 0 4px 0 var(--d-line-2);
+  background: var(--d-bg); border: 2px solid var(--d-ink);
+  border-radius: 20px; box-shadow: 0 4px 0 rgba(10,40,80,.35);
   padding: 22px 20px 20px;
 }
 body.v10-cam-active .st-confirm-box p {
@@ -2229,3 +2282,21 @@ body.v10-cam-active .st-confirm-no {
   font-family: var(--d-font); font-weight: 800; font-size: 14px;
 }
 body.v10-cam-active .st-confirm-no:active { box-shadow: none; }
+
+/* The verdict shout was neon type floating bare on the feed — same
+   failure as the rest: box it, and use the app's greens/reds. */
+body.v10-cam-active .st-result-text {
+  top: 34%;
+  left: 50%; right: auto; transform: translateX(-50%) scale(0);
+  width: max-content; max-width: 80vw;
+  padding: 10px 22px; border-radius: 18px;
+  background: var(--d-bg); border: 2px solid var(--d-ink);
+  box-shadow: 0 4px 0 rgba(10,40,80,.35);
+  font-family: var(--d-font); font-weight: 900; font-size: 34px;
+  letter-spacing: .01em; text-shadow: none;
+}
+body.v10-cam-active .st-result-text.show { transform: translateX(-50%) scale(1); }
+body.v10-cam-active .st-result-text.made { color: var(--d-green-deep); border-color: var(--d-green); box-shadow: 0 4px 0 var(--d-green-deep); }
+body.v10-cam-active .st-result-text.missed { color: var(--d-red); border-color: var(--d-red); box-shadow: 0 4px 0 #C21F16; }
+body.v10-cam-active .st-flash.made { background: rgba(71,192,18,.22); }
+body.v10-cam-active .st-flash.missed { background: rgba(255,59,48,.22); }

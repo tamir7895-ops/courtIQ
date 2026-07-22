@@ -101,6 +101,13 @@
 <!-- ג”€ג”€ג”€ Preview-mode flag (skip auth redirects when no session) ג”€ג”€ג”€ -->
 <script>
   window.__PREVIEW_MODE__ = true;   // assume preview until session confirmed
+  /* Developer instruments (canvas ENG: bar, backend/timing badge) print
+     over the player's own footage, so they ship OFF. Enable per-device
+     with ?debug=1 or localStorage.courtiq_debug = '1'. */
+  try {
+    window.__courtiqDebug = /[?&]debug=1/.test(location.search) ||
+                            localStorage.getItem('courtiq_debug') === '1';
+  } catch (e) { window.__courtiqDebug = false; }
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
