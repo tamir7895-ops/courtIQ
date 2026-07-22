@@ -299,9 +299,49 @@
     return h('div', { class: 'd-empty d-empty--art' }, kids);
   }
 
+  /* ── face cache — DiceBear avatars survive offline ──────────────
+     Every render used to hit api.dicebear.com; on a court with no
+     signal the whole cast turned into broken-image boxes. First
+     successful load is drawn to a canvas and stored as a dataURL
+     (LRU-ish, 24 entries); later renders never touch the network. */
+  var FACE_LS = 'courtiq_face_cache';
+  function faceCacheGet(url) {
+    try { return (JSON.parse(localStorage.getItem(FACE_LS) || '{}'))[url] || null; }
+    catch (e) { return null; }
+  }
+  function faceCachePut(url, data) {
+    try {
+      var m = JSON.parse(localStorage.getItem(FACE_LS) || '{}');
+      var keys = Object.keys(m);
+      if (keys.length > 24) delete m[keys[0]];
+      m[url] = data;
+      localStorage.setItem(FACE_LS, JSON.stringify(m));
+    } catch (e) {}
+  }
+  function faceImg(props) {
+    var url = props.src;
+    var cached = faceCacheGet(url);
+    var p = { crossorigin: 'anonymous' };
+    for (var k in props) if (props.hasOwnProperty(k)) p[k] = props[k];
+    if (cached) p.src = cached;
+    var img = h('img', p);
+    if (!cached && url) {
+      img.addEventListener('load', function () {
+        try {
+          var c = document.createElement('canvas');
+          c.width = img.naturalWidth; c.height = img.naturalHeight;
+          c.getContext('2d').drawImage(img, 0, 0);
+          faceCachePut(url, c.toDataURL('image/png'));
+        } catch (e) { /* tainted canvas etc. — cache is best-effort */ }
+      });
+    }
+    return img;
+  }
+
   window.V12 = {
     header: header, card: card, btn: btn, seg: seg,
     xpBar: xpBar, courtThumb: courtThumb, activates: activates,
-    avatarUrl: avatarUrl, mascot: mascot, hoopScene: hoopScene, empty: empty
+    avatarUrl: avatarUrl, mascot: mascot, hoopScene: hoopScene, empty: empty,
+    faceImg: faceImg
   };
 })();

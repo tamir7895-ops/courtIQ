@@ -11,20 +11,21 @@
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg" />
 
 <!-- v10 design system (cache-bust via ?v=) -->
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500;1,600;1,700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/bold/style.css" rel="stylesheet">
-<link href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=0a83d6f" />
-<link rel="stylesheet" href="styles/components.css?v=0a83d6f" />
-<link rel="stylesheet" href="styles/v11.css?v=0a83d6f" />
-<link rel="stylesheet" href="styles/v12.css?v=0a83d6f" />
-<link rel="stylesheet" href="styles/mobile.css?v=0a83d6f" />
-<link rel="stylesheet" href="styles/studio.css?v=0a83d6f" />
+<!-- Fonts + icons ship IN the bundle (vendor/, latin subsets only, woff2).
+     They came from CDNs before, which meant a court with no signal opened
+     the app with system fonts and empty icon boxes. ~830KB total. -->
+<link href="../vendor/fonts/fonts.css" rel="stylesheet">
+<link href="../vendor/phosphor/bold/style.css" rel="stylesheet">
+<link href="../vendor/phosphor/fill/style.css" rel="stylesheet">
+<link rel="stylesheet" href="styles/tokens.css?v=13556ea" />
+<link rel="stylesheet" href="styles/components.css?v=13556ea" />
+<link rel="stylesheet" href="styles/v11.css?v=13556ea" />
+<link rel="stylesheet" href="styles/v12.css?v=13556ea" />
+<link rel="stylesheet" href="styles/mobile.css?v=13556ea" />
+<link rel="stylesheet" href="styles/studio.css?v=13556ea" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=0a83d6f" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=13556ea" />
 </head>
 <body>
 
@@ -152,7 +153,7 @@
 <script src="../js/env.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
-<script src="lib/telemetry.js?v=0a83d6f"></script>
+<script src="lib/telemetry.js?v=13556ea"></script>
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
@@ -189,15 +190,15 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/courtPosition.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/courtCalibration.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/shotService.js?v=0a83d6f"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=0a83d6f"></script>
+<script src="../features/shot-tracking/v2/config.js?v=13556ea"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=13556ea"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=13556ea"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=13556ea"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=13556ea"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=13556ea"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=13556ea"></script>
+<script src="../features/shot-tracking/shotService.js?v=13556ea"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=13556ea"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -216,23 +217,23 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=0a83d6f"></script>
-<script src="lib/data.js?v=0a83d6f"></script>
-<script src="lib/courtiq.js?v=0a83d6f"></script>
-<script src="lib/court.js?v=0a83d6f"></script>
-<script src="lib/drill-court.js?v=0a83d6f"></script>
-<script src="lib/audio.js?v=0a83d6f"></script>
-<script src="lib/reveal.js?v=0a83d6f"></script>
-<script src="lib/v11.js?v=0a83d6f"></script>
-<script src="lib/v12.js?v=0a83d6f"></script>
-<script src="lib/avatar.js?v=0a83d6f"></script>
-<script src="lib/plan.js?v=0a83d6f"></script>
-<script src="lib/challenges.js?v=0a83d6f"></script>
-<script src="lib/notify.js?v=0a83d6f"></script>
-<script src="lib/coach-insights.js?v=0a83d6f"></script>
-<script src="lib/coach-ai.js?v=0a83d6f"></script>
-<script src="lib/nav.js?v=0a83d6f"></script>
-<script src="lib/mobile.js?v=0a83d6f"></script>
+<script src="lib/ui.js?v=13556ea"></script>
+<script src="lib/data.js?v=13556ea"></script>
+<script src="lib/courtiq.js?v=13556ea"></script>
+<script src="lib/court.js?v=13556ea"></script>
+<script src="lib/drill-court.js?v=13556ea"></script>
+<script src="lib/audio.js?v=13556ea"></script>
+<script src="lib/reveal.js?v=13556ea"></script>
+<script src="lib/v11.js?v=13556ea"></script>
+<script src="lib/v12.js?v=13556ea"></script>
+<script src="lib/avatar.js?v=13556ea"></script>
+<script src="lib/plan.js?v=13556ea"></script>
+<script src="lib/challenges.js?v=13556ea"></script>
+<script src="lib/notify.js?v=13556ea"></script>
+<script src="lib/coach-insights.js?v=13556ea"></script>
+<script src="lib/coach-ai.js?v=13556ea"></script>
+<script src="lib/nav.js?v=13556ea"></script>
+<script src="lib/mobile.js?v=13556ea"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
      ?studio in the URL so it can be opened on a real phone against a LAN
      dev server. Never ships to a production build. -->
@@ -249,7 +250,7 @@
               location.search.indexOf('studio') >= 0;
     if (!dev) return;
     var s = document.createElement('script');
-    s.src = 'lib/studio.js?v=0a83d6f';
+    s.src = 'lib/studio.js?v=13556ea';
     document.head.appendChild(s);
   })();
 </script>
@@ -259,31 +260,31 @@
     if (window.Capacitor) return;
     if (location.search.indexOf('smoke') < 0) return;
     var s = document.createElement('script');
-    s.src = 'lib/smoke.js?v=0a83d6f';
+    s.src = 'lib/smoke.js?v=13556ea';
     document.head.appendChild(s);
   })();
 </script>
-<script src="auth-state.js?v=0a83d6f"></script>
-<script src="app.js?v=0a83d6f"></script>
+<script src="auth-state.js?v=13556ea"></script>
+<script src="app.js?v=13556ea"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/home.js?v=0a83d6f"></script>
-<script src="screens/track.js?v=0a83d6f"></script>
-<script src="screens/train.js?v=0a83d6f"></script>
-<script src="screens/coach.js?v=0a83d6f"></script>
-<script src="screens/me.js?v=0a83d6f"></script>
-<script src="screens/social.js?v=0a83d6f"></script>
-<script src="screens/auth.js?v=0a83d6f"></script>
-<script src="screens/session-prep.js?v=0a83d6f"></script>
-<script src="screens/camera-hud.js?v=0a83d6f"></script>
-<script src="screens/post-session.js?v=0a83d6f"></script>
-<script src="screens/onboarding.js?v=0a83d6f"></script>
-<script src="screens/drill-library.js?v=0a83d6f"></script>
-<script src="screens/workout-player.js?v=0a83d6f"></script>
-<script src="screens/avatar-customizer.js?v=0a83d6f"></script>
-<script src="screens/shop.js?v=0a83d6f"></script>
-<script src="screens/plan.js?v=0a83d6f"></script>
-<script src="screens/notifications.js?v=0a83d6f"></script>
+<script src="screens/home.js?v=13556ea"></script>
+<script src="screens/track.js?v=13556ea"></script>
+<script src="screens/train.js?v=13556ea"></script>
+<script src="screens/coach.js?v=13556ea"></script>
+<script src="screens/me.js?v=13556ea"></script>
+<script src="screens/social.js?v=13556ea"></script>
+<script src="screens/auth.js?v=13556ea"></script>
+<script src="screens/session-prep.js?v=13556ea"></script>
+<script src="screens/camera-hud.js?v=13556ea"></script>
+<script src="screens/post-session.js?v=13556ea"></script>
+<script src="screens/onboarding.js?v=13556ea"></script>
+<script src="screens/drill-library.js?v=13556ea"></script>
+<script src="screens/workout-player.js?v=13556ea"></script>
+<script src="screens/avatar-customizer.js?v=13556ea"></script>
+<script src="screens/shop.js?v=13556ea"></script>
+<script src="screens/plan.js?v=13556ea"></script>
+<script src="screens/notifications.js?v=13556ea"></script>
 
 <script>
   // Bootstrap after all scripts load

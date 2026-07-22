@@ -503,6 +503,88 @@
     ]);
   }
 
+  /* ── the share card — a session summary worth posting ──────────
+     1080×1350 canvas (story/feed friendly): ink ground, the verdict
+     huge, chips, and the real half-court geometry drawn underneath.
+     Shares as a PNG through the native sheet (Web Share API works in
+     the iOS webview); quiet toast when the platform can't. */
+  function shareSessionCard(s) {
+    try {
+      var W = 1080, H = 1350;
+      var c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      var g = c.getContext('2d');
+
+      /* ground */
+      g.fillStyle = '#0A2850';
+      g.fillRect(0, 0, W, H);
+
+      /* court lines, faint — V11Court geometry scaled ×2 (500→1000) */
+      g.save();
+      g.translate(40, 560);
+      g.scale(2, 2);
+      g.strokeStyle = 'rgba(255,255,255,.14)';
+      g.lineWidth = 5;
+      g.strokeRect(170, 0, 160, 190);                       /* paint */
+      g.beginPath(); g.arc(250, 190, 60, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.moveTo(30, 0); g.lineTo(30, 142);    /* corners */
+      g.moveTo(470, 0); g.lineTo(470, 142); g.stroke();
+      g.beginPath(); g.arc(250, 52.5, 237.5, 0.375, Math.PI - 0.375); g.stroke();
+      g.strokeStyle = 'rgba(255,79,31,.85)';
+      g.beginPath(); g.arc(250, 52.5, 12, 0, Math.PI * 2); g.stroke();
+      g.restore();
+
+      /* header */
+      g.fillStyle = '#FF9F1C';
+      g.font = '800 54px Lora, serif';
+      g.fillText('COURTIQ', 64, 110);
+      g.fillStyle = 'rgba(255,255,255,.65)';
+      g.font = '700 34px Lora, serif';
+      var d = new Date();
+      g.fillText(d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), 64, 168);
+
+      /* the verdict */
+      g.fillStyle = '#FFFFFF';
+      g.font = '800 200px Lora, serif';
+      g.fillText(s.made + '/' + s.att, 64, 420);
+      g.fillStyle = '#FF9F1C';
+      g.font = '800 110px Lora, serif';
+      g.fillText(s.pct + '%', 64, 560);
+
+      /* chips */
+      g.fillStyle = 'rgba(255,255,255,.85)';
+      g.font = '700 44px Lora, serif';
+      var chips = '3PT ' + (s.threeAtt ? s.threeMade + '/' + s.threeAtt : '—') +
+                  '   ·   Best run ' + s.streak;
+      g.fillText(chips, 64, 1180);
+
+      /* footer */
+      g.fillStyle = 'rgba(255,255,255,.5)';
+      g.font = '700 32px Lora, serif';
+      g.fillText('Every shot tracked by CourtIQ AI', 64, 1280);
+
+      /* SYNCHRONOUS blob build — navigator.share demands the user's tap
+         still be "warm" (transient activation); a toBlob callback lands
+         outside it on iOS and the sheet silently refuses to open. */
+      var dataUrl = c.toDataURL('image/png');
+      var bin = atob(dataUrl.split(',')[1]);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      var file = null;
+      try { file = new File([bytes], 'courtiq-session.png', { type: 'image/png' }); } catch (e) {}
+      var text = s.made + '/' + s.att + ' (' + s.pct + '%) — tracked by CourtIQ AI';
+      var openFallback = function () { try { window.open(dataUrl); } catch (e2) {} };
+      if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: 'CourtIQ session', text: text })
+          .catch(openFallback);
+      } else if (navigator.share) {
+        navigator.share({ title: 'CourtIQ session', text: text }).catch(openFallback);
+      } else {
+        openFallback();
+      }
+    } catch (e) { /* sharing is a bonus — never break the recap */ }
+  }
+
   function render(args) {
     var host = args.host;
     var ctx  = args.ctx;
@@ -708,19 +790,31 @@
       // Flex spacer — pushes CTAs to the bottom of the viewport when content is short.
       host.appendChild(h('div', { style: { flex: '1 1 auto', minHeight: '12px' } }));
 
-      // CTAs — v12 lipped buttons
-      host.appendChild(h('div', {
-        style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }
-      }, [
+      // CTAs — v12 lipped buttons (+ share, only when there is a verdict)
+      var ctas = [
         window.V12.btn({
           icon: 'ph-play-circle', label: 'Log another session',
           onClick: function () { ctx.go('camera-hud'); }
-        }),
-        window.V12.btn({
-          variant: 'ghost', icon: 'ph-house', label: 'Back to home',
-          onClick: function () { ctx.go('home'); }
         })
-      ]));
+      ];
+      if (!counter && att > 0) {
+        ctas.push(window.V12.btn({
+          variant: 'ghost', icon: 'ph-share-network', label: 'Share this session',
+          onClick: function () {
+            shareSessionCard({
+              made: made, att: att, pct: pct,
+              threeMade: threeMade, threeAtt: threeAtt, streak: streak
+            });
+          }
+        }));
+      }
+      ctas.push(window.V12.btn({
+        variant: 'ghost', icon: 'ph-house', label: 'Back to home',
+        onClick: function () { ctx.go('home'); }
+      }));
+      host.appendChild(h('div', {
+        style: { display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '14px' }
+      }, ctas));
     });
   }
 
