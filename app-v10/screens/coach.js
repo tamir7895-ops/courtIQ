@@ -368,6 +368,49 @@
       ]));
     })();
 
+    /* ── the Monday walkthrough — once per ISO week, the GM opens with
+       a recap built from REAL film (client-side, zero API cost) ──── */
+    function weeklyRecap() {
+      if (coach.id !== 'gm') return;
+      try {
+        var now = new Date();
+        var monday = new Date(now);
+        monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+        var weekKey = monday.toISOString().slice(0, 10);
+        if (localStorage.getItem('courtiq_scout_recap') === weekKey) return;
+        var weekAgo = Date.now() - 7 * 86400000;
+        var n = 0, att = 0, made = 0, scored = 0;
+        (data.sessions || []).forEach(function (s) {
+          var t = new Date(s.session_date || s.created_at).getTime();
+          if (!(t > weekAgo)) return;
+          n++; att += (s.total_attempts || 0);
+          if (s.total_made != null) { made += s.total_made; scored += (s.total_attempts || 0); }
+        });
+        if (!n) return;                      /* silent week — nothing to recap */
+        var line = 'New week. Last 7 days: ' + att + ' shots across ' + n +
+          ' session' + (n > 1 ? 's' : '');
+        if (scored >= 20) line += ', ' + Math.round(made * 100 / scored) + '% where scored';
+        line += '.';
+        if (data.iq) {
+          line += ' Court IQ ' + data.iq.score +
+            (data.iq.delta != null && data.iq.delta !== 0
+              ? ' (' + (data.iq.delta > 0 ? '+' : '') + data.iq.delta + ' on the week)' : '') + '.';
+        }
+        if (data.rank && data.rank.length) {
+          var C2 = window.V11Court;
+          var hot = data.rank[0], cold = data.rank[data.rank.length - 1];
+          var zh = data.zones[hot], zc = data.zones[cold];
+          if (zh && zc && hot !== cold) {
+            line += ' Hot: ' + (C2.LABEL[hot] || hot) + ' ' + Math.round(zh.made * 100 / zh.vatt) +
+              '%. Priority: ' + (C2.LABEL[cold] || cold) + ' ' + Math.round(zc.made * 100 / zc.vatt) + '%.';
+          }
+        }
+        coachSay(line);
+        localStorage.setItem('courtiq_scout_recap', weekKey);
+      } catch (e) { /* a recap is a bonus, never a blocker */ }
+    }
+    weeklyRecap();
+
     function replay() {
       var past = (live && window.V12CoachAI.transcript) ? window.V12CoachAI.transcript() : [];
       if (past.length) {

@@ -37,8 +37,21 @@
   }
 
   // ─── sessions (merged remote + local) ────────────────────
+  // 30s TTL memo: every tab entry used to refetch the same list from
+  // Supabase 2-4 times (zones, week stats, IQ, insights all build on
+  // it). One fetch serves them all; a fresh session save invalidates.
+  var sessCache = { at: 0, limit: 0, p: null };
+  function invalidateSessions() { sessCache.p = null; }
   function getSessions(limit) {
     limit = limit || 50;
+    var now = Date.now();
+    if (sessCache.p && sessCache.limit >= limit && (now - sessCache.at) < 30000) {
+      return sessCache.p.then(function (all) { return all.slice(0, limit); });
+    }
+    sessCache = { at: now, limit: limit, p: fetchSessionsRaw(limit) };
+    return sessCache.p;
+  }
+  function fetchSessionsRaw(limit) {
     var locals = readLS(LS_SESSIONS);
     var remoteP = Promise.resolve([]);
     if (window.currentUser && window.ShotService && window.ShotService.fetchSessions) {
@@ -511,6 +524,9 @@
     startShotTracking: startShotTracking,
     openFromFile:      openFromFile,
     pickAndOpenFile:   pickAndOpenFile,
-    isSignedIn:        isSignedIn
+    isSignedIn:        isSignedIn,
+    invalidateSessions: invalidateSessions
   };
+  /* a finished session must show up instantly, not after the TTL */
+  window.addEventListener('courtiq:session-saved', invalidateSessions);
 })();

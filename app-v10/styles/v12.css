@@ -941,6 +941,24 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .ps12-chip--vs.ps12-chip--down { background: rgba(255, 107, 107, .18); }
 .ps12-chip--vs.ps12-chip--down span { color: #FF8787; }
 
+/* ── me: personal records ─────────────────────────────────────── */
+.m12-recs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.m12-rec {
+  border: 1.5px solid var(--d-line, #E5E7EB); border-radius: 12px;
+  padding: 10px 12px; display: flex; flex-direction: column; gap: 2px;
+}
+.m12-rec i { font-size: 17px; color: var(--d-orange, #FF9F1C); }
+.m12-rec__v { font: 800 16px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); }
+.m12-rec__l { font: 700 10.5px var(--d-font, sans-serif); color: var(--d-muted, #6B7280); text-transform: uppercase; letter-spacing: .04em; }
+
+/* ── shop: wide power-up row ──────────────────────────────────── */
+.shop12-item--wide {
+  display: flex; align-items: center; gap: 12px; width: 100%;
+  text-align: left; margin-bottom: 4px;
+}
+.shop12-item__t { font: 800 14px var(--d-font, sans-serif); color: var(--d-ink, #0A2850); }
+.shop12-item__s { font: 600 11.5px var(--d-font, sans-serif); color: var(--d-muted, #6B7280); }
+
 /* ── home doors, take 2: bright cards with a ghost icon corner ── */
 .h12-door2 {
   position: relative; overflow: hidden; cursor: pointer;
