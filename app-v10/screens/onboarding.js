@@ -14,16 +14,77 @@
   var h = window.V10UI.h, V12 = window.V12;
 
   var STEPS = [
+    'welcome',
     'identity', 'position', 'style', 'scout',
     'schedule', 'gear', 'focus', 'goals',
     'processing', 'report'
   ];
   var TITLES = {
+    welcome: 'Meet your staff',
     identity: 'Who are you', position: 'Your spot', style: 'Your game',
     scout: 'Rate yourself', schedule: 'Your schedule', gear: 'Your gear',
     focus: 'What matters', goals: 'Your goals',
     processing: 'Building your plan', report: 'Your combine card'
   };
+
+  /* Each step is hosted by the coach who owns that lane — the same
+     cast the player meets in The Gym (exposed by screens/coach.js). */
+  var GUIDE = {
+    welcome:    { c: 'gm',     t: 'I’m The Scout — the GM here. Before you touch a ball I build a file on you. A few questions, then the staff takes over.' },
+    identity:   { c: 'gm',     t: 'The file starts with the basics. Who am I scouting?' },
+    position:   { c: 'gm',     t: 'Where do you live on the floor?' },
+    style:      { c: 'gm',     t: 'And how do you hoop when nobody is coaching you?' },
+    scout:      { c: 'gm',     t: 'Rate yourself straight. The court gets the final say anyway.' },
+    schedule:   { c: 'flow',   t: 'Flow — handles coach. Rhythm beats volume: give me the honest number of days.' },
+    gear:       { c: 'tank',   t: 'Tank. Strength staff. Tell me what we have to work with — no gym is no excuse.' },
+    focus:      { c: 'splash', t: 'Splash, shooting coach. Pick what we sharpen first. I vote shooting, but it’s your game.' },
+    goals:      { c: 'gm',     t: 'Scout again. Where is this going? We tune the whole program to the target.' },
+    processing: { c: 'gm',     t: 'Give me a second with your file…' },
+    report:     { c: 'gm',     t: 'Your combine card. The staff has seen it — welcome to the program.' }
+  };
+
+  function castById(id) {
+    var cs = window.V12CoachCast || [];
+    for (var i = 0; i < cs.length; i++) if (cs[i].id === id) return cs[i];
+    return null;
+  }
+
+  function guideRow(step) {
+    var g = GUIDE[step];
+    if (!g || !window.V12CoachFace || !V12.faceImg) return null;
+    var c = castById(g.c);
+    if (!c) return null;
+    return h('div', { class: 'onb12-guide onb12-guide--' + g.c }, [
+      V12.faceImg({ class: 'onb12-guide__face', src: window.V12CoachFace(c, 64), alt: c.name }),
+      h('div', { class: 'onb12-guide__bubble' }, [
+        h('div', { class: 'onb12-guide__name', text: c.name }),
+        h('div', { class: 'onb12-guide__text', text: g.t })
+      ])
+    ]);
+  }
+
+  function stepWelcome() {
+    var cs = window.V12CoachCast || [];
+    var body = h('div', { class: 'onb12-body' });
+    if (cs.length && window.V12CoachFace && V12.faceImg) {
+      var strip = h('div', { class: 'onb12-staff' });
+      cs.forEach(function (c, i) {
+        strip.appendChild(h('div', {
+          class: 'onb12-staff__card', style: 'animation-delay:' + (i * 90) + 'ms'
+        }, [
+          V12.faceImg({ class: 'onb12-staff__face', src: window.V12CoachFace(c, 96), alt: c.name }),
+          h('div', { class: 'onb12-staff__name', text: c.name }),
+          h('div', { class: 'onb12-staff__role', text: c.short || c.role })
+        ]));
+      });
+      body.appendChild(strip);
+    }
+    body.appendChild(h('div', {
+      class: 'onb12-hint',
+      text: 'Four coaches, one program. Answer a few questions so they know exactly who just walked into their gym.'
+    }));
+    return body;
+  }
 
   function ensure() {
     if (!window._v12Onb) {
@@ -309,8 +370,12 @@
         h('div', { class: 'onb12-title', text: TITLES[step] })
       ]));
 
+      var guide = guideRow(step);
+      if (guide) host.appendChild(guide);
+
       var body;
       switch (step) {
+        case 'welcome': body = stepWelcome(); break;
         case 'identity': body = stepIdentity(s, paint); break;
         case 'position': body = stepPosition(s, paint); break;
         case 'style': body = stepStyle(s, paint); break;
@@ -327,14 +392,17 @@
 
       if (step === 'processing') return;  // auto-advances
 
-      var canNext = true;
-      if (step === 'identity') canNext = !!(s.name && s.name.trim());
-      if (step === 'position') canNext = !!s.position;
-      if (step === 'style') canNext = !!s.playStyle;
-      if (step === 'focus') canNext = s.focus.length > 0;
+      function canNext() {
+        if (step === 'identity') return !!(s.name && s.name.trim());
+        if (step === 'position') return !!s.position;
+        if (step === 'style') return !!s.playStyle;
+        if (step === 'focus') return s.focus.length > 0;
+        return true;
+      }
 
-      var nextLabel = step === 'report' ? 'Enter CourtIQ'
-        : step === 'goals' ? 'Build my plan' : 'Continue';
+      var nextLabel = step === 'report' ? 'Step into the gym'
+        : step === 'goals' ? 'Build my plan'
+        : step === 'welcome' ? 'Let’s go' : 'Continue';
 
       var foot = h('div', { class: 'onb12-foot' });
       foot.appendChild(h('button', {
@@ -345,17 +413,23 @@
           paint();
         }
       }, [h('span', { text: s.i === 0 ? 'Cancel' : 'Back' })]));
-      foot.appendChild(V12.btn({
+      var nextBtn = V12.btn({
         label: nextLabel, icon: step === 'report' ? 'ph-arrow-right' : 'ph-caret-right',
         onClick: function () {
-          if (!canNext) return;
-          if (step === 'report') { persist(s); window._v12Onb = null; ctx.go('home'); return; }
+          if (!canNext()) return;
+          if (step === 'report') { persist(s); window._v12Onb = null; ctx.go('coach'); return; }
           s.i++;
           paint();
         }
-      }));
-      foot.querySelector('.onb12-back');
-      if (!canNext) foot.lastChild.setAttribute('disabled', 'true');
+      });
+      foot.appendChild(nextBtn);
+      function syncNext() {
+        if (canNext()) nextBtn.removeAttribute('disabled');
+        else nextBtn.setAttribute('disabled', 'true');
+      }
+      syncNext();
+      // Typing doesn't repaint the screen — keep the button live anyway.
+      scroll.addEventListener('input', syncNext);
       host.appendChild(foot);
     }
 

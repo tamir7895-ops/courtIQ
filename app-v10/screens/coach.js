@@ -94,6 +94,9 @@
     return 'https://api.dicebear.com/9.x/avataaars/png?size=' + (size || 96) +
       '&seed=' + encodeURIComponent(c.seed) + '&backgroundColor=' + c.bg;
   }
+  // Shared with onboarding — the cast greets new players there too.
+  window.V12CoachCast = COACHES;
+  window.V12CoachFace = coachFace;
 
   function chatView(host, ctx, data, back, coach) {
     while (host.firstChild) host.removeChild(host.firstChild);
