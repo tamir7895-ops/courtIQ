@@ -2096,3 +2096,136 @@ body[data-screen="onboarding"] #app {
   min-height: 44px; border-radius: 12px;
 }
 .sp12-skip:active { background: rgba(10,40,80,0.05); }
+
+/* ═══════════════════════════════════════════════════════════════
+   SESSION CHROME — the live camera flow wears the v12 skin
+   ═══════════════════════════════════════════════════════════════
+   The camera feed stays the hero; everything floating over it is
+   the same white card grammar as the rest of the app (2px line,
+   hard lip, Lexend). Loaded after v11.css, so plain same-specificity
+   overrides win. The st-* rules need the body.v10-cam-active prefix
+   because shot-tracking.css loads AFTER this file. */
+
+/* ── the walk-up gate: a white bottom sheet ── */
+.v11-gate {
+  background: linear-gradient(180deg, rgba(10,40,80,.12) 0%, rgba(10,40,80,.42) 100%);
+  padding: 16px 12px calc(12px + var(--safe-bottom));
+}
+.v11-gate__sheet {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 24px; box-shadow: 0 4px 0 var(--d-line-2);
+  padding: 18px 16px 16px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.v11-gate__eye {
+  font-family: var(--d-font); font-weight: 700; font-size: 11px;
+  letter-spacing: .14em; text-transform: uppercase; color: var(--d-orange-deep);
+}
+.v11-gate__t {
+  font-family: var(--d-font); font-weight: 900; font-size: 24px;
+  line-height: 1.1; text-transform: none; color: var(--d-ink);
+}
+.v11-gate__s {
+  font-family: var(--d-font); font-style: normal; font-weight: 500;
+  font-size: 13.5px; color: var(--d-body); line-height: 1.45;
+}
+.v11-gate__row {
+  background: var(--d-alt); border: 2px solid var(--d-line);
+  border-radius: 14px; color: var(--d-mute);
+  font-family: var(--d-font); font-weight: 800; font-size: 12px;
+  letter-spacing: .1em;
+}
+.v11-gate__row.is-on { color: var(--d-ink); border-color: var(--d-green); background: var(--d-green-tint); }
+.v11-gate__row.is-on i { color: var(--d-green-deep); }
+.v11-gate__tg {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 12px; box-shadow: 0 2px 0 var(--d-line);
+  color: var(--d-mute);
+  font-family: var(--d-font); font-weight: 800;
+}
+.v11-gate__tg.is-on {
+  color: var(--d-orange-deep); background: var(--d-orange-tint);
+  border-color: var(--d-orange); box-shadow: 0 2px 0 var(--d-orange);
+}
+.v11-gate .v11-cta {
+  background: var(--d-orange); color: #FFFFFF; border: 0;
+  border-radius: 16px; min-height: 54px;
+  box-shadow: 0 4px 0 var(--d-orange-deep);
+  font-family: var(--d-font); font-weight: 800; font-size: 15px;
+  letter-spacing: .08em; text-transform: uppercase;
+}
+.v11-gate .v11-cta:active { transform: translateY(4px); box-shadow: none; }
+.v11-gate .v11-cta--ghost {
+  background: var(--d-bg); color: var(--d-ink);
+  border: 2px solid var(--d-line); box-shadow: 0 4px 0 var(--d-line);
+  min-height: 46px; font-size: 13.5px;
+}
+.v11-gate .v11-cta--ghost:active { transform: translateY(4px); box-shadow: none; }
+
+/* ── live HUD: white cards floating on the feed ── */
+.v11-side__timer {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 14px; box-shadow: 0 3px 0 var(--d-line-2);
+}
+.v11-side__time { color: var(--d-ink); }
+.v11-side__cap { background: rgba(10,40,80,.35); }
+.v11-side__capfill { background: var(--d-green); }
+.v11-side__capfill.is-near { background: var(--d-orange); }
+.v11-side__checks {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 14px; box-shadow: 0 3px 0 var(--d-line-2);
+}
+.v11-check__dot { background: var(--d-line-2); }
+.v11-check.is-on .v11-check__dot { background: var(--d-green); box-shadow: none; }
+.v11-check.is-warn .v11-check__dot { background: var(--d-orange); }
+.v11-check__lbl { color: var(--d-mute); }
+.v11-check.is-on .v11-check__lbl { color: var(--d-ink); }
+.v11-check.is-warn .v11-check__lbl { color: var(--d-orange-deep); }
+.v11-hud__chip {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 16px; box-shadow: 0 3px 0 var(--d-line-2);
+  color: var(--d-ink);
+}
+.v11-hud__chipnum { color: var(--d-ink); }
+.v11-hud__chiplbl { color: var(--d-mute); }
+
+/* ── END SESSION + confirm dialog (legacy st-* chrome) ── */
+body.v10-cam-active #st-stop-btn {
+  font-family: var(--d-font); font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  background: var(--d-orange); color: #FFFFFF;
+  border: 0; border-radius: 16px;
+  box-shadow: 0 4px 0 var(--d-orange-deep);
+  padding: 14px 22px;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+body.v10-cam-active #st-stop-btn:active { transform: translateY(4px); box-shadow: none; }
+body.v10-cam-active .st-stop-icon { background: #FFFFFF !important; border-radius: 4px; }
+body.v10-cam-active .st-stop-text {
+  color: #FFFFFF !important;
+  font-family: var(--d-font); font-weight: 800; letter-spacing: .08em;
+}
+body.v10-cam-active .st-confirm-modal { background: rgba(10,40,80,.45); }
+body.v10-cam-active .st-confirm-box {
+  background: var(--d-bg); border: 2px solid var(--d-line);
+  border-radius: 20px; box-shadow: 0 4px 0 var(--d-line-2);
+  padding: 22px 20px 20px;
+}
+body.v10-cam-active .st-confirm-box p {
+  color: var(--d-ink); font-family: var(--d-font);
+  font-weight: 800; font-size: 17px; line-height: 1.35;
+}
+body.v10-cam-active .st-confirm-yes {
+  background: var(--d-orange); color: #FFFFFF; border: 0;
+  border-radius: 14px; box-shadow: 0 4px 0 var(--d-orange-deep);
+  font-family: var(--d-font); font-weight: 800; font-size: 14px;
+  letter-spacing: .06em; text-transform: uppercase;
+}
+body.v10-cam-active .st-confirm-yes:active { transform: translateY(4px); box-shadow: none; }
+body.v10-cam-active .st-confirm-no {
+  background: var(--d-bg); color: var(--d-ink);
+  border: 2px solid var(--d-line); border-radius: 14px;
+  box-shadow: 0 4px 0 var(--d-line);
+  font-family: var(--d-font); font-weight: 800; font-size: 14px;
+}
+body.v10-cam-active .st-confirm-no:active { box-shadow: none; }
