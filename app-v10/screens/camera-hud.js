@@ -355,33 +355,37 @@
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
 
     gateEl = h('div', { class: 'v11-gate', id: 'v11-gate' }, [
-      h('div', { class: 'v11-gate__eye', text: 'SET UP' }),
-      h('div', { class: 'v11-gate__t', text: 'Get the hoop in frame' }),
-      h('div', { class: 'v11-gate__s',
-        text: 'The rim is the only thing that has to be there. Without it the ' +
-              'whole clip is unreadable — and you would only find that out afterwards.' }),
-      gateRow('hoop', 'Hoop', 'ph-basketball'),
-      h('div', { class: 'v11-gate__toggles' }, [
-        audioToggle('tick', 'Tick'),
-        audioToggle('count', 'Count')
-      ]),
-      startBtn,
-      /* The detector has real failure modes (scan-halfW collapses indoors,
-         night footage, under-hoop angles). A hard block turns a detector
-         miss into a product wall, so there's always a way through — we
-         just flag it so post-session can explain a mystery zero. */
-      h('button', {
-        class: 'v11-cta v11-cta--ghost', type: 'button',
-        onclick: function () {
-          window.__v11RimLockAtRecord = false;
-          if (window.V11Audio) window.V11Audio.arm();
-          gateEl.style.display = 'none';
-          /* Court bug: this skip path never did the session-start
-             bookkeeping -- the clock stayed 0:00 all session. */
-          beginSessionBookkeeping();
-          onStart();
-        }
-      }, [h('span', { text: 'Record anyway' })])
+      /* v12: the setup content sits in a white bottom sheet — same card
+         grammar as the rest of the app — floating over the camera feed. */
+      h('div', { class: 'v11-gate__sheet' }, [
+        h('div', { class: 'v11-gate__eye', text: 'SET UP' }),
+        h('div', { class: 'v11-gate__t', text: 'Get the hoop in frame' }),
+        h('div', { class: 'v11-gate__s',
+          text: 'The rim is the only thing that has to be there. Without it the ' +
+                'whole clip is unreadable — and you would only find that out afterwards.' }),
+        gateRow('hoop', 'Hoop', 'ph-basketball'),
+        h('div', { class: 'v11-gate__toggles' }, [
+          audioToggle('tick', 'Tick'),
+          audioToggle('count', 'Count')
+        ]),
+        startBtn,
+        /* The detector has real failure modes (scan-halfW collapses indoors,
+           night footage, under-hoop angles). A hard block turns a detector
+           miss into a product wall, so there's always a way through — we
+           just flag it so post-session can explain a mystery zero. */
+        h('button', {
+          class: 'v11-cta v11-cta--ghost', type: 'button',
+          onclick: function () {
+            window.__v11RimLockAtRecord = false;
+            if (window.V11Audio) window.V11Audio.arm();
+            gateEl.style.display = 'none';
+            /* Court bug: this skip path never did the session-start
+               bookkeeping -- the clock stayed 0:00 all session. */
+            beginSessionBookkeeping();
+            onStart();
+          }
+        }, [h('span', { text: 'Record anyway' })])
+      ])
     ]);
     document.body.appendChild(gateEl);
     return gateEl;
@@ -605,10 +609,10 @@
   }
 
   function runOfflineUpload(file, ctx) {
-    var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--tomato)', borderRadius: '99px', transition: 'width .25s ease' } });
-    var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', opacity: '0.9' }, text: '0%' });
-    var stageEl = h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '13px', opacity: '0.85', marginTop: '2px' }, text: 'Loading models…' });
-    var diagEl = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: '0.45', marginTop: '2px' }, text: '' });
+    var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--d-orange)', borderRadius: '99px', transition: 'width .25s ease' } });
+    var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--d-ink)', fontWeight: '700' }, text: '0%' });
+    var stageEl = h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '600', fontSize: '13px', color: 'var(--d-body)', marginTop: '2px' }, text: 'Loading models…' });
+    var diagEl = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--d-mute)', marginTop: '2px' }, text: '' });
 
     // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
     // The processor hands back every analyzed frame + detections via
@@ -621,7 +625,8 @@
     var liveCanvas = h('canvas', { style: {
       width: 'auto', height: 'auto', display: 'block',
       maxWidth: 'min(92vw, 560px)', maxHeight: '100%',
-      borderRadius: '12px', border: '3px solid rgba(255,255,255,0.22)', background: '#000'
+      borderRadius: '16px', border: '2px solid var(--d-line-2)',
+      boxShadow: '0 4px 0 var(--d-line-2)', background: '#000'
     } });
     liveCanvas.width = 640; liveCanvas.height = 360;
     var flashEl = h('div', {
@@ -641,7 +646,7 @@
       margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(2px, 0.5dvh, 4px)'
     } }, [canvasHolder]);
     var dotsEl = h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', margin: '10px 0 2px', minHeight: '13px' } });
-    var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', opacity: '0.85', minHeight: '15px' }, text: '' });
+    var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--d-body)', minHeight: '15px' }, text: '' });
 
     // Bouncing basketball while models spin up; hides once frames flow
     var loaderEl = h('div', { class: 'v10-ball-loader', style: { marginBottom: '6px' } },
@@ -649,7 +654,7 @@
 
     var overlay = h('div', {
       style: {
-        position: 'fixed', inset: '0', background: 'var(--ink)', color: 'var(--cream)', zIndex: '70',
+        position: 'fixed', inset: '0', background: 'var(--d-bg, #FFFFFF)', color: 'var(--d-ink)', zIndex: '70',
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         // Fit-to-viewport: safe-area aware (notch / home indicator),
         // fluid vertical costs — the flex canvas area absorbs the rest.
@@ -658,11 +663,11 @@
       }
     }, [
       loaderEl,
-      h('div', { style: { fontFamily: 'var(--font-display)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', letterSpacing: '0.06em', flexShrink: '0' }, text: 'ANALYZING VIDEO' }),
+      h('div', { style: { fontFamily: 'var(--d-font)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', color: 'var(--d-ink)', flexShrink: '0' }, text: 'Analyzing your video' }),
       liveWrap,
       dotsEl,
       liveCount,
-      h('div', { style: { width: '72%', maxWidth: '320px', height: 'clamp(7px, 1dvh, 9px)', background: 'rgba(255,255,255,0.15)', borderRadius: '99px', margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(3px, 0.7dvh, 6px)', overflow: 'hidden', flexShrink: '0' } }, [bar]),
+      h('div', { style: { width: '72%', maxWidth: '320px', height: 'clamp(7px, 1dvh, 9px)', background: 'rgba(10,40,80,0.12)', borderRadius: '99px', margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(3px, 0.7dvh, 6px)', overflow: 'hidden', flexShrink: '0' } }, [bar]),
       pct,
       stageEl,
       diagEl
@@ -736,8 +741,8 @@
           dotsEl.appendChild(h('span', {
             style: {
               width: '11px', height: '11px', borderRadius: '50%', display: 'inline-block',
-              background: shots[si].result === 'made' ? '#3FA34D' : '#D64541',
-              border: '2px solid rgba(255,255,255,0.6)'
+              background: shots[si].result === 'made' ? 'var(--d-green)' : 'var(--d-red)',
+              border: '2px solid rgba(10,40,80,0.2)'
             }
           }));
         }
@@ -829,12 +834,12 @@
           : 'The rim locked, but no shot arcs were detected. The ball may be too small/blurred to track, or no shots occurred.';
         stageEl.textContent = '';
         overlay.innerHTML = '';
-        overlay.appendChild(h('i', { class: 'ph-bold ph-basketball', style: { fontSize: '48px', color: 'var(--mustard)', marginBottom: '12px' } }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '20px', fontWeight: '900', letterSpacing: '0.05em' }, text: 'NO SHOTS DETECTED' }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '14px', marginTop: '10px', opacity: '0.85', maxWidth: '320px', lineHeight: '1.5' }, text: reason }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', opacity: '0.5' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
+        overlay.appendChild(h('i', { class: 'ph-bold ph-basketball', style: { fontSize: '48px', color: 'var(--d-gold-deep)', marginBottom: '12px' } }));
+        overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '20px', fontWeight: '900', color: 'var(--d-ink)' }, text: 'No shots detected' }));
+        overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '10px', color: 'var(--d-body)', maxWidth: '320px', lineHeight: '1.5' }, text: reason }));
+        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', color: 'var(--d-mute)' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
           ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') }));
-        var backBtn = h('button', { style: { marginTop: '22px', padding: '12px 28px', background: 'var(--tomato)', color: 'var(--cream)', border: 'none', borderRadius: '10px', fontFamily: 'var(--font-display)', fontWeight: '900', letterSpacing: '0.05em', fontSize: '14px', cursor: 'pointer' }, text: 'BACK' });
+        var backBtn = h('button', { style: { marginTop: '22px', padding: '14px 32px', background: 'var(--d-orange)', color: '#FFFFFF', border: 'none', borderRadius: '16px', boxShadow: '0 4px 0 var(--d-orange-deep)', fontFamily: 'var(--d-font)', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '14px', cursor: 'pointer' }, text: 'Back' });
         backBtn.addEventListener('click', function () {
           window.__v10AnalysisOwnsFlow = false;
           try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
@@ -918,14 +923,14 @@
       // Fallback message — tracker module not loaded.
       var msg = h('div', {
         style: {
-          position: 'fixed', inset: '0', background: 'var(--ink)', color: 'var(--cream)',
+          position: 'fixed', inset: '0', background: 'var(--d-bg, #FFFFFF)', color: 'var(--d-ink)',
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '30px', textAlign: 'center', zIndex: '60'
         }
       }, [
-        h('i', { class: 'ph-bold ph-camera-slash', style: { fontSize: '56px', color: 'var(--mustard)', marginBottom: '12px' } }),
-        h('div', { style: { fontFamily: 'var(--font-display)', fontSize: '22px', fontWeight: '900', letterSpacing: '0.06em' }, text: 'CAMERA UNAVAILABLE' }),
-        h('div', { style: { fontFamily: 'var(--font-body)', fontStyle: 'italic', fontSize: '14px', marginTop: '8px', opacity: '0.8' }, text: 'The detection engine did not load. Refresh the page.' })
+        h('i', { class: 'ph-bold ph-camera-slash', style: { fontSize: '56px', color: 'var(--d-gold-deep)', marginBottom: '12px' } }),
+        h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '22px', fontWeight: '900', color: 'var(--d-ink)' }, text: 'Camera unavailable' }),
+        h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '8px', color: 'var(--d-body)' }, text: 'The detection engine did not load. Refresh the page.' })
       ]);
       document.body.appendChild(msg);
       v10Layer = msg;
