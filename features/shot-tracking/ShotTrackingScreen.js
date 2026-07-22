@@ -1613,13 +1613,28 @@
                     ' RIM:' + rimTxt +
                     ' POSE:' + (poseReady ? 'RDY' : '-') +
                     ' BALL:' + ballTxt;
+          /* Drawn in the app's own palette — a white chip with a navy
+             edge, same as every other card floating on the feed. Neon
+             green on translucent black was unreadable against a bright
+             court and looked like a fault rather than an instrument. */
           canvasCtx.save();
-          canvasCtx.fillStyle = 'rgba(0,0,0,0.7)';
-          canvasCtx.fillRect(6, 6, 220, 22);
-          canvasCtx.fillStyle = '#00ff88';
-          canvasCtx.font = 'bold 12px monospace';
+          canvasCtx.font = 'bold 12px ui-monospace, Menlo, monospace';
           canvasCtx.textBaseline = 'top';
-          canvasCtx.fillText(hud, 12, 10);
+          var hudW = canvasCtx.measureText(hud).width + 20;
+          canvasCtx.fillStyle = '#FFFFFF';
+          canvasCtx.strokeStyle = '#0A2850';
+          canvasCtx.lineWidth = 2;
+          if (canvasCtx.roundRect) {
+            canvasCtx.beginPath();
+            canvasCtx.roundRect(8, 8, hudW, 24, 8);
+            canvasCtx.fill();
+            canvasCtx.stroke();
+          } else {
+            canvasCtx.fillRect(8, 8, hudW, 24);
+            canvasCtx.strokeRect(8, 8, hudW, 24);
+          }
+          canvasCtx.fillStyle = '#0A2850';
+          canvasCtx.fillText(hud, 18, 14);
           canvasCtx.restore();
         }
       } catch (hudErr) { /* never fail the loop */ }
