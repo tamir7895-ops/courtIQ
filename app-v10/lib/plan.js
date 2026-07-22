@@ -99,6 +99,8 @@
         focus: (p.focus || []).map(function (f) { return f.id; })
       }));
     } catch (e) {}
+    /* reminders re-arm around the new week shape (notify.js listens) */
+    try { window.dispatchEvent(new Event('courtiq:plan-saved')); } catch (e2) {}
   }
 
   /* ── schedule generation ──────────────────────────────────────
