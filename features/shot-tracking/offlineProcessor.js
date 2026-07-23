@@ -327,6 +327,7 @@
         video.src = url;
 
         var rows = [];         // per-frame: {t, balls:[{x,y,s}], players:[{x,y,w,h,s}]}
+        var curFI = 0;         // frame index being processed (two-phase writes by index)
         var hoopPx = [];       // hoop dets in proc px (for ring scanning + fallback)
         var crHoopY = [];      // colorRefined ring rows (normalized) — fallback ring y
         var ringSamples = [];  // {y, left, right} normalized
@@ -445,7 +446,7 @@
                   return { x: p.cx / fd.pw, y: p.cy / fd.ph, w: p.bw / fd.pw, h: p.bh / fd.ph, s: p.score };
                 })
               };
-              rows.push(row);
+              rows[curFI] = row;   // by-index: two-phase fills gaps later
               lastDets = row;
               for (var i = 0; i < fd.hoops.length; i++) {
                 var hh = fd.hoops[i];
@@ -455,7 +456,7 @@
                 // "hoop frames: 4" on real user footage. strongHoops()
                 // picks the most confident usable subset adaptively.
                 hoopPx.push({ cx: hh.cx, cy: hh.cy, bw: hh.bw, bh: hh.bh, s: hh.score,
-                              fi: rows.length - 1 });
+                              fi: curFI });
                 if (hh.colorRefined) crHoopY.push(hh.cy / fd.ph);
               }
               // PAN detector: rolling median of recent hoop cx — if the
@@ -551,15 +552,16 @@
               var ring = ringFromSamples();
               if (!ring && rows.length > 120) ring = liveFallbackRing();
               if (!ring) return;
-              if (live.ring && (Math.abs(live.ring.y - ring.y) > 0.004 ||
-                                Math.abs(live.ring.cx - ring.cx) > 0.004 ||
-                                Math.abs(live.ring.halfW - ring.halfW) > 0.004)) {
-                live.obs = []; live.built = 0; live.arrivals = []; live.closed = 0; live.shots = [];
-              }
               live.ring = ring;
               var GAP = Math.round(0.8 * fps), CAP = Math.round(2.6 * fps);
-              for (; live.built < rows.length; live.built++) {
-                var bl = rows[live.built].balls, near = [];
+              // Full rebuild each tick, bounded by the CURRENT frame — the
+              // two-phase planner fills PAST rows during the dense phase,
+              // so an incremental pointer would never re-read them. A tick
+              // scans ≤ totalFrames light rows (micro vs one inference).
+              var frontier = Math.min(rows.length - 1, curFI);
+              live.obs = []; live.arrivals = [];
+              for (var fi3 = 0; fi3 <= frontier; fi3++) {
+                var bl = (rows[fi3] && rows[fi3].balls) || [], near = [];
                 for (var bi = 0; bi < bl.length; bi++) {
                   var b = bl[bi];
                   if (Math.abs(b.x - ring.cx) < 0.17 &&
@@ -569,10 +571,10 @@
                 for (var oi = 0; oi < near.length; oi++) {
                   if (near[oi].y < ring.y - 0.012) {
                     var la = live.arrivals[live.arrivals.length - 1];
-                    if (!la || live.built - la.last > GAP) {
-                      live.arrivals.push({ start: live.built, last: live.built });
+                    if (!la || fi3 - la.last > GAP) {
+                      live.arrivals.push({ start: fi3, last: fi3 });
                     } else {
-                      la.last = live.built;
+                      la.last = fi3;
                     }
                     break;
                   }
@@ -583,17 +585,22 @@
               // re-classify EVERY closed window each tick with the current
               // ring — early verdicts self-correct as the median converges
               // (a dot may flip color once; the final pass stays authority).
-              if (ring.fb ? rows.length < 240 : ringSamples.length < 6) return;
+              if (ring.fb ? frontier < 240 : ringSamples.length < 6) return;
               var shots2 = [];
               for (var wi = 0; wi < live.arrivals.length; wi++) {
                 var a = live.arrivals[wi];
                 var hasNext = wi + 1 < live.arrivals.length;
-                if (!hasNext && rows.length - 1 <= a.start + CAP) break;  // window still open
+                if (!hasNext && frontier <= a.start + CAP) break;  // window still open
                 var end = hasNext ? Math.min(live.arrivals[wi + 1].start - 1, a.start + CAP)
                                   : a.start + CAP;
                 end = Math.min(end, live.obs.length - 1);
                 var res = classifyRange(live.obs, ring, a.start, end);
-                shots2.push({ t: rows[a.start].t, result: res.v });
+                // tEnd: the VIDEO time this attempt resolves on screen — the
+                // analyze view holds the MADE/MISS flash until the replay
+                // reaches it (device report: verdicts popped out of sync).
+                shots2.push({ t: rows[a.start] ? rows[a.start].t : a.start / fps,
+                              tEnd: rows[end] ? rows[end].t : end / fps,
+                              result: res.v });
               }
               live.shots = shots2;
               self._liveShots = live.shots;
@@ -601,8 +608,122 @@
 
             var dt = 1 / fps;
             var totalFrames = Math.max(1, Math.floor(duration * fps));
-            var frame = 0;
-            onStage('Analyzing every frame…');
+            /* ── TWO-PHASE PLAN (device report: "analysis takes too long") ──
+               Phase SCAN: every 6th frame (2.5/s) full-frame only — enough
+               to find the hoop and every window of near-rim ball activity
+               (a shot spans ~1-2.5s ⇒ 3-6 scan hits even for quick ones).
+               Phase DENSE: full 15fps pipeline ONLY inside activity ranges
+               (±1.2s/+1.6s around hits, merged). Shots occupy a minority of
+               a session, so the wait drops 50-75% with the SAME evidence —
+               dense frames are processed identically, empty gaps genuinely
+               have no rim-area ball (the scan proved it at floor 0.02).
+               opts.twoPhase === false restores the single-phase walk (A/B). */
+            var twoPhase = opts.twoPhase !== false;
+            var COARSE = 6;
+            var planDiag = {};   // merged into the pass2 diag at finish
+            var phase = twoPhase ? 'scan' : 'dense';
+            var queue = [];
+            for (var qf = 0; qf < totalFrames; qf += (twoPhase ? COARSE : 1)) queue.push(qf);
+            var qi = 0, processed = 0, workTotal = queue.length;
+
+            function buildDensePlan() {
+              phase = 'dense';
+              var done = {};
+              for (var di = 0; di < queue.length; di++) done[queue[di]] = 1;
+              // hoop reference: per-frame det when available, global median else
+              var strong = [], byF = {};
+              var pwB = eng._procW || pwLast, phB = eng._procH || phLast;
+              for (var hi3 = 0; hi3 < hoopPx.length; hi3++) {
+                var hb = hoopPx[hi3];
+                if (hb.s >= 0.15) strong.push(hb);
+                if (!byF[hb.fi] || hb.s > byF[hb.fi].s) byF[hb.fi] = hb;
+              }
+              var dense = [];
+              if (strong.length < 5) {
+                // hoop never found in the scan — no basis to prune; process
+                // everything so the census/No-shots diagnosis stays honest.
+                for (var af = 0; af < totalFrames; af++) if (!done[af]) dense.push(af);
+              } else {
+                var gx = median(strong.map(function (h) { return h.cx; })) / pwB;
+                var gy = median(strong.map(function (h) { return h.cy; })) / phB;
+                // activity box scales with the HOOP size — a fixed 0.28
+                // radius is half the court on far footage (uc12) and the
+                // planner never pruned anything
+                var ghw = median(strong.map(function (h) { return h.bw; })) / pwB;
+                var ghh = median(strong.map(function (h) { return h.bh; })) / phB;
+                var actX  = Math.min(0.28, Math.max(0.10, ghw * 3.5));
+                var actUp = Math.min(0.30, Math.max(0.12, ghh * 4.0));
+                var actDn = Math.min(0.22, Math.max(0.10, ghh * 3.0));
+                // static junk (net knot / court stain) fires as "ball" in a
+                // FIXED hoop-relative cell on most scan frames — without
+                // this filter such courts light up every scan frame and the
+                // planner never prunes anything (uc15's knot: 73-82% of
+                // frames). Same cell trick as the verdict fixture map.
+                var CELLW2 = 0.02, cellN = {}, scanN = 0;
+                for (var pf2 = 0; pf2 < queue.length; pf2++) {
+                  var rr0 = rows[queue[pf2]];
+                  if (!rr0) continue;
+                  scanN++;
+                  var hR0 = byF[queue[pf2]];
+                  var hx0 = hR0 ? hR0.cx / pwB : gx, hy0 = hR0 ? hR0.cy / phB : gy;
+                  var seen0 = {};
+                  for (var b0 = 0; b0 < rr0.balls.length; b0++) {
+                    var k0 = Math.round((rr0.balls[b0].x - hx0) / CELLW2) + ',' +
+                             Math.round((rr0.balls[b0].y - hy0) / CELLW2);
+                    if (!seen0[k0]) { seen0[k0] = 1; cellN[k0] = (cellN[k0] || 0) + 1; }
+                  }
+                }
+                var staticCell = {};
+                Object.keys(cellN).forEach(function (ck) {
+                  if (cellN[ck] >= 0.5 * scanN) staticCell[ck] = 1;
+                });
+                var hits = [];
+                for (var sfi = 0; sfi < queue.length; sfi++) {
+                  var cf = queue[sfi], rr = rows[cf];
+                  if (!rr || !rr.balls.length) continue;
+                  var hRef = byF[cf];
+                  var hxN = hRef ? hRef.cx / pwB : gx, hyN = hRef ? hRef.cy / phB : gy;
+                  for (var bb = 0; bb < rr.balls.length; bb++) {
+                    var bo = rr.balls[bb];
+                    if (!(Math.abs(bo.x - hxN) < actX && bo.y > hyN - actUp && bo.y < hyN + actDn)) continue;
+                    var ck2 = Math.round((bo.x - hxN) / CELLW2) + ',' +
+                              Math.round((bo.y - hyN) / CELLW2);
+                    if (staticCell[ck2]) continue;
+                    hits.push(cf); break;
+                  }
+                }
+                var back = Math.round(1.2 * fps), fwd = Math.round(1.6 * fps);
+                var ranges = [];
+                for (var ha = 0; ha < hits.length; ha++) {
+                  var r0 = Math.max(0, hits[ha] - back), r1 = Math.min(totalFrames - 1, hits[ha] + fwd);
+                  var pr = ranges[ranges.length - 1];
+                  if (pr && r0 <= pr[1] + 1) { pr[1] = Math.max(pr[1], r1); }
+                  else ranges.push([r0, r1]);
+                }
+                for (var ra = 0; ra < ranges.length; ra++) {
+                  for (var rf = ranges[ra][0]; rf <= ranges[ra][1]; rf++) {
+                    if (!done[rf]) { dense.push(rf); done[rf] = 1; }
+                  }
+                }
+                planDiag.activityRanges = ranges.length;
+                // pruning barely helps past ~80% coverage — just do it all
+                if (dense.length > 0.8 * totalFrames) {
+                  dense = [];
+                  var scanSet = {};
+                  for (var qs = 0; qs < totalFrames; qs += COARSE) scanSet[qs] = 1;
+                  for (var af2 = 0; af2 < totalFrames; af2++) {
+                    if (!scanSet[af2]) dense.push(af2);
+                  }
+                }
+              }
+              dense.sort(function (a, b) { return a - b; });
+              planDiag.scanFrames = processed;
+              planDiag.denseFrames = dense.length;
+              queue = dense; qi = 0;
+              workTotal = processed + dense.length;
+            }
+
+            onStage(twoPhase ? 'Scanning for shots…' : 'Analyzing every frame…');
             /* Stuck-watchdog. Court report: "analyze never finishes" -- a
                damaged recording can wedge the seek loop. If no frame
                completes for 25s, fail CLEANLY instead of hanging forever. */
@@ -614,9 +735,20 @@
             function step() {
               if (signal && signal.aborted) { clearInterval(watchdog); cleanup(); reject(new Error('aborted')); return; }
               if (watchdogDead) { cleanup(); reject(new Error('analysis stalled (unreadable recording)')); return; }
-              if (frame >= totalFrames) { clearInterval(watchdog); finishRun(); return; }
+              if (qi >= queue.length) {
+                if (phase === 'scan') {
+                  buildDensePlan();
+                  onStage('Analyzing every frame…');
+                  if (queue.length) { step(); return; }
+                }
+                clearInterval(watchdog); finishRun(); return;
+              }
               lastAdvanceAt = Date.now();
-              var t = Math.min(duration - 0.001, frame * dt);
+              curFI = queue[qi];
+              while (rows.length <= curFI) {
+                rows.push({ t: rows.length * dt, balls: [], players: [] });
+              }
+              var t = Math.min(duration - 0.001, curFI * dt);
               seekTo(video, t).then(function () {
                 return eng.processFrameOffline();
               }).then(function () {
@@ -662,7 +794,7 @@
                     return eng.detectBallsInRegionOffline(sxN, syN, swN, shN,
                                                           isPanning() ? 0.012 : 0.02).then(function (zb) {
                       if (zb && zb.length && rows.length) {
-                        var row5 = rows[rows.length - 1];
+                        var row5 = rows[curFI];
                         for (var zi = 0; zi < zb.length; zi++) row5.balls.push(zb[zi]);
                       }
                     });
@@ -672,7 +804,8 @@
                 // Ring measurement every ~24 frames — at NATIVE resolution
                 // straight from the video element (the frame is still on
                 // this timestamp after processFrameOffline resolves).
-                if (frame % 24 === 0 && ringSamples.length < 15) {
+                var wantRing = (phase === 'scan') ? (qi % 4 === 0) : (curFI % 24 === 0);
+                if (wantRing && ringSamples.length < 15) {
                   var hp = strongHoops();
                   if (hp.length >= 8) {
                     var pw2 = eng._procW || pwLast, ph2 = eng._procH || phLast;
@@ -695,7 +828,7 @@
                     if (s) {
                       // Reference for track mode: offsets are measured
                       // relative to the box the sample was taken around.
-                      s.fi = frame; s.refCx = bcx2 / pw2; s.refCy = bcy2 / ph2;
+                      s.fi = curFI; s.refCx = bcx2 / pw2; s.refCy = bcy2 / ph2;
                       ringSamples.push(s);
                     }
                   }
@@ -704,21 +837,21 @@
                 if (onFrame) {
                   onFrame({
                     video: video,
-                    t: rows.length ? rows[rows.length - 1].t : t,
-                    frac: (frame + 1) / totalFrames,
+                    t: rows[curFI] ? rows[curFI].t : t,
+                    frac: (processed + 1) / Math.max(1, workTotal),
                     dets: lastDets,
                     ring: live.ring,
                     shots: live.shots
                   });
                 }
-                frame++;
-                if (frame % 4 === 0) onProgress(frame / totalFrames);
+                qi++; processed++;
+                if (processed % 4 === 0) onProgress(processed / Math.max(1, workTotal));
                 // No setTimeout yield — background tabs clamp timers to
                 // ≥1s (froze processing whenever the tab/app lost focus).
                 // The 'seeked' event already yields to the event loop
                 // every frame, so the UI stays responsive without timers.
                 step();
-              }).catch(function () { frame++; step(); });
+              }).catch(function () { qi++; processed++; step(); });
             }
 
             function finishRun() {
@@ -745,7 +878,10 @@
               var maxConf = 0;
               for (var mi = 0; mi < hoopPx.length; mi++) if (hoopPx[mi].s > maxConf) maxConf = hoopPx[mi].s;
               var diag = {
-                frames: rows.length, hoopDetections: hoopPx.length,
+                frames: processed, timeline: rows.length,
+                scanFrames: planDiag.scanFrames, denseFrames: planDiag.denseFrames,
+                activityRanges: planDiag.activityRanges,
+                hoopDetections: hoopPx.length,
                 hoopHiConf: hoopPx.filter(function (h) { return h.s >= 0.30; }).length,
                 hoopMaxConf: +maxConf.toFixed(3),
                 usedTier: (function () {
@@ -784,7 +920,7 @@
                 diag.rawBallFrames = rawBallF;
                 cleanup();
                 resolve({ shots: [], total: 0, made: 0, missed: 0, rawTotal: 0,
-                          duration: duration, frames: rows.length, rim: null, diag: diag });
+                          duration: duration, frames: processed, rim: null, diag: diag });
                 return;
               }
 
@@ -1245,7 +1381,7 @@
                 missed: shots.filter(function (s) { return s.result === 'missed'; }).length,
                 rawTotal: shots.length,
                 duration: duration,
-                frames: rows.length,
+                frames: processed,
                 rim: { x: ring.cx, y: ring.y, w: ring.halfW * 2, h: 0.04 },
                 diag: diag
               });
