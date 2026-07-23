@@ -32,6 +32,28 @@ INSET_XMULT     = _f("SB_INSET_XMULT",     0.70)   # static inside-net x-tol (×
 END_CENTER      = _f("SB_END_CENTER",      0.035)  # track end-centering max |x|
 SPAN_CAP        = _f("SB_SPAN_CAP",        0.032)  # track run x-span cap
 
+# ── M6 recal knobs (2026-07-23 dwell forensics; defaults = shipped v7b1
+#    behavior, i.e. OFF). The m6 model tracks miss-deflection hovers the
+#    dwell rule reads as makes; the discriminators are GEOMETRIC:
+#    depth  — a no-exit dwell must actually get below the ring plane
+#             (night_d FM 13.4: 5f "dwell" with deepest dy −0.005)
+#    prog   — a no-exit dwell must DESCEND, not hover statically
+#             (night_c FM 6.8: dy 0.044±0.002 for 6 frames)
+#    cone   — the exit descent must stay in the net funnel
+#             (night_c FMs 4.8/11.9: descents at |dx| 1.7-4hw exit-side) ──
+MIN_DEPTH = _f("SB_MIN_DEPTH", 0.0)   # no-exit dwell: max run dy must reach this
+MIN_PROG  = _f("SB_MIN_PROG",  0.0)   # no-exit dwell: max-min run dy at least this
+EXIT_CONE = _f("SB_EXIT_CONE", 0.08)  # exit-chain |x-ringX| cap (abs norm)
+# uc15 finding: a NET-KNOT fixture at ring center can EAT the through-net
+# evidence of real makes (m6 scores the knot high, so the 2.5x-median score
+# exemption never fires). A ball is MOVING; the knot is not. SB_FIX_TRAJ=1
+# exempts obs that CONTINUE a trajectory from outside the fixture cells.
+FIX_TRAJ = os.environ.get("SB_FIX_TRAJ", "0") == "1"
+# SB_RERISE=1: static-chain in-and-out veto — a ring-cross M is revoked when
+# strong obs reappear ABOVE the plane near the rim right after the crossing
+# (dish 49.4 under m6). The track chain has always had this kill.
+RERISE = os.environ.get("SB_RERISE", "0") == "1"
+
 # ── Net-motion evidence (competitor-style "the net moved") ──
 # SB_DEPART=1: static-chain departure veto — a ring-cross M is revoked when,
 #   within 8 frames after the crossing, the ball shows up far OUTSIDE the net
@@ -185,6 +207,26 @@ GT = {
     # frame (pollutes the ring color scan), and the clip ends on session-end UI.
     # Only 3 real shots are visible; windows in the black period are phantoms.
     "court_b": [(44.5, "M"), (52.5, "X"), (56.2, "X")],
+    # dish flagship (www/_test_video.mp4 -> eval_videos/dish.mp4), GT 14/14
+    # from the p12 hand annotation; times from the app window log.
+    "dish": [(1.5, "M"), (5.0, "M"), (8.5, "M"), (12.0, "X"), (15.4, "M"),
+             (19.9, "M"), (23.5, "M"), (27.2, "M"), (30.6, "X"), (34.0, "M"),
+             (38.5, "M"), (42.4, "M"), (45.9, "X"), (49.4, "X")],
+    # uc15 = user's HELD-OUT court clip (never trained on). User-provided
+    # sequence (2026-07-23) X M X X M X X M X M M M X M X M M paired to the
+    # 17 fixture-suppressed arrival events (22 arrivals, rebounds <2s merged).
+    # The ring-area fixture here is the NET KNOT in daylight side view —
+    # fires as ball 73-82% of frames (next-cycle hard negative).
+    # uc16 = behind-shoulder clip (user seq MMXMMXXMXMMXM, 15 arrivals ->
+    # 13 after <2.5s rebound merge). NOTE: 87 frames of this clip were in
+    # training (detection-level leak); verdict rules never saw it.
+    "uc16": [(0.1, "M"), (3.9, "M"), (10.0, "X"), (17.3, "M"), (23.5, "M"),
+             (27.1, "X"), (35.6, "X"), (41.2, "M"), (44.3, "X"), (47.5, "M"),
+             (50.5, "M"), (56.9, "X"), (67.2, "M")],
+    "uc15": [(4.4, "X"), (7.6, "M"), (11.4, "X"), (15.0, "X"), (20.2, "M"),
+             (26.8, "X"), (31.4, "X"), (35.5, "M"), (41.2, "X"), (43.3, "M"),
+             (48.3, "M"), (55.6, "M"), (60.5, "X"), (65.0, "M"), (70.3, "X"),
+             (75.9, "M"), (82.5, "M")],
     "night_b": [(20.4, "X")],
     "night_c": [(1.1, "M"), (5.6, "X"), (8.6, "X"), (9.2, "X"), (12.4, "X"),
                 (15.0, "M"), (16.6, "X")],
@@ -321,6 +363,26 @@ def classify_static(obs, ring_cx, ring_y, half, f0, f1, netE=None):
         if not seg: return False
         return max(seg) < 0.04 and sum(1 for v in seg if v > 0.02) <= 2
 
+    def re_rose(cross_f):
+        # M6 recal: in-and-out signature — the ball momentarily crosses the
+        # plane, then STRONG obs reappear ABOVE the ring near the rim and
+        # roll off (dish 49.4 GT X under m6: crossing f1489, then s 0.87-0.91
+        # obs at dy -0.023..-0.033 for 8 frames). A true make is inside the
+        # net after its crossing — nothing strong reappears above the plane.
+        # Mirrors the track chain's re-rise kill (always shipped there).
+        if not RERISE: return False
+        if os.environ.get("SB_RERISE_DEBUG"):
+            print(f"    [rerise? cross_f={cross_f}] ring_y={ring_y:.4f} half={half:.4f}")
+            for k in range(cross_f + 1, min(cross_f + 9, f1 + 1, len(obs))):
+                for o in obs[k]:
+                    print(f"      f{k} x={o[0]:.3f} y={o[1]:.3f} dy={o[1]-ring_y:+.4f} adx={abs(o[0]-ring_cx):.4f} s={o[2]:.2f}")
+        for k in range(cross_f + 1, min(cross_f + 9, f1 + 1, len(obs))):
+            for o in obs[k]:
+                if o[2] >= 0.30 and (o[1] - ring_y) <= -0.02 and \
+                   abs(o[0] - ring_cx) <= half * 2.5:
+                    return True
+        return False
+
     def deflected_out(cross_f):
         # rim-deflection signature: right after the crossing the ball shows up
         # far OUTSIDE the cone laterally at net height, and never deep inside.
@@ -343,7 +405,7 @@ def classify_static(obs, ring_cx, ring_y, half, f0, f1, netE=None):
             r = (ring_y - prev_b[1]) / max(b[1] - prev_b[1], 1e-6)
             x_at = prev_b[0] + r * (b[0] - prev_b[0])
             if abs(x_at - ring_cx) <= half * RING_CROSS_MULT:
-                if deflected_out(i):
+                if deflected_out(i) or re_rose(i):
                     prev_f, prev_b = i, b
                     continue          # revoked — keep scanning
                 if net_is_quiet():
@@ -353,6 +415,7 @@ def classify_static(obs, ring_cx, ring_y, half, f0, f1, netE=None):
     for j in range(f0, f1 + 1):
         for o in obs[j]:
             if ring_y + 0.008 <= o[1] <= ring_y + 0.062 and abs(o[0] - ring_cx) <= half * INSET_XMULT:
+                if re_rose(j): continue     # in-and-out: the dip is momentary
                 if net_is_quiet():
                     return "X", f"quiet-net veto (inside-net f={j})"
                 return "M", f"inside-net ({o[0]:.3f},{o[1]:.3f}) f={j}"
@@ -373,9 +436,37 @@ def make_v7(obs, rings, N):
     FIX = [(k[0] * CELL, k[1] * CELL, med(sc)) for k, (hits, sc) in cells.items()
            if hits >= 0.08 * N]
 
-    def is_fixture(dx, dy, s):
+    def _fix_cell(dx, dy, s):
         return any(abs(dx - fx) <= 0.012 and abs(dy - fy) <= 0.012 and s <= max(2.5 * ms, 0.10)
                    for (fx, fy, ms) in FIX)
+
+    # trajectory-continuation exemption: obs o at frame f escapes fixture
+    # suppression if some obs in f-1/f-2 sits within reach of o but OUTSIDE
+    # every fixture cell — the ball travelled INTO the knot's cell.
+    continuing = [set() for _ in range(N)]
+    if FIX_TRAJ:
+        for fi in range(N):
+            rcx, rcy = rings[fi]
+            for (x, y, s) in obs[fi]:
+                if not _fix_cell(x - rcx, y - rcy, s): continue
+                hit = False
+                for pf in (fi - 1, fi - 2):
+                    if pf < 0: break
+                    pcx, pcy = rings[pf]
+                    for (px, py, ps) in obs[pf]:
+                        if _fix_cell(px - pcx, py - pcy, ps): continue
+                        if abs(px - x) <= 0.035 and abs(py - y) <= 0.035 and ps >= 0.10:
+                            hit = True; break
+                    if hit: break
+                if hit: continuing[fi].add((round(x, 4), round(y, 4)))
+
+    def is_fixture(dx, dy, s, fi=None):
+        if not _fix_cell(dx, dy, s): return False
+        if FIX_TRAJ and fi is not None:
+            rcx, rcy = rings[fi]
+            if (round(dx + rcx, 4), round(dy + rcy, 4)) in continuing[fi]:
+                return False
+        return True
     BAND = lambda dy, dx: -0.015 <= dy <= 0.055 and abs(dx) <= 0.05
 
     def classify(f0, f1):
@@ -408,9 +499,10 @@ def make_v7(obs, rings, N):
                     dx, dy = o[0] - bcx, o[1] - bcy
                     if not BAND(dy, dx): continue
                     if abs(o[0] - ent[0]) > 0.06: continue
-                    if is_fixture(dx, dy, o[2]): continue
+                    if is_fixture(dx, dy, o[2], b1): continue
                     run, lastf, last = 1, b1, o
                     path = [(b1, o[0] - bcx)]
+                    run_dys = [o[1] - bcy]
                     for k in range(b1 + 1, min(b1 + 16, lim)):
                         if k - lastf > 3: break
                         kcx, kcy = rings[k]
@@ -418,13 +510,14 @@ def make_v7(obs, rings, N):
                         for q in obs[k]:
                             qdx, qdy = q[0] - kcx, q[1] - kcy
                             if not BAND(qdy, qdx): continue
-                            if is_fixture(qdx, qdy, q[2]): continue
+                            if is_fixture(qdx, qdy, q[2], k): continue
                             steps = k - lastf
                             if abs(q[1] - last[1]) > 0.014 * steps or abs(q[0] - last[0]) > 0.02 * steps: continue
                             if best is None or q[2] > best[2]: best = q
                         if best is not None:
                             run += 1; lastf, last = k, best
                             path.append((k, best[0] - rings[k][0]))
+                            run_dys.append(best[1] - rings[k][1])
                     exitok = False
                     cur2, cur2f = last, lastf
                     for k in range(lastf + 1, min(lastf + 8, lim)):
@@ -435,12 +528,17 @@ def make_v7(obs, rings, N):
                             steps = k - cur2f
                             if abs(q[0] - cur2[0]) > 0.06 * steps: continue
                             if not (q[1] - cur2[1] >= 0.010 * steps): continue
-                            if abs(q[0] - kcx) > 0.08: continue
+                            if abs(q[0] - kcx) > EXIT_CONE: continue
                             if best is None or q[2] > best[2]: best = q
                         if best is None: continue
                         cur2, cur2f = best, k
                         if cur2[1] - rings[k][1] >= 0.085: exitok = True; break
                     if run < 3 and not (run >= 1 and exitok): continue
+                    # M6 recal: a no-exit dwell must DESCEND into the net —
+                    # reach depth, and progress rather than hover
+                    if not exitok:
+                        if max(run_dys) < MIN_DEPTH: continue
+                        if (max(run_dys) - min(run_dys)) < MIN_PROG: continue
                     # end-centering: a net-braked ball ENDS centered in the
                     # cone; a rim roll-off ends at the band edge before the
                     # side drop (night_c w01 false-make signature)

@@ -957,8 +957,15 @@
       // eval videos: zero regressions, fewer phantom windows on night_b/d,
       // v3/night_c unchanged. Full gate log: courtiq-cv-free-improvements
       // memory + training/v7/PLAN_M5_v7.md.
+      // m6 (2026-07-23): val AP 77.12 (all-time record; v7b1 76.00). Trained
+      // on the deep-cleaned M6 set + the user's own courts (AdamW, motion-
+      // blur aug, verified backgrounds). Detection OK 76%→98% across all
+      // slices, uc14 stain FPs −79%, held-out uc15 hoop 100%. Verdict rules
+      // recalibrated in offlineProcessor (depth/prog/cone/fix-traj) — lab
+      // parity with v7b1 on user courts, big live-detection win. fp16
+      // verdict-parity confirmed (night_c 5/6 identical to fp32).
       var modelPath = window.COURTIQ_MODEL_URL ||
-        (SCRIPT_BASE + 'models/basketball_yolox_tiny_v7b1_fp16.onnx?v=v7b1fp16');
+        (SCRIPT_BASE + 'models/basketball_yolox_tiny_m6_fp16.onnx?v=m6fp16');
 
       // executionProviders WITHOUT 'webgl' on purpose: the v6 ONNX graph
       // contains int64 initializers, and ORT-Web's WebGL EP rejects int64

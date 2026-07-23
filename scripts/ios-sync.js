@@ -26,7 +26,7 @@ const DROP = [
 // commit: the pruner deletes everything else, so a stale name here ships
 // an iPhone bundle whose engine 404s its own model and silently drops to
 // color-only mode (caught in pre-TestFlight verification, 2026-07-17).
-const KEEP_MODELS = new Set(['basketball_yolox_tiny_v7b1_fp16.onnx']);
+const KEEP_MODELS = new Set(['basketball_yolox_tiny_m6_fp16.onnx']);
 
 let freed = 0;
 function rm(p) {

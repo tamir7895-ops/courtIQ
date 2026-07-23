@@ -25,6 +25,7 @@ models/*
 !models/basketball_yolox_tiny_v7m5.onnx
 !models/basketball_yolox_tiny_v7m5_fp16.onnx
 !models/basketball_yolox_tiny_v7b1_fp16.onnx
+!models/basketball_yolox_tiny_m6_fp16.onnx
 *.onnx.data
 
 # ── Training data & videos (local-only) ──
