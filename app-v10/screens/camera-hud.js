@@ -119,13 +119,14 @@
     ].filter(Boolean));
   }
 
-  /* The canonical CourtIQ ball — same geometry as the header pill mark. */
+  /* The real CourtIQ mark — the hand-and-ball logo, transparent so it
+     sits cleanly in the white session chip. Portrait aspect (~0.75), so
+     we size by height and let width follow. */
   function brandMark(size) {
-    return svg('svg', { viewBox: '0 0 32 32', width: String(size), height: String(size) }, [
-      svg('circle', { cx: '16', cy: '16', r: '14', fill: '#FF4F1F' }),
-      svg('path', { d: 'M 16 2 L 16 30 M 2 16 L 30 16 M 6 6 Q 16 14 26 6 M 6 26 Q 16 18 26 26',
-        stroke: '#0A2850', 'stroke-width': '1.8', fill: 'none' })
-    ]);
+    return h('img', {
+      src: 'assets/logomark.svg', alt: '',
+      style: { height: size + 'px', width: 'auto', display: 'block' }
+    });
   }
 
   /* Session clock + cap bar. The cap exists because analysis runs at
@@ -758,7 +759,14 @@
       // shot dots + verdict flash. Repaint on any SIGNATURE change (early
       // verdicts can self-correct while the ring median converges), flash
       // only when a NEW shot closes.
-      var shots = fd.shots || [];
+      // Reveal-gating (device report: MADE/MISS popped out of sync with the
+      // replay): a verdict only becomes visible once the replay time passes
+      // the attempt's on-screen resolution moment (tEnd from the classifier).
+      var shotsAll = fd.shots || [];
+      var shots = [];
+      for (var sg = 0; sg < shotsAll.length; sg++) {
+        if (shotsAll[sg].tEnd == null || fd.t >= shotsAll[sg].tEnd - 0.05) shots.push(shotsAll[sg]);
+      }
       var sig = shots.map(function (s) { return s.result === 'made' ? 'M' : 'X'; }).join('');
       if (sig !== lastShotSig) {
         dotsEl.innerHTML = '';

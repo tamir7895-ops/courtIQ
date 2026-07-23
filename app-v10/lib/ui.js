@@ -70,14 +70,13 @@
     var meta = ((p.position || 'GUARD') + ' · LV ' + (p.level || 1)).toUpperCase();
     var ini = (p.initial || (p.name || 'A')[0] || 'A').toUpperCase();
 
-    // CourtIQ logo: the reference basketball — straight cross seams +
-    // two horizontal arcs bowing toward center (classic ball look).
-    // This is the canonical seam style for every ball in the app.
-    var logoSvg = svg('svg', { viewBox: '0 0 32 32' }, [
-      svg('circle', { cx: '16', cy: '16', r: '14', fill: '#FF4F1F' }),
-      svg('path', { d: 'M 16 2 L 16 30 M 2 16 L 30 16 M 6 6 Q 16 14 26 6 M 6 26 Q 16 18 26 26',
-        stroke: '#0A2850', 'stroke-width': '1.8', fill: 'none' })
-    ]);
+    // CourtIQ logo: the real hand-and-ball mark (Higgsfield/Recraft),
+    // transparent so it reads on the cream pill — not the simplified
+    // ball glyph. Portrait aspect, object-fit keeps it whole.
+    var logoSvg = h('img', {
+      src: 'assets/logomark.svg', alt: 'CourtIQ',
+      class: 'v10-pill__logo-img'
+    });
 
     // Avatar: real DiceBear image (saved by avatar-customizer) or fallback initial.
     var avatarUrl = null;
