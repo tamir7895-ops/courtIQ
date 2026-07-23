@@ -16,11 +16,11 @@
 .v10-pill__logo {
   width: 32px; height: 32px;
   flex-shrink: 0;
-  border-radius: 50%;
-  background: var(--orange);
   display: flex; align-items: center; justify-content: center;
 }
 .v10-pill__logo svg { width: 100%; height: 100%; }
+/* the real hand-and-ball mark: whole, centered, no disc behind it */
+.v10-pill__logo-img { width: 100%; height: 100%; object-fit: contain; display: block; }
 .v10-pill__brand {
   display: flex; flex-direction: column; justify-content: center;
   border-left: 2px solid var(--ink);
@@ -897,6 +897,12 @@ body.v10-cam-active .st-bottom-bar { padding-bottom: calc(14px + var(--safe-bott
 @keyframes v10BallRollIn {
   from { transform: rotate(-150deg) scale(0.7); opacity: 0; }
   to   { transform: rotate(0deg) scale(1); opacity: 1; }
+}
+/* the real mark is a HAND — it pops in, it doesn't spin like a ball */
+.v10-pill__logo-img { animation: v10MarkPop 520ms 120ms var(--ease-out-expo) both; }
+@keyframes v10MarkPop {
+  from { transform: scale(0.6); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
 }
 
 /* ── CSS BASKETBALL (print-style glyph) ────────────────
