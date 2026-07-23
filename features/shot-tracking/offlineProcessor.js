@@ -246,6 +246,24 @@
       for (var k = 1; k < arr.length; k++) if (arr[k].s > best.s) best = arr[k];
       return best;
     }
+    // M6 recal: in-and-out veto — the ball momentarily dips through the
+    // plane, then STRONG obs reappear ABOVE the ring and roll off (dish
+    // 49.4s under m6: crossing, then s 0.87-0.91 obs at dy −0.02..−0.03).
+    // A true make is inside the net after its evidence — nothing strong
+    // reappears above the plane. Mirrors the track chain's re-rise kill.
+    // Restored dish 14/14 in the lab; zero collateral on the full battery.
+    function reRose(crossF) {
+      var kEnd = Math.min(crossF + 9, f1 + 1, obsArr.length);
+      for (var k = crossF + 1; k < kEnd; k++) {
+        var arrR = obsArr[k] || [];
+        for (var m = 0; m < arrR.length; m++) {
+          var oR = arrR[m];
+          if (oR.s >= 0.30 && (oR.y - ring.y) <= -0.02 &&
+              Math.abs(oR.x - ring.cx) <= ring.halfW * 2.5) return true;
+        }
+      }
+      return false;
+    }
     // 1) downward ring-plane crossings within the ring span
     var prevF = -1, prevB = null;
     for (var i = f0; i <= f1; i++) {
@@ -254,7 +272,7 @@
       if (prevB && (i - prevF) <= 6 && prevB.y < ring.y && b.y >= ring.y) {
         var r = (ring.y - prevB.y) / Math.max(b.y - prevB.y, 1e-6);
         var xAt = prevB.x + r * (b.x - prevB.x);
-        if (Math.abs(xAt - ring.cx) <= ring.halfW * 0.95) {
+        if (Math.abs(xAt - ring.cx) <= ring.halfW * 0.95 && !reRose(i)) {
           return { v: 'made', why: 'ring-cross x=' + xAt.toFixed(3) + ' f=' + i };
         }
       }
@@ -266,7 +284,7 @@
       for (var k2 = 0; k2 < arr2.length; k2++) {
         var o = arr2[k2];
         if (o.y >= ring.y + 0.008 && o.y <= ring.y + 0.062 &&
-            Math.abs(o.x - ring.cx) <= ring.halfW * 0.70) {
+            Math.abs(o.x - ring.cx) <= ring.halfW * 0.70 && !reRose(j)) {
           return { v: 'made', why: 'inside-net (' + o.x.toFixed(3) + ',' + o.y.toFixed(3) + ') f=' + j };
         }
       }
@@ -823,7 +841,7 @@
               }
               diag.fixtures = FIX.length;
               diag.chain = v7Mode ? 'v7' : 'static';
-              function isFixture(dx, dy, s) {
+              function inFixCell(dx, dy, s) {
                 // Proximity 0.012 (was 0.02): the v7m5-era knot is spatially
                 // tight and the wide radius ate REAL ball obs crossing the
                 // ring plane (night 33.1s make lost). Validated 7/7 on both
@@ -833,6 +851,45 @@
                       s <= Math.max(2.5 * FIX[f5].ms, 0.10)) return true;
                 }
                 return false;
+              }
+              // M6 recal (2026-07-23): a NET-KNOT fixture at ring center ate
+              // the through-net evidence of real makes on the user's court
+              // (uc15 10/17→12/17). The knot is STATIC; the ball MOVES — an
+              // obs that CONTINUES a trajectory from outside the fixture
+              // cells escapes suppression.
+              var fixContinuing = [];
+              if (v7Mode && FIX.length) {
+                for (var cf = 0; cf < rows.length; cf++) {
+                  var contSet = null;
+                  var rgCf = ringOf(cf);
+                  for (var co = 0; co < obs[cf].length; co++) {
+                    var oc = obs[cf][co];
+                    if (!inFixCell(oc.x - rgCf.cx, oc.y - rgCf.y, oc.s)) continue;
+                    var hit = false;
+                    for (var pf = cf - 1; pf >= Math.max(0, cf - 2) && !hit; pf--) {
+                      var rgPf = ringOf(pf);
+                      for (var po = 0; po < obs[pf].length; po++) {
+                        var pp = obs[pf][po];
+                        if (inFixCell(pp.x - rgPf.cx, pp.y - rgPf.y, pp.s)) continue;
+                        if (pp.s >= 0.10 && Math.abs(pp.x - oc.x) <= 0.035 &&
+                            Math.abs(pp.y - oc.y) <= 0.035) { hit = true; break; }
+                      }
+                    }
+                    if (hit) {
+                      if (!contSet) contSet = {};
+                      contSet[oc.x.toFixed(4) + ',' + oc.y.toFixed(4)] = 1;
+                    }
+                  }
+                  fixContinuing.push(contSet);
+                }
+              }
+              function isFixture(dx, dy, s, fi) {
+                if (!inFixCell(dx, dy, s)) return false;
+                if (fi !== undefined && fixContinuing[fi]) {
+                  var rgFi = ringOf(fi);
+                  if (fixContinuing[fi][(dx + rgFi.cx).toFixed(4) + ',' + (dy + rgFi.y).toFixed(4)]) return false;
+                }
+                return true;
               }
 
               // ── Arrivals → attempt windows ─────────────────────
@@ -938,26 +995,29 @@
                       var dx = o.x - rgB.cx, dy = o.y - rgB.y;
                       if (dy < -0.015 || dy > 0.055 || Math.abs(dx) > 0.05) continue;
                       if (Math.abs(o.x - ent.x) > 0.06) continue;
-                      if (isFixture(dx, dy, o.s)) continue;
+                      if (isFixture(dx, dy, o.s, b1)) continue;
                       var runLen = 1, lastF = b1, lastO = o;
                       var runMinDx = dx, runMaxDx = dx;
+                      var runMinDy = dy, runMaxDy = dy;
                       for (var k2 = b1 + 1; k2 < Math.min(b1 + 16, lim); k2++) {
                         if (k2 - lastF > 3) break;
-                        var rgK2 = ringOf(k2), best = null, bestDx = 0;
+                        var rgK2 = ringOf(k2), best = null, bestDx = 0, bestDy = 0;
                         for (var q4 = 0; q4 < obs[k2].length; q4++) {
                           var c = obs[k2][q4];
                           var cdx = c.x - rgK2.cx, cdy = c.y - rgK2.y;
                           if (cdy < -0.015 || cdy > 0.055 || Math.abs(cdx) > 0.05) continue;
-                          if (isFixture(cdx, cdy, c.s)) continue;
+                          if (isFixture(cdx, cdy, c.s, k2)) continue;
                           var steps = k2 - lastF;
                           if (Math.abs(c.y - lastO.y) > 0.014 * steps ||
                               Math.abs(c.x - lastO.x) > 0.02 * steps) continue;
-                          if (!best || c.s > best.s) { best = c; bestDx = cdx; }
+                          if (!best || c.s > best.s) { best = c; bestDx = cdx; bestDy = cdy; }
                         }
                         if (best) {
                           runLen++; lastF = k2; lastO = best;
                           if (bestDx < runMinDx) runMinDx = bestDx;
                           if (bestDx > runMaxDx) runMaxDx = bestDx;
+                          if (bestDy < runMinDy) runMinDy = bestDy;
+                          if (bestDy > runMaxDy) runMaxDy = bestDy;
                         }
                       }
                       // exit-close: descent chain below the net
@@ -969,7 +1029,10 @@
                           var c2 = obs[k3][q5], st2 = k3 - curF;
                           if (Math.abs(c2.x - cur.x) > 0.06 * st2) continue;
                           if (!((c2.y - cur.y) >= 0.010 * st2)) continue;
-                          if (Math.abs(c2.x - rgK3.cx) > 0.08) continue;
+                          // M6 recal: exit cone tightened 0.08→0.05 — miss
+                          // deflections descend OUTSIDE the funnel (night_c
+                          // 4.8/11.9 exit-side false-makes)
+                          if (Math.abs(c2.x - rgK3.cx) > 0.05) continue;
                           if (!best2 || c2.s > best2.s) best2 = c2;
                         }
                         if (!best2) continue;
@@ -977,6 +1040,14 @@
                         if (cur.y - rgK3.y >= 0.085) { exitok = true; break; }
                       }
                       if (runLen < 3 && !exitok) continue;
+                      // M6 recal: a no-exit dwell must actually DESCEND into
+                      // the net — reach depth (night_d 13.4 FM never crossed
+                      // the ring plane) and progress rather than hover
+                      // (night_c 6.8 FM: dy 0.044±0.002 for 6 frames)
+                      if (!exitok) {
+                        if (runMaxDy < 0.03) continue;
+                        if (runMaxDy - runMinDy < 0.015) continue;
+                      }
                       // end-centering: a net-braked ball ENDS centered in the
                       // cone; a rim roll-off ends at the band edge before the
                       // side drop (night_c 5.6s false-make signature)
