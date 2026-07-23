@@ -34,6 +34,19 @@
   var pollHandle = null;
   var v10Layer = null;   // floating v10 chrome (sibling of #shot-tracking-screen)
 
+  /* Shown one at a time, rotating, during the offline analyse — the wait
+     is long (2-3x clip length) and every tip doubles as a "your next clip
+     will read better" nudge. */
+  var ANALYZE_TIPS = [
+    'Keep the whole rim in frame — it’s the one thing the analysis can’t work without.',
+    'Film from the side or the corner, not straight underneath the hoop.',
+    'A steady phone reads far more shots than a handheld one — a tripod pays off.',
+    'Good light helps the ball stand out; a backlit window washes it out.',
+    'The higher the phone sits, the more of each shot’s arc it can see.',
+    'One clean clip beats three shaky ones — every frame gets read.',
+    'Give the rim a second in frame before your first shot so it locks on.'
+  ];
+
   function setNav(visible) {
     var n = document.querySelector('.v10-nav');
     if (n) n.style.display = visible ? '' : 'none';
@@ -127,6 +140,56 @@
       src: 'assets/logomark.svg', alt: '',
       style: { height: size + 'px', width: 'auto', display: 'block' }
     });
+  }
+
+  /* ── the loading animation — the logo, brought to life ──────────
+     The brand mark is a hand spinning a ball. Here it MOVES: the ball
+     drops off the fingertip, bounces on the floor, and rises back to
+     spin on the finger — looping. The spin is the boot-splash trick
+     (longitude seams MARCHING sideways inside a circular clip), which
+     is the one way a ball can spin without its stripes ever smearing —
+     exactly the failure every AI-video attempt hit. A motion swirl
+     rides with the ball; COURTIQ sits underneath. Pure SVG/CSS: crisp
+     at any size, deterministic, offline. */
+  function logoLoader() {
+    var wrap = h('div', { class: 'v12-load' });
+    var stage = h('div', { class: 'v12-load__stage' });
+    stage.innerHTML =
+      '<div class="v12-load__floor"></div>' +
+      '<svg class="v12-load__finger" viewBox="0 0 44 78" aria-hidden="true">' +
+        '<path d="M22 3 C15 3 13 12 13 22 L12 52 C12 54 12 56 13 58 C10 60 8 64 8 69 C8 74 12 76 18 76 L28 76 C33 76 36 73 36 68 L36 34 C36 30 33 27 29 27 C29 20 30 12 26 6 C25 4 24 3 22 3 Z" fill="#0A2850"/>' +
+      '</svg>' +
+      '<div class="v12-load__ballwrap">' +
+        '<svg class="v12-load__swirl" viewBox="0 0 130 130" aria-hidden="true">' +
+          '<ellipse cx="65" cy="65" rx="58" ry="24" fill="none" stroke="#0A2850" ' +
+            'stroke-width="4" stroke-linecap="round" stroke-dasharray="120 210" opacity=".55"/>' +
+        '</svg>' +
+        '<svg class="v12-load__ball" viewBox="0 0 100 100" aria-hidden="true">' +
+          '<defs>' +
+            '<radialGradient id="v12ballG" cx="35%" cy="28%" r="90%">' +
+              '<stop offset="0" stop-color="#FF8F45"/>' +
+              '<stop offset=".6" stop-color="#FF4F1F"/>' +
+              '<stop offset="1" stop-color="#C93407"/>' +
+            '</radialGradient>' +
+            '<clipPath id="v12ballClip"><circle cx="50" cy="50" r="46"/></clipPath>' +
+          '</defs>' +
+          '<circle cx="50" cy="50" r="46" fill="url(#v12ballG)"/>' +
+          '<g clip-path="url(#v12ballClip)">' +
+            '<path d="M4 50 q46 12 92 0" fill="none" stroke="#0A2850" stroke-width="3" opacity=".9"/>' +
+            '<g class="v12-load__seams" fill="none" stroke="#0A2850" stroke-width="3" opacity=".9">' +
+              '<path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(-46 0)"/>' +
+              '<path d="M27 4 q0 46 0 92" transform="translate(-46 0)"/>' +
+              '<path d="M4 50 q23 -46 46 0 q23 46 46 0"/>' +
+              '<path d="M27 4 q0 46 0 92"/>' +
+              '<path d="M4 50 q23 -46 46 0 q23 46 46 0" transform="translate(46 0)"/>' +
+              '<path d="M27 4 q0 46 0 92" transform="translate(46 0)"/>' +
+            '</g>' +
+          '</g>' +
+          '<circle cx="50" cy="50" r="46" fill="none" stroke="#C93407" stroke-width="2.5"/>' +
+        '</svg>' +
+      '</div>';
+    wrap.appendChild(stage);
+    return wrap;
   }
 
   /* Session clock + cap bar. The cap exists because analysis runs at
@@ -373,9 +436,16 @@
     }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
 
     gateEl = h('div', { class: 'v11-gate', id: 'v11-gate' }, [
-      /* v12: the setup content sits in a white bottom sheet — same card
-         grammar as the rest of the app — floating over the camera feed. */
+      /* v12: a real centered window — the same white card grammar as the
+         rest of the app — sitting over the (dimmed) camera feed, so it
+         reads as "set up before you start", not chrome floating on video. */
       h('div', { class: 'v11-gate__sheet' }, [
+        h('div', { class: 'v11-gate__brand' }, [
+          brandMark(24),
+          h('span', { class: 'v11-gate__brandname' }, [
+            document.createTextNode('COURT'), h('em', { text: 'IQ' })
+          ])
+        ]),
         h('div', { class: 'v11-gate__eye', text: 'SET UP' }),
         h('div', { class: 'v11-gate__t', text: 'Get the hoop in frame' }),
         h('div', { class: 'v11-gate__s',
@@ -636,6 +706,12 @@
       marginTop: '2px', display: window.__courtiqDebug ? 'block' : 'none'
     }, text: '' });
 
+    // Rotating tip to keep the wait engaging (see the timer below).
+    var tipEl = h('div', { class: 'v12-anl__tip' }, [
+      h('span', { class: 'v12-anl__tiplabel', text: 'TIP' }),
+      h('span', { class: 'v12-anl__tiptext', text: ANALYZE_TIPS[0] })
+    ]);
+
     // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
     // The processor hands back every analyzed frame + detections via
     // onFrame; we draw the video with ball circles, the measured ring
@@ -670,9 +746,9 @@
     var dotsEl = h('div', { style: { display: 'flex', gap: '6px', justifyContent: 'center', flexWrap: 'wrap', margin: '10px 0 2px', minHeight: '13px' } });
     var liveCount = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--d-body)', minHeight: '15px' }, text: '' });
 
-    // Bouncing basketball while models spin up; hides once frames flow
-    var loaderEl = h('div', { class: 'v10-ball-loader', style: { marginBottom: '6px' } },
-      [h('span', { class: 'v10-ball' })]);
+    // The logo, brought to life — the loading screen. Hides once real
+    // analysis frames start flowing and the canvas takes over.
+    var loaderEl = logoLoader();
 
     var overlay = h('div', {
       style: {
@@ -698,10 +774,29 @@
       h('div', { style: { width: '72%', maxWidth: '320px', height: 'clamp(7px, 1dvh, 9px)', background: 'rgba(10,40,80,0.12)', borderRadius: '99px', margin: 'clamp(6px, 1.2dvh, 12px) 0 clamp(3px, 0.7dvh, 6px)', overflow: 'hidden', flexShrink: '0' } }, [bar]),
       pct,
       stageEl,
+      tipEl,
       diagEl
     ]);
+    // Two soft brand-coloured blobs drift behind everything so the screen
+    // is alive during a long analyse instead of a static white wait.
+    overlay.appendChild(h('div', { class: 'v12-anl__glow v12-anl__glow--a' }));
+    overlay.appendChild(h('div', { class: 'v12-anl__glow v12-anl__glow--b' }));
     document.body.appendChild(overlay);
     v10Layer = overlay;
+
+    /* Rotating coaching tips — the analyse can run 2-3x the clip length,
+       and a wall of progress bar is where people get bored and leave. The
+       tips are also genuinely useful: every one is a "next clip is better"
+       nudge. Self-cleaning: stops the moment the overlay is gone. */
+    var tipI = 0;
+    var tipTimer = setInterval(function () {
+      if (!overlay.parentNode) { clearInterval(tipTimer); return; }
+      tipI = (tipI + 1) % ANALYZE_TIPS.length;
+      var tt = tipEl.querySelector('.v12-anl__tiptext');
+      if (!tt) return;
+      tt.style.opacity = '0';
+      setTimeout(function () { tt.textContent = ANALYZE_TIPS[tipI]; tt.style.opacity = '1'; }, 220);
+    }, 4200);
 
     var lctx = liveCanvas.getContext('2d');
     var lastShotCount = 0, lastShotSig = '', flashTimer = null, aspectSet = false;
@@ -865,27 +960,49 @@
       if (!res || res.total === 0) {
         var d = (res && res.diag) || {};
         var reason = !d.rimLocked
-          ? 'The hoop was not detected in this video, so no shots could be measured. Make sure the rim is clearly visible in frame.'
-          : 'The rim locked, but no shot arcs were detected. The ball may be too small/blurred to track, or no shots occurred.';
-        stageEl.textContent = '';
-        overlay.innerHTML = '';
-        overlay.appendChild(h('i', { class: 'ph-bold ph-basketball', style: { fontSize: '48px', color: 'var(--d-gold-deep)', marginBottom: '12px' } }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '20px', fontWeight: '900', color: 'var(--d-ink)' }, text: 'No shots detected' }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '10px', color: 'var(--d-body)', maxWidth: '320px', lineHeight: '1.5' }, text: reason }));
-        overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', color: 'var(--d-mute)' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
+          ? 'We couldn’t find the hoop in this clip, so there was nothing to measure a shot against. Set the phone so the whole rim stays in frame and give it another go.'
+          : 'The rim locked in, but no shot arcs came through. The ball may be too small or too blurred to track from here — or no shots went up this clip.';
+        var diagLine = 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
           ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') +
           (d.offlineErr ? ' · err: ' + d.offlineErr + ' ×' + (d.offlineErrN || 0) : '') +
-          (d.taintFixed ? ' · taint-fixed' : '') }));
-        var backBtn = h('button', { style: { marginTop: '22px', padding: '14px 32px', background: 'var(--d-orange)', color: '#FFFFFF', border: 'none', borderRadius: '16px', boxShadow: '0 4px 0 var(--d-orange-deep)', fontFamily: 'var(--d-font)', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '14px', cursor: 'pointer' }, text: 'Back' });
-        backBtn.addEventListener('click', function () {
+          (d.taintFixed ? ' · taint-fixed' : '');
+        stageEl.textContent = '';
+        overlay.innerHTML = '';
+
+        var goHome = function () {
+          window.__v10AnalysisOwnsFlow = false;
+          try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
+          v10Layer = null;
+          document.body.classList.remove('v10-cam-active');
+          setNav(true);
+          window.app.go('home');
+        };
+        var goTrack = function () {
           window.__v10AnalysisOwnsFlow = false;
           try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
           v10Layer = null;
           document.body.classList.remove('v10-cam-active');
           setNav(true);
           window.app.go('track');
-        });
-        overlay.appendChild(backBtn);
+        };
+
+        var homeBtn = h('button', { class: 'd-btn v12-noshot__cta', type: 'button', onclick: goHome },
+          [h('i', { class: 'ph-bold ph-house' }), h('span', { text: 'Back to home' })]);
+        var retryBtn = h('button', { class: 'd-btn d-btn--ghost v12-noshot__cta', type: 'button', onclick: goTrack },
+          [h('i', { class: 'ph-bold ph-video-camera' }), h('span', { text: 'Try another clip' })]);
+
+        var card = h('div', { class: 'v12-noshot' }, [
+          h('div', { class: 'v12-anl__brand' }, [
+            brandMark(20),
+            h('span', { class: 'v12-anl__brandname' }, [document.createTextNode('COURT'), h('em', { text: 'IQ' })])
+          ]),
+          h('div', { class: 'v12-noshot__icon' }, [h('i', { class: 'ph-fill ph-basketball' })]),
+          h('div', { class: 'v12-noshot__t', text: 'No shots detected' }),
+          h('div', { class: 'v12-noshot__s', text: reason }),
+          window.__courtiqDebug ? h('div', { class: 'v12-noshot__diag', text: diagLine }) : null,
+          h('div', { class: 'v12-noshot__btns' }, [homeBtn, retryBtn])
+        ].filter(Boolean));
+        overlay.appendChild(card);
         return;
       }
       /* Results are in — say so out loud. The user was told to walk away
