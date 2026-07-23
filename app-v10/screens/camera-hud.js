@@ -865,7 +865,9 @@
         overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '20px', fontWeight: '900', color: 'var(--d-ink)' }, text: 'No shots detected' }));
         overlay.appendChild(h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '10px', color: 'var(--d-body)', maxWidth: '320px', lineHeight: '1.5' }, text: reason }));
         overlay.appendChild(h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '11px', marginTop: '14px', color: 'var(--d-mute)' }, text: 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
-          ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') }));
+          ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') +
+          (d.offlineErr ? ' · err: ' + d.offlineErr + ' ×' + (d.offlineErrN || 0) : '') +
+          (d.taintFixed ? ' · taint-fixed' : '') }));
         var backBtn = h('button', { style: { marginTop: '22px', padding: '14px 32px', background: 'var(--d-orange)', color: '#FFFFFF', border: 'none', borderRadius: '16px', boxShadow: '0 4px 0 var(--d-orange-deep)', fontFamily: 'var(--d-font)', fontWeight: '800', letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: '14px', cursor: 'pointer' }, text: 'Back' });
         backBtn.addEventListener('click', function () {
           window.__v10AnalysisOwnsFlow = false;

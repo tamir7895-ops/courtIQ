@@ -1240,7 +1240,18 @@
         var vw = self.videoEl.videoWidth  || 1;
         var vh = self.videoEl.videoHeight || 1;
 
-        var canvasReady = self._drawToCanvas();
+        // Never let a draw/readback throw vanish silently — a tainted
+        // canvas (iOS custom-scheme blob video) threw here EVERY frame and
+        // the whole analysis "finished" with zero frames and no evidence.
+        var canvasReady = false;
+        try {
+          canvasReady = self._drawToCanvas();
+        } catch (dErr) {
+          self._offlineErrN = (self._offlineErrN || 0) + 1;
+          if (!self._offlineFirstErr) {
+            self._offlineFirstErr = 'draw ' + (dErr.name || 'Error') + ': ' + (dErr.message || '');
+          }
+        }
         var pw = self._procW || vw, ph = self._procH || vh;
         var scaleX  = self._cropScaleX  || (pw > 0 ? vw / pw : 1);
         var scaleY  = self._cropScaleY  || (ph > 0 ? vh / ph : 1);
@@ -1261,13 +1272,24 @@
             chain = self._runYoloxInference(vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, null);
           } catch (yErr) {
             self._isDetecting = false;
+            self._offlineErrN = (self._offlineErrN || 0) + 1;
+            if (!self._offlineFirstErr) {
+              self._offlineFirstErr = 'infer ' + (yErr.name || 'Error') + ': ' + (yErr.message || '');
+            }
           }
           if (chain && typeof chain.then === 'function') {
             // Await the inference promise directly — NO timers. Background
             // tabs clamp setTimeout/setInterval to ≥1s (which froze offline
             // processing whenever the tab/app lost focus); promise and
             // event resolution are exempt, so this path keeps full speed.
-            chain.then(function () { resolve(); }, function () { resolve(); });
+            chain.then(function () { resolve(); }, function (aErr) {
+              self._offlineErrN = (self._offlineErrN || 0) + 1;
+              if (!self._offlineFirstErr) {
+                self._offlineFirstErr = 'async ' + ((aErr && aErr.name) || 'Error') + ': ' +
+                                        ((aErr && aErr.message) || String(aErr || ''));
+              }
+              resolve();
+            });
           } else {
             // Legacy fallback: poll the flag (inference didn't hand back
             // its chain — should not happen, kept as a safety net).
