@@ -350,6 +350,59 @@
           if (!isFinite(duration)) { fail(new Error('video duration unavailable (unseekable recording)')); return; }
           if (!duration || !video.videoWidth) { fail(new Error('video has no duration/dimensions')); return; }
 
+          // ── iOS/WKWebView canvas-taint probe ─────────────────────
+          // Under the app's custom scheme (courtiq://), WebKit can mark a
+          // MediaRecorder blob video CROSS-ORIGIN: every canvas readback
+          // then throws SecurityError, the engine's per-frame try/catch
+          // swallows it, and a whole analysis "completes" with frames: 0
+          // (device report 2026-07-23 — progress ran 10→99%, No shots
+          // detected, zero telemetry). The camera stream itself is never
+          // tainted, which is why LIVE detection works on the same build.
+          // Recovery: reload the clip as a data: URL — always same-origin.
+          try {
+            var pc = document.createElement('canvas');
+            pc.width = 8; pc.height = 8;
+            var px = pc.getContext('2d', { willReadFrequently: true });
+            px.drawImage(video, 0, 0, 8, 8);
+            px.getImageData(0, 0, 1, 1);
+          } catch (taintErr) {
+            if (!taintFixTried) {
+              taintFixTried = true;
+              taintFixed = true;
+              onStage('Preparing clip…');
+              var fr = new FileReader();
+              fr.onerror = function () { fail(new Error('clip unreadable (taint recovery failed)')); };
+              fr.onload = function () {
+                try { URL.revokeObjectURL(url); } catch (e) {}
+                var reReady = false;
+                var again = function () {
+                  if (reReady) return;
+                  if (video.readyState >= 2 && video.videoWidth > 0) {
+                    reReady = true;
+                    clearInterval(rePoll); clearTimeout(reFail);
+                    try { video.pause(); } catch (e) {}
+                    try { video.currentTime = 0; } catch (e) {}
+                    run();
+                  }
+                };
+                video.addEventListener('loadeddata', again);
+                video.addEventListener('canplay', again);
+                var rePoll = setInterval(again, 300);
+                var reFail = setTimeout(function () {
+                  clearInterval(rePoll);
+                  if (!reReady) fail(new Error('clip reload failed (taint recovery)'));
+                }, 15000);
+                video.src = fr.result;
+                try { video.load(); } catch (e) {}
+                try { var k2 = video.play(); if (k2 && k2.then) k2.catch(function () {}); } catch (e) {}
+              };
+              fr.readAsDataURL(file);
+              return;             // run() re-enters once the clip reloads
+            }
+            // recovery already tried and readback STILL throws — continue;
+            // the per-frame error capture + telemetry will name it.
+          }
+
           onStage('Loading model…');
           try { if (eng.init) eng.init(); } catch (e) {}
           // Only YOLOX is needed offline (no pose, no color) — one model.
@@ -374,6 +427,10 @@
             try { eng.start(video); } catch (e) { fail(e); return; }
             eng._offlineMode = true;
             eng.isRunning = true;
+            // fresh error capture for THIS run (surfaced on the No-shots
+            // screen + telemetry — the frames:0 class was invisible before)
+            eng._offlineFirstErr = null;
+            eng._offlineErrN = 0;
 
             var pwLast = 640, phLast = 360;
             var lastDets = null;   // this frame's normalized detections (live view)
@@ -702,6 +759,20 @@
                 ringSamples: ringSamples.length, rimLocked: !!ring,
                 ring: ring
               };
+              // frames:0 forensics (device 2026-07-23): name the per-frame
+              // failure instead of dying silently, and phone it home.
+              diag.offlineErr = eng._offlineFirstErr || null;
+              diag.offlineErrN = eng._offlineErrN || 0;
+              diag.taintFixed = taintFixed;
+              if (!rows.length && window.V12Telemetry) {
+                try {
+                  V12Telemetry.report('analyze zero-frames: ' +
+                    (eng._offlineFirstErr || 'no per-frame error') +
+                    ' ×' + (eng._offlineErrN || 0) +
+                    ' · taintFixed=' + taintFixed +
+                    ' · dur=' + Math.round(duration) + 's', null);
+                } catch (e) {}
+              }
               try { console.log('[OfflineProcessor] pass2 —', JSON.stringify(diag)); } catch (e) {}
 
               if (!ring) {
@@ -1199,6 +1270,7 @@
            downstream works unchanged. One attempt only — if the duration
            still is not finite, run() now fails it cleanly. */
         var durationFixTried = false;
+        var taintFixTried = false, taintFixed = false;
         function fixInfiniteDuration() {
           durationFixTried = true;
           var done = false;
