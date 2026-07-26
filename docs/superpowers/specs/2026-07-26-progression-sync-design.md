@@ -1,100 +1,148 @@
 # Progression sync — design
 
 **Date:** 2026-07-26
-**Status:** approved, ready for planning
+**Status:** revised after spec review; ready for planning
+
+## Correction to the first draft
+
+The first draft claimed no progression reaches Supabase. That was wrong.
+XP, badges and the onboarding/profile blob **are** synced today through
+`DataService.saveUserData` into `profiles.user_data`, and `dashboard.js`
+restores XP from the cloud on every launch.
+
+The original grep required the localStorage key and the Supabase call to
+appear on the same line; in the source they sit on adjacent lines, so it
+matched nothing. Corrected picture:
+
+| Synced today (`profiles.user_data`) | Not synced |
+|---|---|
+| `xp_data`, `badges` | streak + streak freezes |
+| `onboarding_data`, `player_profile` | shop purchases |
+| | personal records |
+| | training plan, saved drills |
 
 ## The problem
 
-Every piece of a player's progression lives only on their phone. Verified
-by grep: `courtiq-xp`, `courtiq-streak`, `courtiq-badges`,
-`courtiq_shop_v12`, `courtiq_v11_bests`, `courtiq-training-plan-v1` and the
-avatar keys are never written to Supabase by any code path.
+Two problems, and the second is worse.
 
-So a player who reinstalls, upgrades their phone, or clears storage loses
-their XP, streak, badges, shop purchases, personal records, training plan
-and avatar. Only shot sessions survive, because those go through
-`save_ai_session_atomic`.
+**1. Half of progression is device-only.** Streak, freezes, shop
+purchases, personal records and the training plan never leave the phone. A
+reinstall or a new device loses them. The streak is the mechanic that
+brings people back daily and it is the most fragile thing in the app.
 
-The streak is the mechanic that brings people back daily, and it is the
-most fragile thing in the app.
+**2. The half that *is* synced loses data across devices.**
+`saveUserData` (`js/data-service.js:108`) merges a patch against a
+**localStorage cache**, not against the server, then writes the whole
+`user_data` blob back. A device holding a stale cache overwrites newer
+keys from another device. The code comment at `js/dashboard.js:179` admits
+the failure mode outright: without the cache seed, a restored device
+"starts from `{}` and wipes all other user_data keys."
 
-`profiles.streak` exists in the database but nothing writes to it — a dead
-column from the v10 era.
+So the data loss this project exists to prevent is already happening,
+silently, for XP and badges.
 
 ## Goals
 
 - Progression survives reinstall and moves between a phone and a tablet.
-- A conflict can never *lose* progression.
+- A conflict can never *lose* progression, and can never *manufacture* it.
 - Works offline; the app must never block or fail because sync is down.
-- No rewrite of the ~30 call sites that write to localStorage today.
+- No rewrite of the ~30 call sites that write to localStorage.
 
 ## Non-goals
 
-- Real-time sync. A short window where two devices disagree is acceptable.
-- Historical progression charts (would need an event log — see Future).
+- Real-time sync. A short window of disagreement is acceptable.
 - Syncing device-local state: rim calibration, court spec, offline queues,
   UI preferences. These are correctly per-device.
 
 ## Merge semantics
 
-The core of the design. Naive last-write-wins destroys data: train on the
-tablet to 900 XP, open the phone still holding 780, and a blind push
-erases 120 XP. Each field gets the rule its meaning demands.
+The first draft used MAX for accumulating scalars. Review found three
+places where that is wrong, and all three are load-bearing.
 
-| Data | Rule | Why |
+**MAX on XP silently discards concurrent gains.** Two devices start at
+1,000 and each earns 125 offline. `MAX(1125, 1125)` = 1125, not 1250 —
+while all ten sessions upload as rows, so XP and session history diverge
+permanently. The guest-sign-in example in the first draft had the same
+shape: a guest's 500 XP was simply thrown away.
+
+**MAX on `coins_spent` mints free currency.** Buy a 300-coin item on the
+phone and a different 300-coin item on the tablet: purchases UNION to two
+items, `MAX(300, 300)` charges for one. Repeatable at will.
+
+**"Later `last_date` wins" destroys the live streak.** A stale, offline
+device holds the *later* date with the *worse* information. Phone trained
+Mon–Wed (`current=3`). Stale tablet at `lastDate=Mon` trains Thursday
+offline; `checkIn()` sees a broken chain and resets to `current=1,
+lastDate=Thu`. On reconnect the tablet's later date wins and a 4-day
+streak becomes 1.
+
+The fix in every case is to **sync the primitive facts, not the derived
+value**, and let the server derive:
+
+| Data | Representation | Merge |
 |---|---|---|
-| `xp`, `coins_spent` | MAX | Both only ever increase |
-| `streak_best` | MAX | A record never falls |
-| `streak_current` + `streak_last_date` | Take the row with the later `last_date`; on a tie, MAX of current | The true streak belongs to the most recent training day |
-| badges, purchases | UNION | An earned badge cannot be un-earned |
-| personal records | MAX per record key | Each record is independent |
-| prefs blob (plan, avatar, notifications) | Last write wins, by client timestamp | Edits, not accumulations — newest intent is correct |
+| XP | one grow-only counter per device | `GREATEST` per device, `SUM` across devices |
+| Training days | the set of days trained | UNION |
+| Streak | *derived* from training days ∪ freeze-bridged days | — |
+| Freezes | granted = consumable rows; used = set of bridged days | UNION both; balance = difference |
+| Purchases | one row per item, **with its cost** | UNION |
+| Consumable spends | one row per spend, idempotency-keyed | UNION |
+| Coins spent | *derived* = SUM(purchase costs) + SUM(consumable costs) | — |
+| Personal best % | single scalar | MAX |
+| Session history (`hist`) | *derived* from `ai_shot_sessions` | — |
+| Prefs (plan, avatar, notify) | one row per key, with timestamp | last write wins per key |
 
-Under these rules merging is commutative and idempotent, so sync order
-does not matter and a replayed push is harmless.
+Every rule is commutative and idempotent, so sync order does not matter
+and a replayed push is harmless. Nothing accumulating is ever stored as a
+mergeable scalar, so nothing can drift.
 
-`coins = xp - coins_spent` is derived, never stored, so it cannot drift.
-
-## Where the merge runs
-
-**Server-side, inside a single RPC.** The client sends its whole snapshot;
-`sync_player_state(p_state jsonb)` merges it against the stored row and
-returns the authoritative merged state in the same call.
-
-Client-side merging was the obvious first instinct, but it has a race: two
-devices both read, both merge locally, both write, and the second silently
-overwrites the first. Doing it in one server statement makes that
-impossible, and it halves the round trips.
+Per-device XP counters make this a grow-only counter (G-Counter): the
+device id is generated once per install and kept in `courtiq_device_id`.
 
 ## Schema
 
-Queryable values become real columns — that is what makes an XP or streak
-leaderboard possible, which the current board (ranked by makes only)
-cannot do. Values that are only ever read as a lump stay JSON.
-
 ```sql
-create table player_progress (
-  user_id           uuid primary key references auth.users(id) on delete cascade,
-  xp                integer not null default 0,
-  coins_spent       integer not null default 0,
-  streak_current    integer not null default 0,
-  streak_best       integer not null default 0,
-  streak_last_date  date,
-  updated_at        timestamptz not null default now()
+-- XP: grow-only counter, one row per device. Total = SUM.
+create table player_xp (
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  device_id  text not null,
+  xp         integer not null default 0,
+  updated_at timestamptz not null default now(),
+  primary key (user_id, device_id)
 );
 
-create table player_badges (
-  user_id   uuid not null references auth.users(id) on delete cascade,
-  badge_id  text not null,
-  earned_at timestamptz not null default now(),
-  primary key (user_id, badge_id)
+-- The set of days the player trained. The streak is derived from this.
+create table player_training_days (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day     date not null,
+  primary key (user_id, day)
 );
 
+-- Days a freeze bridged. Keyed by day, so replay cannot double-spend.
+create table player_freeze_uses (
+  user_id uuid not null references auth.users(id) on delete cascade,
+  day     date not null,
+  primary key (user_id, day)
+);
+
+-- Catalog items (avatar options). cost is stored so spend is derivable.
 create table player_purchases (
   user_id      uuid not null references auth.users(id) on delete cascade,
   item_id      text not null,
+  cost         integer not null default 0,
   purchased_at timestamptz not null default now(),
   primary key (user_id, item_id)
+);
+
+-- Non-catalog spends (power-ups, freezes). ref is a client-generated
+-- idempotency key so a retried push cannot charge twice.
+create table player_consumables (
+  user_id  uuid not null references auth.users(id) on delete cascade,
+  ref      text not null,
+  kind     text not null,
+  cost     integer not null default 0,
+  spent_at timestamptz not null default now(),
+  primary key (user_id, ref)
 );
 
 create table player_records (
@@ -105,104 +153,227 @@ create table player_records (
   primary key (user_id, record_key)
 );
 
+-- One row per preference key, so a stale clock can cost at most that key.
 create table player_prefs (
-  user_id    uuid primary key references auth.users(id) on delete cascade,
-  prefs      jsonb not null default '{}'::jsonb,
-  client_ts  timestamptz not null default now(),
-  updated_at timestamptz not null default now()
+  user_id   uuid not null references auth.users(id) on delete cascade,
+  key       text not null,
+  value     jsonb not null,
+  client_ts timestamptz not null,
+  device_id text not null default '',
+  primary key (user_id, key)
 );
 ```
 
-The composite primary keys give UNION merge for free: `on conflict do
-nothing` for badges and purchases, `on conflict do update where excluded.
-value > player_records.value` for records.
+No table stores a value that could disagree with another. Totals come from
+a `player_totals(user_id)` function: XP as `SUM(player_xp.xp)`, coins spent
+as `SUM(purchases.cost) + SUM(consumables.cost)`, streak derived from
+`player_training_days ∪ player_freeze_uses`.
 
-Progression is deliberately **not** added to `profiles`. `profiles` is
-identity and is read on every screen; progression changes on every shot.
-Keeping them apart stops XP writes from churning the row that RLS checks
-constantly.
+Freeze balance = `count(consumables where kind='freeze') −
+count(player_freeze_uses)`.
 
-`profiles.streak` gets dropped — `player_progress` replaces it.
+Progression stays out of `profiles`: `profiles` is identity, read on every
+screen, while progression changes on every shot.
 
-RLS on all five tables: owner-only, `(select auth.uid()) = user_id`, with
-`WITH CHECK` on every write path. (The audit on 2026-07-26 found two
-policies missing `WITH CHECK`; do not repeat that.)
+RLS on all seven tables: owner-only, `(select auth.uid()) = user_id`,
+pinned to `authenticated`, `WITH CHECK` on **every** write path. The
+2026-07-26 audit found two policies missing `WITH CHECK`; do not repeat it.
+
+## Deriving `hist` instead of syncing it
+
+`courtiq_v11_bests` is `{ pct: Number, hist: [Number × ≤20] }` — not the
+keyed record map the first draft assumed. `hist` is load-bearing:
+`reveal.js` takes its median to decide the post-session celebration tier,
+and falls back to a flat tier when fewer than three entries exist.
+
+Dropping it as noise would silently regress every restored device to flat
+tiers for three sessions. Syncing it needs an ordering it does not carry.
+
+Instead the server derives it: `hist` is the accuracy of the last 20
+`ai_shot_sessions` with `total_attempts >= 10` and a non-null accuracy —
+which is exactly what it already means. It leaves the sync payload
+entirely and works correctly on a fresh device.
+
+Only `pct` syncs, as `player_records['session_pct']`, MAX-merged.
+
+## Where the merge runs
+
+**Server-side, in one RPC:** `sync_player_state(p_state jsonb)` takes the
+client snapshot, merges it, and returns the authoritative merged state in
+the same call.
+
+Requirements, all security-relevant:
+
+- `user_id := auth.uid()` **inside** the function. Any `user_id` present in
+  `p_state` is ignored, never trusted.
+- `SECURITY INVOKER`, so RLS still applies as defence in depth. It does not
+  need DEFINER: it only ever touches the caller's own rows.
+- `set search_path = ''`, fully-qualified table names.
+- Each table's merge is a **single** `insert … on conflict do update`
+  statement. A SELECT-then-UPDATE at READ COMMITTED still interleaves
+  between two devices, which is the race this design exists to remove.
+
+Merge forms:
+
+```sql
+-- XP: per device, never decreases
+insert into public.player_xp (user_id, device_id, xp) values (...)
+on conflict (user_id, device_id)
+do update set xp = greatest(excluded.xp, public.player_xp.xp),
+              updated_at = now();
+
+-- sets: union
+insert into public.player_training_days (user_id, day) select ...
+on conflict do nothing;
+
+-- records: max
+insert into public.player_records (user_id, record_key, value) values (...)
+on conflict (user_id, record_key)
+do update set value = greatest(excluded.value, public.player_records.value)
+where excluded.value > public.player_records.value;
+
+-- prefs: last write wins per key, deterministic tiebreak on device_id
+insert into public.player_prefs (user_id, key, value, client_ts, device_id) values (...)
+on conflict (user_id, key)
+do update set value = excluded.value, client_ts = excluded.client_ts,
+              device_id = excluded.device_id
+where excluded.client_ts > public.player_prefs.client_ts
+   or (excluded.client_ts = public.player_prefs.client_ts
+       and excluded.device_id > public.player_prefs.device_id);
+```
+
+## Prerequisites
+
+Two fixes must land before or with the sync module, or it will fight
+existing code.
+
+**1. Backfill from `user_data`.** Existing users hold XP in
+`profiles.user_data->'xp_data'->>'xp'` and badges in
+`user_data->'badges'`. Without a backfill their first merge computes
+`GREATEST(0, 0) = 0` and wipes everything. Migration seeds
+`player_xp(user_id, 'legacy', <xp>)` and `player_badges` from the blob.
+
+**2. Retire the old writers.** `gamification.js:44`, `badges.js:61` and
+`dashboard.js:758` keep writing `user_data`; `dashboard.js:184` overwrites
+`courtiq-xp` from the blob on every launch, *after* sync has written the
+merged value — XP would visibly drop after each sync. These writers are
+removed and `data.js getProfile()` repointed at `player_totals`.
+
+Until that repoint lands, **do not drop `profiles.streak`.** Nothing writes
+it, but `data.js:203` reads it and feeds home, me, social, notifications
+and coach-ai. Dropping it first makes every surface show a 0-day streak.
+Drop it in a later migration.
+
+Independently, `saveUserData`'s localStorage-cache merge should become a
+server-side jsonb merge (`user_data = profiles.user_data || excluded.
+user_data`) so the remaining blob keys stop losing updates.
 
 ## localStorage → server mapping
 
-| localStorage key | Shape | Destination |
-|---|---|---|
-| `courtiq-xp` | `{ xp, history }` | `player_progress.xp` (history dropped — device-local noise) |
-| `courtiq-streak` | `{ current, best, lastDate }` | `player_progress.streak_*` |
-| `courtiq_shop_v12` | `{ owned:[], spent }` | `player_purchases` + `player_progress.coins_spent` |
-| `courtiq-badges` | keyed object | `player_badges` |
-| `courtiq_v11_bests` | keyed object | `player_records` |
-| `courtiq-training-plan-v1` | object | `player_prefs.plan` |
-| `courtiq_plan_prefs` | object | `player_prefs.plan_prefs` |
-| `courtiq_avatar_params`, `courtiq_avatar_url` | object / string | `player_prefs.avatar` |
-| `courtiq_notify`, `courtiq-notif-prefs` | object | `player_prefs.notify` |
+| Key | Destination |
+|---|---|
+| `courtiq-xp` | `player_xp` (this device's row); `history` stays local |
+| `courtiq-streak` | `player_training_days` (derived back on pull) |
+| `courtiq_streak_freeze` | `player_consumables` (kind='freeze') + `player_freeze_uses` |
+| `courtiq_shop_v12` | `player_purchases` (with cost) + `player_consumables` |
+| `courtiq-badges` | `player_badges` |
+| `courtiq_v11_bests` | `player_records['session_pct']`; `hist` derived server-side |
+| `courtiq-training-plan-v1` | `player_prefs['plan']` |
+| `courtiq_plan_prefs` | `player_prefs['plan_prefs']` |
+| `courtiq_avatar_params`, `courtiq_avatar_url` | `player_prefs['avatar']` |
+| `courtiq_notify`, `courtiq-notif-prefs` | `player_prefs['notify']` |
+| `courtiq_saved_drills` | `player_prefs['saved_drills']` |
 
-Not synced (correctly device-local): `courtiq-rim-calibration`,
-`courtiq-calib-v1`, `courtiq-court-spec`, `courtiq-ai-*-offline`,
-`courtiq-sidebar-collapsed`, `courtiq-skip-session-prep`, avatar/face
-caches.
+Device-local, never synced: `courtiq-rim-calibration`, `courtiq-calib-v1`,
+`courtiq-court-spec`, `courtiq-ai-*-offline`, `courtiq-sidebar-collapsed`,
+`courtiq-skip-session-prep`, avatar/face caches, `courtiq_device_id`.
 
-Already synced elsewhere, leave alone: `courtiq_v12_chal`
+Already synced elsewhere, untouched: `courtiq_v12_chal`
 (`challenge_claims`), `courtiq_coach_memory` (`coach_memory`).
+
+## Client changes required
+
+`avatar.js spend(amount, label)` increments `spent` without recording
+anything in `owned`, so consumable spend is not reconstructible. It must
+append `{ ref, kind, cost }` to a local ledger inside `courtiq_shop_v12`,
+with `ref` a generated uuid. `useFreeze()` must record the **date** it
+bridged so the use is idempotent.
 
 ## The sync module
 
-New file `app-v10/lib/sync.js`, exposing `V12Sync`.
+New file `app-v10/lib/sync.js` exposing `V12Sync`. **ES5 only**: `var`,
+`function () {}`, no template literals, arrow functions, `const`/`let`.
+Registered in `app-v10/index.html` after `auth-state.js` and `lib/data.js`
+(it depends on both), and `node build.js` must run before browser checks.
 
-**Pull + merge (on launch, and on sign-in):** read every mapped key into a
-snapshot, call `sync_player_state`, write the returned merged state back to
-localStorage, then dispatch `courtiq:state-synced` so open screens
+**Pull + merge** on launch and on sign-in: gather every mapped key into a
+snapshot, call `sync_player_state`, write the merged result back to
+localStorage **field by field** (a whole-key overwrite would wipe
+`courtiq-xp.history`), then dispatch `courtiq:state-synced` so open screens
 re-render.
 
-**Push:** the same call, fired on `visibilitychange` (going to background),
-on `courtiq:session-saved`, and on a 60-second timer while the app is
-active. Since leaving the app pushes, switching devices is virtually always
-current in practice.
+**Push** uses the same RPC, fired on `visibilitychange` to background, on
+`courtiq:session-saved`, and on a 60-second timer while active. Leaving the
+app pushes, so switching devices is virtually always current.
 
-Because pull and push are the same idempotent RPC, there is one code path
-to get right, not two.
-
-**Debounce:** coalesce calls within 5 seconds so a burst of XP grants
+Pull and push being the same idempotent call means one code path to get
+right, not two. Calls are debounced 5 seconds so a burst of XP grants
 during a session produces one request.
 
 ## Edge cases
 
-**Guest plays, then signs in.** The guest's local progression is real and
-must not be discarded. Sign-in runs the same merge, so a guest with 500 XP
-signing into an account with 900 lands on 900 with their badges unioned in;
-a brand-new account inherits the full 500.
+**Guest plays, then signs in.** The guest's progression is real. Sign-in
+runs the same merge: guest XP arrives as this device's counter row and is
+*added*, not compared — no gains are discarded.
 
-**Sign-out.** Clear every *synced* key so the next person on that phone
-does not inherit a stranger's progression. Device-local keys stay.
+**Sign-out.** Clear every synced key so the next person on that phone does
+not inherit a stranger's progression. Device-local keys stay. `auth-state.
+js:73` already sweeps keys on deletion; the new keys must be in that sweep.
 
-**Clock skew.** Client timestamps drive only the prefs blob, where being
-wrong costs one overwritten preference. Every accumulating value uses MAX
-or UNION, which no clock can corrupt.
+**Account deletion.** All seven tables must be added to the explicit list
+in `supabase/functions/delete-account/index.ts`, before `profiles`. The
+file deletes explicitly rather than trusting cascade by design; follow it.
 
-**Offline / RPC failure.** Log, keep the local state untouched, retry on
-the next trigger. Sync failure must never surface as an error to a player
-mid-session.
+**Clock skew.** Timestamps drive only `player_prefs`, one row per key, so a
+skewed clock costs at most that key — not the whole blob. Equal timestamps
+tiebreak on `device_id` so the rule stays commutative.
+
+**Shared phone.** The merge cannot tell "my guest play" from "a stranger's
+guest play on a borrowed phone." Sign-out clearing synced keys covers the
+common case. Accepted, and named here rather than left silent.
+
+**Offline / RPC failure.** Log, leave local state untouched, retry on the
+next trigger. Sync failure must never surface to a player mid-session.
 
 ## Testing
 
-- **Merge rules, in the database.** Impersonate two users with
-  `set local request.jwt.claims`, push conflicting snapshots in both
-  orders, assert the result is identical and nothing decreased. This is
-  the test that matters most and it needs no browser.
-- **Isolation.** Confirm one user's push can never touch another's rows —
-  the same impersonation check used for the leaderboard.
-- **Guest→sign-in.** Local snapshot with XP 500 merged into a server row
-  with 900 yields 900 and the union of badges.
-- **Sign-out.** Synced keys cleared, device-local keys retained.
-- **Browser smoke.** SMOKE PASS across all 8 screens with the module live.
+Merge correctness is proven in the database with impersonated JWTs
+(`set local request.jwt.claims`), not in the browser. The browser harness
+is non-deterministic headless, so it validates wiring, not semantics.
 
-## Future (explicitly out of scope)
+The first draft's tests ("push in both orders, assert nothing decreased")
+would have passed every one of the bugs review found — MAX never
+decreases, it just fails to increase, and free coins are an *increase*.
+Required tests:
 
-Once progression is server-side these become cheap, and each is its own
-spec: an XP/streak leaderboard, a daily snapshot table for progression
-charts, and friend challenges.
+- **Concurrent gain.** Both devices advance from a common ancestor; assert
+  total XP equals ancestor + both deltas, not the max.
+- **Purchase divergence.** Different items bought on each device; assert
+  coins spent equals the true total.
+- **Consumable replay.** Buy 3 freezes, consume 1, push twice; assert
+  balance 2 and that replay neither restores nor double-charges.
+- **Stale offline streak.** The Mon–Wed / stale-Monday / Thursday
+  scenario; assert the streak is 4.
+- **Three-way merge and replay**, proving associativity and idempotence —
+  not just two orderings of two snapshots.
+- **Backfill.** An existing user with `user_data.xp_data` lands on the
+  correct XP.
+- **Isolation.** One user's push cannot touch another's rows.
+- **Deletion.** Zero rows across all seven tables after account deletion.
+- **Browser smoke.** SMOKE PASS on all 8 screens with the module live.
+
+## Future (out of scope, each its own spec)
+
+`player_training_days` gives progression charts for free. Server-side XP
+totals make an XP/streak leaderboard trivial. Friend challenges become
+cheap once both exist.
