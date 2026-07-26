@@ -283,14 +283,33 @@
     return null;
   }
 
-  /* Spend coins on a non-catalog consumable (power-ups). Returns {ok,msg}. */
+  /* Spend coins on a non-catalog consumable (power-ups). Returns {ok,msg}.
+
+     A power-up buys nothing ownable, so `spent` was the only trace it
+     ever left — and a bare total cannot be merged across devices
+     without either refunding it or charging twice. Each spend now also
+     appends a ledger row with its own id, which unions cleanly and
+     makes the total derivable from the rows rather than stored. */
   function spend(amount, label) {
     var bal = coins();
     if (bal < amount) return { ok: false, msg: 'Need ' + (amount - bal) + ' more coins' };
     var s = loadShop();
     s.spent += amount;
+    if (!s.ledger) s.ledger = [];
+    s.ledger.push({
+      ref: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8),
+      kind: (label || 'powerup').toLowerCase().replace(/[^a-z]+/g, '-'),
+      cost: amount
+    });
     saveShop(s);
     return { ok: true, msg: (label || 'Power-up') + ' purchased' };
+  }
+
+  /* What a catalog item costs — the sync layer stores the price beside
+     the purchase so spend stays derivable instead of stored. */
+  function costOf(id) {
+    var o = findOpt(id);
+    return o ? (o.cost || 0) : 0;
   }
 
   /* Buy: deduct coins, record ownership. Returns {ok, msg}. */
@@ -332,6 +351,6 @@
     CAT: CAT, TABS: TABS, DEFAULTS: DEFAULTS,
     load: load, save: save, buildUrl: buildUrl, opt: opt,
     coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
-    catalog: catalog, catOf: catOf, findOpt: findOpt
+    catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf
   };
 })();
