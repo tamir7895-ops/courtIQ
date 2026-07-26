@@ -289,6 +289,10 @@
   })();
 </script>
 <script src="auth-state.js?v=dev"></script>
+<!-- Progression sync. After auth-state.js and lib/data.js because it
+     needs the session before it can call the RPC, and after the modules
+     that own the keys it reads (streak, avatar, plan). -->
+<script src="lib/sync.js?v=dev"></script>
 <script src="app.js?v=dev"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->

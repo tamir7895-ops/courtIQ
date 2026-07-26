@@ -41,15 +41,112 @@
   function freezes() {
     try { return parseInt(localStorage.getItem(LS_FREEZE) || '0', 10) || 0; } catch (e) { return 0; }
   }
-  function addFreeze(n) {
-    try { localStorage.setItem(LS_FREEZE, String(freezes() + (n || 1))); } catch (e) {}
+  /* A count is a decrementing consumable, and no union or max rule can
+     represent something that goes down. So the count stays for the UI
+     while the mergeable truth is two SETS: one row per freeze bought,
+     one row per day a freeze bridged. The balance is the difference, so
+     a replayed sync can neither double-charge nor resurrect a spent
+     freeze. */
+  var LS_FREEZE_LOG = 'courtiq_freeze_log';
+  function freezeLog() {
+    try {
+      var l = JSON.parse(localStorage.getItem(LS_FREEZE_LOG) || '{}');
+      return { grants: l.grants || [], uses: l.uses || [] };
+    } catch (e) { return { grants: [], uses: [] }; }
   }
+  function saveFreezeLog(l) {
+    try { localStorage.setItem(LS_FREEZE_LOG, JSON.stringify(l)); } catch (e) {}
+  }
+
+  function addFreeze(n) {
+    var count = n || 1;
+    try { localStorage.setItem(LS_FREEZE, String(freezes() + count)); } catch (e) {}
+    var l = freezeLog();
+    for (var i = 0; i < count; i++) {
+      l.grants.push('g' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8));
+    }
+    saveFreezeLog(l);
+  }
+
   function useFreeze() {
     var n = freezes();
     if (n <= 0) return false;
     try { localStorage.setItem(LS_FREEZE, String(n - 1)); } catch (e) { return false; }
+    /* Keyed by the day it bridged: pushing twice records the same day
+       once, and the server unions it the same way. */
+    var d = new Date();
+    d.setDate(d.getDate() - 1);
+    var bridged = d.toISOString().slice(0, 10);
+    var l = freezeLog();
+    if (l.uses.indexOf(bridged) < 0) { l.uses.push(bridged); saveFreezeLog(l); }
     return true;
   }
+  /* ── The training-day set ─────────────────────────────────────
+     `current`/`lastDate` are a SUMMARY: one date and a count. Two
+     devices holding different summaries cannot be merged without one
+     of them losing, which is how a stale phone used to be able to cut
+     a four-day streak to one. The set of days is mergeable by union —
+     order and staleness stop mattering — so it is the thing that syncs
+     and the streak is derived from it server-side.
+
+     Capped at ~3 years: enough that no live streak can fall off the
+     end, bounded enough that the payload never grows without limit. */
+  var LS_DAYS = 'courtiq_training_days';
+  var DAY_CAP = 1100;
+
+  function trainingDays() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(LS_DAYS) || '[]');
+      return Object.prototype.toString.call(raw) === '[object Array]' ? raw : [];
+    } catch (e) { return []; }
+  }
+
+  function addTrainingDay(day) {
+    try {
+      var days = trainingDays();
+      if (days.indexOf(day) >= 0) return days;
+      days.push(day);
+      days.sort();
+      if (days.length > DAY_CAP) days = days.slice(-DAY_CAP);
+      localStorage.setItem(LS_DAYS, JSON.stringify(days));
+      return days;
+    } catch (e) { return []; }
+  }
+
+  /* Merge the server's set back in after a pull. */
+  function mergeTrainingDays(serverDays) {
+    if (!serverDays || !serverDays.length) return trainingDays();
+    try {
+      var seen = {}, out = [];
+      trainingDays().concat(serverDays).forEach(function (d) {
+        if (d && !seen[d]) { seen[d] = 1; out.push(d); }
+      });
+      out.sort();
+      if (out.length > DAY_CAP) out = out.slice(-DAY_CAP);
+      localStorage.setItem(LS_DAYS, JSON.stringify(out));
+      return out;
+    } catch (e) { return trainingDays(); }
+  }
+
+  /* A player who has trained before this shipped has a summary but no
+     set. Rebuild the run it implies — lastDate back through current —
+     so an existing streak survives the upgrade instead of collapsing
+     to a single day on first sync. */
+  function backfillTrainingDays() {
+    try {
+      if (localStorage.getItem(LS_DAYS)) return;
+      var d = load();
+      if (!d.lastDate || !d.current) { localStorage.setItem(LS_DAYS, '[]'); return; }
+      var days = [], base = new Date(d.lastDate + 'T00:00:00Z');
+      for (var i = 0; i < d.current; i++) {
+        var day = new Date(base.getTime() - i * 86400000);
+        days.push(day.toISOString().slice(0, 10));
+      }
+      days.sort();
+      localStorage.setItem(LS_DAYS, JSON.stringify(days));
+    } catch (e) {}
+  }
+
   function missedExactlyOneDay(lastDate) {
     var d = new Date();
     d.setDate(d.getDate() - 2);
@@ -78,6 +175,11 @@
     data.best = Math.max(data.best || 0, data.current);
     data.lastDate = t;
     save(data);
+    /* The server derives the streak from the SET of days trained, which
+       is immune to a stale device pushing a later date with worse
+       information. This record only holds one date, so the set is kept
+       alongside it. */
+    addTrainingDay(t);
 
     // Grant daily login XP (only on first check-in per day)
     if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
@@ -170,6 +272,12 @@
        tests; the guard that was meant to protect hid the bug. */
     checkIn: checkIn,
     freezes: freezes,
-    addFreeze: addFreeze
+    addFreeze: addFreeze,
+    /* the mergeable form of the streak — see the training-day set above */
+    trainingDays:      trainingDays,
+    mergeTrainingDays: mergeTrainingDays,
+    backfillTrainingDays: backfillTrainingDays,
+    save:   save
   };
+  backfillTrainingDays();
 })();
