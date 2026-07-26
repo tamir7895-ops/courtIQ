@@ -508,6 +508,84 @@
   // ─── auth passthrough (V10Auth owns auth since M3) ──────
   function isSignedIn() { return !!window.currentUser; }
 
+  /* ─── SOCIAL ──────────────────────────────────────────────────
+     All three go through RPCs that scope themselves to the caller
+     server-side, so there is no user_id to pass and nothing to get
+     wrong here. Guests get empty results, never an error dialog —
+     the screen renders its signed-out invitation instead. */
+
+  /* The board over the caller + accepted friends. Aggregates only:
+     the RPC never returns another player's raw shots (enforced in
+     the database, not here). */
+  function getLeaderboard(days) {
+    if (!window.currentUser || typeof sb === 'undefined' || !sb.rpc) {
+      return Promise.resolve([]);
+    }
+    return safe(function () {
+      return sb.rpc('friend_leaderboard', { p_days: days || 7 })
+        .then(function (res) { return res.data || []; });
+    }, []);
+  }
+
+  /* Your own shareable code, generated at signup. */
+  function getFriendCode() {
+    if (!window.currentUser || typeof sb === 'undefined' || !sb.from) {
+      return Promise.resolve(null);
+    }
+    return safe(function () {
+      return sb.from('profiles')
+        .select('friend_code')
+        .eq('id', window.currentUser.id)
+        .single()
+        .then(function (res) { return (res.data && res.data.friend_code) || null; });
+    }, null);
+  }
+
+  /* Redeem someone else's code. Resolves to the RPC's own verdict
+     object — { ok, status } or { ok:false, reason } — so the caller
+     can speak to the exact outcome. An unknown code and your own
+     code deliberately return the same 'not_found'. */
+  function addFriendByCode(code) {
+    if (!code || !window.currentUser || typeof sb === 'undefined' || !sb.rpc) {
+      return Promise.resolve({ ok: false, reason: 'offline' });
+    }
+    return safe(function () {
+      return sb.rpc('add_friend_by_code', { p_code: String(code).toUpperCase().trim() })
+        .then(function (res) {
+          if (res.error) return { ok: false, reason: 'error' };
+          return res.data || { ok: false, reason: 'error' };
+        });
+    }, { ok: false, reason: 'error' });
+  }
+
+  /* Requests waiting on YOUR answer. */
+  function getPendingRequests() {
+    if (!window.currentUser || typeof sb === 'undefined' || !sb.from) {
+      return Promise.resolve([]);
+    }
+    return safe(function () {
+      return sb.from('friendships')
+        .select('id, requester_id, created_at')
+        .eq('addressee_id', window.currentUser.id)
+        .eq('status', 'pending')
+        .then(function (res) { return res.data || []; });
+    }, []);
+  }
+
+  function respondToRequest(id, accept) {
+    if (!id || typeof sb === 'undefined' || !sb.from) return Promise.resolve(false);
+    return safe(function () {
+      if (!accept) {
+        return sb.from('friendships').delete().eq('id', id)
+          .then(function (res) { return !res.error; });
+      }
+      return sb.from('friendships')
+        .update({ status: 'accepted', responded_at: new Date().toISOString() })
+        .eq('id', id)
+        .then(function (res) { return !res.error; });
+    }, false);
+  }
+
   window.V10Data = {
     getProfile:        getProfile,
     getTodayStats:     getTodayStats,
@@ -525,7 +603,12 @@
     openFromFile:      openFromFile,
     pickAndOpenFile:   pickAndOpenFile,
     isSignedIn:        isSignedIn,
-    invalidateSessions: invalidateSessions
+    invalidateSessions: invalidateSessions,
+    getLeaderboard:     getLeaderboard,
+    getFriendCode:      getFriendCode,
+    addFriendByCode:    addFriendByCode,
+    getPendingRequests: getPendingRequests,
+    respondToRequest:   respondToRequest
   };
   /* a finished session must show up instantly, not after the TTL */
   window.addEventListener('courtiq:session-saved', invalidateSessions);

@@ -1333,6 +1333,102 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .s12-feed { padding: 13px 16px; }
 .s12-feed__empty { margin-top: 8px; border: 0; padding: 12px 8px 6px; }
 
+/* ── social: friend codes, requests, add-by-code ──────────────────
+   The board is on a vivid purple card, so anything living inside it
+   inherits the on-color text tokens; these siblings sit on white. */
+
+/* a friend's avatar slot — an initial, never a fake photo */
+.s12-lb__av--other {
+  display: flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.22);
+  font-family: var(--d-font); font-weight: 900; font-size: 15px;
+  color: #FFFFFF;
+}
+
+/* your shareable code */
+.s12-code { padding: 13px 16px; }
+.s12-code__row {
+  display: flex; align-items: center; gap: 10px; margin-top: 7px;
+}
+.s12-code__v {
+  flex: 1; min-width: 0;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-weight: 700; font-size: 27px; letter-spacing: .16em;
+  color: var(--d-ink);
+}
+.s12-code__share {
+  flex: 0 0 auto; border: 0; cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  padding: 10px 14px; border-radius: 13px;
+  background: rgba(255,255,255,.9); color: var(--d-blue-deep);
+  box-shadow: 0 3px 0 rgba(10,40,80,.25);
+  font-family: var(--d-font); font-weight: 800; font-size: 11px;
+  letter-spacing: .1em;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.s12-code__share:active { transform: translateY(3px); box-shadow: none; }
+
+/* add a friend by code */
+.s12-add { padding: 13px 16px; }
+.s12-add__row { display: flex; gap: 9px; align-items: stretch; margin-top: 9px; }
+.s12-add__in {
+  flex: 1; min-width: 0; margin-top: 0;
+  text-transform: uppercase; letter-spacing: .14em;
+  font-family: var(--font-mono, ui-monospace, monospace);
+}
+.s12-add__go { width: auto; flex: 0 0 auto; padding: 0 20px; min-height: 0; }
+
+/* incoming requests */
+.s12-req { padding: 13px 16px; }
+.s12-req__row {
+  display: flex; align-items: center; gap: 9px; margin-top: 9px;
+}
+.s12-req__ic { font-size: 26px; color: var(--d-ink); flex: 0 0 auto; }
+.s12-req__t {
+  flex: 1; min-width: 0;
+  font-family: var(--d-font); font-weight: 700; font-size: 13px;
+  color: var(--d-ink);
+}
+.s12-req__btn {
+  flex: 0 0 auto; width: 38px; height: 38px; border-radius: 12px;
+  border: 0; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; font-size: 18px;
+  transition: transform .06s linear, box-shadow .06s linear;
+}
+.s12-req__btn:active { transform: translateY(3px); box-shadow: none; }
+.s12-req__btn--yes {
+  background: var(--d-green); color: #FFFFFF;
+  box-shadow: 0 3px 0 var(--d-green-deep);
+}
+.s12-req__btn--no {
+  background: #FFFFFF; color: var(--d-body);
+  box-shadow: 0 3px 0 rgba(10,40,80,.25);
+}
+
+/* transient confirmation — never blocks, never needs dismissing */
+.s12-toast {
+  position: fixed; z-index: 300;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(78px + var(--safe-bottom));
+  max-width: 84vw; padding: 11px 18px; border-radius: 999px;
+  background: var(--d-ink); color: #FFFFFF;
+  font-family: var(--d-font); font-weight: 700; font-size: 13.5px;
+  box-shadow: 0 4px 14px rgba(10,40,80,.3);
+  animation: s12ToastIn .22s cubic-bezier(.34,1.56,.64,1) both;
+}
+.s12-toast--good { background: var(--d-green-deep); }
+.s12-toast.is-out { animation: s12ToastOut .34s ease forwards; }
+@keyframes s12ToastIn {
+  from { opacity: 0; transform: translateX(-50%) translateY(10px) scale(.96); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+}
+@keyframes s12ToastOut {
+  to { opacity: 0; transform: translateX(-50%) translateY(8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .s12-toast { animation: none; }
+}
+
 /* ═══════════════════════════════════════════════════════════════
    PROFILE — avatar, XP, doors, trophies
    ═══════════════════════════════════════════════════════════════ */
