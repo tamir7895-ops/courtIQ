@@ -152,6 +152,12 @@
     try { return (window.StreakSystem && window.StreakSystem.get) ? window.StreakSystem.get() : 0; }
     catch (e) { return 0; }
   }
+  /* The one key V12Avatar renders into — the single source of truth for
+     a customised face, for guests and signed-in players alike. */
+  function localAvatarUrl() {
+    try { return localStorage.getItem('courtiq_avatar_url') || null; }
+    catch (e) { return null; }
+  }
   function levelOf(xp) {
     try {
       if (window.XPSystem && window.XPSystem.getLevel) {
@@ -169,8 +175,7 @@
     try { pos = localStorage.getItem('courtiq_profile_position') || ''; } catch (e) {}
     var xp = localXP();
     var lvl = levelOf(xp);
-    var avatarUrl = null;
-    try { avatarUrl = localStorage.getItem('courtiq_avatar_url') || null; } catch (e) {}
+    var avatarUrl = localAvatarUrl();
     return {
       name:     name || 'Rookie',
       initial:  ((name || 'R')[0] || 'R').toUpperCase(),
@@ -208,7 +213,13 @@
                kept in the comparison only so that a future writer would
                win once it actually carries a value. */
             streak:   Math.max(p.streak || 0, localStreak() || 0),
-            avatarUrl: ud.dicebear_avatar_url || null,
+            /* V12Avatar writes courtiq_avatar_url and never touches
+               user_data.dicebear_avatar_url, so reading only the latter
+               meant a signed-in player's customised face was ignored
+               while a guest's was honoured. Same order as the guest
+               branch above; the legacy field stays as the fallback that
+               carries a v10 player's old face through the upgrade. */
+            avatarUrl: localAvatarUrl() || ud.dicebear_avatar_url || null,
             guest:    false
           };
         }).catch(function () { return guestProfile(); });

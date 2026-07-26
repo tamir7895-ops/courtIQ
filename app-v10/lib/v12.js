@@ -205,6 +205,15 @@
       var u = localStorage.getItem('courtiq_avatar_url');
       if (u) return u;
     } catch (e) {}
+    /* Upgrading from v10: that build kept the face in the onboarding
+       blob and js/avatar-customizer.js copied it across on boot. That
+       file is gone — it was dead UI whose only live act was writing this
+       key behind V12Avatar's back — so the one useful thing it did is
+       done here instead, as a read rather than a rogue write. */
+    try {
+      var ob = JSON.parse(localStorage.getItem('courtiq-onboarding-data') || '{}');
+      if (ob && ob.dicebear_avatar_url) return ob.dicebear_avatar_url;
+    } catch (e) {}
     return 'https://api.dicebear.com/9.x/avataaars/png?seed=' +
       encodeURIComponent((prof && prof.name) || 'CourtIQ') + '&backgroundColor=FFB800';
   }

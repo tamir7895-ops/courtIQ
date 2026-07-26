@@ -179,7 +179,14 @@
      dashboard, which this app does not load — and its init() only
      painted DOM that does not exist here. V12Avatar is the one economy. -->
 
-<script src="../js/avatar-customizer.js"></script>
+<!-- js/avatar-customizer.js is NOT loaded. It was the v10 avatar modal;
+     app-v10/screens/avatar-customizer.js replaced it and nothing in this
+     app ever called window.AvatarCustomizer. Its one live effect was a
+     boot-time write of courtiq_avatar_url from the legacy onboarding
+     blob — behind V12Avatar's back, and with no matching params, so the
+     rendered face and the customizer disagreed. That upgrade path now
+     lives in V12.avatarUrl as a read-only fallback. -->
+
 <script src="../js/daily-challenge.js"></script>
 <script src="../js/daily-workout.js"></script>
 <script src="../js/shot-analysis.js"></script>
