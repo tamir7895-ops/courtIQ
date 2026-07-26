@@ -54,8 +54,37 @@
       return window.sb.auth.resetPasswordForEmail(email);
     },
 
+    /* Signing out used to clear nothing at all, so everything the player
+       had built — XP, streak, badges, shop, plan, coach memory — stayed
+       on the device and the next person to sign in on that phone
+       inherited it. Only deleteAccount ever swept.
+
+       The sweep is a KEEP-list, not a clear-list, and deliberately so: a
+       progression key added later is wiped by default, which is the safe
+       failure. Only state that genuinely belongs to the handset survives
+       — the rim calibration for this court, the offline upload queue
+       (still-unsent sessions), and UI preferences. */
     signOut: function () {
-      return window.sb.auth.signOut().then(function () { setUser(null); });
+      return window.sb.auth.signOut().then(function () {
+        setUser(null);
+        try {
+          var KEEP = [
+            'courtiq-rim-calibration',   // physical setup, this phone
+            'courtiq-calib-v1',
+            'courtiq-court-spec',
+            'courtiq-ai-sessions-offline',  // unsent — losing these loses sessions
+            'courtiq-ai-shots-offline',
+            'courtiq-sidebar-collapsed',
+            'courtiq-skip-session-prep',
+            'courtiq_debug'
+          ];
+          Object.keys(localStorage).forEach(function (k) {
+            if (k.indexOf('courtiq') !== 0 && k !== '_sb_user_data_cache') return;
+            if (KEEP.indexOf(k) >= 0) return;
+            localStorage.removeItem(k);
+          });
+        } catch (e) { /* storage blocked — nothing to clear */ }
+      });
     },
 
     /* Account deletion (App Store requirement). The delete-account edge

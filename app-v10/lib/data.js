@@ -200,7 +200,14 @@
             level:    ud.level || levelOf(xp),
             xp:       xp,
             xpNext:   ud.xp_next || null,
-            streak:   p.streak != null ? p.streak : localStreak(),
+            /* profiles.streak is `integer not null default 0` and no code
+               path has ever written it, so `p.streak != null` was always
+               true and every signed-in player read a 0-day streak while
+               their real one sat in localStorage. StreakSystem is the
+               only writer, so it is the source of truth; the column is
+               kept in the comparison only so that a future writer would
+               win once it actually carries a value. */
+            streak:   Math.max(p.streak || 0, localStreak() || 0),
             avatarUrl: ud.dicebear_avatar_url || null,
             guest:    false
           };

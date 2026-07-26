@@ -17,15 +17,15 @@
 <link href="../vendor/fonts/fonts.css" rel="stylesheet">
 <link href="../vendor/phosphor/bold/style.css" rel="stylesheet">
 <link href="../vendor/phosphor/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=f8abe91" />
-<link rel="stylesheet" href="styles/components.css?v=f8abe91" />
-<link rel="stylesheet" href="styles/v11.css?v=f8abe91" />
-<link rel="stylesheet" href="styles/v12.css?v=f8abe91" />
-<link rel="stylesheet" href="styles/mobile.css?v=f8abe91" />
-<link rel="stylesheet" href="styles/studio.css?v=f8abe91" />
+<link rel="stylesheet" href="styles/tokens.css?v=cfd72fa" />
+<link rel="stylesheet" href="styles/components.css?v=cfd72fa" />
+<link rel="stylesheet" href="styles/v11.css?v=cfd72fa" />
+<link rel="stylesheet" href="styles/v12.css?v=cfd72fa" />
+<link rel="stylesheet" href="styles/mobile.css?v=cfd72fa" />
+<link rel="stylesheet" href="styles/studio.css?v=cfd72fa" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=f8abe91" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=cfd72fa" />
 </head>
 <body>
 
@@ -163,7 +163,7 @@
 <script src="../js/env.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
-<script src="lib/telemetry.js?v=f8abe91"></script>
+<script src="lib/telemetry.js?v=cfd72fa"></script>
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
@@ -171,7 +171,14 @@
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
 <script src="../js/badges.js"></script>
-<script src="../js/avatar-shop.js"></script>
+<!-- js/avatar-shop.js is NOT loaded. It ran a second, parallel economy on
+     `courtiq-avatar-shop` with its own getCoins() formula alongside
+     lib/avatar.js's `courtiq_shop_v12`, so "how many coins do I have"
+     had two different answers in one app. Nothing in app-v10 ever called
+     AvatarShop — its only caller is js/dashboard.js, the legacy v10
+     dashboard, which this app does not load — and its init() only
+     painted DOM that does not exist here. V12Avatar is the one economy. -->
+
 <script src="../js/avatar-customizer.js"></script>
 <script src="../js/daily-challenge.js"></script>
 <script src="../js/daily-workout.js"></script>
@@ -200,15 +207,15 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/courtPosition.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/courtCalibration.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/shotService.js?v=f8abe91"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=f8abe91"></script>
+<script src="../features/shot-tracking/v2/config.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/shotService.js?v=cfd72fa"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=cfd72fa"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -227,23 +234,23 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=f8abe91"></script>
-<script src="lib/data.js?v=f8abe91"></script>
-<script src="lib/courtiq.js?v=f8abe91"></script>
-<script src="lib/court.js?v=f8abe91"></script>
-<script src="lib/drill-court.js?v=f8abe91"></script>
-<script src="lib/audio.js?v=f8abe91"></script>
-<script src="lib/reveal.js?v=f8abe91"></script>
-<script src="lib/v11.js?v=f8abe91"></script>
-<script src="lib/v12.js?v=f8abe91"></script>
-<script src="lib/avatar.js?v=f8abe91"></script>
-<script src="lib/plan.js?v=f8abe91"></script>
-<script src="lib/challenges.js?v=f8abe91"></script>
-<script src="lib/notify.js?v=f8abe91"></script>
-<script src="lib/coach-insights.js?v=f8abe91"></script>
-<script src="lib/coach-ai.js?v=f8abe91"></script>
-<script src="lib/nav.js?v=f8abe91"></script>
-<script src="lib/mobile.js?v=f8abe91"></script>
+<script src="lib/ui.js?v=cfd72fa"></script>
+<script src="lib/data.js?v=cfd72fa"></script>
+<script src="lib/courtiq.js?v=cfd72fa"></script>
+<script src="lib/court.js?v=cfd72fa"></script>
+<script src="lib/drill-court.js?v=cfd72fa"></script>
+<script src="lib/audio.js?v=cfd72fa"></script>
+<script src="lib/reveal.js?v=cfd72fa"></script>
+<script src="lib/v11.js?v=cfd72fa"></script>
+<script src="lib/v12.js?v=cfd72fa"></script>
+<script src="lib/avatar.js?v=cfd72fa"></script>
+<script src="lib/plan.js?v=cfd72fa"></script>
+<script src="lib/challenges.js?v=cfd72fa"></script>
+<script src="lib/notify.js?v=cfd72fa"></script>
+<script src="lib/coach-insights.js?v=cfd72fa"></script>
+<script src="lib/coach-ai.js?v=cfd72fa"></script>
+<script src="lib/nav.js?v=cfd72fa"></script>
+<script src="lib/mobile.js?v=cfd72fa"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
      ?studio in the URL so it can be opened on a real phone against a LAN
      dev server. Never ships to a production build. -->
@@ -260,7 +267,7 @@
               location.search.indexOf('studio') >= 0;
     if (!dev) return;
     var s = document.createElement('script');
-    s.src = 'lib/studio.js?v=f8abe91';
+    s.src = 'lib/studio.js?v=cfd72fa';
     document.head.appendChild(s);
   })();
 </script>
@@ -270,31 +277,31 @@
     if (window.Capacitor) return;
     if (location.search.indexOf('smoke') < 0) return;
     var s = document.createElement('script');
-    s.src = 'lib/smoke.js?v=f8abe91';
+    s.src = 'lib/smoke.js?v=cfd72fa';
     document.head.appendChild(s);
   })();
 </script>
-<script src="auth-state.js?v=f8abe91"></script>
-<script src="app.js?v=f8abe91"></script>
+<script src="auth-state.js?v=cfd72fa"></script>
+<script src="app.js?v=cfd72fa"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/home.js?v=f8abe91"></script>
-<script src="screens/track.js?v=f8abe91"></script>
-<script src="screens/train.js?v=f8abe91"></script>
-<script src="screens/coach.js?v=f8abe91"></script>
-<script src="screens/me.js?v=f8abe91"></script>
-<script src="screens/social.js?v=f8abe91"></script>
-<script src="screens/auth.js?v=f8abe91"></script>
-<script src="screens/session-prep.js?v=f8abe91"></script>
-<script src="screens/camera-hud.js?v=f8abe91"></script>
-<script src="screens/post-session.js?v=f8abe91"></script>
-<script src="screens/onboarding.js?v=f8abe91"></script>
-<script src="screens/drill-library.js?v=f8abe91"></script>
-<script src="screens/workout-player.js?v=f8abe91"></script>
-<script src="screens/avatar-customizer.js?v=f8abe91"></script>
-<script src="screens/shop.js?v=f8abe91"></script>
-<script src="screens/plan.js?v=f8abe91"></script>
-<script src="screens/notifications.js?v=f8abe91"></script>
+<script src="screens/home.js?v=cfd72fa"></script>
+<script src="screens/track.js?v=cfd72fa"></script>
+<script src="screens/train.js?v=cfd72fa"></script>
+<script src="screens/coach.js?v=cfd72fa"></script>
+<script src="screens/me.js?v=cfd72fa"></script>
+<script src="screens/social.js?v=cfd72fa"></script>
+<script src="screens/auth.js?v=cfd72fa"></script>
+<script src="screens/session-prep.js?v=cfd72fa"></script>
+<script src="screens/camera-hud.js?v=cfd72fa"></script>
+<script src="screens/post-session.js?v=cfd72fa"></script>
+<script src="screens/onboarding.js?v=cfd72fa"></script>
+<script src="screens/drill-library.js?v=cfd72fa"></script>
+<script src="screens/workout-player.js?v=cfd72fa"></script>
+<script src="screens/avatar-customizer.js?v=cfd72fa"></script>
+<script src="screens/shop.js?v=cfd72fa"></script>
+<script src="screens/plan.js?v=cfd72fa"></script>
+<script src="screens/notifications.js?v=cfd72fa"></script>
 
 <script>
   // Bootstrap after all scripts load

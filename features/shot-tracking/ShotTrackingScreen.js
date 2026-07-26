@@ -2820,13 +2820,15 @@
 
       await window.ShotService.saveSessionAtomic(sessionPayload, summary.shots);
 
-      await window.ShotService.grantXP(
-        summary.userId,
-        summary.xpEarned,
-        counter
-          ? 'Live Counter Session: ' + summary.totalAttempts + ' shots'
-          : 'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
-      );
+      /* XP is granted ONCE, by XPSystem, below.
+         ShotService.grantXP used to be called here as well. Both add the
+         same amount to the same `courtiq-xp` key and both push it to
+         profiles.user_data, so every session paid out twice what the
+         summary screen reported. XPSystem is the one that survives
+         because it is the only one that also renders the toast, the
+         level-up and the sound; the sign-in prompt anonymous users used
+         to get from this call already fires from saveSessionAtomic
+         above (shotService.js:184). */
 
       /* ── v10 wire-up: local gamification, streak, badges ─────
          Each call is wrapped in its own try/catch so a missing
@@ -2836,7 +2838,9 @@
         if (window.XPSystem && typeof window.XPSystem.grantXP === 'function' && summary.xpEarned) {
           window.XPSystem.grantXP(
             summary.xpEarned,
-            'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
+            counter
+              ? 'Live Counter Session: ' + summary.totalAttempts + ' shots'
+              : 'AI Shot Session: ' + summary.totalMade + '/' + summary.totalAttempts
           );
         }
       } catch (e) { console.warn('[v10] XPSystem.grantXP failed:', e); }
