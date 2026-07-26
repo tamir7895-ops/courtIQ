@@ -171,7 +171,14 @@
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
 <script src="../js/badges.js"></script>
-<script src="../js/avatar-shop.js"></script>
+<!-- js/avatar-shop.js is NOT loaded. It ran a second, parallel economy on
+     `courtiq-avatar-shop` with its own getCoins() formula alongside
+     lib/avatar.js's `courtiq_shop_v12`, so "how many coins do I have"
+     had two different answers in one app. Nothing in app-v10 ever called
+     AvatarShop — its only caller is js/dashboard.js, the legacy v10
+     dashboard, which this app does not load — and its init() only
+     painted DOM that does not exist here. V12Avatar is the one economy. -->
+
 <script src="../js/avatar-customizer.js"></script>
 <script src="../js/daily-challenge.js"></script>
 <script src="../js/daily-workout.js"></script>
