@@ -692,7 +692,9 @@
                     hits.push(cf); break;
                   }
                 }
-                var back = Math.round(1.2 * fps), fwd = Math.round(1.6 * fps);
+                // back-margin covers the full release arc + shooter frames
+                // (ball back-trace looks 1.8s behind the arrival)
+                var back = Math.round(2.0 * fps), fwd = Math.round(1.6 * fps);
                 var ranges = [];
                 for (var ha = 0; ha < hits.length; ha++) {
                   var r0 = Math.max(0, hits[ha] - back), r1 = Math.min(totalFrames - 1, hits[ha] + fwd);
@@ -1290,18 +1292,103 @@
                 var w0 = windows[wi][0], w1 = windows[wi][1];
                 var res = classify(w0, w1);
                 var tShot = rows[w0].t;
-                // shooter position: best player det shortly before arrival
-                var pf0 = Math.max(0, w0 - Math.round(0.9 * fps));
-                var pf1 = Math.max(0, w0 - Math.round(0.1 * fps));
-                var feet = null, bestS = 0;
-                for (var pi2 = pf0; pi2 <= pf1 && pi2 < rows.length; pi2++) {
-                  var pl = rows[pi2].players;
-                  for (var pj = 0; pj < pl.length; pj++) {
-                    if (pl[pj].s > bestS) { bestS = pl[pj].s; feet = pl[pj]; }
+                /* ── Shooter position via BALL BACK-TRACE ────────────
+                   The old pick — highest-confidence player det in the
+                   0.1-0.9s before arrival — grabs bystanders on busy
+                   courts and has no idea who actually shot (device
+                   report: "shot positions need to be much better").
+                   Instead: walk the ball ARC backwards from the rim
+                   arrival to its lowest pre-rim point (the release,
+                   right above the shooter's hands), then take the
+                   player whose box best explains that release point.
+                   Feet = median bbox bottom over ±0.3s (stability). */
+                var arcPt = null;                  // release-ish ball point
+                var arcF = -1;
+                (function () {
+                  var lookback = Math.round(1.8 * fps);
+                  var prev = null;
+                  // seed: first above-ring obs of the window (the arrival)
+                  for (var sfj = w0; sfj <= Math.min(w0 + 5, w1); sfj++) {
+                    var seedRow = rows[sfj];
+                    for (var sb2 = 0; sb2 < seedRow.balls.length; sb2++) {
+                      var sbb = seedRow.balls[sb2];
+                      if (sbb.s >= 0.08 && sbb.y < ring.y + 0.02) { prev = sbb; arcF = sfj; break; }
+                    }
+                    if (prev) break;
                   }
+                  if (!prev) return;
+                  var lowest = prev, lowestF = arcF;
+                  for (var bfj = arcF - 1; bfj >= Math.max(0, w0 - lookback); bfj--) {
+                    var cand2 = null, cd2 = 0.09;   // continuity gate per step
+                    var brow = rows[bfj];
+                    for (var bb2 = 0; bb2 < brow.balls.length; bb2++) {
+                      var bo2 = brow.balls[bb2];
+                      if (bo2.s < 0.05) continue;
+                      var dd2 = Math.abs(bo2.x - prev.x) + Math.abs(bo2.y - prev.y);
+                      if (dd2 < cd2) { cd2 = dd2; cand2 = bo2; }
+                    }
+                    if (!cand2) continue;          // dropout frames are fine
+                    prev = cand2;
+                    if (cand2.y > lowest.y) { lowest = cand2; lowestF = bfj; }
+                  }
+                  arcPt = lowest; arcF = lowestF;
+                })();
+                var feet = null, feetX, feetY;
+                if (arcPt) {
+                  // shooter = player whose box best explains the release:
+                  // release point sits above the box and horizontally inside
+                  // (or nearest). Search ±0.3s around the release frame.
+                  var sf0 = Math.max(0, arcF - Math.round(0.3 * fps));
+                  var sf1 = Math.min(rows.length - 1, arcF + Math.round(0.3 * fps));
+                  var bestCost = 1e9;
+                  for (var pi2 = sf0; pi2 <= sf1; pi2++) {
+                    var pl = rows[pi2].players;
+                    for (var pj = 0; pj < pl.length; pj++) {
+                      var pp = pl[pj];
+                      if (pp.s < 0.25) continue;
+                      var xd = Math.max(0, Math.abs(arcPt.x - pp.x) - pp.w / 2);
+                      var top2 = pp.y - pp.h / 2;
+                      var yd = arcPt.y < top2 - 0.30 ? (top2 - 0.30 - arcPt.y) :
+                               arcPt.y > pp.y ? (arcPt.y - pp.y) : 0;
+                      var cost = xd * 2 + yd;
+                      if (cost < bestCost) { bestCost = cost; feet = pp; }
+                    }
+                  }
+                  if (feet && bestCost < 0.30) {
+                    // stabilize: median bbox-bottom of the SAME player
+                    // (nearest box per frame) across the search span
+                    var bys = [], bxs = [];
+                    for (var pi3 = sf0; pi3 <= sf1; pi3++) {
+                      var pl3 = rows[pi3].players, best3 = null, bd3 = 0.12;
+                      for (var pj3 = 0; pj3 < pl3.length; pj3++) {
+                        var d3 = Math.abs(pl3[pj3].x - feet.x) + Math.abs(pl3[pj3].y - feet.y);
+                        if (d3 < bd3) { bd3 = d3; best3 = pl3[pj3]; }
+                      }
+                      if (best3) { bxs.push(best3.x); bys.push(Math.min(1, best3.y + best3.h / 2)); }
+                    }
+                    feetX = bxs.length ? median(bxs) : feet.x;
+                    feetY = bys.length ? median(bys) : Math.min(1, feet.y + feet.h / 2);
+                  } else if (feet) {
+                    feetX = feet.x; feetY = Math.min(1, feet.y + feet.h / 2);
+                  } else {
+                    // no player association — the release point itself is a
+                    // far better stand-in than a fixed offset from the rim
+                    feetX = arcPt.x; feetY = Math.min(1, arcPt.y + 0.22);
+                  }
+                } else {
+                  // no arc found: old heuristic (best player pre-arrival)
+                  var pf0 = Math.max(0, w0 - Math.round(0.9 * fps));
+                  var pf1 = Math.max(0, w0 - Math.round(0.1 * fps));
+                  var bestS = 0;
+                  for (var pi4 = pf0; pi4 <= pf1 && pi4 < rows.length; pi4++) {
+                    var pl4 = rows[pi4].players;
+                    for (var pj4 = 0; pj4 < pl4.length; pj4++) {
+                      if (pl4[pj4].s > bestS) { bestS = pl4[pj4].s; feet = pl4[pj4]; }
+                    }
+                  }
+                  feetX = feet ? feet.x : ring.cx - 0.35;
+                  feetY = feet ? Math.min(1, feet.y + feet.h / 2) : 0.9;
                 }
-                var feetX = feet ? feet.x : ring.cx - 0.35;
-                var feetY = feet ? Math.min(1, feet.y + feet.h / 2) : 0.9;
                 var v10Zone = 'PNT', shotZone = 'paint';
                 try {
                   if (eng._classifyV10Zone)  v10Zone  = eng._classifyV10Zone(feetX, feetY, rimZoneObj, eng.threePtDistance || 0) || v10Zone;
