@@ -127,6 +127,11 @@
       call.then(function (res) {
         busy = false; cta.removeAttribute('disabled');
         if (res && res.error) { setMsg(res.error.message || 'Something went wrong'); return; }
+        /* Success → the sheet leaves WITH the landing. It lives on
+           document.body, so navigation alone never removes it — on
+           device it sat over the combine's first screen, keyboard and
+           all, until something else happened to dismiss it. */
+        close();
         /* A brand-new profile heads into the combine; a returning player
            goes home. courtiq_onboarded is the same flag bootstrap uses. */
         var onboarded = false;
