@@ -32,6 +32,53 @@
   var CLOTHES_COLORS = ['FF4F1F', '14A5F2', '47C012', 'FFB800', 'A855F7', '262e33', '3c4f5c', 'ff488e', 'e6e6e6', '25557c'];
   var ACC_COLORS = ['262e33', '3c4f5c', '25557c', '65c9ff', 'ff488e', 'ff5c5c', 'ffffff'];
 
+  /* ── i18n — the catalog's CATEGORY and TAB labels translate; the
+     option labels (Flat, Dreads, Caesar…) are style names and stay.
+     Purchase/spend messages translate too. Consumers keep reading
+     .label as the English fallback; label resolution goes through
+     labelOf() below. */
+  var T9N = {
+    en: {
+      'av.cat.skin': 'Skin', 'av.cat.top': 'Hair', 'av.cat.hairColor': 'Hair color',
+      'av.cat.eyes': 'Eyes', 'av.cat.eyebrows': 'Brows', 'av.cat.mouth': 'Mouth',
+      'av.cat.facialHair': 'Beard', 'av.cat.clothing': 'Top', 'av.cat.clothesColor': 'Jersey',
+      'av.cat.accessories': 'Gear', 'av.cat.background': 'Court',
+      'av.tab.face': 'Face', 'av.tab.hair': 'Hair', 'av.tab.beard': 'Beard',
+      'av.tab.fit': 'Fit', 'av.tab.gear': 'Gear', 'av.tab.court': 'Court',
+      'av.msg.need': 'Need {n} more coins',
+      'av.msg.powerup': 'Power-up',
+      'av.msg.purchased': '{item} purchased',
+      'av.msg.unknown': 'Unknown item',
+      'av.msg.owned': 'Already yours',
+      'av.msg.unlocked': '{item} unlocked',
+      'av.msg.item': 'Item'
+    },
+    he: {
+      'av.cat.skin': 'עור', 'av.cat.top': 'שיער', 'av.cat.hairColor': 'צבע שיער',
+      'av.cat.eyes': 'עיניים', 'av.cat.eyebrows': 'גבות', 'av.cat.mouth': 'פה',
+      'av.cat.facialHair': 'זקן', 'av.cat.clothing': 'חולצה', 'av.cat.clothesColor': 'גופייה',
+      'av.cat.accessories': 'ציוד', 'av.cat.background': 'מגרש',
+      'av.tab.face': 'פנים', 'av.tab.hair': 'שיער', 'av.tab.beard': 'זקן',
+      'av.tab.fit': 'לבוש', 'av.tab.gear': 'ציוד', 'av.tab.court': 'מגרש',
+      'av.msg.need': 'חסרים {n} מטבעות',
+      'av.msg.powerup': 'חיזוק',
+      'av.msg.purchased': '{item} — נרכש',
+      'av.msg.unknown': 'פריט לא מוכר',
+      'av.msg.owned': 'כבר שלך',
+      'av.msg.unlocked': '{item} — נפתח',
+      'av.msg.item': 'פריט'
+    }
+  };
+  if (window.V12I18n && window.V12I18n.add) window.V12I18n.add(T9N);
+  function t9(k, p) {
+    return (window.V12I18n && window.V12I18n.t) ? window.V12I18n.t(k, p) : (T9N.en[k] || k);
+  }
+  /* translated display label for a category or tab id, data label as net */
+  function labelOf(kind, id, fallback) {
+    var s = t9('av.' + kind + '.' + id);
+    return s.indexOf('av.' + kind + '.') === 0 ? (fallback || id) : s;
+  }
+
   var CAT = {
     skin: {
       label: 'Skin', param: 'skinColor', swatch: true,
@@ -292,7 +339,7 @@
      makes the total derivable from the rows rather than stored. */
   function spend(amount, label) {
     var bal = coins();
-    if (bal < amount) return { ok: false, msg: 'Need ' + (amount - bal) + ' more coins' };
+    if (bal < amount) return { ok: false, msg: t9('av.msg.need', { n: amount - bal }) };
     var s = loadShop();
     s.spent += amount;
     if (!s.ledger) s.ledger = [];
@@ -302,7 +349,7 @@
       cost: amount
     });
     saveShop(s);
-    return { ok: true, msg: (label || 'Power-up') + ' purchased' };
+    return { ok: true, msg: t9('av.msg.purchased', { item: label || t9('av.msg.powerup') }) };
   }
 
   /* What a catalog item costs — the sync layer stores the price beside
@@ -315,15 +362,15 @@
   /* Buy: deduct coins, record ownership. Returns {ok, msg}. */
   function buy(id) {
     var o = findOpt(id);
-    if (!o) return { ok: false, msg: 'Unknown item' };
-    if (isOwned(id)) return { ok: true, msg: 'Already yours' };
+    if (!o) return { ok: false, msg: t9('av.msg.unknown') };
+    if (isOwned(id)) return { ok: true, msg: t9('av.msg.owned') };
     var bal = coins();
-    if (bal < o.cost) return { ok: false, msg: 'Need ' + (o.cost - bal) + ' more coins' };
+    if (bal < o.cost) return { ok: false, msg: t9('av.msg.need', { n: o.cost - bal }) };
     var s = loadShop();
     s.owned.push(id);
     s.spent += o.cost;
     saveShop(s);
-    return { ok: true, msg: (o.label || 'Item') + ' unlocked' };
+    return { ok: true, msg: t9('av.msg.unlocked', { item: o.label || t9('av.msg.item') }) };
   }
 
   /* Equip an owned option straight onto the avatar (used by the shop). */
@@ -351,6 +398,7 @@
     CAT: CAT, TABS: TABS, DEFAULTS: DEFAULTS,
     load: load, save: save, buildUrl: buildUrl, opt: opt,
     coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
-    catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf
+    catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf,
+    labelOf: labelOf
   };
 })();

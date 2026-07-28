@@ -34,17 +34,127 @@
   var pollHandle = null;
   var v10Layer = null;   // floating v10 chrome (sibling of #shot-tracking-screen)
 
+  /* ── i18n — every user-visible string, both languages. The diagnostic
+     surfaces (backend badge, canvas RIM:/time chips) stay English on
+     purpose: they are developer instruments, not UI. ──────────────── */
+  var T = {
+    en: {
+      'cam.tip.1': 'Keep the whole rim in frame — it’s the one thing the analysis can’t work without.',
+      'cam.tip.2': 'Film from the side or the corner, not straight underneath the hoop.',
+      'cam.tip.3': 'A steady phone reads far more shots than a handheld one — a tripod pays off.',
+      'cam.tip.4': 'Good light helps the ball stand out; a backlit window washes it out.',
+      'cam.tip.5': 'The higher the phone sits, the more of each shot’s arc it can see.',
+      'cam.tip.6': 'One clean clip beats three shaky ones — every frame gets read.',
+      'cam.tip.7': 'Give the rim a second in frame before your first shot so it locks on.',
+      'cam.chk.hoop':   'Hoop',
+      'cam.chk.ball':   'Ball',
+      'cam.chk.player': 'Player',
+      'cam.chk.rec':    'Rec',
+      'cam.hud.detected':      'shots detected',
+      'cam.hud.lost':          'Lost the hoop',
+      'cam.hud.camRestarting': 'Camera restarting…',
+      'cam.hud.camStalled':    'Camera stalled',
+      'cam.gate.eye':       'SET UP',
+      'cam.gate.title':     'Get the hoop in frame',
+      'cam.gate.sub':       'The rim is the only thing that has to be there. Without it the whole clip is unreadable — and you would only find that out afterwards.',
+      'cam.gate.hoop':      'Hoop',
+      'cam.gate.searching': 'searching',
+      'cam.gate.locked':    'locked',
+      'cam.gate.tick':      'Tick',
+      'cam.gate.count':     'Count',
+      'cam.gate.point':     'Point at the hoop',
+      'cam.gate.start':     'Start shooting',
+      'cam.gate.anyway':    'Record anyway',
+      'cam.anl.loading':  'Loading models…',
+      'cam.anl.title':    'Analyzing your video',
+      'cam.anl.keepOpen': 'Keep the app open — analysing…',
+      'cam.anl.tiplabel': 'TIP',
+      'cam.anl.eta':      ' · ~{t} left',
+      'cam.anl.count':    '{n} shots · {m} made · {x} missed',
+      'cam.anl.stage.prep':     'Preparing clip…',
+      'cam.anl.stage.model':    'Loading model…',
+      'cam.anl.stage.scan':     'Scanning for shots…',
+      'cam.anl.stage.frames':   'Analyzing every frame…',
+      'cam.anl.stage.classify': 'Classifying shots…',
+      'cam.flash.made': 'MADE!',
+      'cam.flash.miss': 'MISS',
+      'cam.noshot.title':  'No shots detected',
+      'cam.noshot.norim':  'We couldn’t find the hoop in this clip, so there was nothing to measure a shot against. Set the phone so the whole rim stays in frame and give it another go.',
+      'cam.noshot.noarcs': 'The rim locked in, but no shot arcs came through. The ball may be too small or too blurred to track from here — or no shots went up this clip.',
+      'cam.noshot.home':   'Back to home',
+      'cam.noshot.retry':  'Try another clip',
+      'cam.unavail.title': 'Camera unavailable',
+      'cam.unavail.sub':   'The detection engine did not load. Refresh the page.'
+    },
+    he: {
+      'cam.tip.1': 'שמור את כל הטבעת בפריים — זה הדבר היחיד שהניתוח לא יכול בלעדיו.',
+      'cam.tip.2': 'צלם מהצד או מהפינה, לא ישר מתחת לסל.',
+      'cam.tip.3': 'טלפון יציב קורא הרבה יותר זריקות מטלפון ביד — חצובה משתלמת.',
+      'cam.tip.4': 'אור טוב עוזר לכדור לבלוט; חלון עם אור מאחור מוחק אותו.',
+      'cam.tip.5': 'ככל שהטלפון גבוה יותר, כך הוא רואה יותר מהקשת של כל זריקה.',
+      'cam.tip.6': 'סרטון נקי אחד שווה יותר משלושה רועדים — כל פריים נקרא.',
+      'cam.tip.7': 'תן לטבעת שנייה בפריים לפני הזריקה הראשונה כדי שתינעל.',
+      'cam.chk.hoop':   'סל',
+      'cam.chk.ball':   'כדור',
+      'cam.chk.player': 'שחקן',
+      'cam.chk.rec':    'הקלטה',
+      'cam.hud.detected':      'זריקות זוהו',
+      'cam.hud.lost':          'הסל אבד',
+      'cam.hud.camRestarting': 'המצלמה מופעלת מחדש…',
+      'cam.hud.camStalled':    'המצלמה נתקעה',
+      'cam.gate.eye':       'הכנה',
+      'cam.gate.title':     'תכניס את הסל לפריים',
+      'cam.gate.sub':       'הטבעת היא הדבר היחיד שחייב להיות בפריים. בלעדיה כל הסרטון לא קריא — וזה מתגלה רק בסוף.',
+      'cam.gate.hoop':      'סל',
+      'cam.gate.searching': 'מחפש',
+      'cam.gate.locked':    'ננעל',
+      'cam.gate.tick':      'טיק',
+      'cam.gate.count':     'ספירה',
+      'cam.gate.point':     'כוון אל הסל',
+      'cam.gate.start':     'תתחיל לזרוק',
+      'cam.gate.anyway':    'להקליט בכל זאת',
+      'cam.anl.loading':  'טוען מודלים…',
+      'cam.anl.title':    'מנתח את הסרטון שלך',
+      'cam.anl.keepOpen': 'תשאיר את האפליקציה פתוחה — מנתח…',
+      'cam.anl.tiplabel': 'טיפ',
+      'cam.anl.eta':      ' · עוד ~{t}',
+      'cam.anl.count':    '{n} זריקות · {m} נכנסו · {x} החטאות',
+      'cam.anl.stage.prep':     'מכין את הסרטון…',
+      'cam.anl.stage.model':    'טוען מודל…',
+      'cam.anl.stage.scan':     'סורק זריקות…',
+      'cam.anl.stage.frames':   'מנתח כל פריים…',
+      'cam.anl.stage.classify': 'מסווג זריקות…',
+      'cam.flash.made': 'נכנס!',
+      'cam.flash.miss': 'החטאה',
+      'cam.noshot.title':  'לא זוהו זריקות',
+      'cam.noshot.norim':  'לא מצאנו את הסל בסרטון הזה, אז לא היה מול מה למדוד זריקה. מקם את הטלפון כך שכל הטבעת תישאר בפריים ונסה שוב.',
+      'cam.noshot.noarcs': 'הטבעת ננעלה, אבל לא עברו קשתות זריקה. אולי הכדור קטן או מטושטש מדי למעקב מכאן — או שלא עלו זריקות בסרטון הזה.',
+      'cam.noshot.home':   'חזרה לבית',
+      'cam.noshot.retry':  'נסה סרטון אחר',
+      'cam.unavail.title': 'המצלמה לא זמינה',
+      'cam.unavail.sub':   'מנוע הזיהוי לא נטען. רענן את הדף.'
+    }
+  };
+  if (window.V12I18n && window.V12I18n.add) window.V12I18n.add(T);
+  function t(k, p) { return (window.V12I18n && window.V12I18n.t) ? window.V12I18n.t(k, p) : k; }
+
+  /* Stage strings arrive as ENGLISH text from the offline processor's
+     onStage passthrough — map the known ones to keys, pass unknowns
+     through untouched. */
+  var STAGE_KEYS = {
+    'Preparing clip…':        'cam.anl.stage.prep',
+    'Loading model…':         'cam.anl.stage.model',
+    'Scanning for shots…':    'cam.anl.stage.scan',
+    'Analyzing every frame…': 'cam.anl.stage.frames',
+    'Classifying shots…':     'cam.anl.stage.classify'
+  };
+
   /* Shown one at a time, rotating, during the offline analyse — the wait
      is long (2-3x clip length) and every tip doubles as a "your next clip
-     will read better" nudge. */
+     will read better" nudge. (Keys into T — resolved via t() at render.) */
   var ANALYZE_TIPS = [
-    'Keep the whole rim in frame — it’s the one thing the analysis can’t work without.',
-    'Film from the side or the corner, not straight underneath the hoop.',
-    'A steady phone reads far more shots than a handheld one — a tripod pays off.',
-    'Good light helps the ball stand out; a backlit window washes it out.',
-    'The higher the phone sits, the more of each shot’s arc it can see.',
-    'One clean clip beats three shaky ones — every frame gets read.',
-    'Give the rim a second in frame before your first shot so it locks on.'
+    'cam.tip.1', 'cam.tip.2', 'cam.tip.3', 'cam.tip.4',
+    'cam.tip.5', 'cam.tip.6', 'cam.tip.7'
   ];
 
   function setNav(visible) {
@@ -92,10 +202,10 @@
           h('div', { class: 'v11-side__capfill', id: 'v11-hud-capfill' })
         ]),
         h('div', { class: 'v11-side__checks' }, [
-          checkRow('hoop',   'Hoop'),
-          checkRow('ball',   'Ball'),
-          checkRow('player', 'Player'),
-          checkRow('rec',    'Rec')
+          checkRow('hoop',   t('cam.chk.hoop')),
+          checkRow('ball',   t('cam.chk.ball')),
+          checkRow('player', t('cam.chk.player')),
+          checkRow('rec',    t('cam.chk.rec'))
         ])
       ]),
 
@@ -104,14 +214,14 @@
       h('div', { class: 'v11-hud__meta' }, [
         h('span', { class: 'v11-hud__chip' }, [
           h('span', { class: 'v11-hud__chipnum', id: 'v10-cam-num', text: '0' }),
-          h('span', { class: 'v11-hud__chiplbl', text: 'shots detected' })
+          h('span', { class: 'v11-hud__chiplbl', text: t('cam.hud.detected') })
         ])
       ]),
 
       /* Boxed like everything else — a bare shadowed string over live
          video is unreadable the moment the footage behind it is light. */
       h('div', { class: 'v11-hud__lost', id: 'v11-hud-lost', style: { display: 'none' },
-        text: 'Lost the hoop' }),
+        text: t('cam.hud.lost') }),
 
       /* The mark, quietly, for the whole session — this is the footage
          the player shares. */
@@ -399,7 +509,7 @@
     return h('div', { id: 'v11-gate-' + key, class: 'v11-gate__row' }, [
       h('i', { class: 'ph-bold ' + iconName }),
       h('span', { text: label }),
-      h('span', { class: 'v11-gate__st', id: 'v11-gate-st-' + key, text: 'searching' })
+      h('span', { class: 'v11-gate__st', id: 'v11-gate-st-' + key, text: t('cam.gate.searching') })
     ]);
   }
 
@@ -433,7 +543,7 @@
         beginSessionBookkeeping();
         onStart();
       }
-    }, [h('span', { id: 'v11-gate-cta-t', text: 'Point at the hoop' })]);
+    }, [h('span', { id: 'v11-gate-cta-t', text: t('cam.gate.point') })]);
 
     gateEl = h('div', { class: 'v11-gate', id: 'v11-gate' }, [
       /* v12: a real centered window — the same white card grammar as the
@@ -446,15 +556,13 @@
             document.createTextNode('COURT'), h('em', { text: 'IQ' })
           ])
         ]),
-        h('div', { class: 'v11-gate__eye', text: 'SET UP' }),
-        h('div', { class: 'v11-gate__t', text: 'Get the hoop in frame' }),
-        h('div', { class: 'v11-gate__s',
-          text: 'The rim is the only thing that has to be there. Without it the ' +
-                'whole clip is unreadable — and you would only find that out afterwards.' }),
-        gateRow('hoop', 'Hoop', 'ph-basketball'),
+        h('div', { class: 'v11-gate__eye', text: t('cam.gate.eye') }),
+        h('div', { class: 'v11-gate__t', text: t('cam.gate.title') }),
+        h('div', { class: 'v11-gate__s', text: t('cam.gate.sub') }),
+        gateRow('hoop', t('cam.gate.hoop'), 'ph-basketball'),
         h('div', { class: 'v11-gate__toggles' }, [
-          audioToggle('tick', 'Tick'),
-          audioToggle('count', 'Count')
+          audioToggle('tick', t('cam.gate.tick')),
+          audioToggle('count', t('cam.gate.count'))
         ]),
         startBtn,
         /* The detector has real failure modes (scan-halfW collapses indoors,
@@ -472,7 +580,7 @@
             beginSessionBookkeeping();
             onStart();
           }
-        }, [h('span', { text: 'Record anyway' })])
+        }, [h('span', { text: t('cam.gate.anyway') })])
       ])
     ]);
     document.body.appendChild(gateEl);
@@ -489,15 +597,15 @@
     var row = document.getElementById('v11-gate-hoop');
     var st  = document.getElementById('v11-gate-st-hoop');
     if (row) row.classList.toggle('is-on', seen);
-    if (st) st.textContent = seen ? 'locked' : 'searching';
+    if (st) st.textContent = seen ? t('cam.gate.locked') : t('cam.gate.searching');
 
     if (rimStreak >= 3) {
       gatePassed = true;
       window.__v11RimLockAtRecord = true;
       var btn = gateEl && gateEl.querySelector('.v11-cta');
-      var t = document.getElementById('v11-gate-cta-t');
+      var ctaT = document.getElementById('v11-gate-cta-t');
       if (btn) { btn.removeAttribute('disabled'); btn.style.opacity = '1'; }
-      if (t) t.textContent = 'Start shooting';
+      if (ctaT) ctaT.textContent = t('cam.gate.start');
       if (window.V11Audio) { window.V11Audio.arm(); window.V11Audio.ok(); }
       try { if (navigator.vibrate) navigator.vibrate(30); } catch (e) {}
     }
@@ -552,11 +660,13 @@
          screen reads as a model failure instead of a camera one. */
       var camSt = window.__camStatus;
       var lostEl2 = document.getElementById('v11-hud-lost');
+      var camTxt = lostEl2 ? lostEl2.textContent : '';
+      var isCamTxt = camTxt === t('cam.hud.camRestarting') || camTxt === t('cam.hud.camStalled');
       if (lostEl2 && camSt && camSt !== 'ok') {
-        lostEl2.textContent = camSt === 'restarting' ? 'Camera restarting…' : 'Camera stalled';
+        lostEl2.textContent = camSt === 'restarting' ? t('cam.hud.camRestarting') : t('cam.hud.camStalled');
         lostEl2.style.display = 'block';
-      } else if (lostEl2 && /Camera/.test(lostEl2.textContent) && (!camSt || camSt === 'ok')) {
-        lostEl2.textContent = 'Lost the hoop';
+      } else if (lostEl2 && isCamTxt && (!camSt || camSt === 'ok')) {
+        lostEl2.textContent = t('cam.hud.lost');
         lostEl2.style.display = 'none';
       }
     }, 250);
@@ -699,7 +809,7 @@
   function runOfflineUpload(file, ctx) {
     var bar = h('div', { style: { height: '100%', width: '0%', background: 'var(--d-orange)', borderRadius: '99px', transition: 'width .25s ease' } });
     var pct = h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: '13px', color: 'var(--d-ink)', fontWeight: '700' }, text: '0%' });
-    var stageEl = h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '600', fontSize: '13px', color: 'var(--d-body)', marginTop: '2px' }, text: 'Loading models…' });
+    var stageEl = h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '600', fontSize: '13px', color: 'var(--d-body)', marginTop: '2px' }, text: t('cam.anl.loading') });
     // Debug-only: engine/timing readout. Ships hidden — see __courtiqDebug.
     var diagEl = h('div', { style: {
       fontFamily: 'var(--font-mono)', fontSize: '10px', color: 'var(--d-mute)',
@@ -708,8 +818,8 @@
 
     // Rotating tip to keep the wait engaging (see the timer below).
     var tipEl = h('div', { class: 'v12-anl__tip' }, [
-      h('span', { class: 'v12-anl__tiplabel', text: 'TIP' }),
-      h('span', { class: 'v12-anl__tiptext', text: ANALYZE_TIPS[0] })
+      h('span', { class: 'v12-anl__tiplabel', text: t('cam.anl.tiplabel') }),
+      h('span', { class: 'v12-anl__tiptext', text: t(ANALYZE_TIPS[0]) })
     ]);
 
     // ── LIVE ANALYSIS VIEW ─────────────────────────────────────
@@ -767,7 +877,7 @@
         ])
       ]),
       loaderEl,
-      h('div', { style: { fontFamily: 'var(--d-font)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', color: 'var(--d-ink)', flexShrink: '0' }, text: 'Analyzing your video' }),
+      h('div', { style: { fontFamily: 'var(--d-font)', fontSize: 'clamp(16px, 2.6dvh, 20px)', fontWeight: '900', color: 'var(--d-ink)', flexShrink: '0' }, text: t('cam.anl.title') }),
       liveWrap,
       dotsEl,
       liveCount,
@@ -795,7 +905,7 @@
       var tt = tipEl.querySelector('.v12-anl__tiptext');
       if (!tt) return;
       tt.style.opacity = '0';
-      setTimeout(function () { tt.textContent = ANALYZE_TIPS[tipI]; tt.style.opacity = '1'; }, 220);
+      setTimeout(function () { tt.textContent = t(ANALYZE_TIPS[tipI]); tt.style.opacity = '1'; }, 220);
     }, 4200);
 
     var lctx = liveCanvas.getContext('2d');
@@ -876,10 +986,10 @@
             }
           }));
         }
-        liveCount.textContent = shots.length + ' shots · ' + made + ' made · ' + (shots.length - made) + ' missed';
+        liveCount.textContent = t('cam.anl.count', { n: shots.length, m: made, x: shots.length - made });
         if (shots.length > lastShotCount) {
           var last = shots[shots.length - 1];
-          flashEl.textContent = last.result === 'made' ? 'MADE!' : 'MISS';
+          flashEl.textContent = last.result === 'made' ? t('cam.flash.made') : t('cam.flash.miss');
           flashEl.style.color = last.result === 'made' ? '#5BE37D' : '#FF6B5E';
           flashEl.style.opacity = '1';
           if (flashTimer) clearTimeout(flashTimer);
@@ -911,7 +1021,7 @@
       }
     } catch (e) {}
     function releaseWake() { try { if (wakeLock) { wakeLock.release(); wakeLock = null; } } catch (e) {} }
-    stageEl.textContent = 'Keep the app open — analysing…';
+    stageEl.textContent = t('cam.anl.keepOpen');
 
     var analysisT0 = Date.now();
     window.ShotOfflineProcessor.process(file, {
@@ -934,12 +1044,12 @@
         if (f > 0.04) {
           var remMs = (Date.now() - analysisT0) * (1 / f - 1);
           var mm = Math.floor(remMs / 60000), ss = Math.round((remMs % 60000) / 1000);
-          eta = ' · ~' + (mm > 0 ? mm + 'm ' + ('0' + ss).slice(-2) + 's' : ss + 's') + ' left';
+          eta = t('cam.anl.eta', { t: (mm > 0 ? mm + 'm ' + ('0' + ss).slice(-2) + 's' : ss + 's') });
         }
         pct.textContent = p + '%' + eta;
         diagEl.textContent = backendLabel();
       },
-      onStage: function (s) { stageEl.textContent = s; },
+      onStage: function (s) { stageEl.textContent = STAGE_KEYS[s] ? t(STAGE_KEYS[s]) : s; },
       onFrame: drawLive
     }).then(function (res) {
       releaseWake();
@@ -959,9 +1069,7 @@
       // the rim locked — the two reasons a whole clip yields no shots.
       if (!res || res.total === 0) {
         var d = (res && res.diag) || {};
-        var reason = !d.rimLocked
-          ? 'We couldn’t find the hoop in this clip, so there was nothing to measure a shot against. Set the phone so the whole rim stays in frame and give it another go.'
-          : 'The rim locked in, but no shot arcs came through. The ball may be too small or too blurred to track from here — or no shots went up this clip.';
+        var reason = !d.rimLocked ? t('cam.noshot.norim') : t('cam.noshot.noarcs');
         var diagLine = 'hoop frames: ' + (d.hoopDetections || 0) + ' (max conf ' + (d.hoopMaxConf != null ? d.hoopMaxConf : '?') + ', tier ' + (d.usedTier || '?') + ') · rim: ' + (d.rimLocked ? 'locked' : 'not found') + ' · frames: ' + (d.frames || 0) +
           ' · ball: ' + (d.rawBallFrames != null ? d.rawBallFrames : '?') + 'f raw / ' + (d.nearRimFrames != null ? d.nearRimFrames : '?') + 'f near / ' + (d.aboveRingFrames != null ? d.aboveRingFrames : '?') + 'f above · win: ' + (d.windows != null ? d.windows : '?') +
           (d.offlineErr ? ' · err: ' + d.offlineErr + ' ×' + (d.offlineErrN || 0) : '') +
@@ -987,9 +1095,9 @@
         };
 
         var homeBtn = h('button', { class: 'd-btn v12-noshot__cta', type: 'button', onclick: goHome },
-          [h('i', { class: 'ph-bold ph-house' }), h('span', { text: 'Back to home' })]);
+          [h('i', { class: 'ph-bold ph-house' }), h('span', { text: t('cam.noshot.home') })]);
         var retryBtn = h('button', { class: 'd-btn d-btn--ghost v12-noshot__cta', type: 'button', onclick: goTrack },
-          [h('i', { class: 'ph-bold ph-video-camera' }), h('span', { text: 'Try another clip' })]);
+          [h('i', { class: 'ph-bold ph-video-camera' }), h('span', { text: t('cam.noshot.retry') })]);
 
         var card = h('div', { class: 'v12-noshot' }, [
           h('div', { class: 'v12-anl__brand' }, [
@@ -997,7 +1105,7 @@
             h('span', { class: 'v12-anl__brandname' }, [document.createTextNode('COURT'), h('em', { text: 'IQ' })])
           ]),
           h('div', { class: 'v12-noshot__icon' }, [h('i', { class: 'ph-fill ph-basketball' })]),
-          h('div', { class: 'v12-noshot__t', text: 'No shots detected' }),
+          h('div', { class: 'v12-noshot__t', text: t('cam.noshot.title') }),
           h('div', { class: 'v12-noshot__s', text: reason }),
           window.__courtiqDebug ? h('div', { class: 'v12-noshot__diag', text: diagLine }) : null,
           h('div', { class: 'v12-noshot__btns' }, [homeBtn, retryBtn])
@@ -1083,8 +1191,8 @@
         }
       }, [
         h('i', { class: 'ph-bold ph-camera-slash', style: { fontSize: '56px', color: 'var(--d-gold-deep)', marginBottom: '12px' } }),
-        h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '22px', fontWeight: '900', color: 'var(--d-ink)' }, text: 'Camera unavailable' }),
-        h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '8px', color: 'var(--d-body)' }, text: 'The detection engine did not load. Refresh the page.' })
+        h('div', { style: { fontFamily: 'var(--d-font)', fontSize: '22px', fontWeight: '900', color: 'var(--d-ink)' }, text: t('cam.unavail.title') }),
+        h('div', { style: { fontFamily: 'var(--d-font)', fontWeight: '500', fontSize: '14px', marginTop: '8px', color: 'var(--d-body)' }, text: t('cam.unavail.sub') })
       ]);
       document.body.appendChild(msg);
       v10Layer = msg;

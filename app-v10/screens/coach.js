@@ -19,6 +19,187 @@
   var h = window.V10UI.h;
   var C = window.V11Court, V12 = window.V12;
 
+  /* ── strings — every user-visible sentence, both languages ────
+     Coach NAMES (The Scout, Splash, Flow, Tank) stay English in both. */
+  var T = {
+    en: {
+      'coach.scout.nofilm': 'Nothing on film yet. Upload a session video and I start talking — zone by zone.',
+      'coach.scout.unscored': 'Your shots were counted but not scored. Upload a session video and the read starts.',
+      'coach.scout.onfilm': '{n} scored shots on film in the last 30 days.',
+      'coach.scout.bestworst': 'Best zone: {hot} at {hp}%. Weakest: {cold} at {cp}%.',
+      'coach.role.gm': 'GM · runs your whole program',
+      'coach.role.splash': 'Shooting coach',
+      'coach.role.flow': 'Ball-handling coach',
+      'coach.role.tank': 'Strength & conditioning',
+      'coach.short.gm': 'The GM',
+      'coach.short.splash': 'Shooting',
+      'coach.short.flow': 'Handles',
+      'coach.short.tank': 'Fitness',
+      'coach.opener.splash': 'Splash. Shooting coach. Form, release, footwork into the shot — that is my whole world. What is broken?',
+      'coach.opener.flow': 'Flow here. Handles are rhythm — both hands, eyes up, ball on a string. What are we tightening?',
+      'coach.opener.tank': 'Tank. Strength and conditioning. We build the motor and protect the knees. What do you need?',
+      'coach.starter.gm.0': 'What should I work on?',
+      'coach.starter.gm.1': 'How does my week look?',
+      'coach.starter.gm.2': 'Build my week around shooting',
+      'coach.starter.gm.3': 'Why did my Court IQ move?',
+      'coach.starter.splash.0': 'Tips for a better release',
+      'coach.starter.splash.1': 'Why am I missing short?',
+      'coach.starter.splash.2': 'Fix my free throws',
+      'coach.starter.splash.3': 'Give me a shooting drill',
+      'coach.starter.flow.0': 'Strengthen my weak hand',
+      'coach.starter.flow.1': 'A daily handle routine',
+      'coach.starter.flow.2': 'Drill for tight spaces',
+      'coach.starter.flow.3': 'How do I protect my dribble?',
+      'coach.starter.tank.0': 'Get me game-fit',
+      'coach.starter.tank.1': 'My legs die in the second half',
+      'coach.starter.tank.2': 'A pre-game warm-up',
+      'coach.starter.tank.3': 'How do I jump higher?',
+      'coach.board.title': '{name}\'S BOARD',
+      'coach.board.run': 'Run it',
+      'coach.prop.meta': '{n} sessions · {min} min each',
+      'coach.dow.0': 'Mon', 'coach.dow.1': 'Tue', 'coach.dow.2': 'Wed',
+      'coach.dow.3': 'Thu', 'coach.dow.4': 'Fri', 'coach.dow.5': 'Sat',
+      'coach.dow.6': 'Sun',
+      'coach.prop.built': 'In your plan',
+      'coach.prop.build': 'Build this into my plan',
+      'coach.ans.norate': 'Not enough scored shots from any one spot. Give me {n} from a zone and I rate it.',
+      'coach.ans.coldzone': 'Spend 30 reps a session at the {zone}. It sits at {made} of {vatt}. The plan screen has a block for it.',
+      'coach.ans.noweek': 'No sessions this week yet. One tonight changes that.',
+      'coach.ans.week1': '1 session this week, {att} shots up. Goal is {goal} sessions.',
+      'coach.ans.weekN': '{n} sessions this week, {att} shots up. Goal is {goal} sessions.',
+      'coach.ans.signin': 'Sign in and I can answer that properly — with your film in front of me. Until then: the quick questions below always work.',
+      'coach.err.timeout': 'timed out after 30s',
+      'coach.err.network': 'network error',
+      'coach.err.local': '(Local answer — the live coach is down: {why})',
+      'coach.in.ask': 'Ask {name} anything…',
+      'coach.in.guest': 'Sign in for the live coach — chips work now',
+      'coach.in.aria': 'Message the coach',
+      'coach.in.send': 'Send',
+      'coach.hd.back': 'Back',
+      'coach.hd.new': 'New conversation',
+      'coach.hd.sublive': '{role} · reads your real film',
+      'coach.hd.subguest': '{role} · sign in for live answers',
+      'coach.chal.claimedbonus': '+{xp} XP · staff sweep +{bonus} XP',
+      'coach.chal.claimed': '+{xp} XP',
+      'coach.chal.claim': 'Claim +{xp} XP',
+      'coach.recap.sess1': '1 session',
+      'coach.recap.sessN': '{n} sessions',
+      'coach.recap.line': 'New week. Last 7 days: {att} shots across {sess}.',
+      'coach.recap.linescored': 'New week. Last 7 days: {att} shots across {sess}, {p}% where scored.',
+      'coach.recap.iq': ' Court IQ {score}.',
+      'coach.recap.iqdelta': ' Court IQ {score} ({delta} on the week).',
+      'coach.recap.zones': ' Hot: {hz} {hp}%. Priority: {cz} {cp}%.',
+      'coach.cal.wd': 'S,M,T,W,T,F,S',
+      'coach.cal.tip1': '{date} — 1 session',
+      'coach.cal.tipN': '{date} — {n} sessions',
+      'coach.title': 'Coach',
+      'coach.sub': 'Your corner of the gym.',
+      'coach.id.onfilm': '{n} scored shots on film',
+      'coach.id.waiting': 'Waiting on film',
+      'coach.cal.title': 'TRAINING CALENDAR',
+      'coach.cal.legend': 'Session day',
+      'coach.gym.progress': 'THE GYM — {n}/4 CHALLENGES COLLECTED TODAY',
+      'coach.gym.walk': 'THE GYM — WALK UP TO A COACH',
+      'coach.gym.label': 'The gym',
+      'coach.gym.cones': 'Cones',
+      'coach.gym.cart': 'Ball cart',
+      'coach.gym.clip': 'Clipboard',
+      'coach.gym.you': 'You',
+      'coach.gym.walkto': 'Walk to {name} — {role}',
+      'coach.tools.lib': 'Drill library',
+      'coach.tools.plan': 'Training plan'
+    },
+    he: {
+      'coach.scout.nofilm': 'עדיין אין וידאו. תעלה סרטון אימון ואני מתחיל לדבר — אזור אחרי אזור.',
+      'coach.scout.unscored': 'הזריקות שלך נספרו אבל בלי תוצאות. תעלה סרטון אימון והקריאה מתחילה.',
+      'coach.scout.onfilm': '{n} זריקות עם תוצאה מהווידאו ב-30 הימים האחרונים.',
+      'coach.scout.bestworst': 'האזור הכי חזק: ⁨{hot}⁩ עם {hp}%. הכי חלש: ⁨{cold}⁩ עם {cp}%.',
+      'coach.role.gm': '⁨GM⁩ · מנהל לך את כל התוכנית',
+      'coach.role.splash': 'מאמן קליעה',
+      'coach.role.flow': 'מאמן כדרור',
+      'coach.role.tank': 'כוח וכושר',
+      'coach.short.gm': 'ה-⁨GM⁩',
+      'coach.short.splash': 'קליעה',
+      'coach.short.flow': 'כדרור',
+      'coach.short.tank': 'כושר',
+      'coach.opener.splash': '⁨Splash⁩. מאמן קליעה. טכניקה, שחרור, עבודת רגליים לתוך הזריקה — זה כל העולם שלי. מה שבור?',
+      'coach.opener.flow': 'כאן ⁨Flow⁩. כדרור זה קצב — שתי ידיים, עיניים למעלה, כדור על חוט. מה מחדדים?',
+      'coach.opener.tank': '⁨Tank⁩. כוח וכושר. בונים את המנוע ושומרים על הברכיים. מה אתה צריך?',
+      'coach.starter.gm.0': 'על מה כדאי לי לעבוד?',
+      'coach.starter.gm.1': 'איך נראה השבוע שלי?',
+      'coach.starter.gm.2': 'תבנה לי שבוע סביב קליעה',
+      'coach.starter.gm.3': 'למה ה-⁨Court IQ⁩ שלי זז?',
+      'coach.starter.splash.0': 'טיפים לשחרור טוב יותר',
+      'coach.starter.splash.1': 'למה אני מחטיא קצר?',
+      'coach.starter.splash.2': 'תסדר לי את זריקות העונשין',
+      'coach.starter.splash.3': 'תן לי תרגיל קליעה',
+      'coach.starter.flow.0': 'לחזק את היד החלשה שלי',
+      'coach.starter.flow.1': 'שגרת כדרור יומית',
+      'coach.starter.flow.2': 'תרגיל למרחבים צפופים',
+      'coach.starter.flow.3': 'איך אני שומר על הכדרור?',
+      'coach.starter.tank.0': 'תביא אותי לכושר משחק',
+      'coach.starter.tank.1': 'הרגליים שלי מתות בחצי השני',
+      'coach.starter.tank.2': 'חימום לפני משחק',
+      'coach.starter.tank.3': 'איך קופצים גבוה יותר?',
+      'coach.board.title': 'הלוח של ⁨{name}⁩',
+      'coach.board.run': 'תריץ את זה',
+      'coach.prop.meta': '{n} אימונים · {min} דק׳ כל אחד',
+      'coach.dow.0': 'ב׳', 'coach.dow.1': 'ג׳', 'coach.dow.2': 'ד׳',
+      'coach.dow.3': 'ה׳', 'coach.dow.4': 'ו׳', 'coach.dow.5': 'שבת',
+      'coach.dow.6': 'א׳',
+      'coach.prop.built': 'בתוכנית שלך',
+      'coach.prop.build': 'תכניס את זה לתוכנית שלי',
+      'coach.ans.norate': 'אין מספיק זריקות עם תוצאה מאף עמדה. תן לי {n} מאזור אחד ואני מדרג אותו.',
+      'coach.ans.coldzone': 'תשקיע 30 חזרות בכל אימון באזור ⁨{zone}⁩. אתה עומד שם על {made} מתוך {vatt}. יש לזה בלוק במסך התוכנית.',
+      'coach.ans.noweek': 'עוד אין אימונים השבוע. אחד הערב משנה את זה.',
+      'coach.ans.week1': 'אימון אחד השבוע, {att} זריקות. היעד הוא {goal} אימונים.',
+      'coach.ans.weekN': '{n} אימונים השבוע, {att} זריקות. היעד הוא {goal} אימונים.',
+      'coach.ans.signin': 'תתחבר ואוכל לענות על זה כמו שצריך — עם הווידאו שלך מולי. עד אז: השאלות המהירות למטה תמיד עובדות.',
+      'coach.err.timeout': 'נקטע אחרי 30 שניות',
+      'coach.err.network': 'שגיאת רשת',
+      'coach.err.local': '(תשובה מקומית — המאמן החי לא זמין: ⁨{why}⁩)',
+      'coach.in.ask': 'שאל את ⁨{name}⁩ כל דבר…',
+      'coach.in.guest': 'תתחבר בשביל המאמן החי — השאלות המהירות עובדות כבר עכשיו',
+      'coach.in.aria': 'הודעה למאמן',
+      'coach.in.send': 'שליחה',
+      'coach.hd.back': 'חזרה',
+      'coach.hd.new': 'שיחה חדשה',
+      'coach.hd.sublive': '{role} · קורא את הווידאו האמיתי שלך',
+      'coach.hd.subguest': '{role} · תתחבר לתשובות חיות',
+      'coach.chal.claimedbonus': '⁨+{xp} XP⁩ · כל הצוות ביום אחד ⁨+{bonus} XP⁩',
+      'coach.chal.claimed': '⁨+{xp} XP⁩',
+      'coach.chal.claim': 'לאסוף ⁨+{xp} XP⁩',
+      'coach.recap.sess1': 'אימון אחד',
+      'coach.recap.sessN': '{n} אימונים',
+      'coach.recap.line': 'שבוע חדש. 7 הימים האחרונים: {att} זריקות על פני {sess}.',
+      'coach.recap.linescored': 'שבוע חדש. 7 הימים האחרונים: {att} זריקות על פני {sess}, {p}% מהזריקות שנמדדו.',
+      'coach.recap.iq': ' ⁨Court IQ {score}⁩.',
+      'coach.recap.iqdelta': ' ⁨Court IQ {score}⁩ (⁨{delta}⁩ השבוע).',
+      'coach.recap.zones': ' חם: ⁨{hz}⁩ {hp}%. עדיפות: ⁨{cz}⁩ {cp}%.',
+      'coach.cal.wd': 'א,ב,ג,ד,ה,ו,ש',
+      'coach.cal.tip1': '⁨{date}⁩ — אימון אחד',
+      'coach.cal.tipN': '⁨{date}⁩ — {n} אימונים',
+      'coach.title': 'מאמן',
+      'coach.sub': 'הפינה שלך באולם.',
+      'coach.id.onfilm': '{n} זריקות עם תוצאה מהווידאו',
+      'coach.id.waiting': 'מחכה לווידאו',
+      'coach.cal.title': 'לוח אימונים',
+      'coach.cal.legend': 'יום אימון',
+      'coach.gym.progress': 'האולם — {n}/4 אתגרים נאספו היום',
+      'coach.gym.walk': 'האולם — גש אל אחד המאמנים',
+      'coach.gym.label': 'האולם',
+      'coach.gym.cones': 'קונוסים',
+      'coach.gym.cart': 'עגלת כדורים',
+      'coach.gym.clip': 'לוח טקטיקה',
+      'coach.gym.you': 'אתה',
+      'coach.gym.walkto': 'ללכת אל ⁨{name}⁩ — {role}',
+      'coach.tools.lib': 'ספריית תרגילים',
+      'coach.tools.plan': 'תוכנית אימונים'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   function totals(zones) {
     var att = 0, made = 0, vatt = 0;
     Object.keys(zones || {}).forEach(function (k) {
@@ -38,21 +219,22 @@
 
   /* ── the scout's real lines, computed once ────────────────────*/
   function scoutLines(data) {
-    var t = data.t, rank = data.rank, zones = data.zones, coach = data.coach;
+    var tot = data.t, rank = data.rank, zones = data.zones, coach = data.coach;
     var lines = [];
-    if (!t.att) {
-      lines.push('Nothing on film yet. Upload a session video and I start talking — zone by zone.');
-    } else if (!t.vatt) {
-      lines.push('Your shots were counted but not scored. Upload a session video and the read starts.');
+    if (!tot.att) {
+      lines.push(t('coach.scout.nofilm'));
+    } else if (!tot.vatt) {
+      lines.push(t('coach.scout.unscored'));
     } else {
-      lines.push(t.vatt + ' scored shots on film in the last 30 days.');
+      lines.push(t('coach.scout.onfilm', { n: tot.vatt }));
       if (coach && coach.verdict) lines.push(coach.verdict);
       if (rank.length >= 2) {
         var hot = rank[0], cold = rank[rank.length - 1];
         var hz = zones[hot], cz = zones[cold];
-        lines.push('Best zone: ' + C.LABEL[hot] + ' at ' +
-          Math.round(hz.made / hz.vatt * 100) + '%. Weakest: ' + C.LABEL[cold] +
-          ' at ' + Math.round(cz.made / cz.vatt * 100) + '%.');
+        lines.push(t('coach.scout.bestworst', {
+          hot: C.LABEL[hot], hp: Math.round(hz.made / hz.vatt * 100),
+          cold: C.LABEL[cold], cp: Math.round(cz.made / cz.vatt * 100)
+        }));
       }
     }
     return lines;
@@ -70,26 +252,35 @@
      the specialists own their lane. DiceBear faces are deterministic
      (fixed seeds), so every player meets the same four coaches. */
   var COACHES = [
-    { id: 'gm', name: 'The Scout', role: 'GM · runs your whole program',
-      short: 'The GM', seed: 'courtiq-the-scout', bg: 'b6e3f4',
-      starters: ['What should I work on?', 'How does my week look?',
-                 'Build my week around shooting', 'Why did my Court IQ move?'] },
-    { id: 'splash', name: 'Splash', role: 'Shooting coach', short: 'Shooting',
-      seed: 'courtiq-splash-7', bg: 'ffd5dc',
-      opener: 'Splash. Shooting coach. Form, release, footwork into the shot — that is my whole world. What is broken?',
-      starters: ['Tips for a better release', 'Why am I missing short?',
-                 'Fix my free throws', 'Give me a shooting drill'] },
-    { id: 'flow', name: 'Flow', role: 'Ball-handling coach', short: 'Handles',
-      seed: 'courtiq-flow-3', bg: 'd1f4d1',
-      opener: 'Flow here. Handles are rhythm — both hands, eyes up, ball on a string. What are we tightening?',
-      starters: ['Strengthen my weak hand', 'A daily handle routine',
-                 'Drill for tight spaces', 'How do I protect my dribble?'] },
-    { id: 'tank', name: 'Tank', role: 'Strength & conditioning', short: 'Fitness',
-      seed: 'courtiq-tank-9', bg: 'ffdfbf',
-      opener: 'Tank. Strength and conditioning. We build the motor and protect the knees. What do you need?',
-      starters: ['Get me game-fit', 'My legs die in the second half',
-                 'A pre-game warm-up', 'How do I jump higher?'] }
+    { id: 'gm', name: 'The Scout', seed: 'courtiq-the-scout', bg: 'b6e3f4' },
+    { id: 'splash', name: 'Splash', seed: 'courtiq-splash-7', bg: 'ffd5dc' },
+    { id: 'flow', name: 'Flow', seed: 'courtiq-flow-3', bg: 'd1f4d1' },
+    { id: 'tank', name: 'Tank', seed: 'courtiq-tank-9', bg: 'ffdfbf' }
   ];
+  /* role/short/opener/starters live in T (both languages, keys
+     coach.role.* / coach.short.* / coach.opener.* / coach.starter.*.0-3)
+     and resolve at READ time — a language switch needs no reload, and
+     every consumer of the cast (this screen, onboarding) follows the
+     chosen language automatically. */
+  COACHES.forEach(function (c) {
+    function lazy(field, key) {
+      Object.defineProperty(c, field, {
+        enumerable: true,
+        get: function () { return t(key); }
+      });
+    }
+    lazy('role', 'coach.role.' + c.id);
+    lazy('short', 'coach.short.' + c.id);
+    if (c.id !== 'gm') lazy('opener', 'coach.opener.' + c.id);
+    Object.defineProperty(c, 'starters', {
+      enumerable: true,
+      get: function () {
+        var out = [];
+        for (var i = 0; i < 4; i++) out.push(t('coach.starter.' + c.id + '.' + i));
+        return out;
+      }
+    });
+  });
   function coachFace(c, size) {
     return 'https://api.dicebear.com/9.x/avataaars/png?size=' + (size || 96) +
       '&seed=' + encodeURIComponent(c.seed) + '&backgroundColor=' + c.bg;
@@ -161,7 +352,7 @@
         var board = h('div', { class: 'c12-board' }, [
           h('div', { class: 'c12-board__hd' }, [
             h('i', { class: 'ph-fill ph-clipboard' }),
-            h('span', { text: coach.name.toUpperCase() + "'S BOARD" })
+            h('span', { text: t('coach.board.title', { name: coach.name.toUpperCase() }) })
           ]),
           window.V12DrillCourt.render(c, { label: hit.name }),
           h('div', { class: 'c12-board__ft' }, [
@@ -180,7 +371,7 @@
                 } catch (e) {}
                 ctx.go('workout-player');
               }
-            }, [h('i', { class: 'ph-fill ph-play-circle' }), h('span', { text: 'Run it' })])
+            }, [h('i', { class: 'ph-fill ph-play-circle' }), h('span', { text: t('coach.board.run') })])
           ])
         ]);
         thread.appendChild(board);
@@ -191,18 +382,18 @@
     /* The coach proposed a program — render it as a card with the ONE
        button that actually writes it into the plan. Until that tap,
        nothing changed. */
-    /* Monday-first — MUST match V12Plan.DOW (schedule index 0 = Monday) */
-    var DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    /* Monday-first — MUST match V12Plan.DOW (schedule index 0 = Monday).
+       Day names live in T as coach.dow.0..6. */
     function proposalCard(p) {
       var card = h('div', { class: 'c12-proposal' });
       card.appendChild(h('div', { class: 'c12-proposal__t', text: p.name }));
       card.appendChild(h('div', {
         class: 'c12-proposal__s',
-        text: p.days.length + ' sessions · ' + p.minutes + ' min each'
+        text: t('coach.prop.meta', { n: p.days.length, min: p.minutes })
       }));
       p.days.forEach(function (d) {
         card.appendChild(h('div', { class: 'c12-proposal__day' }, [
-          h('span', { class: 'c12-proposal__dow', text: DOW[d.dow] }),
+          h('span', { class: 'c12-proposal__dow', text: t('coach.dow.' + d.dow) }),
           h('span', {
             class: 'c12-proposal__what',
             text: d.drills.length ? d.drills.join(' · ') : d.focus
@@ -214,7 +405,7 @@
         onclick: function () {
           var msg = window.V12CoachAI.applyProposal(p);
           btn.disabled = true;
-          btn.textContent = 'In your plan';
+          btn.textContent = t('coach.prop.built');
           if (msg) coachSay(msg);
           try { if (navigator.vibrate) navigator.vibrate(20); } catch (e) {}
           try {
@@ -223,7 +414,7 @@
         }
       }, [
         h('i', { class: 'ph-fill ph-hammer' }),
-        h('span', { text: 'Build this into my plan' })
+        h('span', { text: t('coach.prop.build') })
       ]);
       card.appendChild(btn);
       thread.appendChild(card);
@@ -234,21 +425,22 @@
        proxy is down. Same voice, same real numbers. */
     function localAnswer(q) {
       var rank = data.rank, w = data.week || {};
-      if (/work on|improve|weak/i.test(q)) {
-        if (!rank.length) return 'Not enough scored shots from any one spot. Give me ' +
-          C.MIN_VERDICTS + ' from a zone and I rate it.';
+      /* the Hebrew alternates route the translated starter chips to the
+         same answers their English twins get */
+      if (/work on|improve|weak|לעבוד|לשפר|חלש/i.test(q)) {
+        if (!rank.length) return t('coach.ans.norate', { n: C.MIN_VERDICTS });
         var cold = rank[rank.length - 1];
         var cz = data.zones[cold];
-        return 'Spend 30 reps a session at the ' + C.LABEL[cold].toLowerCase() +
-          '. It sits at ' + cz.made + ' of ' + cz.vatt + '. The plan screen has a block for it.';
+        return t('coach.ans.coldzone', {
+          zone: C.LABEL[cold].toLowerCase(), made: cz.made, vatt: cz.vatt
+        });
       }
-      if (/week|today/i.test(q)) {
-        if (!w.sessions) return 'No sessions this week yet. One tonight changes that.';
-        return w.sessions + ' session' + (w.sessions === 1 ? '' : 's') + ' this week, ' +
-          (w.attempts || 0) + ' shots up. Goal is ' + (w.goal || 5) + ' sessions.';
+      if (/week|today|שבוע|היום/i.test(q)) {
+        if (!w.sessions) return t('coach.ans.noweek');
+        return t(w.sessions === 1 ? 'coach.ans.week1' : 'coach.ans.weekN',
+          { n: w.sessions, att: w.attempts || 0, goal: w.goal || 5 });
       }
-      return 'Sign in and I can answer that properly — with your film in front of me. ' +
-        'Until then: the quick questions below always work.';
+      return t('coach.ans.signin');
     }
 
     function send(q) {
@@ -261,23 +453,23 @@
         return;
       }
       busy = true;
-      var t = typing();
+      var tp = typing();
       window.V12CoachAI.ask(q, data, ctx).then(function (r) {
-        t.remove(); busy = false;
+        tp.remove(); busy = false;
         coachSay(r.text);
         drillBoard(r.text);
         if (r.proposal) proposalCard(r.proposal);
         if (r.confirmation) coachSay(r.confirmation);
       }).catch(function (e) {
-        t.remove(); busy = false;
+        tp.remove(); busy = false;
         if (e && e.guest) { live = false; coachSay(localAnswer(q)); return; }
         /* proxy down ≠ coach silent: answer locally, and say the REAL
            reason — a canned "try again" line hid a dead API key for a
            whole day because every failure read identically. */
         coachSay(localAnswer(q));
         var why = (e && e.message) ? e.message :
-                  (e && e.name === 'AbortError') ? 'timed out after 30s' : 'network error';
-        coachSay('(Local answer — the live coach is down: ' + why + ')');
+                  (e && e.name === 'AbortError') ? t('coach.err.timeout') : t('coach.err.network');
+        coachSay(t('coach.err.local', { why: why }));
       });
     }
 
@@ -292,11 +484,11 @@
     /* free-text row — the reason this screen exists now */
     var input = h('input', {
       class: 'c12-chat-in__field', type: 'text',
-      placeholder: live ? 'Ask ' + coach.name + ' anything…' : 'Sign in for the live coach — chips work now',
-      'aria-label': 'Message the coach', maxlength: '280', autocomplete: 'off'
+      placeholder: live ? t('coach.in.ask', { name: coach.name }) : t('coach.in.guest'),
+      'aria-label': t('coach.in.aria'), maxlength: '280', autocomplete: 'off'
     });
     var sendBtn = h('button', {
-      class: 'c12-chat-in__send', type: 'button', 'aria-label': 'Send',
+      class: 'c12-chat-in__send', type: 'button', 'aria-label': t('coach.in.send'),
       onclick: function () { var q = input.value.trim(); input.value = ''; send(q); }
     }, [h('i', { class: 'ph-fill ph-paper-plane-right' })]);
     input.addEventListener('keydown', function (ev) {
@@ -307,18 +499,18 @@
        over is an explicit small control in the header instead. */
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       h('button', {
-        class: 'c12-back', type: 'button', 'aria-label': 'Back',
+        class: 'c12-back', type: 'button', 'aria-label': t('coach.hd.back'),
         onclick: back
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
       V12.faceImg({ class: 'c12-chat-hd__face', src: coachFace(coach, 72), alt: '' }),
       h('div', { style: { flex: '1', minWidth: '0' } }, [
         h('div', { class: 'c12-chat-hd__t', text: coach.name }),
         h('div', { class: 'c12-chat-hd__s',
-          text: coach.role + (live ? ' · reads your real film' : ' · sign in for live answers') })
+          text: t(live ? 'coach.hd.sublive' : 'coach.hd.subguest', { role: coach.role }) })
       ]),
       h('button', {
-        class: 'c12-back', type: 'button', 'aria-label': 'New conversation',
-        title: 'New conversation',
+        class: 'c12-back', type: 'button', 'aria-label': t('coach.hd.new'),
+        title: t('coach.hd.new'),
         onclick: function () {
           if (window.V12CoachAI) window.V12CoachAI.reset();
           chatView(host, ctx, data, back, coach);
@@ -350,8 +542,8 @@
           if (r) {
             btn.disabled = true;
             btn.textContent = r.bonus
-              ? '+' + window.V12Challenges.XP + ' XP · staff sweep +' + window.V12Challenges.BONUS + ' XP'
-              : '+' + window.V12Challenges.XP + ' XP';
+              ? t('coach.chal.claimedbonus', { xp: window.V12Challenges.XP, bonus: window.V12Challenges.BONUS })
+              : t('coach.chal.claimed', { xp: window.V12Challenges.XP });
             try { if (window.V11Audio && V11Audio.ok) V11Audio.ok(); } catch (e0) {}
             try {
               if (window.V10UI && window.V10UI.confetti) {
@@ -360,7 +552,7 @@
             } catch (e) {}
           }
         }
-      }, [h('span', { text: s.complete ? 'Claim +' + window.V12Challenges.XP + ' XP' : s.done + '/' + s.total })]);
+      }, [h('span', { text: s.complete ? t('coach.chal.claim', { xp: window.V12Challenges.XP }) : s.done + '/' + s.total })]);
       thread.appendChild(h('div', { class: 'c12-chal' }, [
         h('div', { class: 'c12-chal__hd' }, [
           h('i', { class: 'ph-fill ph-basketball' }),
@@ -390,22 +582,27 @@
           if (s.total_made != null) { made += s.total_made; scored += (s.total_attempts || 0); }
         });
         if (!n) return;                      /* silent week — nothing to recap */
-        var line = 'New week. Last 7 days: ' + att + ' shots across ' + n +
-          ' session' + (n > 1 ? 's' : '');
-        if (scored >= 20) line += ', ' + Math.round(made * 100 / scored) + '% where scored';
-        line += '.';
+        var sess = n > 1 ? t('coach.recap.sessN', { n: n }) : t('coach.recap.sess1');
+        var line = scored >= 20
+          ? t('coach.recap.linescored', { att: att, sess: sess, p: Math.round(made * 100 / scored) })
+          : t('coach.recap.line', { att: att, sess: sess });
         if (data.iq) {
-          line += ' Court IQ ' + data.iq.score +
-            (data.iq.delta != null && data.iq.delta !== 0
-              ? ' (' + (data.iq.delta > 0 ? '+' : '') + data.iq.delta + ' on the week)' : '') + '.';
+          line += (data.iq.delta != null && data.iq.delta !== 0)
+            ? t('coach.recap.iqdelta', {
+                score: data.iq.score,
+                delta: (data.iq.delta > 0 ? '+' : '') + data.iq.delta
+              })
+            : t('coach.recap.iq', { score: data.iq.score });
         }
         if (data.rank && data.rank.length) {
           var C2 = window.V11Court;
           var hot = data.rank[0], cold = data.rank[data.rank.length - 1];
           var zh = data.zones[hot], zc = data.zones[cold];
           if (zh && zc && hot !== cold) {
-            line += ' Hot: ' + (C2.LABEL[hot] || hot) + ' ' + Math.round(zh.made * 100 / zh.vatt) +
-              '%. Priority: ' + (C2.LABEL[cold] || cold) + ' ' + Math.round(zc.made * 100 / zc.vatt) + '%.';
+            line += t('coach.recap.zones', {
+              hz: C2.LABEL[hot] || hot, hp: Math.round(zh.made * 100 / zh.vatt),
+              cz: C2.LABEL[cold] || cold, cp: Math.round(zc.made * 100 / zc.vatt)
+            });
           }
         }
         coachSay(line);
@@ -448,7 +645,7 @@
     /* grid starts on the Sunday 3 weeks back */
     var start = new Date(today.getTime() - ((21 + today.getDay()) * 86400000));
     var wrap = h('div', { class: 'c12-cal' });
-    ['S', 'M', 'T', 'W', 'T', 'F', 'S'].forEach(function (d) {
+    t('coach.cal.wd').split(',').forEach(function (d) {
       wrap.appendChild(h('div', { class: 'c12-cal__wd', text: d }));
     });
     for (var i = 0; i < 28; i++) {
@@ -460,7 +657,9 @@
       wrap.appendChild(h('div', {
         class: 'c12-cal__d' + (did ? ' is-did' : '') + (isToday ? ' is-today' : '') +
                (future ? ' is-future' : ''),
-        title: key + (did ? ' — ' + did + ' session' + (did > 1 ? 's' : '') : '')
+        title: did
+          ? t(did > 1 ? 'coach.cal.tipN' : 'coach.cal.tip1', { date: key, n: did })
+          : key
       }, [h('span', { text: d.getDate() })]));
     }
     return wrap;
@@ -469,7 +668,7 @@
   /* ── main view ────────────────────────────────────────────────*/
   function mainView(host, ctx, data) {
     while (host.firstChild) host.removeChild(host.firstChild);
-    host.appendChild(V12.header('Coach', 'Your corner of the gym.'));
+    host.appendChild(V12.header(t('coach.title'), t('coach.sub')));
 
     /* film status + calendar — stacked full-width, not a cramped grid */
     var grid = h('div', { class: 'c12-stack2' });
@@ -481,16 +680,16 @@
       h('div', { class: 'c12-id__face' }, [h('i', { class: 'ph-fill ph-chalkboard-teacher' })]),
       h('div', { class: 'c12-id__txt' }, [
         h('div', { class: 'c12-id__n', text: 'THE SCOUT' }),
-        h('div', { class: 'c12-id__s', text: data.t.vatt ? data.t.vatt + ' scored shots on film' : 'Waiting on film' })
+        h('div', { class: 'c12-id__s', text: data.t.vatt ? t('coach.id.onfilm', { n: data.t.vatt }) : t('coach.id.waiting') })
       ])
     ]));
 
     /* training calendar — full width */
     grid.appendChild(V12.card({ class: 'c12-calcard' }, [
-      h('div', { class: 'd-label', text: 'TRAINING CALENDAR' }),
+      h('div', { class: 'd-label', text: t('coach.cal.title') }),
       calendar(data.sessions),
       h('div', { class: 'c12-cal__lg' }, [
-        h('span', { class: 'c12-cal__dot' }), h('span', { text: 'Session day' })
+        h('span', { class: 'c12-cal__dot' }), h('span', { text: t('coach.cal.legend') })
       ])
     ]));
 
@@ -503,8 +702,8 @@
     host.appendChild(h('div', {
       class: 'd-label c12-staff__label',
       text: claimedN > 0
-        ? 'THE GYM — ' + claimedN + '/4 CHALLENGES COLLECTED TODAY'
-        : 'THE GYM — WALK UP TO A COACH'
+        ? t('coach.gym.progress', { n: claimedN })
+        : t('coach.gym.walk')
     }));
     var SPOTS = {                    /* % of the scene box, x/y */
       gm:     { x: 50, y: 56 },      /* free-throw line — runs the floor */
@@ -515,8 +714,8 @@
     };
     var scene = h('div', { class: 'c12-gym' });
     try {
-      scene.appendChild(window.V12DrillCourt.render({}, { still: true, label: 'The gym' }));
-    } catch (e) { scene.appendChild(V12.courtThumb('Shooting', 0, { label: 'The gym' })); }
+      scene.appendChild(window.V12DrillCourt.render({}, { still: true, label: t('coach.gym.label') }));
+    } catch (e) { scene.appendChild(V12.courtThumb('Shooting', 0, { label: t('coach.gym.label') })); }
 
     /* props — the difference between a menu and a place */
     var svgNS = 'http://www.w3.org/2000/svg';
@@ -560,7 +759,7 @@
     }
 
     /* three cones by Tank's sideline */
-    var cones = prop(60, 90, 44, CONE_DEFS, 'Cones');
+    var cones = prop(60, 90, 44, CONE_DEFS, t('coach.gym.cones'));
     cones.setAttribute('viewBox', '0 0 66 40');
     cones.innerHTML += coneAt(0) + coneAt(22) + coneAt(44);
     scene.appendChild(cones);
@@ -573,7 +772,7 @@
       '<circle cx="11" cy="35" r="2.6" fill="#3B4350"/><circle cx="29" cy="35" r="2.6" fill="#3B4350"/>' +
       '<circle cx="11" cy="35" r="1" fill="#9AA4B2"/><circle cx="29" cy="35" r="1" fill="#9AA4B2"/>' +
       ball(12, 13, 5.6) + ball(23, 14.5, 5.6) + ball(31, 11.5, 5.2),
-      'Ball cart');
+      t('coach.gym.cart'));
     scene.appendChild(rack);
 
     /* the Scout's clipboard — court print and a metal clip */
@@ -587,11 +786,11 @@
       '<path d="M13 12 L18 20 M27 12 L22 20" stroke="#0A2850" stroke-width="1.2" stroke-dasharray="2 1.6"/>' +
       '<rect x="14.5" y="2.5" width="11" height="6" rx="2.5" fill="url(#cqSteelG)"/>' +
       '<rect x="17.5" y="0.8" width="5" height="4" rx="2" fill="#6C7684"/>',
-      'Clipboard'));
+      t('coach.gym.clip')));
 
     var walking = false;
     var me = V12.faceImg({
-      class: 'c12-gym__me', alt: 'You',
+      class: 'c12-gym__me', alt: t('coach.gym.you'),
       src: V12.avatarUrl(data.prof),
       style: { left: SPOTS.player.x + '%', top: SPOTS.player.y + '%' }
     });
@@ -605,7 +804,7 @@
         : null;
       scene.appendChild(h('button', {
         class: 'c12-gym__coach', type: 'button',
-        'aria-label': 'Walk to ' + c.name + ' — ' + c.role,
+        'aria-label': t('coach.gym.walkto', { name: c.name, role: c.role }),
         style: { left: SPOTS[c.id].x + '%', top: SPOTS[c.id].y + '%' },
         onclick: function (ev) {
           if (walking) return;
@@ -646,8 +845,8 @@
       ]);
     }
     host.appendChild(h('div', { class: 'c12-tools' }, [
-      toolDoor('lib', 'ph-barbell', 'Drill library', 'drill-library'),
-      toolDoor('plan', 'ph-clipboard-text', 'Training plan', 'plan')
+      toolDoor('lib', 'ph-barbell', t('coach.tools.lib'), 'drill-library'),
+      toolDoor('plan', 'ph-clipboard-text', t('coach.tools.plan'), 'plan')
     ]));
 
     /* claims made on another device land here — pull once per launch,

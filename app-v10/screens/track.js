@@ -17,10 +17,121 @@
   var C = window.V11Court;
   var V12 = window.V12;
 
+  var T = {
+    en: {
+      'track.view.map': 'Heat map',
+      'track.view.sessions': 'Sessions',
+      'track.view.insights': 'Insights',
+      'track.map.aria': 'Your shot map by zone',
+      'track.legend.hot': 'Hot',
+      'track.legend.cold': 'Cold',
+      'track.legend.under': 'Under {n} shots',
+      'track.fg30': 'FG · 30D',
+      'track.made30': 'MADE · 30D',
+      'track.shots': 'SHOTS',
+      'track.scored': 'SCORED',
+      'track.zone.shots': '{n} shots',
+      'track.zone.none': 'none',
+      'track.empty.title': 'Nothing on the court yet',
+      'track.empty.body': 'Track a session or upload a video. Every shot lands on this map, zone by zone.',
+      'track.empty.cta': 'Start a session',
+      'track.byzone.rated': 'BY ZONE · {n} of 9 rated',
+      'track.byzone.cov': 'BY ZONE · coverage',
+      'track.note.thin': 'No zone has {n} scored shots yet, so none has a percentage. Below is what you actually took.',
+      'track.today': 'Today',
+      'track.yesterday': 'Yesterday',
+      'track.sess.empty.title': 'No sessions yet',
+      'track.sess.empty.body': 'Your first session shows up here the moment you finish it.',
+      'track.sess.empty.cta': 'Track your first session',
+      'track.sess.aria': 'Session {d}',
+      'track.sess.live': '{a} shots · counted live',
+      'track.sess.made': '{a} shots · {m} made',
+      'track.ins.empty.title': 'The scout needs evidence',
+      'track.ins.empty.body': 'Once a zone reaches {n} scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.',
+      'track.ins.empty.cta': 'Record a session',
+      'track.ins.money': 'Your money zone: {z}',
+      'track.ins.money.body': '{m} of {a} scored shots ({p}%). Build possessions that end here.',
+      'track.ins.reps': 'Needs reps: {z}',
+      'track.ins.reps.body': '{m} of {a} ({p}%). Spend 30 reps a session here until it warms up.',
+      'track.ins.coach': 'Coach says',
+      'track.court.hs': 'High school',
+      'track.court.college': 'College',
+      'track.court.nba': 'NBA',
+      'track.court.fiba': 'FIBA',
+      'track.calib.err': 'Could not open the camera to calibrate: {e}',
+      'track.calib.unknown': 'unknown',
+      'track.calib.done': 'Court calibrated',
+      'track.calib.todo': 'Calibrate your court',
+      'track.calib.done.sub': 'Shot distances and zones are mapped to real court meters.',
+      'track.calib.todo.sub': 'Tap 4 court lines once, and every shot gets a true distance and zone.',
+      'track.calib.type': 'COURT TYPE',
+      'track.calib.redo': 'Recalibrate court',
+      'track.calib.go': 'Calibrate court',
+      'track.header': 'Tracking',
+      'track.header.sub': 'Where the ball actually goes.',
+      'track.start': 'Session start'
+    },
+    he: {
+      'track.view.map': 'מפת חום',
+      'track.view.sessions': 'אימונים',
+      'track.view.insights': 'תובנות',
+      'track.map.aria': 'מפת הזריקות שלך לפי אזור',
+      'track.legend.hot': 'חם',
+      'track.legend.cold': 'קר',
+      'track.legend.under': 'פחות מ-{n} זריקות',
+      'track.fg30': '⁨FG⁩ · 30 יום',
+      'track.made30': 'קליעות · 30 יום',
+      'track.shots': 'זריקות',
+      'track.scored': 'נספרו',
+      'track.zone.shots': '{n} זריקות',
+      'track.zone.none': 'אין',
+      'track.empty.title': 'עוד אין כלום על המגרש',
+      'track.empty.body': 'תעד אימון או תעלה סרטון. כל זריקה נוחתת על המפה הזאת, אזור אחרי אזור.',
+      'track.empty.cta': 'התחל אימון',
+      'track.byzone.rated': 'לפי אזור · {n} מתוך 9 מדורגים',
+      'track.byzone.cov': 'לפי אזור · כיסוי',
+      'track.note.thin': 'אף אזור עוד לא הגיע ל-{n} זריקות שנספרו, אז אין עדיין אחוזים. למטה — מה שבאמת זרקת.',
+      'track.today': 'היום',
+      'track.yesterday': 'אתמול',
+      'track.sess.empty.title': 'עוד אין אימונים',
+      'track.sess.empty.body': 'האימון הראשון שלך יופיע כאן ברגע שתסיים אותו.',
+      'track.sess.empty.cta': 'תעד את האימון הראשון',
+      'track.sess.aria': 'אימון {d}',
+      'track.sess.live': '{a} זריקות · נספרו בלייב',
+      'track.sess.made': '{a} זריקות · {m} נכנסו',
+      'track.ins.empty.title': 'הסקאוט צריך הוכחות',
+      'track.ins.empty.body': 'ברגע שאזור מגיע ל-{n} זריקות שנספרו, הניתוח מתחיל כאן — האזור החזק, האזור החלש, ומה עושים עם זה.',
+      'track.ins.empty.cta': 'צלם אימון',
+      'track.ins.money': 'אזור הכסף שלך: {z}',
+      'track.ins.money.body': '{m} מתוך {a} זריקות שנספרו ({p}%). תבנה מהלכים שנגמרים כאן.',
+      'track.ins.reps': 'צריך חזרות: {z}',
+      'track.ins.reps.body': '{m} מתוך {a} ({p}%). תשקיע כאן 30 חזרות באימון עד שהאזור מתחמם.',
+      'track.ins.coach': 'המאמן אומר',
+      'track.court.hs': 'תיכון',
+      'track.court.college': 'קולג׳',
+      'track.court.nba': 'NBA',
+      'track.court.fiba': 'FIBA',
+      'track.calib.err': 'לא הצלחנו לפתוח את המצלמה לכיול: {e}',
+      'track.calib.unknown': 'לא ידוע',
+      'track.calib.done': 'המגרש מכויל',
+      'track.calib.todo': 'כייל את המגרש',
+      'track.calib.done.sub': 'מרחקי הזריקות והאזורים ממופים למטרים אמיתיים על המגרש.',
+      'track.calib.todo.sub': 'הקש פעם אחת על 4 קווי מגרש, וכל זריקה מקבלת מרחק ואזור מדויקים.',
+      'track.calib.type': 'סוג מגרש',
+      'track.calib.redo': 'כייל מחדש',
+      'track.calib.go': 'כייל מגרש',
+      'track.header': 'מעקב',
+      'track.header.sub': 'לאן הכדור באמת הולך.',
+      'track.start': 'התחל אימון'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   var VIEWS = [
-    { id: 'map',      label: 'Heat map' },
-    { id: 'sessions', label: 'Sessions' },
-    { id: 'insights', label: 'Insights' }
+    { id: 'map',      label: 'track.view.map' },
+    { id: 'sessions', label: 'track.view.sessions' },
+    { id: 'insights', label: 'track.view.insights' }
   ];
 
   /* ── the court, on white ──────────────────────────────────────
@@ -83,7 +194,7 @@
     });
     return svg('svg', {
       viewBox: '0 0 ' + C.W + ' ' + C.H_CROP,
-      width: '100%', role: 'img', 'aria-label': 'Your shot map by zone',
+      width: '100%', role: 'img', 'aria-label': t('track.map.aria'),
       style: 'display:block;max-width:100%;height:auto'
     }, kids);
   }
@@ -96,9 +207,9 @@
       ]);
     };
     return h('div', { class: 't12-legend' }, [
-      i('rgba(255,79,31,.85)', 'Hot'),
-      i('rgba(28,176,246,.85)', 'Cold'),
-      i('rgba(10,40,80,.14)', 'Under ' + C.MIN_VERDICTS + ' shots')
+      i('rgba(255,79,31,.85)', t('track.legend.hot')),
+      i('rgba(28,176,246,.85)', t('track.legend.cold')),
+      i('rgba(10,40,80,.14)', t('track.legend.under', { n: C.MIN_VERDICTS }))
     ]);
   }
 
@@ -112,7 +223,7 @@
   }
 
   /* ── stat chips (rate + count + count — different units) ──────*/
-  function statChips(t) {
+  function statChips(t0) {
     function chip(v, l) {
       return h('div', { class: 't12-stat' }, [
         h('div', { class: 'd-num t12-stat__v' + (v == null ? ' t12-stat__v--dim' : ''),
@@ -121,11 +232,11 @@
       ]);
     }
     return h('div', { class: 't12-stats' }, [
-      chip(t.vatt >= C.MIN_TOTAL ? Math.round(t.made / t.vatt * 100) + '%'
-                                 : (t.vatt ? t.made + '/' + t.vatt : null),
-           t.vatt >= C.MIN_TOTAL ? 'FG · 30D' : 'MADE · 30D'),
-      chip(t.att || null, 'SHOTS'),
-      chip(t.vatt || null, 'SCORED')
+      chip(t0.vatt >= C.MIN_TOTAL ? Math.round(t0.made / t0.vatt * 100) + '%'
+                                  : (t0.vatt ? t0.made + '/' + t0.vatt : null),
+           t0.vatt >= C.MIN_TOTAL ? t('track.fg30') : t('track.made30')),
+      chip(t0.att || null, t('track.shots')),
+      chip(t0.vatt || null, t('track.scored'))
     ]);
   }
 
@@ -140,8 +251,8 @@
     var val;
     if (rated) val = pct + '%';
     else if (z.vatt) val = z.made + '/' + z.vatt;
-    else if (z.att) val = z.att + ' shots';
-    else val = 'none';
+    else if (z.att) val = t('track.zone.shots', { n: z.att });
+    else val = t('track.zone.none');
     return h('div', { class: 't12-zone' + (isEmpty ? ' is-empty' : '') }, [
       h('div', { class: 't12-zone__n', text: C.LABEL[key] || key }),
       h('div', { class: 't12-zone__bar' }, [
@@ -155,13 +266,13 @@
   }
 
   function renderMapView(box, zones) {
-    var t = totals(zones);
+    var tt = totals(zones);
     var mean = C.playerMean(zones);
 
-    if (!t.att) {
-      box.appendChild(V12.empty('Nothing on the court yet',
-        'Track a session or upload a video. Every shot lands on this map, zone by zone.',
-        { hoop: true, cta: 'Start a session', ctaIcon: 'ph-video-camera',
+    if (!tt.att) {
+      box.appendChild(V12.empty(t('track.empty.title'),
+        t('track.empty.body'),
+        { hoop: true, cta: t('track.empty.cta'), ctaIcon: 'ph-video-camera',
           onCta: function () { window.app.go('camera-hud'); } }));
       return;
     }
@@ -178,10 +289,10 @@
     var order = rated.concat(byState.thin, byState.empty);
 
     box.appendChild(h('div', { class: 'd-label t12-hd',
-      text: 'BY ZONE · ' + (rated.length ? rated.length + ' of 9 rated' : 'coverage') }));
+      text: rated.length ? t('track.byzone.rated', { n: rated.length }) : t('track.byzone.cov') }));
     if (!rated.length) {
       box.appendChild(h('div', { class: 't12-note',
-        text: 'No zone has ' + C.MIN_VERDICTS + ' scored shots yet, so none has a percentage. Below is what you actually took.' }));
+        text: t('track.note.thin', { n: C.MIN_VERDICTS }) }));
     }
     order.forEach(function (k) {
       box.appendChild(zoneRow(k, zones[k] || { made: 0, att: 0, vatt: 0 }, mean));
@@ -194,8 +305,8 @@
       var d = new Date(iso);
       var today = new Date().toDateString();
       var yest = new Date(Date.now() - 86400000).toDateString();
-      if (d.toDateString() === today) return 'Today';
-      if (d.toDateString() === yest) return 'Yesterday';
+      if (d.toDateString() === today) return t('track.today');
+      if (d.toDateString() === yest) return t('track.yesterday');
       return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     } catch (e) { return ''; }
   }
@@ -203,9 +314,9 @@
   function renderSessionsView(box, ctx) {
     return ctx.data.getSessions(15).then(function (rows) {
       if (!rows || !rows.length) {
-        box.appendChild(V12.empty('No sessions yet',
-          'Your first session shows up here the moment you finish it.',
-          { cta: 'Track your first session', ctaIcon: 'ph-video-camera',
+        box.appendChild(V12.empty(t('track.sess.empty.title'),
+          t('track.sess.empty.body'),
+          { cta: t('track.sess.empty.cta'), ctaIcon: 'ph-video-camera',
             onCta: function () { ctx.go('camera-hud'); } }));
         return;
       }
@@ -218,7 +329,7 @@
         box.appendChild(V12.card({
           class: 't12-sess', press: true,
           onClick: function () { ctx.go('post-session'); },
-          label: 'Session ' + dateLabel(s.session_date || s.created_at)
+          label: t('track.sess.aria', { d: dateLabel(s.session_date || s.created_at) })
         }, [
           h('div', { class: 't12-sess__ic' }, [
             h('i', { class: 'ph-fill ' + (counter ? 'ph-timer' : 'ph-video-camera') })
@@ -226,7 +337,8 @@
           h('div', { class: 't12-sess__main' }, [
             h('div', { class: 't12-sess__t', text: dateLabel(s.session_date || s.created_at) }),
             h('div', { class: 't12-sess__s',
-              text: att + ' shots' + (counter ? ' · counted live' : ' · ' + made + ' made') })
+              text: counter ? t('track.sess.live', { a: att })
+                            : t('track.sess.made', { a: att, m: made }) })
           ]),
           h('div', { class: 'd-num t12-sess__v', text: right })
         ]));
@@ -244,10 +356,9 @@
     });
 
     if (!rated.length) {
-      box.appendChild(V12.empty('The scout needs evidence',
-        'Once a zone reaches ' + C.MIN_VERDICTS +
-        ' scored shots, the analysis starts here — strongest zone, weakest zone, and what to do about it.',
-        { cta: 'Record a session', ctaIcon: 'ph-video-camera',
+      box.appendChild(V12.empty(t('track.ins.empty.title'),
+        t('track.ins.empty.body', { n: C.MIN_VERDICTS }),
+        { cta: t('track.ins.empty.cta'), ctaIcon: 'ph-video-camera',
           onCta: function () { ctx.go('camera-hud'); } }));
       return;
     }
@@ -260,17 +371,19 @@
       ]);
     }
     var bz = zones[best], wz = zones[worst];
-    box.appendChild(line('ph-fire', 'orange', 'Your money zone: ' + C.LABEL[best],
-      bz.made + ' of ' + bz.vatt + ' scored shots (' + Math.round(bz.made / bz.vatt * 100) +
-      '%). Build possessions that end here.'));
+    box.appendChild(line('ph-fire', 'orange', t('track.ins.money', { z: C.LABEL[best] }),
+      t('track.ins.money.body', {
+        m: bz.made, a: bz.vatt, p: Math.round(bz.made / bz.vatt * 100)
+      })));
     if (worst !== best) {
-      box.appendChild(line('ph-snowflake', 'blue', 'Needs reps: ' + C.LABEL[worst],
-        wz.made + ' of ' + wz.vatt + ' (' + Math.round(wz.made / wz.vatt * 100) +
-        '%). Spend 30 reps a session here until it warms up.'));
+      box.appendChild(line('ph-snowflake', 'blue', t('track.ins.reps', { z: C.LABEL[worst] }),
+        t('track.ins.reps.body', {
+          m: wz.made, a: wz.vatt, p: Math.round(wz.made / wz.vatt * 100)
+        })));
     }
     return ctx.data.getCoachVerdict().then(function (coach) {
       if (coach && coach.verdict) {
-        box.appendChild(line('ph-chalkboard-teacher', 'green', 'Coach says', coach.verdict));
+        box.appendChild(line('ph-chalkboard-teacher', 'green', t('track.ins.coach'), coach.verdict));
       }
     });
   }
@@ -282,10 +395,10 @@
   var CALIB_KEY = 'courtiq-calib-v1';
   var SPEC_KEY = 'courtiq-court-spec';
   var COURT_TYPES = [
-    { id: 'us_hs', label: 'High school' },
-    { id: 'ncaa',  label: 'College' },
-    { id: 'nba',   label: 'NBA' },
-    { id: 'fiba',  label: 'FIBA' }
+    { id: 'us_hs', label: 'track.court.hs' },
+    { id: 'ncaa',  label: 'track.court.college' },
+    { id: 'nba',   label: 'track.court.nba' },
+    { id: 'fiba',  label: 'track.court.fiba' }
   ];
 
   function calibSection(repaint) {
@@ -304,7 +417,7 @@
         persistKey: CALIB_KEY,
         onDone: function () { repaint(); },
         onError: function (err) {
-          alert('Could not open the camera to calibrate: ' + (err && err.message || 'unknown'));
+          alert(t('track.calib.err', { e: (err && err.message || t('track.calib.unknown')) }));
         }
       });
     }
@@ -313,13 +426,13 @@
                       bgIcon: 'ph-ruler', bgTone: calibrated ? 'green' : 'ink' }, [
       h('div', { class: 't12-calib__hd' }, [
         h('i', { class: 'ph-fill ' + (calibrated ? 'ph-check-circle' : 'ph-ruler') }),
-        h('div', { text: calibrated ? 'Court calibrated' : 'Calibrate your court' })
+        h('div', { text: calibrated ? t('track.calib.done') : t('track.calib.todo') })
       ]),
       h('div', { class: 't12-calib__sub', text: calibrated
-        ? 'Shot distances and zones are mapped to real court meters.'
-        : 'Tap 4 court lines once, and every shot gets a true distance and zone.' }),
-      h('div', { class: 'd-label t12-calib__lbl', text: 'COURT TYPE' }),
-      V12.seg(COURT_TYPES, spec, function (next) {
+        ? t('track.calib.done.sub')
+        : t('track.calib.todo.sub') }),
+      h('div', { class: 'd-label t12-calib__lbl', text: t('track.calib.type') }),
+      V12.seg(COURT_TYPES.map(function (c) { return { id: c.id, label: t(c.label) }; }), spec, function (next) {
         localStorage.setItem(SPEC_KEY, next);
         // a saved calibration was fit to the old spec — clear it so the
         // status is honest until the user recalibrates on the new spec
@@ -330,7 +443,7 @@
         repaint();
       }),
       V12.btn({
-        label: calibrated ? 'Recalibrate court' : 'Calibrate court',
+        label: calibrated ? t('track.calib.redo') : t('track.calib.go'),
         icon: 'ph-crosshair', onClick: launch
       })
     ]);
@@ -343,19 +456,20 @@
 
     return ctx.data.getZones().then(function (zones) {
       zones = zones || {};
-      var t = totals(zones);
+      var tt = totals(zones);
       var mean = C.playerMean(zones);
 
       function paint() {
         while (host.firstChild) host.removeChild(host.firstChild);
 
-        host.appendChild(V12.header('Tracking', 'Where the ball actually goes.'));
+        host.appendChild(V12.header(t('track.header'), t('track.header.sub')));
 
         /* the court hero — always up, whatever the view */
         host.appendChild(V12.card({ class: 't12-court' }, [buildMap(zones, mean)]));
-        if (t.att) host.appendChild(legend());
-        host.appendChild(statChips(t));
-        host.appendChild(V12.seg(VIEWS, view, function (next) { view = next; paint(); }));
+        if (tt.att) host.appendChild(legend());
+        host.appendChild(statChips(tt));
+        host.appendChild(V12.seg(VIEWS.map(function (v) { return { id: v.id, label: t(v.label) }; }),
+          view, function (next) { view = next; paint(); }));
 
         var box = h('div', { class: 't12-box' });
         host.appendChild(box);
@@ -367,7 +481,7 @@
         if (calib) host.appendChild(calib);
 
         host.appendChild(V12.btn({
-          label: 'Session start', icon: 'ph-play-circle',
+          label: t('track.start'), icon: 'ph-play-circle',
           // via the setup screen — it forwards straight through once the
           // user has ticked "don't show this again"
           onClick: function () { ctx.go('session-prep'); }

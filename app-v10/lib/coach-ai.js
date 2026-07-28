@@ -366,7 +366,9 @@
         body: JSON.stringify({
           context: contextBlock(data),
           history: history,
-          persona: persona
+          persona: persona,
+          /* the staff answers in the app's language (server allowlists) */
+          lang: (window.V12I18n && window.V12I18n.current()) || 'en'
         }),
         signal: controller.signal
       }).then(function (res) {

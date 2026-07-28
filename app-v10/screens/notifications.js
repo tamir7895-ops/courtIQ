@@ -12,6 +12,49 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
+  var T = {
+    en: {
+      'notif.back':       'Back',
+      'notif.title':      'Inbox',
+      'notif.hd.zero':    'All caught up',
+      'notif.hd.one':     '{n} thing worth knowing',
+      'notif.hd.many':    '{n} things worth knowing',
+      'notif.streak.t':   'Streak at risk',
+      'notif.streak.b':   '{n}-day streak on the line. One session today keeps it alive.',
+      'notif.scout.t':    'Scouting report ready',
+      'notif.trophy.t':   'Trophy earned',
+      'notif.trophy.new': 'New trophy',
+      'notif.trophy.b':   '{name} is in your case.',
+      'notif.week.t':     'Weekly challenge',
+      'notif.week.left':  '{up} shots up — {left} to go for the star.',
+      'notif.week.done':  '100 shots this week. The star is yours.',
+      'notif.empty.t':    'Inbox zero',
+      'notif.empty.s':    'Nothing needs you right now. Go put up shots — the inbox fills itself.',
+      'notif.start':      'Start session'
+    },
+    he: {
+      'notif.back':       'חזרה',
+      'notif.title':      'הודעות',
+      'notif.hd.zero':    'הכל מעודכן',
+      'notif.hd.one':     'דבר אחד ששווה לדעת',
+      'notif.hd.many':    '{n} דברים ששווה לדעת',
+      'notif.streak.t':   'הרצף בסכנה',
+      'notif.streak.b':   'רצף של {n} ימים על הכף. סשן אחד היום שומר עליו.',
+      'notif.scout.t':    'דוח הסקאוטינג מוכן',
+      'notif.trophy.t':   'גביע חדש בארון',
+      'notif.trophy.new': 'גביע חדש',
+      'notif.trophy.b':   '{name} כבר בארון הגביעים שלך.',
+      'notif.week.t':     'האתגר השבועי',
+      'notif.week.left':  '{up} זריקות בפנים — עוד {left} לכוכב.',
+      'notif.week.done':  '100 זריקות השבוע. הכוכב שלך.',
+      'notif.empty.t':    'אפס הודעות',
+      'notif.empty.s':    'שום דבר לא מחכה לך כרגע. צא לזרוק — התיבה תתמלא לבד.',
+      'notif.start':      'התחלת סשן'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   function build(ctx) {
     return Promise.all([
       ctx.data.getProfile(),
@@ -24,14 +67,14 @@
 
       if ((prof.streak || 0) > 0 && !(today.attempted > 0)) {
         notes.push({
-          tone: 'orange', icon: 'ph-fire', title: 'Streak at risk',
-          body: prof.streak + '-day streak on the line. One session today keeps it alive.',
+          tone: 'orange', icon: 'ph-fire', title: t('notif.streak.t'),
+          body: t('notif.streak.b', { n: prof.streak }),
           dest: 'camera-hud'
         });
       }
       if (coach && coach.verdict) {
         notes.push({
-          tone: 'green', icon: 'ph-chalkboard-teacher', title: 'Scouting report ready',
+          tone: 'green', icon: 'ph-chalkboard-teacher', title: t('notif.scout.t'),
           body: coach.verdict, dest: 'coach'
         });
       }
@@ -41,8 +84,8 @@
           var last = earned[earned.length - 1];
           if (last) {
             notes.push({
-              tone: 'gold', icon: 'ph-trophy', title: 'Trophy earned',
-              body: (last.name || last.id || 'New trophy') + ' is in your case.',
+              tone: 'gold', icon: 'ph-trophy', title: t('notif.trophy.t'),
+              body: t('notif.trophy.b', { name: last.name || last.id || t('notif.trophy.new') }),
               dest: 'me'
             });
           }
@@ -51,9 +94,9 @@
       if ((week.attempts || 0) > 0) {
         var left = Math.max(0, 100 - week.attempts);
         notes.push({
-          tone: 'blue', icon: 'ph-flag-banner', title: 'Weekly challenge',
-          body: left ? week.attempts + ' shots up — ' + left + ' to go for the star.'
-                     : '100 shots this week. The star is yours.',
+          tone: 'blue', icon: 'ph-flag-banner', title: t('notif.week.t'),
+          body: left ? t('notif.week.left', { up: week.attempts, left: left })
+                     : t('notif.week.done'),
           dest: 'home'
         });
       }
@@ -67,20 +110,20 @@
     return build(ctx).then(function (data) {
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
-          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          class: 'c12-back', type: 'button', 'aria-label': t('notif.back'),
           onclick: function () { ctx.go('home'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
-          h('div', { class: 'c12-chat-hd__t', text: 'Inbox' }),
+          h('div', { class: 'c12-chat-hd__t', text: t('notif.title') }),
           h('div', { class: 'c12-chat-hd__s',
-            text: data.notes.length ? data.notes.length + ' thing' +
-              (data.notes.length === 1 ? '' : 's') + ' worth knowing' : 'All caught up' })
+            text: data.notes.length
+              ? t(data.notes.length === 1 ? 'notif.hd.one' : 'notif.hd.many', { n: data.notes.length })
+              : t('notif.hd.zero') })
         ])
       ]));
 
       if (!data.notes.length) {
-        host.appendChild(V12.empty('Inbox zero',
-          'Nothing needs you right now. Go put up shots — the inbox fills itself.'));
+        host.appendChild(V12.empty(t('notif.empty.t'), t('notif.empty.s')));
       }
 
       /* neutral rows, vivid icon squares — color marks the TYPE, the row stays paper */
@@ -101,7 +144,7 @@
       });
 
       host.appendChild(V12.btn({
-        label: 'Start session', icon: 'ph-play-circle',
+        label: t('notif.start'), icon: 'ph-play-circle',
         onClick: function () { ctx.go('camera-hud'); }
       }));
     });

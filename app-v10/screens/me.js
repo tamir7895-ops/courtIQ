@@ -19,21 +19,216 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
-  /* Mirrors BADGES in js/badges.js (kept inside its IIFE there). */
+  var T = {
+    en: {
+      'me.back':             'Back',
+      'me.rookie':           'Rookie',
+      'me.player':           'PLAYER',
+      'me.lv':               'LV {n}',
+      'me.meta.iq':          '{pos} · Court IQ {score} · {tier}',
+      'me.meta.unrated':     '{pos} · Unrated',
+      'me.shop':             'Shop',
+      'me.tile.shop':        'SHOP',
+      'me.editprof':         'Edit profile',
+      'me.tile.editprof':    'EDIT PROFILE',
+      'me.tile.settings':    'SETTINGS',
+      'me.tile.trophies':    'TROPHIES',
+      'me.rec.title':        'PERSONAL RECORDS',
+      'me.rec.line':         '{pct}% ({made}/{att})',
+      'me.rec.best':         'Best session',
+      'me.rec.day':          'Most shots in a day',
+      'me.rec.streak':       'Longest streak',
+      'me.rec.all':          'Shots all-time',
+      'me.rec.days':         '{n}d',
+      'me.career.sessions':  'SESSIONS',
+      'me.career.shots':     'SHOTS',
+      'me.career.streak':    'STREAK',
+      'me.tro.title':        'Trophies',
+      'me.tro.sub':          '{got} of {total} — all earned on the court',
+      'me.tro.earned':       'Earned',
+      'me.tro.streak3.n':    '3-Day Fire',
+      'me.tro.streak3.r':    '3 day streak',
+      'me.tro.streak7.n':    'Week Warrior',
+      'me.tro.streak7.r':    '7 day streak',
+      'me.tro.streak14.n':   'Two-Week Beast',
+      'me.tro.streak14.r':   '14 day streak',
+      'me.tro.streak30.n':   'Iron Will',
+      'me.tro.streak30.r':   '30 day streak',
+      'me.tro.hothand.n':    'Hot Hand',
+      'me.tro.hothand.r':    '30 shots in a session',
+      'me.tro.sniper.n':     'Sniper',
+      'me.tro.sniper.r':     '80% on 10+ shots',
+      'me.tro.marathon.n':   'Marathon',
+      'me.tro.marathon.r':   '5 sessions in a week',
+      'me.tro.3pt100.n':     'Downtown',
+      'me.tro.3pt100.r':     '100 lifetime 3PT',
+      'me.tro.shots500.n':   'Shot Machine',
+      'me.tro.shots500.r':   '500 lifetime shots',
+      'me.tro.firstai.n':    'AI Rookie',
+      'me.tro.firstai.r':    'First tracked session',
+      'me.tro.firstdrill.n': 'Gym Rat',
+      'me.tro.firstdrill.r': 'First drill',
+      'me.tro.firstsession.n': 'Day One',
+      'me.tro.firstsession.r': 'First session',
+      'me.tro.customizer.n': 'Style Icon',
+      'me.tro.customizer.r': 'Avatar customised',
+      'me.set.title':        'Settings',
+      'me.set.signin.t':     'Sign in / create account',
+      'me.set.signin.s':     'Sync sessions, streak and Court IQ across devices.',
+      'me.set.avatar.t':     'Customise avatar',
+      'me.set.avatar.s':     'How you show up on the court.',
+      'me.set.notif':        'Notifications',
+      'me.set.rem.t':        'Training reminders',
+      'me.set.rem.on':       'On — plan days 17:30, streak saver 20:30',
+      'me.set.rem.off':      'Off — no reminders from the staff',
+      'me.set.lang':         'Language',
+      'me.set.redo.t':       'Redo intro & setup',
+      'me.set.redo.s':       'Replay the welcome flow — your progress and sessions stay.',
+      'me.set.signout':      'Sign out',
+      'me.set.del.t':        'Delete account',
+      'me.set.del.s':        'Removes your account and synced data. Cannot be undone.',
+      'me.set.del.confirm':  'Delete your account and all synced data? This cannot be undone.',
+      'me.edit.title':       'Edit my data',
+      'me.edit.sub':         'Your combine card — change anything',
+      'me.edit.name':        'NAME',
+      'me.edit.nameph':      'Your name',
+      'me.edit.pos':         'Position',
+      'me.pos.pg':           'Point',
+      'me.pos.sg':           'Shooting',
+      'me.pos.sf':           'Small F',
+      'me.pos.pf':           'Power F',
+      'me.pos.c':            'Center',
+      'me.edit.style':       'Play style',
+      'me.style.sniper':     'Sniper',
+      'me.style.slasher':    'Slasher',
+      'me.style.floorgen':   'Floor Gen',
+      'me.style.lockdown':   'Lockdown',
+      'me.edit.height':      'Height',
+      'me.edit.weight':      'Weight',
+      'me.edit.age':         'Age',
+      'me.edit.hand':        'Shooting hand',
+      'me.hand.l':           'Lefty',
+      'me.hand.r':           'Righty',
+      'me.edit.save':        'Save',
+      'me.unit.in':          '"',
+      'me.unit.lb':          ' lb',
+      'me.unit.yr':          ' yr'
+    },
+    he: {
+      'me.back':             'חזרה',
+      'me.rookie':           'רוקי',
+      'me.player':           'שחקן',
+      'me.lv':               'רמה {n}',
+      'me.meta.iq':          '{pos} · Court IQ {score} · {tier}',
+      'me.meta.unrated':     '{pos} · ללא דירוג',
+      'me.shop':             'חנות',
+      'me.tile.shop':        'חנות',
+      'me.editprof':         'עריכת פרופיל',
+      'me.tile.editprof':    'עריכת פרופיל',
+      'me.tile.settings':    'הגדרות',
+      'me.tile.trophies':    'גביעים',
+      'me.rec.title':        'שיאים אישיים',
+      'me.rec.line':         '{pct}% ({made}/{att})',
+      'me.rec.best':         'הסשן הטוב ביותר',
+      'me.rec.day':          'הכי הרבה זריקות ביום',
+      'me.rec.streak':       'הרצף הארוך ביותר',
+      'me.rec.all':          'זריקות בקריירה',
+      'me.rec.days':         '{n} ימים',
+      'me.career.sessions':  'סשנים',
+      'me.career.shots':     'זריקות',
+      'me.career.streak':    'רצף',
+      'me.tro.title':        'גביעים',
+      'me.tro.sub':          '{got} מתוך {total} — הכל הושג על המגרש',
+      'me.tro.earned':       'הושג',
+      'me.tro.streak3.n':    'אש של 3 ימים',
+      'me.tro.streak3.r':    'רצף של 3 ימים',
+      'me.tro.streak7.n':    'לוחם השבוע',
+      'me.tro.streak7.r':    'רצף של 7 ימים',
+      'me.tro.streak14.n':   'חיה של שבועיים',
+      'me.tro.streak14.r':   'רצף של 14 ימים',
+      'me.tro.streak30.n':   'רצון ברזל',
+      'me.tro.streak30.r':   'רצף של 30 ימים',
+      'me.tro.hothand.n':    'יד חמה',
+      'me.tro.hothand.r':    '30 זריקות בסשן אחד',
+      'me.tro.sniper.n':     'צלף',
+      'me.tro.sniper.r':     '80% על 10+ זריקות',
+      'me.tro.marathon.n':   'מרתון',
+      'me.tro.marathon.r':   '5 סשנים בשבוע',
+      'me.tro.3pt100.n':     'מחוץ לקשת',
+      'me.tro.3pt100.r':     '100 שלשות בקריירה',
+      'me.tro.shots500.n':   'מכונת זריקות',
+      'me.tro.shots500.r':   '500 זריקות בקריירה',
+      'me.tro.firstai.n':    'רוקי ה-AI',
+      'me.tro.firstai.r':    'סשן מנוטר ראשון',
+      'me.tro.firstdrill.n': 'חולה אולם',
+      'me.tro.firstdrill.r': 'תרגיל ראשון',
+      'me.tro.firstsession.n': 'היום הראשון',
+      'me.tro.firstsession.r': 'סשן ראשון',
+      'me.tro.customizer.n': 'אייקון של סטייל',
+      'me.tro.customizer.r': 'אווטאר בהתאמה אישית',
+      'me.set.title':        'הגדרות',
+      'me.set.signin.t':     'כניסה / יצירת חשבון',
+      'me.set.signin.s':     'סנכרון סשנים, רצף ו-Court IQ בין מכשירים.',
+      'me.set.avatar.t':     'התאמת אווטאר',
+      'me.set.avatar.s':     'ככה אתה נראה על המגרש.',
+      'me.set.notif':        'התראות',
+      'me.set.rem.t':        'תזכורות אימון',
+      'me.set.rem.on':       'פועל — ימי תוכנית 17:30, שומר רצף 20:30',
+      'me.set.rem.off':      'כבוי — בלי תזכורות מהצוות',
+      'me.set.lang':         'שפה',
+      'me.set.redo.t':       'התחלת ההיכרות מחדש',
+      'me.set.redo.s':       'מריצים שוב את מסך הפתיחה — ההתקדמות והסשנים נשארים.',
+      'me.set.signout':      'התנתקות',
+      'me.set.del.t':        'מחיקת חשבון',
+      'me.set.del.s':        'מוחק את החשבון והנתונים המסונכרנים. אי אפשר לבטל.',
+      'me.set.del.confirm':  'למחוק את החשבון וכל הנתונים המסונכרנים? אי אפשר לבטל.',
+      'me.edit.title':       'עריכת הנתונים שלי',
+      'me.edit.sub':         'כרטיס הקומביין שלך — אפשר לשנות הכל',
+      'me.edit.name':        'שם',
+      'me.edit.nameph':      'השם שלך',
+      'me.edit.pos':         'עמדה',
+      'me.pos.pg':           'רכז',
+      'me.pos.sg':           'קלע',
+      'me.pos.sf':           'כנף',
+      'me.pos.pf':           'פאוור',
+      'me.pos.c':            'סנטר',
+      'me.edit.style':       'סגנון משחק',
+      'me.style.sniper':     'צלף',
+      'me.style.slasher':    'חודר',
+      'me.style.floorgen':   'מנהל משחק',
+      'me.style.lockdown':   'מגן צמוד',
+      'me.edit.height':      'גובה',
+      'me.edit.weight':      'משקל',
+      'me.edit.age':         'גיל',
+      'me.edit.hand':        'יד קולעת',
+      'me.hand.l':           'שמאלי',
+      'me.hand.r':           'ימני',
+      'me.edit.save':        'שמירה',
+      'me.unit.in':          '"',
+      'me.unit.lb':          ' ליב׳',
+      'me.unit.yr':          ' שנים'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
+  /* Mirrors BADGES in js/badges.js (kept inside its IIFE there).
+     Names/reqs are i18n keys — resolved with t() at paint time so a
+     language switch repaints correctly without a reload. */
   var TROPHIES = [
-    { id: 'streak-3',      tier: 'gold',   icon: 'ph-fire',        name: '3-Day Fire',     req: '3 day streak' },
-    { id: 'streak-7',      tier: 'gold',   icon: 'ph-fire-simple', name: 'Week Warrior',   req: '7 day streak' },
-    { id: 'streak-14',     tier: 'gold',   icon: 'ph-flame',       name: 'Two-Week Beast', req: '14 day streak' },
-    { id: 'streak-30',     tier: 'gold',   icon: 'ph-trophy',      name: 'Iron Will',      req: '30 day streak' },
-    { id: 'hot-hand',      tier: 'silver', icon: 'ph-hand-fist',   name: 'Hot Hand',       req: '30 shots in a session' },
-    { id: 'sniper',        tier: 'silver', icon: 'ph-crosshair',   name: 'Sniper',         req: '80% on 10+ shots' },
-    { id: 'marathon',      tier: 'silver', icon: 'ph-path',        name: 'Marathon',       req: '5 sessions in a week' },
-    { id: '3pt-100',       tier: 'silver', icon: 'ph-basketball',  name: 'Downtown',       req: '100 lifetime 3PT' },
-    { id: 'shots-500',     tier: 'silver', icon: 'ph-medal',       name: 'Shot Machine',   req: '500 lifetime shots' },
-    { id: 'first-ai',      tier: 'bronze', icon: 'ph-robot',       name: 'AI Rookie',      req: 'First tracked session' },
-    { id: 'first-drill',   tier: 'bronze', icon: 'ph-barbell',     name: 'Gym Rat',        req: 'First drill' },
-    { id: 'first-session', tier: 'bronze', icon: 'ph-flag',        name: 'Day One',        req: 'First session' },
-    { id: 'customizer',    tier: 'bronze', icon: 'ph-user-focus',  name: 'Style Icon',     req: 'Avatar customised' }
+    { id: 'streak-3',      tier: 'gold',   icon: 'ph-fire',        nk: 'me.tro.streak3.n',      rk: 'me.tro.streak3.r' },
+    { id: 'streak-7',      tier: 'gold',   icon: 'ph-fire-simple', nk: 'me.tro.streak7.n',      rk: 'me.tro.streak7.r' },
+    { id: 'streak-14',     tier: 'gold',   icon: 'ph-flame',       nk: 'me.tro.streak14.n',     rk: 'me.tro.streak14.r' },
+    { id: 'streak-30',     tier: 'gold',   icon: 'ph-trophy',      nk: 'me.tro.streak30.n',     rk: 'me.tro.streak30.r' },
+    { id: 'hot-hand',      tier: 'silver', icon: 'ph-hand-fist',   nk: 'me.tro.hothand.n',      rk: 'me.tro.hothand.r' },
+    { id: 'sniper',        tier: 'silver', icon: 'ph-crosshair',   nk: 'me.tro.sniper.n',       rk: 'me.tro.sniper.r' },
+    { id: 'marathon',      tier: 'silver', icon: 'ph-path',        nk: 'me.tro.marathon.n',     rk: 'me.tro.marathon.r' },
+    { id: '3pt-100',       tier: 'silver', icon: 'ph-basketball',  nk: 'me.tro.3pt100.n',       rk: 'me.tro.3pt100.r' },
+    { id: 'shots-500',     tier: 'silver', icon: 'ph-medal',       nk: 'me.tro.shots500.n',     rk: 'me.tro.shots500.r' },
+    { id: 'first-ai',      tier: 'bronze', icon: 'ph-robot',       nk: 'me.tro.firstai.n',      rk: 'me.tro.firstai.r' },
+    { id: 'first-drill',   tier: 'bronze', icon: 'ph-barbell',     nk: 'me.tro.firstdrill.n',   rk: 'me.tro.firstdrill.r' },
+    { id: 'first-session', tier: 'bronze', icon: 'ph-flag',        nk: 'me.tro.firstsession.n', rk: 'me.tro.firstsession.r' },
+    { id: 'customizer',    tier: 'bronze', icon: 'ph-user-focus',  nk: 'me.tro.customizer.n',   rk: 'me.tro.customizer.r' }
   ];
 
   function earnedMap() {
@@ -61,7 +256,7 @@
 
   function backBtn(onBack) {
     return h('button', {
-      class: 'c12-back', type: 'button', 'aria-label': 'Back', onclick: onBack
+      class: 'c12-back', type: 'button', 'aria-label': t('me.back'), onclick: onBack
     }, [h('i', { class: 'ph-bold ph-arrow-left' })]);
   }
 
@@ -69,26 +264,26 @@
   function trophiesView(host, ctx, back) {
     while (host.firstChild) host.removeChild(host.firstChild);
     var earned = earnedMap();
-    var got = TROPHIES.filter(function (t) { return earned[t.id]; }).length;
+    var got = TROPHIES.filter(function (tr) { return earned[tr.id]; }).length;
 
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       backBtn(back),
       h('div', {}, [
-        h('div', { class: 'c12-chat-hd__t', text: 'Trophies' }),
-        h('div', { class: 'c12-chat-hd__s', text: got + ' of ' + TROPHIES.length + ' — all earned on the court' })
+        h('div', { class: 'c12-chat-hd__t', text: t('me.tro.title') }),
+        h('div', { class: 'c12-chat-hd__s', text: t('me.tro.sub', { got: got, total: TROPHIES.length }) })
       ])
     ]));
 
     var grid = h('div', { class: 'm12-trogrid' });
-    TROPHIES.forEach(function (t) {
-      var isE = !!earned[t.id];
+    TROPHIES.forEach(function (tr) {
+      var isE = !!earned[tr.id];
       grid.appendChild(h('div', {
-        class: 'm12-tro' + (isE ? ' is-earned is-' + t.tier : ''),
-        title: t.req
+        class: 'm12-tro' + (isE ? ' is-earned is-' + tr.tier : ''),
+        title: t(tr.rk)
       }, [
-        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + t.icon }),
-        h('div', { class: 'm12-tro__n', text: t.name }),
-        h('div', { class: 'm12-tro__d', text: isE ? 'Earned' : t.req })
+        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + tr.icon }),
+        h('div', { class: 'm12-tro__n', text: t(tr.nk) }),
+        h('div', { class: 'm12-tro__d', text: isE ? t('me.tro.earned') : t(tr.rk) })
       ]));
     });
     host.appendChild(grid);
@@ -99,7 +294,7 @@
     while (host.firstChild) host.removeChild(host.firstChild);
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       backBtn(back),
-      h('div', {}, [h('div', { class: 'c12-chat-hd__t', text: 'Settings' })])
+      h('div', {}, [h('div', { class: 'c12-chat-hd__t', text: t('me.set.title') })])
     ]));
 
     var signedIn = !!(ctx.data.isSignedIn && ctx.data.isSignedIn());
@@ -116,34 +311,54 @@
     }
 
     if (!signedIn) {
-      host.appendChild(row('ph-user-circle', 'Sign in / create account',
-        'Sync sessions, streak and Court IQ across devices.',
+      host.appendChild(row('ph-user-circle', t('me.set.signin.t'),
+        t('me.set.signin.s'),
         function () { ctx.go('auth'); }));
     }
-    host.appendChild(row('ph-user-focus', 'Customise avatar',
-      'How you show up on the court.',
+    host.appendChild(row('ph-user-focus', t('me.set.avatar.t'),
+      t('me.set.avatar.s'),
       function () { ctx.go('avatar-customizer'); }));
-    host.appendChild(row('ph-bell', 'Notifications', null,
+    host.appendChild(row('ph-bell', t('me.set.notif'), null,
       function () { ctx.go('notifications'); }));
 
     /* training reminders — the toggle IS the row; tap flips it */
     if (window.V12Notify) {
       var on = window.V12Notify.enabled();
-      host.appendChild(row('ph-bell-ringing', 'Training reminders',
-        on ? 'On — plan days 17:30, streak saver 20:30'
-           : 'Off — no reminders from the staff',
+      host.appendChild(row('ph-bell-ringing', t('me.set.rem.t'),
+        on ? t('me.set.rem.on') : t('me.set.rem.off'),
         function () {
           window.V12Notify.setEnabled(!on);
           settingsView(host, ctx, back);        /* repaint with new state */
         }));
     }
 
+    /* language — the row shows the CURRENT language; tapping flips to
+       the other one and repaints, same pattern as the reminder toggle.
+       V12I18n.set() also flips document dir, so the whole app follows. */
+    if (window.V12I18n && V12I18n.LANGS && V12I18n.LANGS.length > 1) {
+      var curCode = V12I18n.current();
+      var curLang = null, otherLang = null;
+      for (var li = 0; li < V12I18n.LANGS.length; li++) {
+        if (V12I18n.LANGS[li].code === curCode) curLang = V12I18n.LANGS[li];
+        else otherLang = V12I18n.LANGS[li];
+      }
+      if (!curLang) curLang = V12I18n.LANGS[0];
+      if (otherLang) {
+        host.appendChild(row('ph-translate', t('me.set.lang'),
+          curLang.label,
+          function () {
+            V12I18n.set(otherLang.code);
+            settingsView(host, ctx, back);      /* repaint in the new language */
+          }));
+      }
+    }
+
     /* Replay the whole first-run journey — landing, language, the
        combine, the avatar. A do-over, not a reset: progression, XP,
        streak and sessions stay exactly where they are; finishing the
        combine again simply overwrites the profile answers. */
-    host.appendChild(row('ph-arrow-counter-clockwise', 'Redo intro & setup',
-      'Replay the welcome flow — your progress and sessions stay.',
+    host.appendChild(row('ph-arrow-counter-clockwise', t('me.set.redo.t'),
+      t('me.set.redo.s'),
       function () {
         try {
           localStorage.removeItem('courtiq_onboarded');
@@ -156,15 +371,15 @@
       }));
 
     if (signedIn) {
-      host.appendChild(row('ph-sign-out', 'Sign out', null, function () {
+      host.appendChild(row('ph-sign-out', t('me.set.signout'), null, function () {
         if (window.V10Auth && window.V10Auth.signOut) {
           window.V10Auth.signOut().then(function () { ctx.go('home'); });
         }
       }));
-      host.appendChild(row('ph-trash', 'Delete account',
-        'Removes your account and synced data. Cannot be undone.',
+      host.appendChild(row('ph-trash', t('me.set.del.t'),
+        t('me.set.del.s'),
         function () {
-          if (window.confirm('Delete your account and all synced data? This cannot be undone.') &&
+          if (window.confirm(t('me.set.del.confirm')) &&
               window.V10Auth && window.V10Auth.deleteAccount) {
             window.V10Auth.deleteAccount().then(function () { ctx.go('home'); });
           }
@@ -196,8 +411,8 @@
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       backBtn(back),
       h('div', {}, [
-        h('div', { class: 'c12-chat-hd__t', text: 'Edit my data' }),
-        h('div', { class: 'c12-chat-hd__s', text: 'Your combine card — change anything' })
+        h('div', { class: 'c12-chat-hd__t', text: t('me.edit.title') }),
+        h('div', { class: 'c12-chat-hd__s', text: t('me.edit.sub') })
       ])
     ]));
 
@@ -236,28 +451,28 @@
 
     var nameIn = h('input', {
       class: 'onb12-input', type: 'text', maxlength: '24',
-      placeholder: 'Your name', value: cur.name,
+      placeholder: t('me.edit.nameph'), value: cur.name,
       oninput: function (e) { cur.name = e.target.value; }
     });
 
     scroll.appendChild(h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'd-label', text: 'NAME' }), nameIn,
-      pickRow('Position', [
-        { id: 'PG', l: 'Point' }, { id: 'SG', l: 'Shooting' }, { id: 'SF', l: 'Small F' },
-        { id: 'PF', l: 'Power F' }, { id: 'C', l: 'Center' }
+      h('div', { class: 'd-label', text: t('me.edit.name') }), nameIn,
+      pickRow(t('me.edit.pos'), [
+        { id: 'PG', l: t('me.pos.pg') }, { id: 'SG', l: t('me.pos.sg') }, { id: 'SF', l: t('me.pos.sf') },
+        { id: 'PF', l: t('me.pos.pf') }, { id: 'C', l: t('me.pos.c') }
       ], 'position', 3),
-      pickRow('Play style', [
-        { id: 'sniper', l: 'Sniper' }, { id: 'slasher', l: 'Slasher' },
-        { id: 'floor-general', l: 'Floor Gen' }, { id: 'lockdown', l: 'Lockdown' }
+      pickRow(t('me.edit.style'), [
+        { id: 'sniper', l: t('me.style.sniper') }, { id: 'slasher', l: t('me.style.slasher') },
+        { id: 'floor-general', l: t('me.style.floorgen') }, { id: 'lockdown', l: t('me.style.lockdown') }
       ], 'playStyle', 2),
-      slider('Height', cur.height, 60, 90, '"', 'height'),
-      slider('Weight', cur.weight, 100, 320, ' lb', 'weight'),
-      slider('Age', cur.age, 10, 60, ' yr', 'age'),
-      pickRow('Shooting hand', [{ id: 'L', l: 'Lefty' }, { id: 'R', l: 'Righty' }], 'hand', 2)
+      slider(t('me.edit.height'), cur.height, 60, 90, t('me.unit.in'), 'height'),
+      slider(t('me.edit.weight'), cur.weight, 100, 320, t('me.unit.lb'), 'weight'),
+      slider(t('me.edit.age'), cur.age, 10, 60, t('me.unit.yr'), 'age'),
+      pickRow(t('me.edit.hand'), [{ id: 'L', l: t('me.hand.l') }, { id: 'R', l: t('me.hand.r') }], 'hand', 2)
     ]));
 
     host.appendChild(V12.btn({
-      label: 'Save', icon: 'ph-check',
+      label: t('me.edit.save'), icon: 'ph-check',
       onClick: function () {
         try {
           localStorage.setItem('courtiq_profile_name', (cur.name || '').trim() || 'Rookie');
@@ -273,11 +488,11 @@
     }));
     host.appendChild(V12.card({
       press: true, onClick: function () { ctx.go('avatar-customizer'); },
-      label: 'Customise avatar', class: 'm12-set'
+      label: t('me.set.avatar.t'), class: 'm12-set'
     }, [
       h('i', { class: 'ph-bold ph-user-focus m12-set__ic' }),
       h('div', { class: 'm12-set__main' }, [
-        h('div', { class: 'm12-set__t', text: 'Customise avatar' })
+        h('div', { class: 'm12-set__t', text: t('me.set.avatar.t') })
       ]),
       h('i', { class: 'ph-bold ph-caret-right m12-set__chev' })
     ]));
@@ -293,7 +508,7 @@
     var bandColor = (url.match(/backgroundColor=([0-9A-Fa-f]{6})/) || [])[1] || 'FFB800';
     var band = h('div', {
       class: 'm12-band',
-      role: 'button', tabindex: '0', 'aria-label': 'Customise avatar',
+      role: 'button', tabindex: '0', 'aria-label': t('me.set.avatar.t'),
       onclick: function () { ctx.go('avatar-customizer'); },
       onkeydown: V12.activates(function () { ctx.go('avatar-customizer'); })
     }, [
@@ -306,13 +521,15 @@
     /* name + level + XP bar */
     var xp = prof.xp || 0;
     var next = xpNext(xp);
+    var pos = prof.position || t('me.player');
     host.appendChild(V12.card({ tint: 'ink', class: 'm12-id', bgIcon: 'ph-lightning', bgTone: 'gold' }, [
       h('div', { class: 'm12-id__row' }, [
-        h('div', { class: 'm12-id__n', text: prof.name || 'Rookie' }),
-        h('div', { class: 'm12-id__lv', text: 'LV ' + (prof.level || 1) })
+        h('div', { class: 'm12-id__n', text: prof.name || t('me.rookie') }),
+        h('div', { class: 'm12-id__lv', text: t('me.lv', { n: prof.level || 1 }) })
       ]),
       h('div', { class: 'm12-id__m',
-        text: (prof.position || 'PLAYER') + (iq ? ' · Court IQ ' + iq.score + ' · ' + iq.tier : ' · Unrated') }),
+        text: iq ? t('me.meta.iq', { pos: pos, score: iq.score, tier: iq.tier })
+                 : t('me.meta.unrated', { pos: pos }) }),
       V12.xpBar(xp, next)
     ]));
 
@@ -320,18 +537,18 @@
     host.appendChild(h('div', { class: 'm12-two' }, [
       V12.card({
         tint: 'gold', press: true, bgIcon: 'ph-storefront', bgTone: 'gold', class: 'm12-doortile',
-        onClick: function () { ctx.go('shop'); }, label: 'Shop'
+        onClick: function () { ctx.go('shop'); }, label: t('me.shop')
       }, [
         h('i', { class: 'ph-fill ph-storefront m12-doortile__ic m12-doortile__ic--gold' }),
-        h('div', { class: 'm12-doortile__t', text: 'SHOP' })
+        h('div', { class: 'm12-doortile__t', text: t('me.tile.shop') })
       ]),
       V12.card({
         press: true, bgIcon: 'ph-pencil-simple-line', bgTone: 'ink', class: 'm12-doortile',
         onClick: function () { editView(host, ctx, prof, function () { mainView(host, ctx, prof, iq, totals); }); },
-        label: 'Edit profile'
+        label: t('me.editprof')
       }, [
         h('i', { class: 'ph-fill ph-pencil-simple-line m12-doortile__ic' }),
-        h('div', { class: 'm12-doortile__t', text: 'EDIT PROFILE' })
+        h('div', { class: 'm12-doortile__t', text: t('me.tile.editprof') })
       ])
     ]));
 
@@ -352,7 +569,8 @@
           if (s.total_made != null && att >= 10) {
             var p = Math.round(s.total_made * 100 / att);
             if (bestPct === null || p > bestPct) {
-              bestPct = p; bestLine = p + '% (' + s.total_made + '/' + att + ')';
+              bestPct = p;
+              bestLine = t('me.rec.line', { pct: p, made: s.total_made, att: att });
             }
           }
         });
@@ -367,12 +585,12 @@
           ]);
         }
         recHost.appendChild(V12.card({ class: 'm12-records' }, [
-          h('div', { class: 'd-label', text: 'PERSONAL RECORDS' }),
+          h('div', { class: 'd-label', text: t('me.rec.title') }),
           h('div', { class: 'm12-recs' }, [
-            rec('ph-target', bestLine, 'Best session'),
-            rec('ph-basketball', dayMax ? String(dayMax) : '—', 'Most shots in a day'),
-            rec('ph-fire', bestStreak ? bestStreak + 'd' : '—', 'Longest streak'),
-            rec('ph-stack', String(total), 'Shots all-time')
+            rec('ph-target', bestLine, t('me.rec.best')),
+            rec('ph-basketball', dayMax ? String(dayMax) : '—', t('me.rec.day')),
+            rec('ph-fire', bestStreak ? t('me.rec.days', { n: bestStreak }) : '—', t('me.rec.streak')),
+            rec('ph-stack', String(total), t('me.rec.all'))
           ])
         ]));
       }).catch(function () {});
@@ -387,20 +605,20 @@
       trophiesView(host, ctx, function () { mainView(host, ctx, prof, iq, totals); });
     };
     host.appendChild(h('div', {
-      class: 'm12-preview', role: 'button', tabindex: '0', 'aria-label': 'Trophies',
+      class: 'm12-preview', role: 'button', tabindex: '0', 'aria-label': t('me.tro.title'),
       onclick: openTrophies, onkeydown: V12.activates(openTrophies)
-    }, sorted.map(function (t) {
-      var isE = !!earned[t.id];
-      return h('div', { class: 'm12-mini' + (isE ? ' is-earned is-' + t.tier : ''), title: t.name }, [
-        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + t.icon })
+    }, sorted.map(function (tr) {
+      var isE = !!earned[tr.id];
+      return h('div', { class: 'm12-mini' + (isE ? ' is-earned is-' + tr.tier : ''), title: t(tr.nk) }, [
+        h('i', { class: (isE ? 'ph-fill ' : 'ph-bold ') + tr.icon })
       ]);
     })));
 
     /* career strip — denominated in basketball */
     host.appendChild(h('div', { class: 'm12-career' }, [
-      { v: totals.sessions || 0, l: 'SESSIONS' },
-      { v: totals.shots || 0, l: 'SHOTS' },
-      { v: prof.streak || 0, l: 'STREAK' }
+      { v: totals.sessions || 0, l: t('me.career.sessions') },
+      { v: totals.shots || 0, l: t('me.career.shots') },
+      { v: prof.streak || 0, l: t('me.career.streak') }
     ].map(function (s) {
       return h('div', { class: 'm12-career__i' }, [
         h('div', { class: 'd-num m12-career__v', text: String(s.v) }),
@@ -413,17 +631,17 @@
       V12.card({
         press: true, bgIcon: 'ph-gear-six', bgTone: 'ink', class: 'm12-doortile',
         onClick: function () { settingsView(host, ctx, function () { mainView(host, ctx, prof, iq, totals); }); },
-        label: 'Settings'
+        label: t('me.set.title')
       }, [
         h('i', { class: 'ph-fill ph-gear-six m12-doortile__ic' }),
-        h('div', { class: 'm12-doortile__t', text: 'SETTINGS' })
+        h('div', { class: 'm12-doortile__t', text: t('me.tile.settings') })
       ]),
       V12.card({
         press: true, bgIcon: 'ph-trophy', bgTone: 'gold', class: 'm12-doortile',
-        onClick: openTrophies, label: 'Trophies'
+        onClick: openTrophies, label: t('me.tro.title')
       }, [
         h('i', { class: 'ph-fill ph-trophy m12-doortile__ic m12-doortile__ic--gold' }),
-        h('div', { class: 'm12-doortile__t', text: 'TROPHIES' })
+        h('div', { class: 'm12-doortile__t', text: t('me.tile.trophies') })
       ])
     ]));
   }

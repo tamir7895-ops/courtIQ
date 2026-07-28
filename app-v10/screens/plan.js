@@ -19,6 +19,153 @@
   'use strict';
   var h = window.V10UI.h, svg = window.V10UI.svg, V12 = window.V12, P = window.V12Plan;
 
+  var T = {
+    en: {
+      'plan.hd.t':            'Training plan',
+      'plan.hd.s':            'Your program — see it, run it, tune it',
+      'plan.back':            'Back',
+      'plan.view.week':       'Week',
+      'plan.view.month':      'Month',
+      'plan.view.focus':      'Focus',
+      'plan.view.progress':   'Progress',
+      'plan.rest':            'Rest',
+      'plan.focus.shooting':  'Shooting',
+      'plan.focus.handles':   'Ball handling',
+      'plan.focus.finishing': 'Finishing',
+      'plan.focus.conditioning': 'Conditioning',
+      'plan.focus.defense':   'Defense',
+      'plan.focus.passing':   'Passing',
+      'plan.dow.0': 'Mon', 'plan.dow.1': 'Tue', 'plan.dow.2': 'Wed',
+      'plan.dow.3': 'Thu', 'plan.dow.4': 'Fri', 'plan.dow.5': 'Sat', 'plan.dow.6': 'Sun',
+      'plan.dowletter.0': 'M', 'plan.dowletter.1': 'T', 'plan.dowletter.2': 'W',
+      'plan.dowletter.3': 'T', 'plan.dowletter.4': 'F', 'plan.dowletter.5': 'S', 'plan.dowletter.6': 'S',
+      'plan.month.0': 'Jan', 'plan.month.1': 'Feb', 'plan.month.2': 'Mar',
+      'plan.month.3': 'Apr', 'plan.month.4': 'May', 'plan.month.5': 'Jun',
+      'plan.month.6': 'Jul', 'plan.month.7': 'Aug', 'plan.month.8': 'Sep',
+      'plan.month.9': 'Oct', 'plan.month.10': 'Nov', 'plan.month.11': 'Dec',
+      'plan.monthyear':       '{m} {y}',
+      'plan.sheet.title':     '{dow} · {date}',
+      'plan.sheet.focus':     'FOCUS',
+      'plan.sheet.session':   '{mins} MIN · {n} DRILLS',
+      'plan.sheet.drillmeta': '{reps} reps · {mins} min',
+      'plan.sheet.rest':      'Rest day — recovery is training too.',
+      'plan.sheet.undone':    'Mark undone',
+      'plan.sheet.done':      'Mark done',
+      'plan.sheet.start':     'Start',
+      'plan.week.this':       'This week',
+      'plan.week.ago':        '{n}w ago',
+      'plan.week.in':         'In {n}w',
+      'plan.week.sessions':   '{done} of {planned} sessions',
+      'plan.week.planned':    'Planned this week',
+      'plan.week.nodays':     'No training days set',
+      'plan.week.goal':       '{n} shot goal',
+      'plan.week.streak':     '{n} streak',
+      'plan.week.daymeta':    '{mins} min · {n} drills',
+      'plan.week.rebuild':    'Rebuild',
+      'plan.week.editfocus':  'Edit focus',
+      'plan.period.0': 'Build', 'plan.period.1': 'Skill',
+      'plan.period.2': 'Peak',  'plan.period.3': 'Deload',
+      'plan.month.wn':        'W{n}',
+      'plan.month.meso':      'THIS MONTH · MESOCYCLE',
+      'plan.month.done':      'DONE',
+      'plan.month.planned':   'PLANNED',
+      'plan.month.adherence': 'ADHERENCE',
+      'plan.focus.hd':        'WHAT TO WORK ON · REPS PER WEEK',
+      'plan.focus.less':      'less',
+      'plan.focus.more':      'more',
+      'plan.focus.len':       'SESSION LENGTH',
+      'plan.focus.mins':      '{n}m',
+      'plan.focus.goal':      'Weekly shot goal',
+      'plan.focus.save':      'Save & rebuild week',
+      'plan.prog.done':       '{done} of {planned} done',
+      'plan.prog.streak':     '{n} day streak',
+      'plan.prog.balance':    'FOCUS BALANCE · THIS MONTH',
+      'plan.prog.volume':     'VOLUME · LAST 6 WEEKS',
+      'plan.prog.loading':    'Loading…',
+      'plan.prog.shots':      '{n} shots',
+      'plan.prog.now':        'now',
+      'plan.prog.wago':       '{n}w',
+      'plan.prog.empty':      'Track sessions and your volume trend fills in here.'
+    },
+    he: {
+      'plan.hd.t':            'תוכנית אימון',
+      'plan.hd.s':            'התוכנית שלך — לראות, להריץ, לכוונן',
+      'plan.back':            'חזרה',
+      'plan.view.week':       'שבוע',
+      'plan.view.month':      'חודש',
+      'plan.view.focus':      'מיקוד',
+      'plan.view.progress':   'התקדמות',
+      'plan.rest':            'מנוחה',
+      'plan.focus.shooting':  'קליעה',
+      'plan.focus.handles':   'כדרור',
+      'plan.focus.finishing': 'סיומות',
+      'plan.focus.conditioning': 'כושר',
+      'plan.focus.defense':   'הגנה',
+      'plan.focus.passing':   'מסירות',
+      'plan.dow.0': 'שני', 'plan.dow.1': 'שלישי', 'plan.dow.2': 'רביעי',
+      'plan.dow.3': 'חמישי', 'plan.dow.4': 'שישי', 'plan.dow.5': 'שבת', 'plan.dow.6': 'ראשון',
+      'plan.dowletter.0': 'ב', 'plan.dowletter.1': 'ג', 'plan.dowletter.2': 'ד',
+      'plan.dowletter.3': 'ה', 'plan.dowletter.4': 'ו', 'plan.dowletter.5': 'ש', 'plan.dowletter.6': 'א',
+      'plan.month.0': 'ינו׳', 'plan.month.1': 'פבר׳', 'plan.month.2': 'מרץ',
+      'plan.month.3': 'אפר׳', 'plan.month.4': 'מאי', 'plan.month.5': 'יוני',
+      'plan.month.6': 'יולי', 'plan.month.7': 'אוג׳', 'plan.month.8': 'ספט׳',
+      'plan.month.9': 'אוק׳', 'plan.month.10': 'נוב׳', 'plan.month.11': 'דצמ׳',
+      'plan.monthyear':       '{m} {y}',
+      'plan.sheet.title':     '{dow} · {date}',
+      'plan.sheet.focus':     'מיקוד',
+      'plan.sheet.session':   '{mins} דק׳ · {n} תרגילים',
+      'plan.sheet.drillmeta': '{reps} חזרות · {mins} דק׳',
+      'plan.sheet.rest':      'יום מנוחה — גם התאוששות היא אימון.',
+      'plan.sheet.undone':    'בטל סימון',
+      'plan.sheet.done':      'סמן כבוצע',
+      'plan.sheet.start':     'התחל',
+      'plan.week.this':       'השבוע',
+      'plan.week.ago':        'לפני {n} שב׳',
+      'plan.week.in':         'בעוד {n} שב׳',
+      'plan.week.sessions':   '{done} מתוך {planned} אימונים',
+      'plan.week.planned':    'מתוכננים לשבוע הזה',
+      'plan.week.nodays':     'לא הוגדרו ימי אימון',
+      'plan.week.goal':       'יעד {n} זריקות',
+      'plan.week.streak':     'רצף {n}',
+      'plan.week.daymeta':    '{mins} דק׳ · {n} תרגילים',
+      'plan.week.rebuild':    'בנייה מחדש',
+      'plan.week.editfocus':  'עריכת מיקוד',
+      'plan.period.0': 'בנייה', 'plan.period.1': 'מיומנות',
+      'plan.period.2': 'שיא',   'plan.period.3': 'שחרור',
+      'plan.month.wn':        'ש׳{n}',
+      'plan.month.meso':      'החודש · מחזור האימון',
+      'plan.month.done':      'בוצעו',
+      'plan.month.planned':   'מתוכננים',
+      'plan.month.adherence': 'התמדה',
+      'plan.focus.hd':        'על מה עובדים · פעמים בשבוע',
+      'plan.focus.less':      'פחות',
+      'plan.focus.more':      'יותר',
+      'plan.focus.len':       'אורך אימון',
+      'plan.focus.mins':      '{n} דק׳',
+      'plan.focus.goal':      'יעד זריקות שבועי',
+      'plan.focus.save':      'שמירה ובניית שבוע מחדש',
+      'plan.prog.done':       '{done} מתוך {planned} בוצעו',
+      'plan.prog.streak':     'רצף של {n} ימים',
+      'plan.prog.balance':    'איזון מיקוד · החודש',
+      'plan.prog.volume':     'נפח · 6 השבועות האחרונים',
+      'plan.prog.loading':    'טוען…',
+      'plan.prog.shots':      '{n} זריקות',
+      'plan.prog.now':        'עכשיו',
+      'plan.prog.wago':       '{n} שב׳',
+      'plan.prog.empty':      'תעד אימונים ומגמת הנפח תתמלא כאן.'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
+  /* Focus label — the focus objects live in lib/plan.js (data);
+     translate the known ids at display time, fall back to the data label. */
+  function focusLabel(f) {
+    var k = 'plan.focus.' + f.id;
+    var s = t(k);
+    return s === k ? f.label : s;
+  }
+
   var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
   var PERIOD = ['Build', 'Skill', 'Peak', 'Deload'];  // weekly emphasis in a month
 
@@ -44,12 +191,12 @@
   function fpill(fid, extra) {
     if (fid === 'rest') {
       return h('span', { class: 'plan12-fpill plan12-fpill--rest' + (extra || '') }, [
-        h('i', { class: 'ph-fill ph-moon' }), h('span', { text: 'Rest' })
+        h('i', { class: 'ph-fill ph-moon' }), h('span', { text: t('plan.rest') })
       ]);
     }
     var f = P.focus(fid); if (!f) return h('span', {});
     return h('span', { class: 'plan12-fpill plan12-fpill--' + f.tone + (extra || '') }, [
-      h('i', { class: 'ph-fill ' + f.icon }), h('span', { text: f.label })
+      h('i', { class: 'ph-fill ' + f.icon }), h('span', { text: focusLabel(f) })
     ]);
   }
 
@@ -66,12 +213,14 @@
       var done = dateISO ? P.isDone(p, dateISO) : false;
 
       sheet.appendChild(h('div', { class: 'plan12-sheet__hd' }, [
-        h('div', { class: 'plan12-sheet__t', text: P.DOW[dowIdx] + (dateISO ? ' · ' + dateISO.slice(5) : '') }),
+        h('div', { class: 'plan12-sheet__t', text: dateISO
+          ? t('plan.sheet.title', { dow: t('plan.dow.' + dowIdx), date: dateISO.slice(5) })
+          : t('plan.dow.' + dowIdx) }),
         h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close }, [h('i', { class: 'ph-bold ph-x' })])
       ]));
 
       /* focus swap */
-      sheet.appendChild(h('div', { class: 'd-label', text: 'FOCUS' }));
+      sheet.appendChild(h('div', { class: 'd-label', text: t('plan.sheet.focus') }));
       var chips = h('div', { class: 'plan12-chips' });
       ['rest'].concat(P.FOCI.map(function (f) { return f.id; })).forEach(function (id) {
         var on = fid === id;
@@ -86,20 +235,20 @@
       if (fid !== 'rest') {
         var drills = P.drillsForDay(p, dowIdx);
         sheet.appendChild(h('div', { class: 'd-label', style: { marginTop: '12px' },
-          text: p.minutes + ' MIN · ' + drills.length + ' DRILLS' }));
+          text: t('plan.sheet.session', { mins: p.minutes, n: drills.length }) }));
         drills.forEach(function (d, i) {
           sheet.appendChild(h('div', { class: 'plan12-drow' }, [
             h('div', { class: 'plan12-drow__n', text: String(i + 1) }),
             h('div', { class: 'plan12-drow__main' }, [
               h('div', { class: 'plan12-drow__t', text: d.name }),
-              h('div', { class: 'plan12-drow__s', text: d.reps + ' reps · ' + d.mins + ' min' })
+              h('div', { class: 'plan12-drow__s', text: t('plan.sheet.drillmeta', { reps: d.reps, mins: d.mins }) })
             ])
           ]));
         });
       } else {
         sheet.appendChild(h('div', { class: 'plan12-rest' }, [
           h('i', { class: 'ph-fill ph-moon' }),
-          h('span', { text: 'Rest day — recovery is training too.' })
+          h('span', { text: t('plan.sheet.rest') })
         ]));
       }
 
@@ -109,13 +258,13 @@
         actions.appendChild(V12.btn({
           variant: done ? 'ghost' : 'green',
           icon: done ? 'ph-arrow-counter-clockwise' : 'ph-check-circle',
-          label: done ? 'Mark undone' : 'Mark done',
+          label: done ? t('plan.sheet.undone') : t('plan.sheet.done'),
           onClick: function () { P.setDone(p, dateISO, !done); P.save(p); paint(); onChange && onChange(); }
         }));
       }
       if (fid !== 'rest') {
         actions.appendChild(V12.btn({
-          icon: 'ph-play-circle', label: 'Start',
+          icon: 'ph-play-circle', label: t('plan.sheet.start'),
           onClick: function () {
             var drills = P.drillsForDay(p, dowIdx);
             if (drills[0]) { try { sessionStorage.setItem('courtiq_v11_drill', JSON.stringify(drills[0])); } catch (e) {} }
@@ -136,7 +285,9 @@
     var dates = P.weekDates(state.weekOff);
     var adh = P.weekAdherence(p, state.weekOff);
     var todayI = P.todayIdx();
-    var label = state.weekOff === 0 ? 'This week' : (state.weekOff < 0 ? Math.abs(state.weekOff) + 'w ago' : 'In ' + state.weekOff + 'w');
+    var label = state.weekOff === 0 ? t('plan.week.this')
+      : (state.weekOff < 0 ? t('plan.week.ago', { n: Math.abs(state.weekOff) })
+                           : t('plan.week.in', { n: state.weekOff }));
 
     /* week nav + summary */
     host.appendChild(h('div', { class: 'plan12-nav' }, [
@@ -149,11 +300,11 @@
     host.appendChild(V12.card({ tint: 'ink', class: 'plan12-sum' }, [
       ring(adh.pct, 66, '#FF4F1F'),
       h('div', { class: 'plan12-sum__main' }, [
-        h('div', { class: 'plan12-sum__t', text: adh.done + ' of ' + adh.planned + ' sessions' }),
-        h('div', { class: 'plan12-sum__s', text: adh.planned ? 'Planned this week' : 'No training days set' }),
+        h('div', { class: 'plan12-sum__t', text: t('plan.week.sessions', { done: adh.done, planned: adh.planned }) }),
+        h('div', { class: 'plan12-sum__s', text: adh.planned ? t('plan.week.planned') : t('plan.week.nodays') }),
         h('div', { class: 'plan12-sum__chips' }, [
-          h('span', { class: 'plan12-mini plan12-mini--gold' }, [h('i', { class: 'ph-fill ph-target' }), h('span', { text: p.goalShots + ' shot goal' })]),
-          h('span', { class: 'plan12-mini plan12-mini--orange' }, [h('i', { class: 'ph-fill ph-fire' }), h('span', { text: streak + ' streak' })])
+          h('span', { class: 'plan12-mini plan12-mini--gold' }, [h('i', { class: 'ph-fill ph-target' }), h('span', { text: t('plan.week.goal', { n: p.goalShots }) })]),
+          h('span', { class: 'plan12-mini plan12-mini--orange' }, [h('i', { class: 'ph-fill ph-fire' }), h('span', { text: t('plan.week.streak', { n: streak }) })])
         ])
       ])
     ]));
@@ -172,12 +323,12 @@
         onclick: function () { openDaySheet(p, i, iso, state.paint); }
       }, [
         h('div', { class: 'plan12-day__date' }, [
-          h('div', { class: 'plan12-day__dow', text: P.DOW[i] }),
+          h('div', { class: 'plan12-day__dow', text: t('plan.dow.' + i) }),
           h('div', { class: 'plan12-day__num', text: String(d.getDate()) })
         ]),
         h('div', { class: 'plan12-day__main' }, [
           fpill(fid),
-          fid !== 'rest' ? h('div', { class: 'plan12-day__meta', text: p.minutes + ' min · ' + drills.length + ' drills' }) : null
+          fid !== 'rest' ? h('div', { class: 'plan12-day__meta', text: t('plan.week.daymeta', { mins: p.minutes, n: drills.length }) }) : null
         ].filter(Boolean)),
         done ? h('i', { class: 'ph-fill ph-check-circle plan12-day__mk plan12-day__mk--done' })
              : (isToday ? h('i', { class: 'ph-fill ph-circle plan12-day__mk plan12-day__mk--today' })
@@ -188,9 +339,9 @@
 
     host.appendChild(h('div', { class: 'plan12-two' }, [
       h('button', { class: 'd-btn d-btn--ghost', type: 'button', onclick: function () { P.rebuild(p); P.save(p); state.paint(); } }, [
-        h('i', { class: 'ph-fill ph-arrows-clockwise' }), h('span', { text: 'Rebuild' })
+        h('i', { class: 'ph-fill ph-arrows-clockwise' }), h('span', { text: t('plan.week.rebuild') })
       ]),
-      V12.btn({ label: 'Edit focus', icon: 'ph-sliders', onClick: function () { state.view = 'focus'; state.paint(); } })
+      V12.btn({ label: t('plan.week.editfocus'), icon: 'ph-sliders', onClick: function () { state.view = 'focus'; state.paint(); } })
     ]));
   }
 
@@ -203,7 +354,7 @@
 
     host.appendChild(h('div', { class: 'plan12-nav' }, [
       h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.monthOff--; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-left' })]),
-      h('div', { class: 'plan12-nav__l', text: MONTHS[month] + ' ' + year }),
+      h('div', { class: 'plan12-nav__l', text: t('plan.monthyear', { m: t('plan.month.' + month), y: year }) }),
       h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.monthOff++; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-right' })])
     ]));
 
@@ -211,17 +362,17 @@
     var strip = h('div', { class: 'plan12-period' });
     for (var w = 0; w < 4; w++) {
       strip.appendChild(h('div', { class: 'plan12-period__w' }, [
-        h('div', { class: 'plan12-period__n', text: 'W' + (w + 1) }),
-        h('div', { class: 'plan12-period__l', text: PERIOD[w] })
+        h('div', { class: 'plan12-period__n', text: t('plan.month.wn', { n: w + 1 }) }),
+        h('div', { class: 'plan12-period__l', text: t('plan.period.' + w) })
       ]));
     }
     host.appendChild(V12.card({ class: 'plan12-periodcard' }, [
-      h('div', { class: 'd-label', text: 'THIS MONTH · MESOCYCLE' }), strip
+      h('div', { class: 'd-label', text: t('plan.month.meso') }), strip
     ]));
 
     /* calendar grid */
     var cal = h('div', { class: 'plan12-cal' });
-    P.DOW.forEach(function (d) { cal.appendChild(h('div', { class: 'plan12-cal__wd', text: d[0] })); });
+    P.DOW.forEach(function (d, i) { cal.appendChild(h('div', { class: 'plan12-cal__wd', text: t('plan.dowletter.' + i) })); });
     var doneCount = 0, plannedCount = 0;
     grid.forEach(function (week) {
       week.forEach(function (cell) {
@@ -245,15 +396,15 @@
     host.appendChild(V12.card({ class: 'plan12-calcard' }, [cal]));
 
     host.appendChild(h('div', { class: 'plan12-monthstats' }, [
-      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: String(doneCount) }), h('div', { class: 'd-label', text: 'DONE' })]),
-      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: String(plannedCount) }), h('div', { class: 'd-label', text: 'PLANNED' })]),
-      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: (plannedCount ? Math.round(doneCount * 100 / plannedCount) : 0) + '%' }), h('div', { class: 'd-label', text: 'ADHERENCE' })])
+      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: String(doneCount) }), h('div', { class: 'd-label', text: t('plan.month.done') })]),
+      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: String(plannedCount) }), h('div', { class: 'd-label', text: t('plan.month.planned') })]),
+      h('div', { class: 'plan12-mstat' }, [h('div', { class: 'd-num plan12-mstat__v', text: (plannedCount ? Math.round(doneCount * 100 / plannedCount) : 0) + '%' }), h('div', { class: 'd-label', text: t('plan.month.adherence') })])
     ]));
   }
 
   /* ══ FOCUS builder ═════════════════════════════════════════════ */
   function focusView(host, ctx, p, state) {
-    host.appendChild(h('div', { class: 'd-label', text: 'WHAT TO WORK ON · REPS PER WEEK' }));
+    host.appendChild(h('div', { class: 'd-label', text: t('plan.focus.hd') }));
     var box = h('div', { class: 'plan12-focus' });
     P.FOCI.forEach(function (f) {
       var entry = (p.focus || []).filter(function (x) { return x.id === f.id; })[0];
@@ -267,22 +418,22 @@
       }
       box.appendChild(h('div', { class: 'plan12-frow' + (per > 0 ? ' is-on plan12-frow--' + f.tone : '') }, [
         h('div', { class: 'plan12-frow__ic plan12-frow__ic--' + f.tone }, [h('i', { class: 'ph-fill ' + f.icon })]),
-        h('div', { class: 'plan12-frow__l', text: f.label }),
+        h('div', { class: 'plan12-frow__l', text: focusLabel(f) }),
         h('div', { class: 'plan12-stepper' }, [
-          h('button', { class: 'plan12-stepper__b', type: 'button', 'aria-label': 'less', onclick: function () { setPer(per - 1); } }, [h('i', { class: 'ph-bold ph-minus' })]),
+          h('button', { class: 'plan12-stepper__b', type: 'button', 'aria-label': t('plan.focus.less'), onclick: function () { setPer(per - 1); } }, [h('i', { class: 'ph-bold ph-minus' })]),
           h('div', { class: 'plan12-stepper__v', text: String(per) }),
-          h('button', { class: 'plan12-stepper__b', type: 'button', 'aria-label': 'more', onclick: function () { setPer(per + 1); } }, [h('i', { class: 'ph-bold ph-plus' })])
+          h('button', { class: 'plan12-stepper__b', type: 'button', 'aria-label': t('plan.focus.more'), onclick: function () { setPer(per + 1); } }, [h('i', { class: 'ph-bold ph-plus' })])
         ])
       ]));
     });
     host.appendChild(box);
 
-    host.appendChild(h('div', { class: 'd-label', text: 'SESSION LENGTH' }));
+    host.appendChild(h('div', { class: 'd-label', text: t('plan.focus.len') }));
     host.appendChild(h('div', { class: 'onb12-grid4' }, [15, 30, 45, 60].map(function (m) {
       return h('button', {
         class: 'onb12-pill' + (p.minutes === m ? ' is-active' : ''), type: 'button',
         onclick: function () { p.minutes = m; P.save(p); state.paint(); }
-      }, [h('div', { class: 'onb12-pill__l', text: m + 'm' })]);
+      }, [h('div', { class: 'onb12-pill__l', text: t('plan.focus.mins', { n: m }) })]);
     })));
 
     var goalV = h('span', { class: 'onb12-slider__v', text: String(p.goalShots) });
@@ -290,11 +441,11 @@
     goalR.addEventListener('input', function () { p.goalShots = parseInt(goalR.value, 10); goalV.textContent = p.goalShots; });
     goalR.addEventListener('change', function () { P.save(p); });
     host.appendChild(h('div', { class: 'onb12-slider' }, [
-      h('div', { class: 'onb12-slider__top' }, [h('span', { class: 'd-label', text: 'Weekly shot goal' }), goalV]), goalR
+      h('div', { class: 'onb12-slider__top' }, [h('span', { class: 'd-label', text: t('plan.focus.goal') }), goalV]), goalR
     ]));
 
     host.appendChild(V12.btn({
-      label: 'Save & rebuild week', icon: 'ph-check',
+      label: t('plan.focus.save'), icon: 'ph-check',
       onClick: function () { P.rebuild(p); P.save(p); state.view = 'week'; state.paint(); }
     }));
   }
@@ -307,10 +458,10 @@
     host.appendChild(V12.card({ tint: 'ink', class: 'plan12-sum' }, [
       ring(adh.pct, 66, '#47C012'),
       h('div', { class: 'plan12-sum__main' }, [
-        h('div', { class: 'plan12-sum__t', text: 'This week' }),
-        h('div', { class: 'plan12-sum__s', text: adh.done + ' of ' + adh.planned + ' done' }),
+        h('div', { class: 'plan12-sum__t', text: t('plan.week.this') }),
+        h('div', { class: 'plan12-sum__s', text: t('plan.prog.done', { done: adh.done, planned: adh.planned }) }),
         h('div', { class: 'plan12-sum__chips' }, [
-          h('span', { class: 'plan12-mini plan12-mini--orange' }, [h('i', { class: 'ph-fill ph-fire' }), h('span', { text: streak + ' day streak' })])
+          h('span', { class: 'plan12-mini plan12-mini--orange' }, [h('i', { class: 'ph-fill ph-fire' }), h('span', { text: t('plan.prog.streak', { n: streak }) })])
         ])
       ])
     ]));
@@ -318,7 +469,7 @@
     /* per-focus balance (this month, done vs target) */
     var now = new Date();
     var tally = P.focusTallyMonth(p, now.getFullYear(), now.getMonth());
-    host.appendChild(h('div', { class: 'd-label', text: 'FOCUS BALANCE · THIS MONTH' }));
+    host.appendChild(h('div', { class: 'd-label', text: t('plan.prog.balance') }));
     var fb = h('div', { class: 'plan12-balance' });
     P.FOCI.forEach(function (f) {
       var entry = (p.focus || []).filter(function (x) { return x.id === f.id; })[0];
@@ -326,7 +477,7 @@
       var done = tally[f.id] || 0;
       var pct = target ? Math.min(100, Math.round(done * 100 / target)) : (done ? 100 : 0);
       fb.appendChild(h('div', { class: 'plan12-bal' }, [
-        h('div', { class: 'plan12-bal__l' }, [h('i', { class: 'ph-fill ' + f.icon + ' plan12-bal__ic plan12-bal__ic--' + f.tone }), h('span', { text: f.label })]),
+        h('div', { class: 'plan12-bal__l' }, [h('i', { class: 'ph-fill ' + f.icon + ' plan12-bal__ic plan12-bal__ic--' + f.tone }), h('span', { text: focusLabel(f) })]),
         h('div', { class: 'plan12-bal__bar' }, [h('div', { class: 'plan12-bal__fill plan12-bal__fill--' + f.tone, style: { width: Math.max(3, pct) + '%' } })]),
         h('div', { class: 'plan12-bal__v', text: done + (target ? '/' + target : '') })
       ]));
@@ -334,30 +485,30 @@
     host.appendChild(fb);
 
     /* volume trend — real tracked shots over the last 6 weeks */
-    host.appendChild(h('div', { class: 'd-label', text: 'VOLUME · LAST 6 WEEKS' }));
-    var trend = h('div', { class: 'plan12-trend' }, [h('div', { class: 'plan12-trend__load', text: 'Loading…' })]);
+    host.appendChild(h('div', { class: 'd-label', text: t('plan.prog.volume') }));
+    var trend = h('div', { class: 'plan12-trend' }, [h('div', { class: 'plan12-trend__load', text: t('plan.prog.loading') })]);
     host.appendChild(trend);
     ctx.data.getSessions(200).then(function (rows) {
       var buckets = [0, 0, 0, 0, 0, 0];
       var mon0 = P.weekDates(-5)[0].getTime();
       (rows || []).forEach(function (s) {
-        var t = new Date(s.session_date || s.created_at || 0).getTime();
-        if (!t || t < mon0) return;
-        var wk = Math.floor((t - mon0) / (7 * 86400000));
+        var t2 = new Date(s.session_date || s.created_at || 0).getTime();
+        if (!t2 || t2 < mon0) return;
+        var wk = Math.floor((t2 - mon0) / (7 * 86400000));
         if (wk >= 0 && wk < 6) buckets[wk] += (s.total_attempts || 0);
       });
       var max = Math.max(1, Math.max.apply(null, buckets));
       while (trend.firstChild) trend.removeChild(trend.firstChild);
       buckets.forEach(function (v, i) {
         var col = h('div', { class: 'plan12-trend__col' }, [
-          h('div', { class: 'plan12-trend__bar', style: { height: Math.max(4, Math.round(v * 100 / max)) + '%' }, title: v + ' shots' }),
-          h('div', { class: 'plan12-trend__x', text: i === 5 ? 'now' : (5 - i) + 'w' })
+          h('div', { class: 'plan12-trend__bar', style: { height: Math.max(4, Math.round(v * 100 / max)) + '%' }, title: t('plan.prog.shots', { n: v }) }),
+          h('div', { class: 'plan12-trend__x', text: i === 5 ? t('plan.prog.now') : t('plan.prog.wago', { n: 5 - i }) })
         ]);
         trend.appendChild(col);
       });
       if (buckets.every(function (v) { return v === 0; })) {
         while (trend.firstChild) trend.removeChild(trend.firstChild);
-        trend.appendChild(h('div', { class: 'plan12-trend__load', text: 'Track sessions and your volume trend fills in here.' }));
+        trend.appendChild(h('div', { class: 'plan12-trend__load', text: t('plan.prog.empty') }));
       }
     });
   }
@@ -376,13 +527,15 @@
     function paint() {
       while (host.firstChild) host.removeChild(host.firstChild);
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
-        h('button', { class: 'c12-back', type: 'button', 'aria-label': 'Back', onclick: function () { ctx.go('track'); } }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+        h('button', { class: 'c12-back', type: 'button', 'aria-label': t('plan.back'), onclick: function () { ctx.go('track'); } }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
-          h('div', { class: 'c12-chat-hd__t', text: 'Training plan' }),
-          h('div', { class: 'c12-chat-hd__s', text: 'Your program — see it, run it, tune it' })
+          h('div', { class: 'c12-chat-hd__t', text: t('plan.hd.t') }),
+          h('div', { class: 'c12-chat-hd__s', text: t('plan.hd.s') })
         ])
       ]));
-      host.appendChild(V12.seg(VIEWS, state.view, function (n) { state.view = n; paint(); }));
+      host.appendChild(V12.seg(VIEWS.map(function (v) {
+        return { id: v.id, label: t('plan.view.' + v.id) };
+      }), state.view, function (n) { state.view = n; paint(); }));
       var body = h('div', { class: 'plan12-body' });
       host.appendChild(body);
       if (state.view === 'week') weekView(body, ctx, p, state);

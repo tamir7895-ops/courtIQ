@@ -11,27 +11,82 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
+  var T = {
+    en: {
+      'lib.cat.all':       'All',
+      'lib.cat.shoot':     'Shoot',
+      'lib.cat.handle':    'Handle',
+      'lib.cat.finish':    'Finish',
+      'lib.cat.defense':   'Defense',
+      'lib.cat.condition': 'Condition',
+      'lib.cat.strength':  'Strength',
+      'lib.cat.pass':      'Pass',
+      'lib.cat.feet':      'Feet',
+      'lib.diff.easy':     'Easy',
+      'lib.diff.med':      'Med',
+      'lib.diff.hard':     'Hard',
+      'lib.back':          'Back',
+      'lib.title':         'Drill library',
+      'lib.subtitle':      '{n} drills · every one on a real court',
+      'lib.untitled':      'Untitled',
+      'lib.cardsub':       '{reps} · {mins} min',
+      'lib.defaultdesc':   'Practice this drill at game pace.',
+      'lib.start':         'Start drill',
+      'lib.empty.title':   'Nothing here',
+      'lib.empty.cat':     'No drills in this category yet.',
+      'lib.empty.db':      'Drill database not loaded.',
+      'lib.drill':         'Drill'
+    },
+    he: {
+      'lib.cat.all':       'הכל',
+      'lib.cat.shoot':     'קליעה',
+      'lib.cat.handle':    'כדרור',
+      'lib.cat.finish':    'סיומות',
+      'lib.cat.defense':   'הגנה',
+      'lib.cat.condition': 'כושר',
+      'lib.cat.strength':  'כוח',
+      'lib.cat.pass':      'מסירות',
+      'lib.cat.feet':      'רגליים',
+      'lib.diff.easy':     'קל',
+      'lib.diff.med':      'בינוני',
+      'lib.diff.hard':     'קשה',
+      'lib.back':          'חזרה',
+      'lib.title':         'ספריית תרגילים',
+      'lib.subtitle':      '{n} תרגילים · כל אחד על מגרש אמיתי',
+      'lib.untitled':      'ללא שם',
+      'lib.cardsub':       '{reps} · {mins} דק׳',
+      'lib.defaultdesc':   'תרגל בקצב משחק אמיתי.',
+      'lib.start':         'התחל תרגיל',
+      'lib.empty.title':   'אין פה כלום',
+      'lib.empty.cat':     'עוד אין תרגילים בקטגוריה הזאת.',
+      'lib.empty.db':      'מאגר התרגילים לא נטען.',
+      'lib.drill':         'תרגיל'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   var CATEGORIES = [
-    { key: 'Shooting',      label: 'Shoot',   icon: 'ph-crosshair-simple', tone: 'orange' },
-    { key: 'Ball Handling', label: 'Handle',  icon: 'ph-lightning',        tone: 'blue'   },
-    { key: 'Finishing',     label: 'Finish',  icon: 'ph-basketball',       tone: 'green'  },
-    { key: 'Defense',       label: 'Defense', icon: 'ph-shield',           tone: 'purple' },
-    { key: 'Conditioning',  label: 'Condition', icon: 'ph-heartbeat',      tone: 'gold'   },
-    { key: 'Strength',      label: 'Strength', icon: 'ph-barbell',         tone: 'blue'   },
-    { key: 'Passing',       label: 'Pass',    icon: 'ph-arrows-out',       tone: 'green'  },
-    { key: 'Footwork',      label: 'Feet',    icon: 'ph-sneaker',          tone: 'purple' }
+    { key: 'Shooting',      label: 'Shoot',   labelKey: 'lib.cat.shoot',     icon: 'ph-crosshair-simple', tone: 'orange' },
+    { key: 'Ball Handling', label: 'Handle',  labelKey: 'lib.cat.handle',    icon: 'ph-lightning',        tone: 'blue'   },
+    { key: 'Finishing',     label: 'Finish',  labelKey: 'lib.cat.finish',    icon: 'ph-basketball',       tone: 'green'  },
+    { key: 'Defense',       label: 'Defense', labelKey: 'lib.cat.defense',   icon: 'ph-shield',           tone: 'purple' },
+    { key: 'Conditioning',  label: 'Condition', labelKey: 'lib.cat.condition', icon: 'ph-heartbeat',      tone: 'gold'   },
+    { key: 'Strength',      label: 'Strength', labelKey: 'lib.cat.strength', icon: 'ph-barbell',          tone: 'blue'   },
+    { key: 'Passing',       label: 'Pass',    labelKey: 'lib.cat.pass',      icon: 'ph-arrows-out',       tone: 'green'  },
+    { key: 'Footwork',      label: 'Feet',    labelKey: 'lib.cat.feet',      icon: 'ph-sneaker',          tone: 'purple' }
   ];
   var CAT_INDEX = {};
   CATEGORIES.forEach(function (c) { CAT_INDEX[c.key] = c; });
   function meta(key) {
-    return CAT_INDEX[key] || { key: key, label: key || 'Drill', icon: 'ph-basketball', tone: 'orange' };
+    return CAT_INDEX[key] || { key: key, label: key || t('lib.drill'), icon: 'ph-basketball', tone: 'orange' };
   }
 
   function diffShort(d) {
     var s = String(d || '').toLowerCase();
-    if (s.indexOf('adv') === 0) return { t: 'Hard', cls: 'is-hard' };
-    if (s.indexOf('int') === 0) return { t: 'Med', cls: 'is-med' };
-    return { t: 'Easy', cls: 'is-easy' };
+    if (s.indexOf('adv') === 0) return { t: t('lib.diff.hard'), cls: 'is-hard' };
+    if (s.indexOf('int') === 0) return { t: t('lib.diff.med'), cls: 'is-med' };
+    return { t: t('lib.diff.easy'), cls: 'is-easy' };
   }
 
   function loadDrills() {
@@ -73,9 +128,9 @@
         })()
       ]),
       h('div', { class: 'dl12-main' }, [
-        h('div', { class: 'dl12-name', text: d.name || 'Untitled' }),
+        h('div', { class: 'dl12-name', text: d.name || t('lib.untitled') }),
         h('div', { class: 'dl12-sub',
-          text: (d.reps_or_sets || '') + ' · ' + (d.duration_minutes || 0) + ' min' })
+          text: t('lib.cardsub', { reps: d.reps_or_sets || '', mins: d.duration_minutes || 0 }) })
       ]),
       h('div', { class: 'dl12-diff ' + diff.cls, text: diff.t }),
       h('i', { class: 'ph-bold ' + (isOpen ? 'ph-caret-up' : 'ph-caret-down') + ' dl12-chev' })
@@ -97,13 +152,13 @@
             return V12.courtThumb(d.focus_area, i, { label: d.name, bg: '#FFFFFF' });
           })()
         ]),
-        h('div', { class: 'dl12-desc', text: d.description || 'Practice this drill at game pace.' }),
+        h('div', { class: 'dl12-desc', text: d.description || t('lib.defaultdesc') }),
         equip ? h('div', { class: 'dl12-equip' }, [
           h('i', { class: 'ph-bold ph-package' }),
           h('span', { text: equip })
         ]) : null,
         V12.btn({
-          label: 'Start drill', icon: 'ph-play-circle',
+          label: t('lib.start'), icon: 'ph-play-circle',
           onClick: function () { startDrill(d, ctx); }
         })
       ].filter(Boolean)));
@@ -117,7 +172,7 @@
   /* ── chips ──────────────────────────────────────────────────── */
   function chips(activeKey, counts, onPick) {
     var row = h('div', { class: 'dl12-chips' });
-    var all = [{ key: 'ALL', label: 'All', icon: 'ph-list-bullets', tone: 'orange' }]
+    var all = [{ key: 'ALL', label: 'All', labelKey: 'lib.cat.all', icon: 'ph-list-bullets', tone: 'orange' }]
       .concat(CATEGORIES);
     all.forEach(function (c) {
       var n = c.key === 'ALL' ? counts.total : (counts.byCat[c.key] || 0);
@@ -128,7 +183,7 @@
         onclick: function () { onPick(c.key); }
       }, [
         h('i', { class: 'ph-bold ' + c.icon }),
-        h('span', { text: c.label }),
+        h('span', { text: c.labelKey ? t(c.labelKey) : c.label }),
         h('span', { class: 'dl12-chip__n', text: String(n) })
       ]));
     });
@@ -159,12 +214,12 @@
 
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
-          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          class: 'c12-back', type: 'button', 'aria-label': t('lib.back'),
           onclick: function () { ctx.go('track'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
-          h('div', { class: 'c12-chat-hd__t', text: 'Drill library' }),
-          h('div', { class: 'c12-chat-hd__s', text: drills.length + ' drills · every one on a real court' })
+          h('div', { class: 'c12-chat-hd__t', text: t('lib.title') }),
+          h('div', { class: 'c12-chat-hd__s', text: t('lib.subtitle', { n: drills.length }) })
         ])
       ]));
 
@@ -178,9 +233,9 @@
       if (!rows.length) {
         list.appendChild(h('div', { class: 'd-empty' }, [
           h('i', { class: 'ph-bold ph-books d-empty__icon' }),
-          h('div', { class: 'd-empty__t', text: 'Nothing here' }),
+          h('div', { class: 'd-empty__t', text: t('lib.empty.title') }),
           h('div', { class: 'd-empty__b', text: drills.length
-            ? 'No drills in this category yet.' : 'Drill database not loaded.' })
+            ? t('lib.empty.cat') : t('lib.empty.db') })
         ]));
       }
       /* 178 cards × an SVG each in one synchronous pass blocked the main
