@@ -1904,6 +1904,48 @@ body[data-screen="onboarding"] #app {
   font-family: var(--font-display); font-weight: 900; font-size: 13px;
   color: var(--d-ink);
 }
+/* the 8-week projection — the payoff chart on the combine card */
+.onb12-proj { padding: 14px 16px; }
+.onb12-proj__head { display: flex; align-items: baseline; gap: 9px; margin: 6px 0 2px; }
+.onb12-proj__gain {
+  font-family: var(--font-display); font-weight: 900; font-size: 34px;
+  line-height: 1; color: var(--d-green-deep);
+}
+.onb12-proj__lbl {
+  font-family: var(--d-font); font-weight: 600; font-size: 11.5px;
+  line-height: 1.35; color: var(--d-mute);
+}
+.onb12-proj__svg { width: 100%; height: auto; display: block; margin-top: 4px; }
+.onb12-proj__area {
+  fill: var(--d-green-tint); stroke: none;
+  animation: onb12projfade .9s .35s ease both;
+}
+.onb12-proj__line {
+  fill: none; stroke: var(--d-green); stroke-width: 3.5;
+  stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 100; stroke-dashoffset: 100;
+  animation: onb12projdraw 1.4s .35s cubic-bezier(.33,.9,.4,1) forwards;
+}
+.onb12-proj__dot {
+  fill: var(--d-green-deep);
+  opacity: 0; animation: onb12projdot .4s 1.6s ease forwards;
+}
+.onb12-proj__weeks {
+  display: flex; justify-content: space-between; margin-top: 2px;
+  font-family: var(--d-font); font-weight: 700; font-size: 10px;
+  letter-spacing: .06em; text-transform: uppercase; color: var(--d-mute);
+}
+@keyframes onb12projdraw { to { stroke-dashoffset: 0; } }
+@keyframes onb12projfade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes onb12projdot {
+  from { opacity: 0; transform: scale(.4); transform-origin: center; transform-box: fill-box; }
+  to   { opacity: 1; transform: scale(1); transform-origin: center; transform-box: fill-box; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .onb12-proj__line { animation: none; stroke-dashoffset: 0; }
+  .onb12-proj__area, .onb12-proj__dot { animation: none; opacity: 1; }
+}
+
 .onb12-report-hint {
   font-family: var(--d-font); font-weight: 500; font-size: 12.5px;
   color: var(--d-mute); text-align: center; line-height: 1.45;

@@ -121,21 +121,60 @@
     ]);
   }
 
-  function pill(label, active, onClick, sub) {
-    return h('button', {
-      class: 'onb12-pill' + (active ? ' is-active' : ''), type: 'button',
-      onclick: onClick
-    }, [
-      h('div', { class: 'onb12-pill__l', text: label }),
-      sub ? h('div', { class: 'onb12-pill__s', text: sub }) : null
-    ].filter(Boolean));
+  /* ── in-place selection groups ────────────────────────────────
+     Toggling a choice used to repaint the whole step: the guide face
+     and avatar re-downloaded, the screen visibly "refreshed", and on
+     device every tap read as a jump. These groups own their buttons
+     and update ONLY themselves — state changes, classes flip, nothing
+     else on screen so much as blinks. */
+  function pillGroup(cls, items, opts) {
+    var wrap = h('div', { class: cls });
+    items.forEach(function (it) {
+      var b = h('button', { class: 'onb12-pill', type: 'button' }, [
+        h('div', { class: 'onb12-pill__l', text: it.label }),
+        it.sub ? h('div', { class: 'onb12-pill__s', text: it.sub }) : null
+      ].filter(Boolean));
+      b.__val = it.value;
+      b.addEventListener('click', function () {
+        opts.set(it.value);
+        refresh();
+        if (opts.onChange) opts.onChange(it.value);
+      });
+      wrap.appendChild(b);
+    });
+    function refresh() {
+      [].forEach.call(wrap.children, function (b) {
+        b.classList.toggle('is-active', opts.get() === b.__val);
+      });
+    }
+    refresh();
+    return wrap;
   }
 
-  function chip(label, active, onClick) {
-    return h('button', {
-      class: 'onb12-chip' + (active ? ' is-active' : ''), type: 'button',
-      text: label, onclick: onClick
+  /* multi-select; state(value) returns { on, prefix } so the focus
+     step's "1. 2. 3." ranks re-label without a rebuild */
+  function chipGroup(items, opts) {
+    var wrap = h('div', { class: 'onb12-chips' });
+    items.forEach(function (it) {
+      var b = h('button', { class: 'onb12-chip', type: 'button', text: it.label });
+      b.__val = it.value; b.__base = it.label;
+      b.addEventListener('click', function () {
+        opts.toggle(it.value);
+        refresh();
+        if (opts.onChange) opts.onChange();
+      });
+      wrap.appendChild(b);
     });
+    function refresh() {
+      [].forEach.call(wrap.children, function (b) {
+        var st = opts.state(b.__val);
+        b.classList.toggle('is-active', !!st.on);
+        var want = (st.prefix || '') + b.__base;
+        if (b.textContent !== want) b.textContent = want;
+      });
+    }
+    refresh();
+    return wrap;
   }
 
   function grid(cls, kids) { return h('div', { class: cls }, kids); }
@@ -174,38 +213,31 @@
   }
 
   /* ── step bodies ─────────────────────────────────────────────*/
-  function stepIdentity(s, rerender) {
-    var units = detectUnits();
+  function stepIdentity(s, dirty) {
     var t = function (k) { return window.V12I18n ? window.V12I18n.t(k) : k; };
 
     var name = h('input', {
       class: 'onb12-input', type: 'text', maxlength: '20',
       placeholder: 'Your name', value: s.name,
-      oninput: function (e) { s.name = e.target.value; }
+      oninput: function (e) { s.name = e.target.value; dirty(); }
     });
 
-    /* the unit toggle — one tap, the sliders re-label live */
-    var toggle = h('div', { class: 'onb12-two onb12-units' }, [
-      pill(t('onb.units.imperial'), units === 'imperial', function () {
-        setUnits('imperial'); rerender();
-      }),
-      pill(t('onb.units.metric'), units === 'metric', function () {
-        setUnits('metric'); rerender();
-      })
-    ]);
-
     /* sliders keep their IMPERIAL range (the stored unit) and only the
-       label converts — so no precision is lost round-tripping */
-    function unitSlider(labelKey, val, min, max, fmt, onChange) {
-      var out = h('span', { class: 'onb12-slider__v', text: fmt(val, detectUnits()) });
+       label converts — so no precision is lost round-tripping. Each
+       registers its readout so the unit toggle can relabel them all
+       IN PLACE — flipping units no longer rebuilds the screen. */
+    var readouts = [];
+    function unitSlider(labelKey, getVal, min, max, fmt, onChange) {
+      var out = h('span', { class: 'onb12-slider__v', text: fmt(getVal(), detectUnits()) });
+      readouts.push(function () { out.textContent = fmt(getVal(), detectUnits()); });
       var input = h('input', {
-        type: 'range', min: String(min), max: String(max), value: String(val),
+        type: 'range', min: String(min), max: String(max), value: String(getVal()),
         class: 'onb12-range'
       });
       input.addEventListener('input', function () {
         var v = parseInt(input.value, 10);
-        out.textContent = fmt(v, detectUnits());
         onChange(v);
+        out.textContent = fmt(v, detectUnits());
       });
       return h('div', { class: 'onb12-slider' }, [
         h('div', { class: 'onb12-slider__top' }, [
@@ -215,17 +247,30 @@
       ]);
     }
 
+    var toggle = pillGroup('onb12-two onb12-units', [
+      { label: t('onb.units.imperial'), value: 'imperial' },
+      { label: t('onb.units.metric'),   value: 'metric' }
+    ], {
+      get: detectUnits, set: setUnits,
+      onChange: function () { readouts.forEach(function (r) { r(); }); }
+    });
+
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'd-label', text: 'NAME' }), name,
       toggle,
-      unitSlider('onb.height', s.height, 58, 90, fmtHeight, function (v) { s.height = v; }),
-      unitSlider('onb.weight', s.weight, 80, 320, fmtWeight, function (v) { s.weight = v; }),
+      unitSlider('onb.height', function () { return s.height; }, 58, 90, fmtHeight,
+        function (v) { s.height = v; }),
+      unitSlider('onb.weight', function () { return s.weight; }, 80, 320, fmtWeight,
+        function (v) { s.weight = v; }),
       slider('Age', s.age, 10, 60, ' yr', function (v) { s.age = v; }),
       h('div', { class: 'd-label', text: 'SHOOTING HAND' }),
-      grid('onb12-two', ['L', 'R'].map(function (hd) {
-        return pill(hd === 'L' ? 'Lefty' : 'Righty', s.hand === hd,
-          function () { s.hand = hd; rerender(); });
-      }))
+      pillGroup('onb12-two', [
+        { label: 'Lefty', value: 'L' }, { label: 'Righty', value: 'R' }
+      ], {
+        get: function () { return s.hand; },
+        set: function (v) { s.hand = v; },
+        onChange: dirty
+      })
     ]);
   }
 
@@ -235,7 +280,7 @@
      first minute is how you lose someone. Preview re-renders live off
      V12Avatar's own params, so what they build here is exactly what
      the header, gym and leaderboard will show. */
-  function stepAvatar(s, rerender) {
+  function stepAvatar(s, dirty) {
     var A = window.V12Avatar;
     if (!A) return h('div', { class: 'onb12-body' });   // lib missing — skip gracefully
 
@@ -252,8 +297,12 @@
       return A.CAT[cat].options.filter(function (o) { return !o.cost; });
     }
 
-    /* one row of choices per category; swatch categories render color
-       dots, the rest render labeled chips */
+    /* Every row keeps its own refresher. A tap updates the preview and
+       that row's selection ring — the step itself never rebuilds, so
+       the face doesn't blink white while it re-downloads (the exact
+       flash the flow video caught). */
+    var refreshers = [];
+
     function row(cat, labelText) {
       var c = A.CAT[cat];
       var opts = freeOpts(cat);
@@ -262,21 +311,27 @@
         var el;
         if (c.swatch) {
           el = h('button', {
-            class: 'onb12-av__sw' + (params[cat] === o.id ? ' is-on' : ''),
-            type: 'button', style: { background: '#' + o.v }, 'aria-label': o.id
+            class: 'onb12-av__sw', type: 'button',
+            style: { background: '#' + o.v }, 'aria-label': o.id
           });
         } else {
-          el = h('button', {
-            class: 'onb12-chip' + (params[cat] === o.id ? ' is-active' : ''),
-            type: 'button', text: o.label || o.id
-          });
+          el = h('button', { class: 'onb12-chip', type: 'button', text: o.label || o.id });
         }
+        el.__opt = o.id;
         el.addEventListener('click', function () {
           params[cat] = o.id;
-          commit(); rerender();
+          commit();
+          refresh();
         });
         wrap.appendChild(el);
       });
+      function refresh() {
+        [].forEach.call(wrap.children, function (el) {
+          el.classList.toggle(c.swatch ? 'is-on' : 'is-active', params[cat] === el.__opt);
+        });
+      }
+      refreshers.push(refresh);
+      refresh();
       return h('div', { class: 'onb12-av__row' }, [
         h('div', { class: 'd-label', text: labelText }), wrap
       ]);
@@ -292,7 +347,8 @@
         var opts = freeOpts(cat);
         if (opts.length) params[cat] = opts[Math.floor(Math.random() * opts.length)].id;
       });
-      commit(); rerender();
+      commit();
+      refreshers.forEach(function (r) { r(); });
     });
 
     return h('div', { class: 'onb12-body' }, [
@@ -306,31 +362,37 @@
     ]);
   }
 
-  function stepPosition(s, rerender) {
+  function stepPosition(s, dirty) {
     var POS = [
-      { id: 'PG', l: 'Point', s: 'Run the show' },
-      { id: 'SG', l: 'Shooting', s: 'Get buckets' },
-      { id: 'SF', l: 'Small F', s: 'Do it all' },
-      { id: 'PF', l: 'Power F', s: 'Bang inside' },
-      { id: 'C',  l: 'Center', s: 'Own the paint' }
+      { value: 'PG', label: 'Point', sub: 'Run the show' },
+      { value: 'SG', label: 'Shooting', sub: 'Get buckets' },
+      { value: 'SF', label: 'Small F', sub: 'Do it all' },
+      { value: 'PF', label: 'Power F', sub: 'Bang inside' },
+      { value: 'C',  label: 'Center', sub: 'Own the paint' }
     ];
     return h('div', { class: 'onb12-body' }, [
-      grid('onb12-grid3', POS.map(function (p) {
-        return pill(p.l, s.position === p.id, function () { s.position = p.id; rerender(); }, p.s);
-      }))
+      pillGroup('onb12-grid3', POS, {
+        get: function () { return s.position; },
+        set: function (v) { s.position = v; },
+        onChange: dirty
+      })
     ]);
   }
 
-  function stepStyle(s, rerender) {
+  function stepStyle(s, dirty) {
     var ST = [
-      { id: 'sniper', l: 'Sniper', s: 'Lives behind the arc' },
-      { id: 'slasher', l: 'Slasher', s: 'Attacks the rim' },
-      { id: 'floor-general', l: 'Floor General', s: 'Sees it first' },
-      { id: 'lockdown', l: 'Lockdown', s: 'Defense wins' }
+      { value: 'sniper', label: 'Sniper', sub: 'Lives behind the arc' },
+      { value: 'slasher', label: 'Slasher', sub: 'Attacks the rim' },
+      { value: 'floor-general', label: 'Floor General', sub: 'Sees it first' },
+      { value: 'lockdown', label: 'Lockdown', sub: 'Defense wins' }
     ];
-    return h('div', { class: 'onb12-body' }, ST.map(function (x) {
-      return pill(x.l, s.playStyle === x.id, function () { s.playStyle = x.id; rerender(); }, x.s);
-    }));
+    return h('div', { class: 'onb12-body' }, [
+      pillGroup('onb12-body onb12-stylelist', ST, {
+        get: function () { return s.playStyle; },
+        set: function (v) { s.playStyle = v; },
+        onChange: dirty
+      })
+    ]);
   }
 
   function stepScout(s) {
@@ -350,67 +412,69 @@
     return h('div', { class: 'onb12-body' }, [
       slider('Days per week', s.days, 1, 7, '', function (v) { s.days = v; }),
       h('div', { class: 'd-label', text: 'SESSION LENGTH' }),
-      grid('onb12-grid4', [15, 30, 45, 60].map(function (m) {
-        return pill(m + 'm', s.minutes === m, function () { s.minutes = m; }, null);
-      })),
+      pillGroup('onb12-grid4', [15, 30, 45, 60].map(function (m) {
+        return { label: m + 'm', value: m };
+      }), {
+        get: function () { return s.minutes; },
+        set: function (v) { s.minutes = v; }
+      }),
       h('div', { class: 'onb12-hint', text: 'We size each session to fit — shorter days get tighter blocks.' })
     ]);
   }
 
-  function stepGear(s, rerender) {
+  function stepGear(s) {
     var GEAR = [
-      { id: 'ball', l: 'Ball' }, { id: 'hoop', l: 'A hoop' },
-      { id: 'cones', l: 'Cones' }, { id: 'gym', l: 'Gym access' },
-      { id: 'weights', l: 'Weights' }, { id: 'partner', l: 'A partner' }
+      { value: 'ball', label: 'Ball' }, { value: 'hoop', label: 'A hoop' },
+      { value: 'cones', label: 'Cones' }, { value: 'gym', label: 'Gym access' },
+      { value: 'weights', label: 'Weights' }, { value: 'partner', label: 'A partner' }
     ];
-    function toggle(id) {
-      var i = s.equipment.indexOf(id);
-      if (i >= 0) s.equipment.splice(i, 1); else s.equipment.push(id);
-      rerender();
-    }
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'onb12-hint', text: 'Pick everything you can get to. Drills that need gear you don’t have get skipped.' }),
-      grid('onb12-chips', GEAR.map(function (g) {
-        return chip(g.l, s.equipment.indexOf(g.id) >= 0, function () { toggle(g.id); });
-      }))
+      chipGroup(GEAR, {
+        toggle: function (id) {
+          var i = s.equipment.indexOf(id);
+          if (i >= 0) s.equipment.splice(i, 1); else s.equipment.push(id);
+        },
+        state: function (id) { return { on: s.equipment.indexOf(id) >= 0 }; }
+      })
     ]);
   }
 
-  function stepFocus(s, rerender) {
+  function stepFocus(s, dirty) {
     var FOCUS = [
-      { id: 'shooting', l: 'Shooting' }, { id: 'handles', l: 'Ball handling' },
-      { id: 'finishing', l: 'Finishing' }, { id: 'defense', l: 'Defense' },
-      { id: 'conditioning', l: 'Conditioning' }, { id: 'passing', l: 'Passing' }
+      { value: 'shooting', label: 'Shooting' }, { value: 'handles', label: 'Ball handling' },
+      { value: 'finishing', label: 'Finishing' }, { value: 'defense', label: 'Defense' },
+      { value: 'conditioning', label: 'Conditioning' }, { value: 'passing', label: 'Passing' }
     ];
-    function toggle(id) {
-      var i = s.focus.indexOf(id);
-      if (i >= 0) s.focus.splice(i, 1);
-      else { if (s.focus.length >= 3) s.focus.shift(); s.focus.push(id); }
-      rerender();
-    }
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'onb12-hint', text: 'Pick up to 3 — your plan leans hardest on these, in order.' }),
-      grid('onb12-chips', FOCUS.map(function (f) {
-        var rank = s.focus.indexOf(f.id);
-        var el = chip((rank >= 0 ? (rank + 1) + '. ' : '') + f.l, rank >= 0, function () { toggle(f.id); });
-        return el;
-      }))
+      chipGroup(FOCUS, {
+        toggle: function (id) {
+          var i = s.focus.indexOf(id);
+          if (i >= 0) s.focus.splice(i, 1);
+          else { if (s.focus.length >= 3) s.focus.shift(); s.focus.push(id); }
+        },
+        state: function (id) {
+          var rank = s.focus.indexOf(id);
+          return { on: rank >= 0, prefix: rank >= 0 ? (rank + 1) + '. ' : '' };
+        },
+        onChange: dirty
+      })
     ]);
   }
 
-  function stepGoals(s, rerender) {
+  function stepGoals(s) {
     var G = ['Make varsity', 'Win a starting job', 'College looks', 'Go pro',
              'Stay healthy', 'Beat my rival', 'Tournament MVP', 'Love the game'];
-    function toggle(g) {
-      var i = s.goals.indexOf(g);
-      if (i >= 0) s.goals.splice(i, 1); else s.goals.push(g);
-      rerender();
-    }
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'onb12-hint', text: 'Pick all that apply — we tune the tone around these.' }),
-      grid('onb12-chips', G.map(function (g) {
-        return chip(g, s.goals.indexOf(g) >= 0, function () { toggle(g); });
-      }))
+      chipGroup(G.map(function (g) { return { value: g, label: g }; }), {
+        toggle: function (g) {
+          var i = s.goals.indexOf(g);
+          if (i >= 0) s.goals.splice(i, 1); else s.goals.push(g);
+        },
+        state: function (g) { return { on: s.goals.indexOf(g) >= 0 }; }
+      })
     ]);
   }
 
@@ -479,12 +543,77 @@
                   PF: 'Power Forward', C: 'Center' };
     var goalsText = s.goals.length ? s.goals.join(' · ') : '—';
 
+    /* ── the 8-week projection ────────────────────────────────────
+       The payoff moment: a curve that RISES as the card lands, sized
+       by the schedule they just committed to. Framed as a projection
+       of their own plan — "keep this schedule and here's the climb" —
+       never as a measurement (M4: measured numbers are real or absent;
+       a forecast says it's a forecast). */
+    var weeklyMin = s.days * s.minutes;
+    var gainPct = Math.max(6, Math.min(25, Math.round(weeklyMin / 20)));
+    function sv(tag, attrs) {
+      var el = document.createElementNS('http://www.w3.org/2000/svg', tag);
+      for (var k in attrs) el.setAttribute(k, attrs[k]);
+      return el;
+    }
+    var W = 300, H = 110, PAD = 8;
+    var pts = [];
+    for (var wI = 0; wI <= 8; wI++) {
+      var f = wI / 8;
+      var ease = 1 - Math.pow(1 - f, 2);          // fast early gains, then grind
+      var x = PAD + f * (W - PAD * 2);
+      var y = H - PAD - ease * (H - PAD * 2 - 14);
+      pts.push([x, y]);
+    }
+    var lineD = pts.map(function (p, idx) {
+      return (idx ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1);
+    }).join(' ');
+    var areaD = lineD + ' L' + pts[8][0].toFixed(1) + ' ' + (H - PAD) +
+                ' L' + pts[0][0].toFixed(1) + ' ' + (H - PAD) + ' Z';
+
+    var chart = sv('svg', { class: 'onb12-proj__svg', viewBox: '0 0 ' + W + ' ' + H });
+    chart.appendChild(sv('path', { d: areaD, class: 'onb12-proj__area' }));
+    var lineEl = sv('path', { d: lineD, class: 'onb12-proj__line', pathLength: '100' });
+    chart.appendChild(lineEl);
+    chart.appendChild(sv('circle', {
+      cx: pts[8][0], cy: pts[8][1], r: '5', class: 'onb12-proj__dot'
+    }));
+
+    var gainEl = h('span', { class: 'onb12-proj__gain', text: '+0%' });
+    /* count the headline up as the line draws */
+    setTimeout(function () {
+      var t0 = Date.now(), DUR = 1400;
+      var iv = setInterval(function () {
+        if (!gainEl.isConnected) { clearInterval(iv); return; }
+        var f2 = Math.min(1, (Date.now() - t0) / DUR);
+        var e2 = 1 - Math.pow(1 - f2, 3);
+        gainEl.textContent = '+' + Math.round(gainPct * e2) + '%';
+        if (f2 >= 1) clearInterval(iv);
+      }, 40);
+    }, 350);
+
+    var projection = V12.card({ class: 'onb12-proj' }, [
+      h('div', { class: 'd-label', text: '8-WEEK PROJECTION' }),
+      h('div', { class: 'onb12-proj__head' }, [
+        gainEl,
+        h('span', { class: 'onb12-proj__lbl',
+          text: 'shooting volume growth if you keep ' +
+                s.days + ' days · ' + s.minutes + ' min' })
+      ]),
+      chart,
+      h('div', { class: 'onb12-proj__weeks' }, [
+        h('span', { text: 'Week 1' }), h('span', { text: 'Week 8' })
+      ])
+    ]);
+
     return h('div', { class: 'onb12-body' }, [
       V12.card({ tint: 'gold', class: 'onb12-card' }, [
         h('div', { class: 'd-label', text: 'SELF-SCOUT GRADE' }),
         h('div', { class: 'onb12-grade', text: grade }),
         h('div', { class: 'onb12-arche', text: arche })
       ]),
+
+      projection,
 
       V12.card({ class: 'onb12-skills' }, [
         h('div', { class: 'd-label', text: 'SCOUTING REPORT' })
@@ -577,18 +706,24 @@
       var guide = guideRow(step);
       if (guide) host.appendChild(guide);
 
+      /* Selection taps update THEMSELVES (pillGroup/chipGroup) and call
+         dirty() so the Continue button re-arms — the screen itself is
+         only ever rebuilt on a real step change. */
+      var syncNextRef = null;
+      function dirty() { if (syncNextRef) syncNextRef(); }
+
       var body;
       switch (step) {
         case 'welcome': body = stepWelcome(); break;
-        case 'identity': body = stepIdentity(s, paint); break;
-        case 'avatar': body = stepAvatar(s, paint); break;
-        case 'position': body = stepPosition(s, paint); break;
-        case 'style': body = stepStyle(s, paint); break;
+        case 'identity': body = stepIdentity(s, dirty); break;
+        case 'avatar': body = stepAvatar(s, dirty); break;
+        case 'position': body = stepPosition(s, dirty); break;
+        case 'style': body = stepStyle(s, dirty); break;
         case 'scout': body = stepScout(s); break;
         case 'schedule': body = stepSchedule(s); break;
-        case 'gear': body = stepGear(s, paint); break;
-        case 'focus': body = stepFocus(s, paint); break;
-        case 'goals': body = stepGoals(s, paint); break;
+        case 'gear': body = stepGear(s); break;
+        case 'focus': body = stepFocus(s, dirty); break;
+        case 'goals': body = stepGoals(s); break;
         case 'processing': body = stepProcessing(s, host, paint); break;
         case 'report': body = stepReport(s); break;
       }
@@ -606,7 +741,7 @@
         return true;
       }
 
-      var nextLabel = step === 'report' ? 'Step into the gym'
+      var nextLabel = step === 'report' ? 'Start training'
         : step === 'goals' ? 'Build my plan'
         : step === 'welcome' ? 'Let’s go' : 'Continue';
 
@@ -623,7 +758,10 @@
         label: nextLabel, icon: step === 'report' ? 'ph-arrow-right' : 'ph-caret-right',
         onClick: function () {
           if (!canNext()) return;
-          if (step === 'report') { persist(s); window._v12Onb = null; ctx.go('coach'); return; }
+          /* Done → HOME. The home screen is the hub with NEXT UP and
+             the week ahead; the gym is one tap away when they want the
+             staff. (Device feedback: finishing should land home.) */
+          if (step === 'report') { persist(s); window._v12Onb = null; ctx.go('home'); return; }
           s.i++;
           paint();
         }
@@ -634,6 +772,7 @@
         else nextBtn.setAttribute('disabled', 'true');
       }
       syncNext();
+      syncNextRef = syncNext;   /* selection groups arm the button via dirty() */
       // Typing doesn't repaint the screen — keep the button live anyway.
       scroll.addEventListener('input', syncNext);
       host.appendChild(foot);
