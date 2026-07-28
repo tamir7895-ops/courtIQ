@@ -117,7 +117,8 @@
           onclick: function () { exit(ctx, 'train'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', { style: { flex: '1', minWidth: '0' } }, [
-          h('div', { class: 'c12-chat-hd__t', text: d.name }),
+          h('div', { class: 'c12-chat-hd__t',
+            text: window.V12Drills ? V12Drills.name(d) : d.name }),
           h('div', { class: 'c12-chat-hd__s', text: t('wp.sub', { focus: d.focus || t('wp.skill') }) })
         ]),
         h('button', {
@@ -144,7 +145,8 @@
           } catch (e) {}
           return V12.courtThumb(d.focus, 0, { label: d.name, bg: '#FFFFFF' });
         })(),
-        d.description ? h('div', { class: 'wp12-desc', text: d.description }) : null
+        d.description ? h('div', { class: 'wp12-desc',
+          text: window.V12Drills ? V12Drills.desc(d) : d.description }) : null
       ].filter(Boolean)));
 
       /* rep counter — the user counts, we don't invent */

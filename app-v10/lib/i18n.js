@@ -15,9 +15,15 @@
 
   var LS_KEY = 'courtiq_lang';
 
+  /* en + he ship inline with the screens; the rest live in lang/ packs
+     (data-only files) that the boot loader includes for the ACTIVE
+     language. pack:true marks languages whose strings arrive that way. */
   var LANGS = [
-    { code: 'en', label: 'English', dir: 'ltr', flag: '🇺🇸' },
-    { code: 'he', label: 'עברית',   dir: 'rtl', flag: '🇮🇱' }
+    { code: 'en', label: 'English',  dir: 'ltr', flag: '🇺🇸' },
+    { code: 'he', label: 'עברית',    dir: 'rtl', flag: '🇮🇱' },
+    { code: 'es', label: 'Español',  dir: 'ltr', flag: '🇪🇸', pack: true },
+    { code: 'ar', label: 'العربية',  dir: 'rtl', flag: '🇸🇦', pack: true },
+    { code: 'ru', label: 'Русский',  dir: 'ltr', flag: '🇷🇺', pack: true }
   ];
 
   /* ── strings ─────────────────────────────────────────────────
@@ -134,9 +140,33 @@
     } catch (e) {}
   }
 
+  function known(code) {
+    for (var i = 0; i < LANGS.length; i++) if (LANGS[i].code === code) return true;
+    return false;
+  }
+
   function set(code) {
-    if (!STR[code]) code = 'en';
+    if (!known(code)) code = 'en';
     try { localStorage.setItem(LS_KEY, code); } catch (e) {}
+    /* Pack languages load at boot (only the active one ships into the
+       page). Switching TO one whose strings aren't registered yet means
+       the pack isn't loaded — a reload brings it in. en/he are always
+       inline, so first-run language picks never reload. */
+    /* A language is "loaded" when both its UI strings AND its drill
+       pack are registered (he ships UI inline but drills as a pack). */
+    var loaded = STR[code] && STR[code]['auth.back'] &&
+                 (code === 'en' || STR[code]['drill.shoot-001.n']);
+    if (!loaded) {
+      /* Reloading off the landing would bounce a signed-in player home
+         (the redo pass was already consumed) — re-arm it so they come
+         back to the same screen, now in the new language. */
+      try {
+        if (document.body && document.body.getAttribute('data-screen') === 'landing') {
+          sessionStorage.setItem('courtiq_redo_intro', '1');
+        }
+      } catch (e2) {}
+      try { location.reload(); return; } catch (e) {}
+    }
     applyDir();
     try {
       window.dispatchEvent(new CustomEvent('courtiq:lang-changed', { detail: { lang: code } }));
@@ -148,9 +178,13 @@
     catch (e) { return true; }   // storage blocked → don't trap on landing
   }
 
+  /* Dev helper: the full registered inventory, used to build new
+     language packs (a pack must cover every key the screens register). */
+  function dump() { return STR; }
+
   window.V12I18n = {
     t: t, add: add, set: set, current: current, chosen: chosen,
-    LANGS: LANGS, applyDir: applyDir
+    LANGS: LANGS, applyDir: applyDir, dump: dump
   };
 
   applyDir();

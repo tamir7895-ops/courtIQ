@@ -354,7 +354,8 @@
             h('i', { class: 'ph-fill ph-clipboard' }),
             h('span', { text: t('coach.board.title', { name: coach.name.toUpperCase() }) })
           ]),
-          window.V12DrillCourt.render(c, { label: hit.name }),
+          window.V12DrillCourt.render(c, {
+            label: window.V12Drills ? V12Drills.name(hit) : hit.name }),
           h('div', { class: 'c12-board__ft' }, [
             h('div', { class: 'c12-board__n', text: hit.name }),
             h('button', {
@@ -396,7 +397,11 @@
           h('span', { class: 'c12-proposal__dow', text: t('coach.dow.' + d.dow) }),
           h('span', {
             class: 'c12-proposal__what',
-            text: d.drills.length ? d.drills.join(' · ') : d.focus
+            text: d.drills.length
+              ? d.drills.map(function (nm) {
+                  return window.V12Drills ? V12Drills.name(nm) : nm;
+                }).join(' · ')
+              : d.focus
           })
         ]));
       });

@@ -259,7 +259,8 @@
         ctx.go('workout-player');
       };
       var main = [
-        h('div', { class: 'v11-node__t', text: d.name }),
+        h('div', { class: 'v11-node__t',
+          text: window.V12Drills ? V12Drills.name(d) : d.name }),
         h('div', { class: 'v11-node__s', text: t('train.path.meta', { reps: d.reps, mins: d.mins }) })
       ];
       if (isNext) main.push(h('div', { class: 'v11-node__now', text: t('train.path.start') }));
@@ -288,7 +289,8 @@
         onclick: function () { ctx.go('drill-library'); }
       }, [
         h('div', { class: 'v10-row__main' }, [
-          h('div', { class: 'v10-row__title', text: d.name }),
+          h('div', { class: 'v10-row__title',
+            text: window.V12Drills ? V12Drills.name(d) : d.name }),
           h('div', { class: 'v10-row__sub',
             text: t('train.lib.rowSub', { focus: farea(d.focus || 'Skill'), reps: d.reps, mins: d.mins }) })
         ]),
@@ -366,7 +368,8 @@
           h('div', { class: 'tr12-dotd__row' }, [
             thumb ? h('div', { class: 'tr12-dotd__thumb' }, [thumb]) : null,
             h('div', { class: 'tr12-dotd__main' }, [
-              h('div', { class: 'tr12-dotd__n', text: hit.name }),
+              h('div', { class: 'tr12-dotd__n',
+                text: window.V12Drills ? V12Drills.name(hit) : hit.name }),
               h('div', { class: 'tr12-dotd__r', text: reason }),
               h('button', {
                 class: 'tr12-dotd__go', type: 'button',

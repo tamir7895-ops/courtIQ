@@ -332,25 +332,24 @@
         }));
     }
 
-    /* language — the row shows the CURRENT language; tapping flips to
-       the other one and repaints, same pattern as the reminder toggle.
-       V12I18n.set() also flips document dir, so the whole app follows. */
+    /* language — the row shows the CURRENT language; each tap advances
+       to the NEXT one in the registry and repaints, same pattern as the
+       reminder toggle. V12I18n.set() flips document dir (and reloads
+       once when the target is a pack language that isn't loaded yet). */
     if (window.V12I18n && V12I18n.LANGS && V12I18n.LANGS.length > 1) {
+      var LNG = V12I18n.LANGS;
       var curCode = V12I18n.current();
-      var curLang = null, otherLang = null;
-      for (var li = 0; li < V12I18n.LANGS.length; li++) {
-        if (V12I18n.LANGS[li].code === curCode) curLang = V12I18n.LANGS[li];
-        else otherLang = V12I18n.LANGS[li];
+      var curIdx = 0;
+      for (var li = 0; li < LNG.length; li++) {
+        if (LNG[li].code === curCode) { curIdx = li; break; }
       }
-      if (!curLang) curLang = V12I18n.LANGS[0];
-      if (otherLang) {
-        host.appendChild(row('ph-translate', t('me.set.lang'),
-          curLang.label,
-          function () {
-            V12I18n.set(otherLang.code);
-            settingsView(host, ctx, back);      /* repaint in the new language */
-          }));
-      }
+      var nextLang = LNG[(curIdx + 1) % LNG.length];
+      host.appendChild(row('ph-translate', t('me.set.lang'),
+        LNG[curIdx].label + '  ›  ' + nextLang.label,
+        function () {
+          V12I18n.set(nextLang.code);
+          settingsView(host, ctx, back);      /* repaint in the new language */
+        }));
     }
 
     /* Replay the whole first-run journey — landing, language, the

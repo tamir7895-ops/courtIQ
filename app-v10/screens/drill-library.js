@@ -128,7 +128,8 @@
         })()
       ]),
       h('div', { class: 'dl12-main' }, [
-        h('div', { class: 'dl12-name', text: d.name || t('lib.untitled') }),
+        h('div', { class: 'dl12-name',
+          text: (window.V12Drills ? V12Drills.name(d) : d.name) || t('lib.untitled') }),
         h('div', { class: 'dl12-sub',
           text: t('lib.cardsub', { reps: d.reps_or_sets || '', mins: d.duration_minutes || 0 }) })
       ]),
@@ -152,7 +153,8 @@
             return V12.courtThumb(d.focus_area, i, { label: d.name, bg: '#FFFFFF' });
           })()
         ]),
-        h('div', { class: 'dl12-desc', text: d.description || t('lib.defaultdesc') }),
+        h('div', { class: 'dl12-desc',
+          text: (window.V12Drills ? V12Drills.desc(d) : d.description) || t('lib.defaultdesc') }),
         equip ? h('div', { class: 'dl12-equip' }, [
           h('i', { class: 'ph-bold ph-package' }),
           h('span', { text: equip })
