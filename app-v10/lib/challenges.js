@@ -14,6 +14,43 @@
   var LS = 'courtiq_v12_chal';
   var XP_REWARD = 40;
 
+  /* ── strings — challenge titles, tasks and XP toasts, both languages.
+     Coach names (Splash, Flow, Tank) stay English in both. ─────────── */
+  var T = {
+    en: {
+      'chal.gm.title': 'The GM\'s challenge',
+      'chal.gm.t1': 'Log a tracked session today',
+      'chal.splash.title': 'Splash\'s challenge',
+      'chal.splash.t1': 'Put up 20 tracked shots today',
+      'chal.splash.t2': 'Sink 12 tracked makes today',
+      'chal.splash.t3': 'Put up 30 tracked shots today',
+      'chal.flow.title': 'Flow\'s challenge',
+      'chal.flow.t1': 'Finish a Ball Handling drill today',
+      'chal.flow.t2': 'Finish two Ball Handling drills today',
+      'chal.tank.title': 'Tank\'s challenge',
+      'chal.tank.t1': 'Finish a Conditioning or Strength drill today',
+      'chal.tank.t2': 'Finish two Conditioning or Strength drills today',
+      'chal.sweep': 'Full staff sweep'
+    },
+    he: {
+      'chal.gm.title': 'האתגר של ה-⁨GM⁩',
+      'chal.gm.t1': 'תעד אימון עם מעקב היום',
+      'chal.splash.title': 'האתגר של ⁨Splash⁩',
+      'chal.splash.t1': 'תעלה 20 זריקות במעקב היום',
+      'chal.splash.t2': 'תקלע 12 קליעות במעקב היום',
+      'chal.splash.t3': 'תעלה 30 זריקות במעקב היום',
+      'chal.flow.title': 'האתגר של ⁨Flow⁩',
+      'chal.flow.t1': 'תסיים תרגיל כדרור אחד היום',
+      'chal.flow.t2': 'תסיים שני תרגילי כדרור היום',
+      'chal.tank.title': 'האתגר של ⁨Tank⁩',
+      'chal.tank.t1': 'תסיים תרגיל כושר או כוח אחד היום',
+      'chal.tank.t2': 'תסיים שני תרגילי כושר או כוח היום',
+      'chal.sweep': 'כל הצוות ביום אחד'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   function today() { return new Date().toISOString().slice(0, 10); }
   function claimedMap() {
     try { return JSON.parse(localStorage.getItem(LS) || '{}'); } catch (e) { return {}; }
@@ -70,34 +107,35 @@
   }
 
   /* one challenge per coach per day — measured, never invented.
-     Variants rotate by calendar day so the gym doesn't repeat itself. */
+     Variants rotate by calendar day so the gym doesn't repeat itself.
+     title/task hold T keys; state() resolves them in the active language. */
   var DEFS = {
     gm: {
-      title: 'The GM\'s challenge',
+      title: 'chal.gm.title',
       variants: [
-        { task: 'Log a tracked session today', total: 1, progress: function (d) { return sessionsToday(d && d.sessions); } }
+        { task: 'chal.gm.t1', total: 1, progress: function (d) { return sessionsToday(d && d.sessions); } }
       ]
     },
     splash: {
-      title: 'Splash\'s challenge',
+      title: 'chal.splash.title',
       variants: [
-        { task: 'Put up 20 tracked shots today', total: 20, progress: function (d) { return shotsToday(d && d.sessions); } },
-        { task: 'Sink 12 tracked makes today', total: 12, progress: function (d) { return madeToday(d && d.sessions); } },
-        { task: 'Put up 30 tracked shots today', total: 30, progress: function (d) { return shotsToday(d && d.sessions); } }
+        { task: 'chal.splash.t1', total: 20, progress: function (d) { return shotsToday(d && d.sessions); } },
+        { task: 'chal.splash.t2', total: 12, progress: function (d) { return madeToday(d && d.sessions); } },
+        { task: 'chal.splash.t3', total: 30, progress: function (d) { return shotsToday(d && d.sessions); } }
       ]
     },
     flow: {
-      title: 'Flow\'s challenge',
+      title: 'chal.flow.title',
       variants: [
-        { task: 'Finish a Ball Handling drill today', total: 1, progress: bhDone },
-        { task: 'Finish two Ball Handling drills today', total: 2, progress: bhDone }
+        { task: 'chal.flow.t1', total: 1, progress: bhDone },
+        { task: 'chal.flow.t2', total: 2, progress: bhDone }
       ]
     },
     tank: {
-      title: 'Tank\'s challenge',
+      title: 'chal.tank.title',
       variants: [
-        { task: 'Finish a Conditioning or Strength drill today', total: 1, progress: fitDone },
-        { task: 'Finish two Conditioning or Strength drills today', total: 2, progress: fitDone }
+        { task: 'chal.tank.t1', total: 1, progress: fitDone },
+        { task: 'chal.tank.t2', total: 2, progress: fitDone }
       ]
     }
   };
@@ -114,7 +152,7 @@
     var done = Math.min(v.total, v.progress(data) || 0);
     var claimed = !!claimedMap()[coachId + '_' + today()];
     return {
-      coach: coachId, title: def.title, task: v.task,
+      coach: coachId, title: t(def.title), task: t(v.task),
       done: done, total: v.total,
       complete: done >= v.total, claimed: claimed
     };
@@ -144,7 +182,7 @@
       try { localStorage.setItem(LS, JSON.stringify(m)); } catch (e3) {}
       try {
         if (window.XPSystem && window.XPSystem.grantXP) {
-          window.XPSystem.grantXP(BONUS_XP, 'Full staff sweep');
+          window.XPSystem.grantXP(BONUS_XP, t('chal.sweep'));
         }
       } catch (e4) {}
       bonus = true;

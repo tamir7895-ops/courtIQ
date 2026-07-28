@@ -269,12 +269,16 @@ Deno.serve(async (req: Request) => {
   const { data: { user }, error: authError } = await userClient.auth.getUser();
   if (authError || !user) return json(401, { error: "Unauthorized" });
 
-  // ── input: {context, history, persona} — nothing else is trusted ──
-  let body: { context?: unknown; history?: unknown; persona?: unknown };
+  // ── input: {context, history, persona, lang} — nothing else is trusted ──
+  let body: { context?: unknown; history?: unknown; persona?: unknown; lang?: unknown };
   try { body = await req.json(); } catch { return json(400, { error: { message: "Bad JSON" } }); }
 
   const persona = (typeof body.persona === "string" && PERSONAS[body.persona])
     ? body.persona : "gm";
+  // The app speaks the player's language; the staff must too. Allowlist
+  // only — an arbitrary string here would be prompt injection with a
+  // language costume on.
+  const lang = body.lang === "he" ? "he" : "en";
   const context = typeof body.context === "string" ? body.context.slice(0, MAX_CTX_CHARS) : "";
   const rawHistory = Array.isArray(body.history) ? (body.history as Turn[]) : [];
   const messages: { role: "user" | "assistant"; content: string }[] = [];
@@ -323,7 +327,14 @@ Deno.serve(async (req: Request) => {
       system: [
         { type: "text", text: PLAYBOOK, cache_control: { type: "ephemeral" } },
         { type: "text", text: PERSONAS[persona] },
-        { type: "text", text: "DATA (real, current):\n" + context + TAIL_REMINDER },
+        // Placed with the DATA block (after the cache breakpoint) so the
+        // cached playbook prefix stays byte-identical across languages.
+        {
+          type: "text",
+          text: (lang === "he"
+            ? "LANGUAGE: Respond in Hebrew only. Natural, spoken Israeli Hebrew — short sentences, basketball terms as used on Israeli courts. Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n"
+            : "") + "DATA (real, current):\n" + context + TAIL_REMINDER,
+        },
       ],
       messages,
     }),

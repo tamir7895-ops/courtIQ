@@ -6,6 +6,135 @@
   'use strict';
   var h = window.V10UI.h, svg = window.V10UI.svg, icon = window.V10UI.icon;
 
+  var T = {
+    en: {
+      'post.why.nothrough':    'Never saw it reach the rim.',
+      'post.why.ringcross':    'Saw it cross the ring.',
+      'post.why.insidenet':    'Saw it in the net.',
+      'post.why.dwell':        'Saw it sit in the rim.',
+      'post.undo':             'Undo',
+      'post.fix.title':        'A SECOND LOOK',
+      'post.fix.title.all':    'EVERY SHOT',
+      'post.fix.meta.check':   '{n} TO CHECK',
+      'post.fix.rough':        'Tracking was rough in this one — {n} shots never reached the rim on camera. Showing the first {cap}.',
+      'post.made':             'Made',
+      'post.miss':             'Miss',
+      'post.fix.aria':         'Shot {n} went in',
+      'post.fix.wentin':       'Went in',
+      'post.fix.counted':      'Shot {n} counted',
+      'post.fix.basis':        'A miss just means the ball was never seen going through — sun, blur or a body in the way all look the same to the camera. If you know better, say so.',
+      'post.recap.back':       'BACK',
+      'post.recap.title':      'SESSION RECAP · {date}',
+      'post.recap.final':      'FINAL',
+      'post.analysis':         'ANALYZED {v}S CLIP IN {s}S · {fps} FPS · {ep}',
+      'post.zone.lc':          'LC',
+      'post.zone.rc':          'RC',
+      'post.zone.ml':          'ML',
+      'post.zone.mr':          'MR',
+      'post.zone.topmid':      'TOPMID',
+      'post.zone.lw':          'LW',
+      'post.zone.rw':          'RW',
+      'post.zone.top':         'TOP',
+      'post.zone.pnt':         'PNT',
+      'post.zone.shots':       'SHOTS',
+      'post.zone.nshots':      '{n} shots',
+      'post.zone.none':        'none',
+      'post.zone.delta':       '{d}% vs session',
+      'post.drill.fallback':   'DRILL',
+      'post.drill.sub':        '{reps} reps · {mins} min',
+      'post.share.chips':      '3PT {three}   ·   Best run {streak}',
+      'post.share.footer':     'Every shot tracked by CourtIQ AI',
+      'post.share.title':      'CourtIQ session',
+      'post.share.text':       '{made}/{att} ({pct}%) — tracked by CourtIQ AI',
+      'post.back':             'Back',
+      'post.hd.title':         'Session recap',
+      'post.hd.sub':           '{date} · final',
+      'post.map.eyebrow':      'SHOT MAP',
+      'post.counter.label':    'COUNTED LIVE',
+      'post.counter.sub':      'shots up · no made/miss claims from live counting',
+      'post.counter.three':    '{n} from 3PT range',
+      'post.counter.zones':    '{n} zones used',
+      'post.counter.want':     'WANT MADE/MISS?',
+      'post.counter.want.sub': 'Record your session and upload the video — the analyzer scores every shot.',
+      'post.hero.label':       'THIS SESSION',
+      'post.hero.three':       '3PT {v}',
+      'post.hero.streak':      'Best run {n}',
+      'post.hero.last':        'Last: {pct}% {arrow}{diff}',
+      'post.zones.title':      'BY ZONE',
+      'post.zones.meta':       'SCROLL →',
+      'post.drills.title':     'SUGGESTED DRILLS',
+      'post.drills.meta':      'VIEW ALL →',
+      'post.drills.viewall':   'VIEW ALL DRILLS →',
+      'post.cta.again':        'Log another session',
+      'post.cta.share':        'Share this session',
+      'post.cta.home':         'Back to home'
+    },
+    he: {
+      'post.why.nothrough':    'לא ראינו את הכדור מגיע לטבעת.',
+      'post.why.ringcross':    'ראינו אותו חוצה את הטבעת.',
+      'post.why.insidenet':    'ראינו אותו בתוך הרשת.',
+      'post.why.dwell':        'ראינו אותו יושב על הטבעת.',
+      'post.undo':             'ביטול',
+      'post.fix.title':        'מבט שני',
+      'post.fix.title.all':    'כל הזריקות',
+      'post.fix.meta.check':   '{n} לבדיקה',
+      'post.fix.rough':        'המעקב היה קשה הפעם — {n} זריקות לא נראו מגיעות לטבעת במצלמה. מציגים את {cap} הראשונות.',
+      'post.made':             'נכנס',
+      'post.miss':             'החטאה',
+      'post.fix.aria':         'זריקה {n} נכנסה',
+      'post.fix.wentin':       'נכנס',
+      'post.fix.counted':      'זריקה {n} נספרה',
+      'post.fix.basis':        'החטאה אומרת רק שהכדור לא נראה עובר בטבעת — שמש, טשטוש או גוף שמסתיר נראים אותו דבר למצלמה. אם אתם יודעים אחרת — תגידו.',
+      'post.recap.back':       'חזרה',
+      'post.recap.title':      'סיכום סשן · {date}',
+      'post.recap.final':      'סופי',
+      'post.analysis':         'קליפ של {v} שניות נותח ב-{s} שניות · {fps} FPS · {ep}',
+      'post.zone.lc':          'פינה שמאל',
+      'post.zone.rc':          'פינה ימין',
+      'post.zone.ml':          'אמצע שמאל',
+      'post.zone.mr':          'אמצע ימין',
+      'post.zone.topmid':      'ראש הרחבה',
+      'post.zone.lw':          'אגף שמאל',
+      'post.zone.rw':          'אגף ימין',
+      'post.zone.top':         'ראש הקשת',
+      'post.zone.pnt':         'רחבה',
+      'post.zone.shots':       'זריקות',
+      'post.zone.nshots':      '{n} זריקות',
+      'post.zone.none':        'אין',
+      'post.zone.delta':       '{d}% מול הסשן',
+      'post.drill.fallback':   'תרגיל',
+      'post.drill.sub':        '{reps} חזרות · {mins} דק׳',
+      'post.share.chips':      '3PT {three}   ·   רצף שיא {streak}',
+      'post.share.footer':     'כל זריקה נספרת על ידי CourtIQ AI',
+      'post.share.title':      'סשן CourtIQ',
+      'post.share.text':       '{made}/{att} ({pct}%) — נמדד על ידי CourtIQ AI',
+      'post.back':             'חזרה',
+      'post.hd.title':         'סיכום סשן',
+      'post.hd.sub':           '{date} · סופי',
+      'post.map.eyebrow':      'מפת זריקות',
+      'post.counter.label':    'נספר בלייב',
+      'post.counter.sub':      'זריקות שנזרקו · ספירה חיה לא קובעת נכנס/החטאה',
+      'post.counter.three':    '{n} מטווח שלוש',
+      'post.counter.zones':    '{n} אזורים בשימוש',
+      'post.counter.want':     'רוצים נכנס/החטאה?',
+      'post.counter.want.sub': 'צלמו את הסשן והעלו את הווידאו — המנתח מדרג כל זריקה.',
+      'post.hero.label':       'הסשן הזה',
+      'post.hero.three':       '3PT {v}',
+      'post.hero.streak':      'רצף שיא {n}',
+      'post.hero.last':        'קודם: {pct}% {arrow}{diff}',
+      'post.zones.title':      'לפי אזור',
+      'post.zones.meta':       'גללו',
+      'post.drills.title':     'תרגילים מומלצים',
+      'post.drills.meta':      'לכל התרגילים',
+      'post.drills.viewall':   'לכל התרגילים ←',
+      'post.cta.again':        'עוד סשן',
+      'post.cta.share':        'שיתוף הסשן',
+      'post.cta.home':         'חזרה הביתה'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   // Full half-court polygons, viewBox 500x470. Zone/arc joints at
   // x=170/330 sit at y = 52.5 + √(237.5² − 80²) = 276 — ON the 3pt
   // line, so the zone divider IS the 3pt line (mirrors lib/court.js).
@@ -274,10 +403,10 @@
      app was blind to, which is also how they set up better next time. */
   function whyText(why) {
     if (!why) return '';
-    if (why.indexOf('no through') === 0) return 'Never saw it reach the rim.';
-    if (why.indexOf('ring-cross') === 0) return 'Saw it cross the ring.';
-    if (why.indexOf('inside-net') === 0) return 'Saw it in the net.';
-    if (why.indexOf('dwell') === 0) return 'Saw it sit in the rim.';
+    if (why.indexOf('no through') === 0) return t('post.why.nothrough');
+    if (why.indexOf('ring-cross') === 0) return t('post.why.ringcross');
+    if (why.indexOf('inside-net') === 0) return t('post.why.insidenet');
+    if (why.indexOf('dwell') === 0) return t('post.why.dwell');
     return '';
   }
 
@@ -291,7 +420,7 @@
     var el = h('div', { class: 'v11-snack' }, [
       h('span', { text: text }),
       h('button', {
-        class: 'v11-snack__u', type: 'button', text: 'Undo',
+        class: 'v11-snack__u', type: 'button', text: t('post.undo'),
         onclick: function () { onUndo(); if (el.parentNode) el.parentNode.removeChild(el); }
       })
     ]);
@@ -311,15 +440,14 @@
 
     wrap.appendChild(ctx.ui.ribbon({
       icon: 'ph-eye',
-      title: show.length ? 'A SECOND LOOK' : 'EVERY SHOT',
-      meta: show.length ? show.length + ' TO CHECK' : String(shots.length)
+      title: show.length ? t('post.fix.title') : t('post.fix.title.all'),
+      meta: show.length ? t('post.fix.meta.check', { n: show.length }) : String(shots.length)
     }));
 
     if (flagged.length > FIX_REVIEW_CAP) {
       wrap.appendChild(h('div', {
         class: 'v11-basis',
-        text: 'Tracking was rough in this one — ' + flagged.length + ' shots never ' +
-              'reached the rim on camera. Showing the first ' + FIX_REVIEW_CAP + '.'
+        text: t('post.fix.rough', { n: flagged.length, cap: FIX_REVIEW_CAP })
       }));
     }
 
@@ -335,19 +463,19 @@
       });
       var verdict = h('div', {
         class: 'v11-fix__v ' + (s.made ? 'v11-fix__v--made' : 'v11-fix__v--miss'),
-        text: s.made ? 'Made' : 'Miss'
+        text: s.made ? t('post.made') : t('post.miss')
       });
       var btn = h('button', {
         class: 'v11-fix__b', type: 'button',
-        'aria-label': 'Shot ' + (idx + 1) + ' went in'
+        'aria-label': t('post.fix.aria', { n: idx + 1 })
       }, [
         h('i', { class: 'ph-bold ph-arrow-u-up-left' }),
-        h('span', { text: 'Went in' })
+        h('span', { text: t('post.fix.wentin') })
       ]);
 
       var apply = function (made) {
         s.made = made;
-        verdict.textContent = made ? 'Made' : 'Miss';
+        verdict.textContent = made ? t('post.made') : t('post.miss');
         verdict.className = 'v11-fix__v ' + (made ? 'v11-fix__v--made' : 'v11-fix__v--miss');
         row.classList.toggle('is-fixed', made);
         btn.style.display = made ? 'none' : '';
@@ -360,7 +488,7 @@
 
       btn.addEventListener('click', function () {
         apply(true);
-        snack('Shot ' + (idx + 1) + ' counted', function () { apply(false); });
+        snack(t('post.fix.counted', { n: idx + 1 }), function () { apply(false); });
       });
 
       row.appendChild(h('div', { class: 'v11-fix__n', text: String(idx + 1) }));
@@ -373,9 +501,7 @@
     wrap.appendChild(list);
     wrap.appendChild(h('div', {
       class: 'v11-basis',
-      text: 'A miss just means the ball was never seen going through — ' +
-            'sun, blur or a body in the way all look the same to the camera. ' +
-            'If you know better, say so.'
+      text: t('post.fix.basis')
     }));
     return wrap;
   }
@@ -391,11 +517,11 @@
       class: 'v10-chip',
       style: { flex: '0 0 auto', minWidth: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' },
       onclick: function () { ctx.go('track'); }
-    }, [icon('ph-arrow-left'), h('span', { text: 'BACK' })]);
+    }, [icon('ph-arrow-left'), h('span', { text: t('post.recap.back') })]);
 
-    var title = h('div', { class: 'v10-chip', style: { flex: 1, background: 'var(--ink)', color: 'var(--cream)' }, text: 'SESSION RECAP · ' + dateStr });
+    var title = h('div', { class: 'v10-chip', style: { flex: 1, background: 'var(--ink)', color: 'var(--cream)' }, text: t('post.recap.title', { date: dateStr }) });
 
-    var final = h('div', { class: 'v10-chip', style: { flex: '0 0 auto', minWidth: '64px', background: 'var(--orange)', color: 'var(--cream)' }, text: 'FINAL' });
+    var final = h('div', { class: 'v10-chip', style: { flex: '0 0 auto', minWidth: '64px', background: 'var(--orange)', color: 'var(--cream)' }, text: t('post.recap.final') });
 
     return h('div', { class: 'v10-chips' }, [back, title, final]);
   }
@@ -410,8 +536,10 @@
     return h('div', {
       style: { fontFamily: 'var(--font-mono)', fontSize: '10px', opacity: '0.55',
                textAlign: 'center', letterSpacing: '0.06em', margin: '2px 0 0' },
-      text: 'ANALYZED ' + Math.round(a.videoSec || 0) + 'S CLIP IN ' + secs +
-            'S · ' + fps + ' FPS · ' + String(a.ep || '?').toUpperCase()
+      text: t('post.analysis', {
+        v: Math.round(a.videoSec || 0), s: secs, fps: fps,
+        ep: String(a.ep || '?').toUpperCase()
+      })
     });
   }
 
@@ -436,11 +564,11 @@
         style: { flex: '0 0 auto', minWidth: '108px' }
       }, [
         h('div', { class: 'v10-tile__top' }, [
-          h('div', { class: 'v10-tile__title', text: (z.label || key).toUpperCase() }),
+          h('div', { class: 'v10-tile__title', text: (z.label || t('post.zone.' + key)).toUpperCase() }),
           h('i', { class: 'ph-bold ph-basketball v10-tile__icon v10-tile__icon--mustard' })
         ]),
         h('div', { class: 'v10-tile__num', text: String(z.att || 0) }),
-        h('div', { class: 'v10-tile__meta', text: 'SHOTS' })
+        h('div', { class: 'v10-tile__meta', text: t('post.zone.shots') })
       ]);
     }
     var d = zoneDelta(z, sessionAcc);
@@ -455,7 +583,7 @@
       style: { flex: '0 0 auto', minWidth: '108px' }
     }, [
       h('div', { class: 'v10-tile__top' }, [
-        h('div', { class: 'v10-tile__title', text: (z.label || key).toUpperCase() }),
+        h('div', { class: 'v10-tile__title', text: (z.label || t('post.zone.' + key)).toUpperCase() }),
         d == null
           ? h('i', { class: 'ph-bold ph-minus v10-tile__icon v10-tile__icon--' + variant })
           : h('i', { class: 'ph-bold ' + (up ? 'ph-trend-up' : 'ph-trend-down') +
@@ -465,8 +593,8 @@
       h('div', {
         class: 'v10-tile__meta',
         text: d == null
-          ? (z.att ? z.att + ' shots' : 'none')
-          : (up ? '+' : '') + d + '% vs session'
+          ? (z.att ? t('post.zone.nshots', { n: z.att }) : t('post.zone.none'))
+          : t('post.zone.delta', { d: (up ? '+' : '') + d })
       })
     ]);
   }
@@ -496,8 +624,8 @@
     }, [
       h('div', { class: 'v10-row__num', text: String(idx + 1).padStart(2, '0') }),
       h('div', { class: 'v10-row__main' }, [
-        h('div', { class: 'v10-row__title', text: (d.name || 'DRILL').toUpperCase() }),
-        h('div', { class: 'v10-row__sub', text: (d.reps || 30) + ' reps · ' + (d.mins || 6) + ' min' })
+        h('div', { class: 'v10-row__title', text: (d.name || t('post.drill.fallback')).toUpperCase() }),
+        h('div', { class: 'v10-row__sub', text: t('post.drill.sub', { reps: d.reps || 30, mins: d.mins || 6 }) })
       ]),
       h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')])
     ]);
@@ -554,14 +682,16 @@
       /* chips */
       g.fillStyle = 'rgba(255,255,255,.85)';
       g.font = '700 44px Lora, serif';
-      var chips = '3PT ' + (s.threeAtt ? s.threeMade + '/' + s.threeAtt : '—') +
-                  '   ·   Best run ' + s.streak;
+      var chips = t('post.share.chips', {
+        three: s.threeAtt ? s.threeMade + '/' + s.threeAtt : '—',
+        streak: s.streak
+      });
       g.fillText(chips, 64, 1180);
 
       /* footer */
       g.fillStyle = 'rgba(255,255,255,.5)';
       g.font = '700 32px Lora, serif';
-      g.fillText('Every shot tracked by CourtIQ AI', 64, 1280);
+      g.fillText(t('post.share.footer'), 64, 1280);
 
       /* SYNCHRONOUS blob build — navigator.share demands the user's tap
          still be "warm" (transient activation); a toBlob callback lands
@@ -572,13 +702,13 @@
       for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
       var file = null;
       try { file = new File([bytes], 'courtiq-session.png', { type: 'image/png' }); } catch (e) {}
-      var text = s.made + '/' + s.att + ' (' + s.pct + '%) — tracked by CourtIQ AI';
+      var text = t('post.share.text', { made: s.made, att: s.att, pct: s.pct });
       var openFallback = function () { try { window.open(dataUrl); } catch (e2) {} };
       if (file && navigator.canShare && navigator.canShare({ files: [file] })) {
-        navigator.share({ files: [file], title: 'CourtIQ session', text: text })
+        navigator.share({ files: [file], title: t('post.share.title'), text: text })
           .catch(openFallback);
       } else if (navigator.share) {
-        navigator.share({ title: 'CourtIQ session', text: text }).catch(openFallback);
+        navigator.share({ title: t('post.share.title'), text: text }).catch(openFallback);
       } else {
         openFallback();
       }
@@ -613,13 +743,13 @@
 
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
-          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          class: 'c12-back', type: 'button', 'aria-label': t('post.back'),
           onclick: function () { ctx.go('track'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', { style: { flex: '1' } }, [
-          h('div', { class: 'c12-chat-hd__t', text: 'Session recap' }),
-          h('div', { class: 'c12-chat-hd__s', text: new Date().toLocaleDateString(undefined, {
-            month: 'short', day: 'numeric' }) + ' · final' })
+          h('div', { class: 'c12-chat-hd__t', text: t('post.hd.title') }),
+          h('div', { class: 'c12-chat-hd__s', text: t('post.hd.sub', {
+            date: new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) }) })
         ])
       ]));
       var aLine = analysisLine();
@@ -628,7 +758,7 @@
       // Hero shot map (capped at ~240px tall via inline style on the svg)
       var eyebrow = h('div', { class: 'v10-court__eyebrow' }, [
         icon('ph-crosshair-simple'),
-        h('span', { text: 'SHOT MAP' })
+        h('span', { text: t('post.map.eyebrow') })
       ]);
       host.appendChild(h('section', { class: 'v10-court' }, [
         eyebrow,
@@ -648,7 +778,7 @@
          The map moved to 1000ms too: it used to fire on the next frame, so
          the dots and the bento competed for the eye at the same instant.
          The map is "how did I get here" — it belongs after the verdict. */
-      var t = window.V11Reveal.run({
+      var revealVerdict = window.V11Reveal.run({
         host: host, ctx: ctx, counter: counter,
         made: made, att: att, pct: pct,
         onMap: function () { animateShotDots(sessionShots); }
@@ -672,17 +802,17 @@
         // Counter recap: volume stats only — no made/miss claims.
         var zonesUsed = Object.keys(zones).filter(function (k) { return zones[k].att > 0; }).length;
         host.appendChild(h('div', { class: 'ps12-hero d-card d-card--ink' }, [
-          h('div', { class: 'd-label', text: 'COUNTED LIVE' }),
+          h('div', { class: 'd-label', text: t('post.counter.label') }),
           h('div', { class: 'ps12-num v10-bento__num', text: String(att) }),
-          h('div', { class: 'ps12-sub', text: 'shots up · no made/miss claims from live counting' }),
+          h('div', { class: 'ps12-sub', text: t('post.counter.sub') }),
           h('div', { class: 'ps12-chips' }, [
             h('div', { class: 'ps12-chip' }, [
               h('i', { class: 'ph-fill ph-target' }),
-              h('span', { text: threeAtt + ' from 3PT range' })
+              h('span', { text: t('post.counter.three', { n: threeAtt }) })
             ]),
             h('div', { class: 'ps12-chip' }, [
               h('i', { class: 'ph-fill ph-map-pin' }),
-              h('span', { text: zonesUsed + ' zones used' })
+              h('span', { text: t('post.counter.zones', { n: zonesUsed }) })
             ])
           ])
         ]));
@@ -694,8 +824,8 @@
         }, [
           h('div', { class: 'v10-row__num' }, [icon('ph-film-slate')]),
           h('div', { class: 'v10-row__main' }, [
-            h('div', { class: 'v10-row__title', text: 'WANT MADE/MISS?' }),
-            h('div', { class: 'v10-row__sub', text: 'Record your session and upload the video — the analyzer scores every shot.' })
+            h('div', { class: 'v10-row__title', text: t('post.counter.want') }),
+            h('div', { class: 'v10-row__sub', text: t('post.counter.want.sub') })
           ]),
           h('div', { class: 'v10-row__right' }, [icon('ph-caret-right')])
         ]));
@@ -704,15 +834,15 @@
         var heroChips = h('div', { class: 'ps12-chips' }, [
           h('div', { class: 'ps12-chip' }, [
             h('i', { class: 'ph-fill ph-target' }),
-            h('span', { text: '3PT ' + (threeAtt ? threeMade + '/' + threeAtt : '—') })
+            h('span', { text: t('post.hero.three', { v: threeAtt ? threeMade + '/' + threeAtt : '—' }) })
           ]),
           h('div', { class: 'ps12-chip ps12-chip--fire' }, [
             h('i', { class: 'ph-fill ph-fire' }),
-            h('span', { text: 'Best run ' + streak })
+            h('span', { text: t('post.hero.streak', { n: streak }) })
           ])
         ]);
         host.appendChild(h('div', { class: 'ps12-hero d-card d-card--ink' }, [
-          h('div', { class: 'd-label', text: 'THIS SESSION' }),
+          h('div', { class: 'd-label', text: t('post.hero.label') }),
           h('div', { class: 'ps12-num v10-bento__num' }, [
             document.createTextNode(made + ' / ' + att),
             h('span', { class: 'ps12-pct', text: pct + '%' })
@@ -741,7 +871,9 @@
             var arrow = diff > 0 ? '▲' : (diff < 0 ? '▼' : '—');
             heroChips.appendChild(h('div', { class: 'ps12-chip ps12-chip--vs ps12-chip--' + tone }, [
               h('i', { class: 'ph-fill ph-arrows-left-right' }),
-              h('span', { text: 'Last: ' + prevPct + '% ' + arrow + (diff ? ' ' + Math.abs(diff) : '') })
+              h('span', { text: t('post.hero.last', {
+                pct: prevPct, arrow: arrow, diff: diff ? ' ' + Math.abs(diff) : ''
+              }) })
             ]));
           }).catch(function () {});
         }
@@ -756,16 +888,16 @@
       // BY ZONE ribbon + tile strip
       host.appendChild(ctx.ui.ribbon({
         icon: 'ph-map-trifold',
-        title: 'BY ZONE',
-        meta: 'SCROLL →'
+        title: t('post.zones.title'),
+        meta: t('post.zones.meta')
       }));
       host.appendChild(zoneStrip(zones || {}, counter, att ? made / att : null));
 
       // DRILLS ribbon — clickable rows go to workout-player; "View all" chip goes to drill-library
       host.appendChild(ctx.ui.ribbon({
         icon: 'ph-barbell',
-        title: 'SUGGESTED DRILLS',
-        meta: 'VIEW ALL →'
+        title: t('post.drills.title'),
+        meta: t('post.drills.meta')
       }));
       var drillsList = h('div', {
         style: { display: 'flex', flexDirection: 'column', gap: '6px' }
@@ -782,7 +914,7 @@
         h('div', {
           class: 'v10-row__title',
           style: { color: 'var(--cream)', textAlign: 'center', flex: 1 },
-          text: 'VIEW ALL DRILLS →'
+          text: t('post.drills.viewall')
         })
       ]));
       host.appendChild(drillsList);
@@ -793,13 +925,13 @@
       // CTAs — v12 lipped buttons (+ share, only when there is a verdict)
       var ctas = [
         window.V12.btn({
-          icon: 'ph-play-circle', label: 'Log another session',
+          icon: 'ph-play-circle', label: t('post.cta.again'),
           onClick: function () { ctx.go('camera-hud'); }
         })
       ];
       if (!counter && att > 0) {
         ctas.push(window.V12.btn({
-          variant: 'ghost', icon: 'ph-share-network', label: 'Share this session',
+          variant: 'ghost', icon: 'ph-share-network', label: t('post.cta.share'),
           onClick: function () {
             shareSessionCard({
               made: made, att: att, pct: pct,
@@ -809,7 +941,7 @@
         }));
       }
       ctas.push(window.V12.btn({
-        variant: 'ghost', icon: 'ph-house', label: 'Back to home',
+        variant: 'ghost', icon: 'ph-house', label: t('post.cta.home'),
         onClick: function () { ctx.go('home'); }
       }));
       host.appendChild(h('div', {

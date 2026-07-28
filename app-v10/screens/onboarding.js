@@ -13,6 +13,326 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
+  var T = {
+    en: {
+      'onb.title.welcome':    'Meet your staff',
+      'onb.title.identity':   'Who are you',
+      'onb.title.avatar':     'Your look',
+      'onb.title.position':   'Your spot',
+      'onb.title.style':      'Your game',
+      'onb.title.scout':      'Rate yourself',
+      'onb.title.schedule':   'Your schedule',
+      'onb.title.gear':       'Your gear',
+      'onb.title.focus':      'What matters',
+      'onb.title.goals':      'Your goals',
+      'onb.title.processing': 'Building your plan',
+      'onb.title.report':     'Your combine card',
+      'onb.step':             'Step {i} of {n}',
+
+      'onb.guide.welcome':    'I’m The Scout — the GM here. Before you touch a ball I build a file on you. A few questions, then the staff takes over.',
+      'onb.guide.identity':   'The file starts with the basics. Who am I scouting?',
+      'onb.guide.avatar':     'Every file gets a face. Make yours — you can change everything later in the shop.',
+      'onb.guide.position':   'Where do you live on the floor?',
+      'onb.guide.style':      'And how do you hoop when nobody is coaching you?',
+      'onb.guide.scout':      'Rate yourself straight. The court gets the final say anyway.',
+      'onb.guide.schedule':   'Flow — handles coach. Rhythm beats volume: give me the honest number of days.',
+      'onb.guide.gear':       'Tank. Strength staff. Tell me what we have to work with — no gym is no excuse.',
+      'onb.guide.focus':      'Splash, shooting coach. Pick what we sharpen first. I vote shooting, but it’s your game.',
+      'onb.guide.goals':      'Scout again. Where is this going? We tune the whole program to the target.',
+      'onb.guide.processing': 'Give me a second with your file…',
+      'onb.guide.report':     'Your combine card. The staff has seen it — welcome to the program.',
+
+      'onb.staff.gm':         'The GM',
+      'onb.staff.splash':     'Shooting',
+      'onb.staff.flow':       'Handles',
+      'onb.staff.tank':       'Fitness',
+      'onb.welcome.hint':     'Four coaches, one program. Answer a few questions so they know exactly who just walked into their gym.',
+
+      'onb.name':             'NAME',
+      'onb.name.ph':          'Your name',
+      'onb.age':              'Age',
+      'onb.age.unit':         ' yr',
+      'onb.hand':             'SHOOTING HAND',
+      'onb.hand.l':           'Lefty',
+      'onb.hand.r':           'Righty',
+
+      'onb.av.alt':           'Your avatar',
+      'onb.av.surprise':      'Surprise me',
+      'onb.av.skin':          'SKIN',
+      'onb.av.hair':          'HAIR',
+      'onb.av.haircolor':     'HAIR COLOR',
+      'onb.av.jersey':        'JERSEY',
+      'onb.av.hint':          'The full wardrobe — headbands, dreads, jerseys, gold chains — unlocks in the shop with the coins you earn.',
+
+      'onb.pos.pg':           'Point',
+      'onb.pos.pg.sub':       'Run the show',
+      'onb.pos.sg':           'Shooting',
+      'onb.pos.sg.sub':       'Get buckets',
+      'onb.pos.sf':           'Small F',
+      'onb.pos.sf.sub':       'Do it all',
+      'onb.pos.pf':           'Power F',
+      'onb.pos.pf.sub':       'Bang inside',
+      'onb.pos.c':            'Center',
+      'onb.pos.c.sub':        'Own the paint',
+
+      'onb.style.sniper':       'Sniper',
+      'onb.style.sniper.sub':   'Lives behind the arc',
+      'onb.style.slasher':      'Slasher',
+      'onb.style.slasher.sub':  'Attacks the rim',
+      'onb.style.floor':        'Floor General',
+      'onb.style.floor.sub':    'Sees it first',
+      'onb.style.lockdown':     'Lockdown',
+      'onb.style.lockdown.sub': 'Defense wins',
+
+      'onb.skill.shoot':      'Shooting',
+      'onb.skill.handle':     'Ball handling',
+      'onb.skill.pass':       'Passing',
+      'onb.skill.defend':     'Defense',
+      'onb.skill.finish':     'Finishing',
+      'onb.skill.iq':         'Court IQ',
+      'onb.scout.hint':       'Rate yourself 0–10. The court gets the final say later.',
+
+      'onb.sched.days':       'Days per week',
+      'onb.sched.len':        'SESSION LENGTH',
+      'onb.sched.hint':       'We size each session to fit — shorter days get tighter blocks.',
+
+      'onb.gear.ball':        'Ball',
+      'onb.gear.hoop':        'A hoop',
+      'onb.gear.cones':       'Cones',
+      'onb.gear.gym':         'Gym access',
+      'onb.gear.weights':     'Weights',
+      'onb.gear.partner':     'A partner',
+      'onb.gear.hint':        'Pick everything you can get to. Drills that need gear you don’t have get skipped.',
+
+      'onb.focus.shooting':     'Shooting',
+      'onb.focus.handles':      'Ball handling',
+      'onb.focus.finishing':    'Finishing',
+      'onb.focus.defense':      'Defense',
+      'onb.focus.conditioning': 'Conditioning',
+      'onb.focus.passing':      'Passing',
+      'onb.focus.balanced':     'Balanced',
+      'onb.focus.hint':         'Pick up to 3 — your plan leans hardest on these, in order.',
+
+      'onb.goal.varsity':     'Make varsity',
+      'onb.goal.starter':     'Win a starting job',
+      'onb.goal.college':     'College looks',
+      'onb.goal.pro':         'Go pro',
+      'onb.goal.healthy':     'Stay healthy',
+      'onb.goal.rival':       'Beat my rival',
+      'onb.goal.mvp':         'Tournament MVP',
+      'onb.goal.love':        'Love the game',
+      'onb.goal.hint':        'Pick all that apply — we tune the tone around these.',
+
+      'onb.proc.1':           'Reading your measurables',
+      'onb.proc.2':           'Cross-referencing your style',
+      'onb.proc.3':           'Sizing sessions to your week',
+      'onb.proc.4':           'Compiling your plan',
+
+      'onb.report.grade':     'SELF-SCOUT GRADE',
+      'onb.arche.sniper':     'PERIMETER SNIPER',
+      'onb.arche.slasher':    'DOWNHILL SLASHER',
+      'onb.arche.floor':      'FLOOR GENERAL',
+      'onb.arche.lockdown':   'PERIMETER LOCKDOWN',
+      'onb.arche.twoway':     'TWO-WAY WING',
+      'onb.proj.title':       '8-WEEK PROJECTION',
+      'onb.proj.sub':         'shooting volume growth if you keep {days} days · {min} min',
+      'onb.proj.w1':          'Week 1',
+      'onb.proj.w8':          'Week 8',
+      'onb.report.scouting':  'SCOUTING REPORT',
+      'onb.report.strong':    'Strongest: {top} · First to fix: {low}. The court gets the final say — every session updates this file.',
+      'onb.report.program':   'YOUR PROGRAM',
+      'onb.pos.full.pg':      'Point Guard',
+      'onb.pos.full.sg':      'Shooting Guard',
+      'onb.pos.full.sf':      'Small Forward',
+      'onb.pos.full.pf':      'Power Forward',
+      'onb.pos.full.c':       'Center',
+      'onb.report.player':    'Player',
+      'onb.report.sched':     '{days} days a week · {min} min a session',
+      'onb.report.focus':     'Focus: {list}',
+      'onb.report.gear':      'Gear: {list}',
+      'onb.report.body':      'bodyweight only',
+      'onb.report.goals':     'Goals: {list}',
+      'onb.report.hint':      'The staff builds your weekly plan from this file the moment you step into the gym. Change anything later in Training Plan.',
+
+      'onb.btn.cancel':       'Cancel',
+      'onb.btn.back':         'Back',
+      'onb.btn.continue':     'Continue',
+      'onb.btn.lets':         'Let’s go',
+      'onb.btn.build':        'Build my plan',
+      'onb.btn.start':        'Start training'
+    },
+    he: {
+      'onb.title.welcome':    'תכיר את הצוות',
+      'onb.title.identity':   'מי אתה',
+      'onb.title.avatar':     'הלוק שלך',
+      'onb.title.position':   'העמדה שלך',
+      'onb.title.style':      'המשחק שלך',
+      'onb.title.scout':      'דרג את עצמך',
+      'onb.title.schedule':   'הלו״ז שלך',
+      'onb.title.gear':       'הציוד שלך',
+      'onb.title.focus':      'מה שחשוב',
+      'onb.title.goals':      'המטרות שלך',
+      'onb.title.processing': 'בונים לך תוכנית',
+      'onb.title.report':     'כרטיס הקומביין שלך',
+      'onb.step':             'שלב {i} מתוך {n}',
+
+      'onb.guide.welcome':    'אני The Scout — הג׳י־אם כאן. לפני שאתה נוגע בכדור אני פותח עליך תיק. כמה שאלות, ואז הצוות נכנס לתמונה.',
+      'onb.guide.identity':   'התיק מתחיל מהבסיס. את מי אני בכלל סורק?',
+      'onb.guide.avatar':     'לכל תיק יש פרצוף. תבנה את שלך — אפשר לשנות הכל אחר כך בחנות.',
+      'onb.guide.position':   'איפה אתה חי על המגרש?',
+      'onb.guide.style':      'ואיך אתה משחק כשאף אחד לא מאמן אותך?',
+      'onb.guide.scout':      'דרג את עצמך ביושר. למגרש יש את המילה האחרונה בכל מקרה.',
+      'onb.guide.schedule':   'אני Flow — אחראי הכדרור. קצב מנצח כמות: תן לי מספר ימים אמיתי.',
+      'onb.guide.gear':       'אני Tank. צוות הכוח. תגיד עם מה יש לנו לעבוד — אין חדר כושר זה לא תירוץ.',
+      'onb.guide.focus':      'אני Splash, מאמן הקליעה. תבחר מה מחדדים קודם. אני בעד קליעה, אבל זה המשחק שלך.',
+      'onb.guide.goals':      'שוב The Scout. לאן זה הולך? את כל התוכנית מכוונים למטרה.',
+      'onb.guide.processing': 'תן לי שנייה עם התיק שלך…',
+      'onb.guide.report':     'כרטיס הקומביין שלך. הצוות כבר עבר עליו — ברוך הבא לתוכנית.',
+
+      'onb.staff.gm':         'הג׳י־אם',
+      'onb.staff.splash':     'קליעה',
+      'onb.staff.flow':       'כדרור',
+      'onb.staff.tank':       'כושר',
+      'onb.welcome.hint':     'ארבעה מאמנים, תוכנית אחת. תענה על כמה שאלות כדי שידעו בדיוק מי נכנס להם לג׳ים.',
+
+      'onb.name':             'שם',
+      'onb.name.ph':          'השם שלך',
+      'onb.age':              'גיל',
+      'onb.age.unit':         ' שנים',
+      'onb.hand':             'יד קולעת',
+      'onb.hand.l':           'שמאלי',
+      'onb.hand.r':           'ימני',
+
+      'onb.av.alt':           'האווטאר שלך',
+      'onb.av.surprise':      'תפתיע אותי',
+      'onb.av.skin':          'עור',
+      'onb.av.hair':          'שיער',
+      'onb.av.haircolor':     'צבע שיער',
+      'onb.av.jersey':        'גופיה',
+      'onb.av.hint':          'המלתחה המלאה — בנדנות, ראסטות, גופיות, שרשראות זהב — נפתחת בחנות עם המטבעות שתרוויח.',
+
+      'onb.pos.pg':           'רכז',
+      'onb.pos.pg.sub':       'מנהל את ההצגה',
+      'onb.pos.sg':           'קלע',
+      'onb.pos.sg.sub':       'מכניס סלים',
+      'onb.pos.sf':           'כנף',
+      'onb.pos.sf.sub':       'עושה הכל',
+      'onb.pos.pf':           'פאוור',
+      'onb.pos.pf.sub':       'נלחם בצבע',
+      'onb.pos.c':            'סנטר',
+      'onb.pos.c.sub':        'שולט בצבע',
+
+      'onb.style.sniper':       'צלף',
+      'onb.style.sniper.sub':   'גר מאחורי הקשת',
+      'onb.style.slasher':      'חודר',
+      'onb.style.slasher.sub':  'תוקף את הטבעת',
+      'onb.style.floor':        'גנרל המגרש',
+      'onb.style.floor.sub':    'רואה את זה ראשון',
+      'onb.style.lockdown':     'מנעול',
+      'onb.style.lockdown.sub': 'הגנה מנצחת',
+
+      'onb.skill.shoot':      'קליעה',
+      'onb.skill.handle':     'כדרור',
+      'onb.skill.pass':       'מסירה',
+      'onb.skill.defend':     'הגנה',
+      'onb.skill.finish':     'סיומות',
+      'onb.skill.iq':         'חוכמת מגרש',
+      'onb.scout.hint':       'דרג את עצמך 0–10. למגרש תהיה המילה האחרונה אחר כך.',
+
+      'onb.sched.days':       'ימים בשבוע',
+      'onb.sched.len':        'אורך אימון',
+      'onb.sched.hint':       'כל אימון נתפר למידה שלך — ימים קצרים מקבלים בלוקים הדוקים יותר.',
+
+      'onb.gear.ball':        'כדור',
+      'onb.gear.hoop':        'סל',
+      'onb.gear.cones':       'קונוסים',
+      'onb.gear.gym':         'גישה לאולם',
+      'onb.gear.weights':     'משקולות',
+      'onb.gear.partner':     'פרטנר',
+      'onb.gear.hint':        'סמן כל מה שיש לך גישה אליו. תרגילים שדורשים ציוד שאין לך פשוט מדלגים עליהם.',
+
+      'onb.focus.shooting':     'קליעה',
+      'onb.focus.handles':      'כדרור',
+      'onb.focus.finishing':    'סיומות',
+      'onb.focus.defense':      'הגנה',
+      'onb.focus.conditioning': 'כושר',
+      'onb.focus.passing':      'מסירה',
+      'onb.focus.balanced':     'מאוזן',
+      'onb.focus.hint':         'בחר עד 3 — התוכנית נשענת עליהם הכי חזק, לפי הסדר.',
+
+      'onb.goal.varsity':     'להיכנס לנבחרת',
+      'onb.goal.starter':     'לסגור מקום בחמישייה',
+      'onb.goal.college':     'עיניים מהקולג׳',
+      'onb.goal.pro':         'להפוך למקצוען',
+      'onb.goal.healthy':     'להישאר בריא',
+      'onb.goal.rival':       'לנצח את היריב שלי',
+      'onb.goal.mvp':         'MVP של הטורניר',
+      'onb.goal.love':        'לאהוב את המשחק',
+      'onb.goal.hint':        'סמן כל מה שמתאים — אנחנו מכוונים את הטון סביבם.',
+
+      'onb.proc.1':           'קורא את המידות שלך',
+      'onb.proc.2':           'מצליב את הסטייל שלך',
+      'onb.proc.3':           'מתאים אימונים לשבוע שלך',
+      'onb.proc.4':           'מרכיב את התוכנית שלך',
+
+      'onb.report.grade':     'ציון סקאוטינג עצמי',
+      'onb.arche.sniper':     'צלף מבחוץ',
+      'onb.arche.slasher':    'חודר בלי בלמים',
+      'onb.arche.floor':      'גנרל המגרש',
+      'onb.arche.lockdown':   'מנעול בהיקף',
+      'onb.arche.twoway':     'כנף דו־כיווני',
+      'onb.proj.title':       'תחזית ל־8 שבועות',
+      'onb.proj.sub':         'צמיחה בנפח הזריקות אם תשמור על {days} ימים · {min} דק׳',
+      'onb.proj.w1':          'שבוע 1',
+      'onb.proj.w8':          'שבוע 8',
+      'onb.report.scouting':  'דו״ח סקאוטינג',
+      'onb.report.strong':    'הכי חזק: {top} · ראשון לתיקון: {low}. למגרש המילה האחרונה — כל אימון מעדכן את התיק.',
+      'onb.report.program':   'התוכנית שלך',
+      'onb.pos.full.pg':      'רכז',
+      'onb.pos.full.sg':      'קלע',
+      'onb.pos.full.sf':      'כנף',
+      'onb.pos.full.pf':      'פאוור פורוורד',
+      'onb.pos.full.c':       'סנטר',
+      'onb.report.player':    'שחקן',
+      'onb.report.sched':     '{days} ימים בשבוע · {min} דק׳ באימון',
+      'onb.report.focus':     'פוקוס: {list}',
+      'onb.report.gear':      'ציוד: {list}',
+      'onb.report.body':      'משקל גוף בלבד',
+      'onb.report.goals':     'מטרות: {list}',
+      'onb.report.hint':      'הצוות בונה את התוכנית השבועית שלך מהתיק הזה ברגע שתיכנס לג׳ים. אפשר לשנות הכל אחר כך בתוכנית האימון.',
+
+      'onb.btn.cancel':       'ביטול',
+      'onb.btn.back':         'חזרה',
+      'onb.btn.continue':     'המשך',
+      'onb.btn.lets':         'יאללה',
+      'onb.btn.build':        'תבנו לי תוכנית',
+      'onb.btn.start':        'מתחילים להתאמן'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+
+  /* Stored goal VALUES stay the English strings (they persist to
+     courtiq_plan_prefs) — only the display label goes through i18n. */
+  var GOALS = [
+    { v: 'Make varsity',       k: 'onb.goal.varsity' },
+    { v: 'Win a starting job', k: 'onb.goal.starter' },
+    { v: 'College looks',      k: 'onb.goal.college' },
+    { v: 'Go pro',             k: 'onb.goal.pro' },
+    { v: 'Stay healthy',       k: 'onb.goal.healthy' },
+    { v: 'Beat my rival',      k: 'onb.goal.rival' },
+    { v: 'Tournament MVP',     k: 'onb.goal.mvp' },
+    { v: 'Love the game',      k: 'onb.goal.love' }
+  ];
+  function goalLabel(v) {
+    for (var i = 0; i < GOALS.length; i++) {
+      if (GOALS[i].v === v) return t(GOALS[i].k);
+    }
+    return v;
+  }
+  function gearLabel(id) { return t('onb.gear.' + id); }
+
   var STEPS = [
     'welcome',
     'identity', 'avatar', 'position', 'style', 'scout',
@@ -20,29 +340,29 @@
     'processing', 'report'
   ];
   var TITLES = {
-    welcome: 'Meet your staff',
-    identity: 'Who are you', avatar: 'Your look',
-    position: 'Your spot', style: 'Your game',
-    scout: 'Rate yourself', schedule: 'Your schedule', gear: 'Your gear',
-    focus: 'What matters', goals: 'Your goals',
-    processing: 'Building your plan', report: 'Your combine card'
+    welcome: 'onb.title.welcome',
+    identity: 'onb.title.identity', avatar: 'onb.title.avatar',
+    position: 'onb.title.position', style: 'onb.title.style',
+    scout: 'onb.title.scout', schedule: 'onb.title.schedule', gear: 'onb.title.gear',
+    focus: 'onb.title.focus', goals: 'onb.title.goals',
+    processing: 'onb.title.processing', report: 'onb.title.report'
   };
 
   /* Each step is hosted by the coach who owns that lane — the same
      cast the player meets in The Gym (exposed by screens/coach.js). */
   var GUIDE = {
-    welcome:    { c: 'gm',     t: 'I’m The Scout — the GM here. Before you touch a ball I build a file on you. A few questions, then the staff takes over.' },
-    identity:   { c: 'gm',     t: 'The file starts with the basics. Who am I scouting?' },
-    avatar:     { c: 'gm',     t: 'Every file gets a face. Make yours — you can change everything later in the shop.' },
-    position:   { c: 'gm',     t: 'Where do you live on the floor?' },
-    style:      { c: 'gm',     t: 'And how do you hoop when nobody is coaching you?' },
-    scout:      { c: 'gm',     t: 'Rate yourself straight. The court gets the final say anyway.' },
-    schedule:   { c: 'flow',   t: 'Flow — handles coach. Rhythm beats volume: give me the honest number of days.' },
-    gear:       { c: 'tank',   t: 'Tank. Strength staff. Tell me what we have to work with — no gym is no excuse.' },
-    focus:      { c: 'splash', t: 'Splash, shooting coach. Pick what we sharpen first. I vote shooting, but it’s your game.' },
-    goals:      { c: 'gm',     t: 'Scout again. Where is this going? We tune the whole program to the target.' },
-    processing: { c: 'gm',     t: 'Give me a second with your file…' },
-    report:     { c: 'gm',     t: 'Your combine card. The staff has seen it — welcome to the program.' }
+    welcome:    { c: 'gm',     t: 'onb.guide.welcome' },
+    identity:   { c: 'gm',     t: 'onb.guide.identity' },
+    avatar:     { c: 'gm',     t: 'onb.guide.avatar' },
+    position:   { c: 'gm',     t: 'onb.guide.position' },
+    style:      { c: 'gm',     t: 'onb.guide.style' },
+    scout:      { c: 'gm',     t: 'onb.guide.scout' },
+    schedule:   { c: 'flow',   t: 'onb.guide.schedule' },
+    gear:       { c: 'tank',   t: 'onb.guide.gear' },
+    focus:      { c: 'splash', t: 'onb.guide.focus' },
+    goals:      { c: 'gm',     t: 'onb.guide.goals' },
+    processing: { c: 'gm',     t: 'onb.guide.processing' },
+    report:     { c: 'gm',     t: 'onb.guide.report' }
   };
 
   function castById(id) {
@@ -60,7 +380,7 @@
       V12.faceImg({ class: 'onb12-guide__face', src: window.V12CoachFace(c, 64), alt: c.name }),
       h('div', { class: 'onb12-guide__bubble' }, [
         h('div', { class: 'onb12-guide__name', text: c.name }),
-        h('div', { class: 'onb12-guide__text', text: g.t })
+        h('div', { class: 'onb12-guide__text', text: t(g.t) })
       ])
     ]);
   }
@@ -68,6 +388,8 @@
   function stepWelcome() {
     var cs = window.V12CoachCast || [];
     var body = h('div', { class: 'onb12-body' });
+    var ROLE_K = { gm: 'onb.staff.gm', splash: 'onb.staff.splash',
+                   flow: 'onb.staff.flow', tank: 'onb.staff.tank' };
     if (cs.length && window.V12CoachFace && V12.faceImg) {
       var strip = h('div', { class: 'onb12-staff' });
       cs.forEach(function (c, i) {
@@ -76,14 +398,15 @@
         }, [
           V12.faceImg({ class: 'onb12-staff__face', src: window.V12CoachFace(c, 96), alt: c.name }),
           h('div', { class: 'onb12-staff__name', text: c.name }),
-          h('div', { class: 'onb12-staff__role', text: c.short || c.role })
+          h('div', { class: 'onb12-staff__role',
+            text: ROLE_K[c.id] ? t(ROLE_K[c.id]) : (c.short || c.role) })
         ]));
       });
       body.appendChild(strip);
     }
     body.appendChild(h('div', {
       class: 'onb12-hint',
-      text: 'Four coaches, one program. Answer a few questions so they know exactly who just walked into their gym.'
+      text: t('onb.welcome.hint')
     }));
     return body;
   }
@@ -214,11 +537,9 @@
 
   /* ── step bodies ─────────────────────────────────────────────*/
   function stepIdentity(s, dirty) {
-    var t = function (k) { return window.V12I18n ? window.V12I18n.t(k) : k; };
-
     var name = h('input', {
       class: 'onb12-input', type: 'text', maxlength: '20',
-      placeholder: 'Your name', value: s.name,
+      placeholder: t('onb.name.ph'), value: s.name,
       oninput: function (e) { s.name = e.target.value; dirty(); }
     });
 
@@ -256,16 +577,16 @@
     });
 
     return h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'd-label', text: 'NAME' }), name,
+      h('div', { class: 'd-label', text: t('onb.name') }), name,
       toggle,
       unitSlider('onb.height', function () { return s.height; }, 58, 90, fmtHeight,
         function (v) { s.height = v; }),
       unitSlider('onb.weight', function () { return s.weight; }, 80, 320, fmtWeight,
         function (v) { s.weight = v; }),
-      slider('Age', s.age, 10, 60, ' yr', function (v) { s.age = v; }),
-      h('div', { class: 'd-label', text: 'SHOOTING HAND' }),
+      slider(t('onb.age'), s.age, 10, 60, t('onb.age.unit'), function (v) { s.age = v; }),
+      h('div', { class: 'd-label', text: t('onb.hand') }),
       pillGroup('onb12-two', [
-        { label: 'Lefty', value: 'L' }, { label: 'Righty', value: 'R' }
+        { label: t('onb.hand.l'), value: 'L' }, { label: t('onb.hand.r'), value: 'R' }
       ], {
         get: function () { return s.hand; },
         set: function (v) { s.hand = v; },
@@ -285,7 +606,7 @@
     if (!A) return h('div', { class: 'onb12-body' });   // lib missing — skip gracefully
 
     var params = A.load();
-    var preview = h('img', { class: 'onb12-av__img', alt: 'Your avatar',
+    var preview = h('img', { class: 'onb12-av__img', alt: t('onb.av.alt'),
       src: A.buildUrl(params, { seed: s.name || 'courtiq' }) });
 
     function commit() {
@@ -339,7 +660,7 @@
 
     var shuffle = h('button', { class: 'onb12-av__shuffle', type: 'button' }, [
       h('i', { class: 'ph-bold ph-shuffle' }),
-      h('span', { text: 'Surprise me' })
+      h('span', { text: t('onb.av.surprise') })
     ]);
     shuffle.addEventListener('click', function () {
       ['skin', 'top', 'hairColor', 'eyes', 'mouth', 'clothesColor'].forEach(function (cat) {
@@ -353,22 +674,22 @@
 
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'onb12-av__stage' }, [preview, shuffle]),
-      row('skin', 'SKIN'),
-      row('top', 'HAIR'),
-      row('hairColor', 'HAIR COLOR'),
-      row('clothesColor', 'JERSEY'),
+      row('skin', t('onb.av.skin')),
+      row('top', t('onb.av.hair')),
+      row('hairColor', t('onb.av.haircolor')),
+      row('clothesColor', t('onb.av.jersey')),
       h('div', { class: 'onb12-hint',
-        text: 'The full wardrobe — headbands, dreads, jerseys, gold chains — unlocks in the shop with the coins you earn.' })
+        text: t('onb.av.hint') })
     ]);
   }
 
   function stepPosition(s, dirty) {
     var POS = [
-      { value: 'PG', label: 'Point', sub: 'Run the show' },
-      { value: 'SG', label: 'Shooting', sub: 'Get buckets' },
-      { value: 'SF', label: 'Small F', sub: 'Do it all' },
-      { value: 'PF', label: 'Power F', sub: 'Bang inside' },
-      { value: 'C',  label: 'Center', sub: 'Own the paint' }
+      { value: 'PG', label: t('onb.pos.pg'), sub: t('onb.pos.pg.sub') },
+      { value: 'SG', label: t('onb.pos.sg'), sub: t('onb.pos.sg.sub') },
+      { value: 'SF', label: t('onb.pos.sf'), sub: t('onb.pos.sf.sub') },
+      { value: 'PF', label: t('onb.pos.pf'), sub: t('onb.pos.pf.sub') },
+      { value: 'C',  label: t('onb.pos.c'),  sub: t('onb.pos.c.sub') }
     ];
     return h('div', { class: 'onb12-body' }, [
       pillGroup('onb12-grid3', POS, {
@@ -381,10 +702,10 @@
 
   function stepStyle(s, dirty) {
     var ST = [
-      { value: 'sniper', label: 'Sniper', sub: 'Lives behind the arc' },
-      { value: 'slasher', label: 'Slasher', sub: 'Attacks the rim' },
-      { value: 'floor-general', label: 'Floor General', sub: 'Sees it first' },
-      { value: 'lockdown', label: 'Lockdown', sub: 'Defense wins' }
+      { value: 'sniper', label: t('onb.style.sniper'), sub: t('onb.style.sniper.sub') },
+      { value: 'slasher', label: t('onb.style.slasher'), sub: t('onb.style.slasher.sub') },
+      { value: 'floor-general', label: t('onb.style.floor'), sub: t('onb.style.floor.sub') },
+      { value: 'lockdown', label: t('onb.style.lockdown'), sub: t('onb.style.lockdown.sub') }
     ];
     return h('div', { class: 'onb12-body' }, [
       pillGroup('onb12-body onb12-stylelist', ST, {
@@ -397,12 +718,12 @@
 
   function stepScout(s) {
     var SK = [
-      { k: 'shoot', l: 'Shooting' }, { k: 'handle', l: 'Ball handling' },
-      { k: 'pass', l: 'Passing' }, { k: 'defend', l: 'Defense' },
-      { k: 'finish', l: 'Finishing' }, { k: 'iq', l: 'Court IQ' }
+      { k: 'shoot', l: t('onb.skill.shoot') }, { k: 'handle', l: t('onb.skill.handle') },
+      { k: 'pass', l: t('onb.skill.pass') }, { k: 'defend', l: t('onb.skill.defend') },
+      { k: 'finish', l: t('onb.skill.finish') }, { k: 'iq', l: t('onb.skill.iq') }
     ];
     return h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'onb12-hint', text: 'Rate yourself 0–10. The court gets the final say later.' })
+      h('div', { class: 'onb12-hint', text: t('onb.scout.hint') })
     ].concat(SK.map(function (x) {
       return slider(x.l, s.skills[x.k], 0, 10, '/10', function (v) { s.skills[x.k] = v; });
     })));
@@ -410,26 +731,26 @@
 
   function stepSchedule(s) {
     return h('div', { class: 'onb12-body' }, [
-      slider('Days per week', s.days, 1, 7, '', function (v) { s.days = v; }),
-      h('div', { class: 'd-label', text: 'SESSION LENGTH' }),
+      slider(t('onb.sched.days'), s.days, 1, 7, '', function (v) { s.days = v; }),
+      h('div', { class: 'd-label', text: t('onb.sched.len') }),
       pillGroup('onb12-grid4', [15, 30, 45, 60].map(function (m) {
         return { label: m + 'm', value: m };
       }), {
         get: function () { return s.minutes; },
         set: function (v) { s.minutes = v; }
       }),
-      h('div', { class: 'onb12-hint', text: 'We size each session to fit — shorter days get tighter blocks.' })
+      h('div', { class: 'onb12-hint', text: t('onb.sched.hint') })
     ]);
   }
 
   function stepGear(s) {
     var GEAR = [
-      { value: 'ball', label: 'Ball' }, { value: 'hoop', label: 'A hoop' },
-      { value: 'cones', label: 'Cones' }, { value: 'gym', label: 'Gym access' },
-      { value: 'weights', label: 'Weights' }, { value: 'partner', label: 'A partner' }
+      { value: 'ball', label: t('onb.gear.ball') }, { value: 'hoop', label: t('onb.gear.hoop') },
+      { value: 'cones', label: t('onb.gear.cones') }, { value: 'gym', label: t('onb.gear.gym') },
+      { value: 'weights', label: t('onb.gear.weights') }, { value: 'partner', label: t('onb.gear.partner') }
     ];
     return h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'onb12-hint', text: 'Pick everything you can get to. Drills that need gear you don’t have get skipped.' }),
+      h('div', { class: 'onb12-hint', text: t('onb.gear.hint') }),
       chipGroup(GEAR, {
         toggle: function (id) {
           var i = s.equipment.indexOf(id);
@@ -442,12 +763,12 @@
 
   function stepFocus(s, dirty) {
     var FOCUS = [
-      { value: 'shooting', label: 'Shooting' }, { value: 'handles', label: 'Ball handling' },
-      { value: 'finishing', label: 'Finishing' }, { value: 'defense', label: 'Defense' },
-      { value: 'conditioning', label: 'Conditioning' }, { value: 'passing', label: 'Passing' }
+      { value: 'shooting', label: t('onb.focus.shooting') }, { value: 'handles', label: t('onb.focus.handles') },
+      { value: 'finishing', label: t('onb.focus.finishing') }, { value: 'defense', label: t('onb.focus.defense') },
+      { value: 'conditioning', label: t('onb.focus.conditioning') }, { value: 'passing', label: t('onb.focus.passing') }
     ];
     return h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'onb12-hint', text: 'Pick up to 3 — your plan leans hardest on these, in order.' }),
+      h('div', { class: 'onb12-hint', text: t('onb.focus.hint') }),
       chipGroup(FOCUS, {
         toggle: function (id) {
           var i = s.focus.indexOf(id);
@@ -464,11 +785,9 @@
   }
 
   function stepGoals(s) {
-    var G = ['Make varsity', 'Win a starting job', 'College looks', 'Go pro',
-             'Stay healthy', 'Beat my rival', 'Tournament MVP', 'Love the game'];
     return h('div', { class: 'onb12-body' }, [
-      h('div', { class: 'onb12-hint', text: 'Pick all that apply — we tune the tone around these.' }),
-      chipGroup(G.map(function (g) { return { value: g, label: g }; }), {
+      h('div', { class: 'onb12-hint', text: t('onb.goal.hint') }),
+      chipGroup(GOALS.map(function (g) { return { value: g.v, label: t(g.k) }; }), {
         toggle: function (g) {
           var i = s.goals.indexOf(g);
           if (i >= 0) s.goals.splice(i, 1); else s.goals.push(g);
@@ -479,8 +798,8 @@
   }
 
   function stepProcessing(s, host, rerender) {
-    var lines = ['Reading your measurables', 'Cross-referencing your style',
-                 'Sizing sessions to your week', 'Compiling your plan'];
+    var lines = [t('onb.proc.1'), t('onb.proc.2'),
+                 t('onb.proc.3'), t('onb.proc.4')];
     var wrap = h('div', { class: 'onb12-body onb12-proc' });
     var rows = lines.map(function (t, i) {
       var r = h('div', { class: 'onb12-proc__row', 'data-i': String(i) }, [
@@ -505,21 +824,23 @@
   }
 
   function stepReport(s) {
-    var SKILL_L = { shoot: 'Shooting', handle: 'Ball handling', pass: 'Passing',
-                    defend: 'Defense', finish: 'Finishing', iq: 'Court IQ' };
+    var SKILL_L = { shoot: t('onb.skill.shoot'), handle: t('onb.skill.handle'),
+                    pass: t('onb.skill.pass'), defend: t('onb.skill.defend'),
+                    finish: t('onb.skill.finish'), iq: t('onb.skill.iq') };
     var entries = Object.keys(s.skills).map(function (k) { return { k: k, v: s.skills[k] }; })
       .sort(function (a, b) { return b.v - a.v; });
     var avg = entries.reduce(function (n, e) { return n + e.v; }, 0) / entries.length;
     var grade = avg >= 8.5 ? 'A' : avg >= 7.5 ? 'A-' : avg >= 6.5 ? 'B+'
               : avg >= 5.5 ? 'B' : avg >= 4.5 ? 'B-' : avg >= 3.5 ? 'C+' : 'C';
-    var arche = s.playStyle === 'sniper' ? 'PERIMETER SNIPER'
-      : s.playStyle === 'slasher' ? 'DOWNHILL SLASHER'
-      : s.playStyle === 'floor-general' ? 'FLOOR GENERAL'
-      : s.playStyle === 'lockdown' ? 'PERIMETER LOCKDOWN' : 'TWO-WAY WING';
-    var focusL = { shooting: 'Shooting', handles: 'Ball handling', finishing: 'Finishing',
-                   defense: 'Defense', conditioning: 'Conditioning', passing: 'Passing' };
+    var arche = s.playStyle === 'sniper' ? t('onb.arche.sniper')
+      : s.playStyle === 'slasher' ? t('onb.arche.slasher')
+      : s.playStyle === 'floor-general' ? t('onb.arche.floor')
+      : s.playStyle === 'lockdown' ? t('onb.arche.lockdown') : t('onb.arche.twoway');
+    var focusL = { shooting: t('onb.focus.shooting'), handles: t('onb.focus.handles'),
+                   finishing: t('onb.focus.finishing'), defense: t('onb.focus.defense'),
+                   conditioning: t('onb.focus.conditioning'), passing: t('onb.focus.passing') };
     var focusText = s.focus.length ? s.focus.map(function (f) { return focusL[f]; }).join(' · ')
-                                   : 'Balanced';
+                                   : t('onb.focus.balanced');
 
     /* The full scouting report: every number on it is something the
        player just told us — nothing invented (M4). Bars make the
@@ -539,9 +860,10 @@
       ]);
     });
 
-    var POS_L = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward',
-                  PF: 'Power Forward', C: 'Center' };
-    var goalsText = s.goals.length ? s.goals.join(' · ') : '—';
+    var POS_L = { PG: t('onb.pos.full.pg'), SG: t('onb.pos.full.sg'), SF: t('onb.pos.full.sf'),
+                  PF: t('onb.pos.full.pf'), C: t('onb.pos.full.c') };
+    var goalsText = s.goals.length
+      ? s.goals.map(function (g) { return goalLabel(g); }).join(' · ') : '—';
 
     /* ── the 8-week projection ────────────────────────────────────
        The payoff moment: a curve that RISES as the card lands, sized
@@ -593,22 +915,21 @@
     }, 350);
 
     var projection = V12.card({ class: 'onb12-proj' }, [
-      h('div', { class: 'd-label', text: '8-WEEK PROJECTION' }),
+      h('div', { class: 'd-label', text: t('onb.proj.title') }),
       h('div', { class: 'onb12-proj__head' }, [
         gainEl,
         h('span', { class: 'onb12-proj__lbl',
-          text: 'shooting volume growth if you keep ' +
-                s.days + ' days · ' + s.minutes + ' min' })
+          text: t('onb.proj.sub', { days: s.days, min: s.minutes }) })
       ]),
       chart,
       h('div', { class: 'onb12-proj__weeks' }, [
-        h('span', { text: 'Week 1' }), h('span', { text: 'Week 8' })
+        h('span', { text: t('onb.proj.w1') }), h('span', { text: t('onb.proj.w8') })
       ])
     ]);
 
     return h('div', { class: 'onb12-body' }, [
       V12.card({ tint: 'gold', class: 'onb12-card' }, [
-        h('div', { class: 'd-label', text: 'SELF-SCOUT GRADE' }),
+        h('div', { class: 'd-label', text: t('onb.report.grade') }),
         h('div', { class: 'onb12-grade', text: grade }),
         h('div', { class: 'onb12-arche', text: arche })
       ]),
@@ -616,40 +937,41 @@
       projection,
 
       V12.card({ class: 'onb12-skills' }, [
-        h('div', { class: 'd-label', text: 'SCOUTING REPORT' })
+        h('div', { class: 'd-label', text: t('onb.report.scouting') })
       ].concat(skillRows).concat([
         h('div', { class: 'onb12-hint', text:
-          'Strongest: ' + SKILL_L[topK] + ' · First to fix: ' + SKILL_L[lowK] +
-          '. The court gets the final say — every session updates this file.' })
+          t('onb.report.strong', { top: SKILL_L[topK], low: SKILL_L[lowK] }) })
       ])),
 
       V12.card({ tint: 'ink', class: 'onb12-plan' }, [
-        h('div', { class: 'd-label', text: 'YOUR PROGRAM' }),
+        h('div', { class: 'd-label', text: t('onb.report.program') }),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-user' }),
-          h('span', { text: (POS_L[s.position] || 'Player') + ' · ' +
-            (s.hand === 'L' ? 'Lefty' : 'Righty') })
+          h('span', { text: (POS_L[s.position] || t('onb.report.player')) + ' · ' +
+            (s.hand === 'L' ? t('onb.hand.l') : t('onb.hand.r')) })
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-calendar-check' }),
-          h('span', { text: s.days + ' days a week · ' + s.minutes + ' min a session' })
+          h('span', { text: t('onb.report.sched', { days: s.days, min: s.minutes }) })
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-target' }),
-          h('span', { text: 'Focus: ' + focusText })
+          h('span', { text: t('onb.report.focus', { list: focusText }) })
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-barbell' }),
-          h('span', { text: 'Gear: ' + (s.equipment.length ? s.equipment.join(', ') : 'bodyweight only') })
+          h('span', { text: t('onb.report.gear', { list: s.equipment.length
+            ? s.equipment.map(function (g) { return gearLabel(g); }).join(', ')
+            : t('onb.report.body') }) })
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-flag-banner' }),
-          h('span', { text: 'Goals: ' + goalsText })
+          h('span', { text: t('onb.report.goals', { list: goalsText }) })
         ])
       ]),
 
       h('div', { class: 'onb12-report-hint',
-        text: 'The staff builds your weekly plan from this file the moment you step into the gym. Change anything later in Training Plan.' })
+        text: t('onb.report.hint') })
     ]);
   }
 
@@ -699,8 +1021,8 @@
       }
       host.appendChild(h('div', { class: 'onb12-head' }, [
         bar,
-        h('div', { class: 'onb12-step', text: 'Step ' + (s.i + 1) + ' of ' + STEPS.length }),
-        h('div', { class: 'onb12-title', text: TITLES[step] })
+        h('div', { class: 'onb12-step', text: t('onb.step', { i: s.i + 1, n: STEPS.length }) }),
+        h('div', { class: 'onb12-title', text: t(TITLES[step]) })
       ]));
 
       var guide = guideRow(step);
@@ -741,9 +1063,9 @@
         return true;
       }
 
-      var nextLabel = step === 'report' ? 'Start training'
-        : step === 'goals' ? 'Build my plan'
-        : step === 'welcome' ? 'Let’s go' : 'Continue';
+      var nextLabel = step === 'report' ? t('onb.btn.start')
+        : step === 'goals' ? t('onb.btn.build')
+        : step === 'welcome' ? t('onb.btn.lets') : t('onb.btn.continue');
 
       var foot = h('div', { class: 'onb12-foot' });
       foot.appendChild(h('button', {
@@ -753,7 +1075,7 @@
           s.i = Math.max(0, s.i - (STEPS[s.i - 1] === 'processing' ? 2 : 1));
           paint();
         }
-      }, [h('span', { text: s.i === 0 ? 'Cancel' : 'Back' })]));
+      }, [h('span', { text: s.i === 0 ? t('onb.btn.cancel') : t('onb.btn.back') })]));
       var nextBtn = V12.btn({
         label: nextLabel, icon: step === 'report' ? 'ph-arrow-right' : 'ph-caret-right',
         onClick: function () {

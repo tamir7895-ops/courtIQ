@@ -21,6 +21,58 @@
   'use strict';
   var h = window.V10UI.h, V12 = window.V12;
 
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
+  var T = {
+    en: {
+      'prep.back':        'Back',
+      'prep.title':       'Before you start',
+      'prep.sub':         'Thirty seconds of setup — it decides the accuracy',
+      'prep.how':         'How it works',
+      'prep.how.1':       'Your session records — up to {n} minutes',
+      'prep.how.2':       'Tap Finish when you\'re done shooting',
+      'prep.how.3':       'Every frame gets analysed — a chime sounds and your results open',
+      'prep.sec':         'For the best read',
+      'prep.c1.title':    'Prop the phone up — don\'t hold it',
+      'prep.c1.body':     'This is the one that matters most. A phone that moves breaks the read. Lean it on a bag, a bottle, a fence — anything steady.',
+      'prep.c2.title':    'Whole hoop in frame, upper half',
+      'prep.c2.body':     'The rim has to lock on before any shot can be scored. Keep the whole hoop visible and fairly still in the top part of the picture.',
+      'prep.c3.title':    'The more light, the better',
+      'prep.c3.body':     'In dim light the ball disappears exactly when it matters — going through the net. Daylight or a well-lit gym is where it is sharpest.',
+      'prep.c4.title':    'Don\'t set up too far back',
+      'prep.c4.body':     'If the ball is only a few pixels wide, it gets lost mid-flight. Close enough that the ball reads clearly on screen.',
+      'prep.c5.title':    'Shoot from the side, not under the rim',
+      'prep.c5.body':     'From directly under the hoop, a make and a miss look almost identical to the camera. An angle from the side or wing reads best.',
+      'prep.dsa':         'Don\'t show this again',
+      'prep.start':       'I\'m set — start',
+      'prep.skip':        'Skip'
+    },
+    he: {
+      'prep.back':        'חזרה',
+      'prep.title':       'לפני שמתחילים',
+      'prep.sub':         'שלושים שניות של הכנה — הן שקובעות את הדיוק',
+      'prep.how':         'איך זה עובד',
+      'prep.how.1':       'האימון שלך מוקלט — עד {n} דקות',
+      'prep.how.2':       'לחץ סיום כשגמרת לזרוק',
+      'prep.how.3':       'כל פריים עובר ניתוח — נשמע צליל והתוצאות נפתחות',
+      'prep.sec':         'לקריאה הכי מדויקת',
+      'prep.c1.title':    'תשעין את הטלפון — אל תחזיק אותו',
+      'prep.c1.body':     'זה הדבר הכי חשוב. טלפון שזז שובר את הקריאה. תשעין אותו על תיק, בקבוק, גדר — כל דבר יציב.',
+      'prep.c2.title':    'כל הסל בפריים, בחצי העליון',
+      'prep.c2.body':     'הטבעת חייבת להינעל לפני שאפשר לשפוט זריקה. שמור על כל הסל גלוי ויציב יחסית בחלק העליון של התמונה.',
+      'prep.c3.title':    'כמה שיותר אור, יותר טוב',
+      'prep.c3.body':     'באור חלש הכדור נעלם בדיוק ברגע שהכי חשוב — במעבר דרך הרשת. אור יום או אולם מואר זה איפה שהקריאה הכי חדה.',
+      'prep.c4.title':    'אל תתמקם רחוק מדי',
+      'prep.c4.body':     'אם הכדור ברוחב כמה פיקסלים, הוא הולך לאיבוד באוויר. תתקרב מספיק כדי שהכדור ייקרא ברור על המסך.',
+      'prep.c5.title':    'צלם מהצד, לא מתחת לסל',
+      'prep.c5.body':     'ישר מתחת לסל, קליעה והחטאה נראות למצלמה כמעט אותו דבר. זווית מהצד או מהכנף נקראת הכי טוב.',
+      'prep.dsa':         'אל תציג את זה שוב',
+      'prep.start':       'אני מוכן — מתחילים',
+      'prep.skip':        'דלג'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+
   var SKIP_KEY = 'courtiq-skip-session-prep';
   /* Session cap. Analysis runs frame-by-frame at roughly 2-3x the clip
      length on-device, so an uncapped session turns into an unbounded
@@ -29,31 +81,11 @@
   window.__COURTIQ_SESSION_MAX_MS = MAX_MIN * 60 * 1000;
 
   var CONDITIONS = [
-    {
-      tone: 'orange', icon: 'ph-device-mobile',
-      title: 'Prop the phone up — don\'t hold it',
-      body: 'This is the one that matters most. A phone that moves breaks the read. Lean it on a bag, a bottle, a fence — anything steady.'
-    },
-    {
-      tone: 'blue', icon: 'ph-crosshair',
-      title: 'Whole hoop in frame, upper half',
-      body: 'The rim has to lock on before any shot can be scored. Keep the whole hoop visible and fairly still in the top part of the picture.'
-    },
-    {
-      tone: 'green', icon: 'ph-sun',
-      title: 'The more light, the better',
-      body: 'In dim light the ball disappears exactly when it matters — going through the net. Daylight or a well-lit gym is where it is sharpest.'
-    },
-    {
-      tone: 'ink', icon: 'ph-basketball',
-      title: 'Don\'t set up too far back',
-      body: 'If the ball is only a few pixels wide, it gets lost mid-flight. Close enough that the ball reads clearly on screen.'
-    },
-    {
-      tone: 'blue', icon: 'ph-video-camera',
-      title: 'Shoot from the side, not under the rim',
-      body: 'From directly under the hoop, a make and a miss look almost identical to the camera. An angle from the side or wing reads best.'
-    }
+    { tone: 'orange', icon: 'ph-device-mobile', title: 'prep.c1.title', body: 'prep.c1.body' },
+    { tone: 'blue',   icon: 'ph-crosshair',     title: 'prep.c2.title', body: 'prep.c2.body' },
+    { tone: 'green',  icon: 'ph-sun',           title: 'prep.c3.title', body: 'prep.c3.body' },
+    { tone: 'ink',    icon: 'ph-basketball',    title: 'prep.c4.title', body: 'prep.c4.body' },
+    { tone: 'blue',   icon: 'ph-video-camera',  title: 'prep.c5.title', body: 'prep.c5.body' }
   ];
 
   function render(args) {
@@ -67,12 +99,12 @@
 
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       h('button', {
-        class: 'c12-back', type: 'button', 'aria-label': 'Back',
+        class: 'c12-back', type: 'button', 'aria-label': t('prep.back'),
         onclick: function () { ctx.go('track'); }
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
       h('div', {}, [
-        h('div', { class: 'c12-chat-hd__t', text: 'Before you start' }),
-        h('div', { class: 'c12-chat-hd__s', text: 'Thirty seconds of setup — it decides the accuracy' })
+        h('div', { class: 'c12-chat-hd__t', text: t('prep.title') }),
+        h('div', { class: 'c12-chat-hd__s', text: t('prep.sub') })
       ])
     ]));
 
@@ -85,24 +117,24 @@
        stay neutral and only the few things that shout get colour; a list
        of setup instructions is meant to be read, not to shout. */
     host.appendChild(V12.card({ bgIcon: 'ph-film-strip', bgTone: 'orange', class: 'sp12-how' }, [
-      h('div', { class: 'sp12-how__t', text: 'How it works' }),
+      h('div', { class: 'sp12-how__t', text: t('prep.how') }),
       h('div', { class: 'sp12-how__steps' }, [
         h('div', { class: 'sp12-step' }, [
           h('span', { class: 'sp12-step__n', text: '1' }),
-          h('span', { text: 'Your session records — up to ' + MAX_MIN + ' minutes' })
+          h('span', { text: t('prep.how.1', { n: MAX_MIN }) })
         ]),
         h('div', { class: 'sp12-step' }, [
           h('span', { class: 'sp12-step__n', text: '2' }),
-          h('span', { text: 'Tap Finish when you\'re done shooting' })
+          h('span', { text: t('prep.how.2') })
         ]),
         h('div', { class: 'sp12-step' }, [
           h('span', { class: 'sp12-step__n', text: '3' }),
-          h('span', { text: 'Every frame gets analysed — a chime sounds and your results open' })
+          h('span', { text: t('prep.how.3') })
         ])
       ])
     ]));
 
-    host.appendChild(h('div', { class: 'sp12-sec', text: 'For the best read' }));
+    host.appendChild(h('div', { class: 'sp12-sec', text: t('prep.sec') }));
 
     CONDITIONS.forEach(function (c) {
       host.appendChild(V12.card({
@@ -112,8 +144,8 @@
           h('i', { class: 'ph-fill ' + c.icon })
         ]),
         h('div', { class: 'n12-row__main' }, [
-          h('div', { class: 'n12-row__t', text: c.title }),
-          h('div', { class: 'n12-row__b', text: c.body })
+          h('div', { class: 'n12-row__t', text: t(c.title) }),
+          h('div', { class: 'n12-row__b', text: t(c.body) })
         ])
       ]));
     });
@@ -121,7 +153,7 @@
     /* Don't-show-again — a real checkbox, not a hidden gesture. */
     var box = h('input', { type: 'checkbox', class: 'sp12-dsa__box', id: 'sp12-dsa' });
     host.appendChild(h('label', { class: 'sp12-dsa', for: 'sp12-dsa' }, [
-      box, h('span', { text: 'Don\'t show this again' })
+      box, h('span', { text: t('prep.dsa') })
     ]));
 
     function start() {
@@ -129,9 +161,9 @@
       ctx.go('camera-hud');
     }
 
-    host.appendChild(V12.btn({ label: 'I\'m set — start', icon: 'ph-play-circle', onClick: start }));
+    host.appendChild(V12.btn({ label: t('prep.start'), icon: 'ph-play-circle', onClick: start }));
     host.appendChild(h('button', {
-      class: 'sp12-skip', type: 'button', text: 'Skip', onclick: start
+      class: 'sp12-skip', type: 'button', text: t('prep.skip'), onclick: start
     }));
   }
 

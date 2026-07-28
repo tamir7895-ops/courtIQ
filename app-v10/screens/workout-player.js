@@ -16,6 +16,45 @@
   var h = window.V10UI.h, V12 = window.V12;
   var tickHandle = null;
 
+  var T = {
+    en: {
+      'wp.back':          'Back',
+      'wp.close':         'Close',
+      'wp.freeform.name': 'Free shooting',
+      'wp.freeform.desc': 'Shoot at game pace. Count your makes.',
+      'wp.skill':         'Skill',
+      'wp.sub':           '{focus} · drill in progress',
+      'wp.time':          'TIME REMAINING',
+      'wp.paused':        'PAUSED',
+      'wp.reps':          'REPS',
+      'wp.oftarget':      '/ {n}',
+      'wp.rep':           'Count one rep',
+      'wp.pause':         'Pause',
+      'wp.resume':        'Resume',
+      'wp.done':          'Done',
+      'wp.track':         'Track this drill live'
+    },
+    he: {
+      'wp.back':          'חזרה',
+      'wp.close':         'סגירה',
+      'wp.freeform.name': 'קליעה חופשית',
+      'wp.freeform.desc': 'זרוק בקצב משחק. ספור את הקליעות שנכנסו.',
+      'wp.skill':         'מיומנות',
+      'wp.sub':           '{focus} · תרגיל בעיצומו',
+      'wp.time':          'זמן שנותר',
+      'wp.paused':        'בהשהיה',
+      'wp.reps':          'חזרות',
+      'wp.oftarget':      '/ {n}',
+      'wp.rep':           'ספור חזרה אחת',
+      'wp.pause':         'השהיה',
+      'wp.resume':        'המשך',
+      'wp.done':          'סיימתי',
+      'wp.track':         'עקוב אחרי התרגיל בלייב'
+    }
+  };
+  if (window.V12I18n) V12I18n.add(T);
+  function t(k, p) { return window.V12I18n ? window.V12I18n.t(k, p) : k; }
+
   var LS_DONE = 'courtiq_v11_drills_done';
   function markDone(id) {
     try {
@@ -56,8 +95,8 @@
 
     return ctx.data.getDrills(5).then(function (drills) {
       var d = pendingDrill() || (drills && drills[0]) || {
-        id: 'freeform', name: 'Free shooting', reps: 30, mins: 6,
-        focus: 'Shooting', description: 'Shoot at game pace. Count your makes.'
+        id: 'freeform', name: t('wp.freeform.name'), reps: 30, mins: 6,
+        focus: 'Shooting', description: t('wp.freeform.desc')
       };
       var state = { seconds: (d.mins || 6) * 60, reps: 0, target: d.reps || 30, paused: false, done: false };
 
@@ -74,22 +113,22 @@
       /* header */
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
-          class: 'c12-back', type: 'button', 'aria-label': 'Back',
+          class: 'c12-back', type: 'button', 'aria-label': t('wp.back'),
           onclick: function () { exit(ctx, 'train'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', { style: { flex: '1', minWidth: '0' } }, [
           h('div', { class: 'c12-chat-hd__t', text: d.name }),
-          h('div', { class: 'c12-chat-hd__s', text: (d.focus || 'Skill') + ' · drill in progress' })
+          h('div', { class: 'c12-chat-hd__s', text: t('wp.sub', { focus: d.focus || t('wp.skill') }) })
         ]),
         h('button', {
-          class: 'c12-back', type: 'button', 'aria-label': 'Close',
+          class: 'c12-back', type: 'button', 'aria-label': t('wp.close'),
           onclick: function () { exit(ctx, 'home'); }
         }, [h('i', { class: 'ph-bold ph-x' })])
       ]));
 
       /* timer card */
       var timerEl = h('div', { class: 'wp12-time d-num', text: fmt(state.seconds) });
-      var eyebrow = h('div', { class: 'd-label', text: 'TIME REMAINING' });
+      var eyebrow = h('div', { class: 'd-label', text: t('wp.time') });
       host.appendChild(V12.card({ tint: 'blue', class: 'wp12-timer', bgIcon: 'ph-timer', bgTone: 'blue' }, [
         eyebrow, timerEl
       ]));
@@ -113,15 +152,15 @@
       var fill = h('div', { class: 'h12-chal__fill', style: { width: '0%' } });
       host.appendChild(V12.card({ tint: 'green', class: 'wp12-reps' }, [
         h('div', { class: 'wp12-reps__main' }, [
-          h('div', { class: 'd-label', text: 'REPS' }),
+          h('div', { class: 'd-label', text: t('wp.reps') }),
           h('div', { class: 'wp12-reps__row' }, [
             repV,
-            h('div', { class: 'wp12-reps__t', text: '/ ' + state.target })
+            h('div', { class: 'wp12-reps__t', text: t('wp.oftarget', { n: state.target }) })
           ]),
           h('div', { class: 'h12-chal__bar' }, [fill])
         ]),
         h('button', {
-          class: 'wp12-plus', type: 'button', 'aria-label': 'Count one rep',
+          class: 'wp12-plus', type: 'button', 'aria-label': t('wp.rep'),
           onclick: function () {
             state.reps += 1;
             repV.textContent = String(state.reps);
@@ -137,10 +176,10 @@
         var fresh = V12.btn({
           variant: 'ghost',
           icon: state.paused ? 'ph-play-circle' : 'ph-pause',
-          label: state.paused ? 'Resume' : 'Pause',
+          label: state.paused ? t('wp.resume') : t('wp.pause'),
           onClick: function () {
             state.paused = !state.paused;
-            eyebrow.textContent = state.paused ? 'PAUSED' : 'TIME REMAINING';
+            eyebrow.textContent = state.paused ? t('wp.paused') : t('wp.time');
             paintPause();
           }
         });
@@ -149,16 +188,16 @@
       }
       var actions = h('div', { class: 'wp12-actions' });
       host.appendChild(actions);
-      pauseBtn = V12.btn({ variant: 'ghost', icon: 'ph-pause', label: 'Pause', onClick: function () {} });
+      pauseBtn = V12.btn({ variant: 'ghost', icon: 'ph-pause', label: t('wp.pause'), onClick: function () {} });
       actions.appendChild(pauseBtn);
       paintPause();
       actions.appendChild(V12.btn({
-        variant: 'green', icon: 'ph-check-circle', label: 'Done',
+        variant: 'green', icon: 'ph-check-circle', label: t('wp.done'),
         onClick: finish
       }));
 
       host.appendChild(V12.btn({
-        variant: 'blue', icon: 'ph-video-camera', label: 'Track this drill live',
+        variant: 'blue', icon: 'ph-video-camera', label: t('wp.track'),
         onClick: function () { stopTick(); setNav(true); ctx.go('camera-hud'); }
       }));
 

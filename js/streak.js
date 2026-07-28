@@ -8,11 +8,62 @@
 
   var LS_KEY = 'courtiq-streak';
 
+  /* ── i18n — this file also loads on legacy pages WITHOUT lib/i18n.js,
+     so registration is LAZY: tried at load, retried on every t() until
+     V12I18n shows up. When it never does, t() falls back to the English
+     string here (with {x} substitution), so legacy pages keep their
+     exact old text instead of showing raw keys. */
+  var T = {
+    en: {
+      'streak.m3.title':  '3-Day Streak!',
+      'streak.m3.msg':    'You\'re building a habit. Keep it going!',
+      'streak.m7.title':  'WEEK ON FIRE!',
+      'streak.m7.msg':    '7 days straight — serious dedication!',
+      'streak.m14.title': '2-Week Monster',
+      'streak.m14.msg':   'Two weeks of consistency. Legendary.',
+      'streak.m30.title': '30-DAY BEAST',
+      'streak.m30.msg':   'A full month of training. Elite level.',
+      'streak.xp.daily':  'Daily Check-in',
+      'streak.badge':     '🔥 {n}d',
+      'streak.badge.tip': 'Current streak: {n} days\nBest: {b} days'
+    },
+    he: {
+      'streak.m3.title':  'רצף של 3 ימים!',
+      'streak.m3.msg':    'אתה בונה הרגל. תמשיך ככה!',
+      'streak.m7.title':  'שבוע בוער!',
+      'streak.m7.msg':    '7 ימים ברצף — מחויבות רצינית!',
+      'streak.m14.title': 'מפלצת של שבועיים',
+      'streak.m14.msg':   'שבועיים של עקביות. אגדי.',
+      'streak.m30.title': 'חיה של 30 יום',
+      'streak.m30.msg':   'חודש שלם של אימונים. רמת עילית.',
+      'streak.xp.daily':  'צ׳ק-אין יומי',
+      'streak.badge':     '🔥 {n} ימים',
+      'streak.badge.tip': 'רצף נוכחי: {n} ימים\nשיא: {b} ימים'
+    }
+  };
+  var _i18nRegistered = false;
+  function regI18n() {
+    if (!_i18nRegistered && window.V12I18n && window.V12I18n.add) {
+      window.V12I18n.add(T);
+      _i18nRegistered = true;
+    }
+  }
+  regI18n();
+  function t(k, p) {
+    regI18n();
+    if (_i18nRegistered && window.V12I18n && window.V12I18n.t) return window.V12I18n.t(k, p);
+    var s = T.en[k] || k;
+    if (p) {
+      for (var q in p) { s = s.split('{' + q + '}').join(String(p[q])); }
+    }
+    return s;
+  }
+
   var MILESTONE_MESSAGES = {
-    3:  { emoji: '🔥', title: '3-Day Streak!',  msg: 'You\'re building a habit. Keep it going!', xp: 30 },
-    7:  { emoji: '🏆', title: 'WEEK ON FIRE!',  msg: '7 days straight — serious dedication!',    xp: 100 },
-    14: { emoji: '💪', title: '2-Week Monster', msg: 'Two weeks of consistency. Legendary.',      xp: 200 },
-    30: { emoji: '👑', title: '30-DAY BEAST',   msg: 'A full month of training. Elite level.',   xp: 500 }
+    3:  { emoji: '🔥', titleKey: 'streak.m3.title',  msgKey: 'streak.m3.msg',  xp: 30 },
+    7:  { emoji: '🏆', titleKey: 'streak.m7.title',  msgKey: 'streak.m7.msg',  xp: 100 },
+    14: { emoji: '💪', titleKey: 'streak.m14.title', msgKey: 'streak.m14.msg', xp: 200 },
+    30: { emoji: '👑', titleKey: 'streak.m30.title', msgKey: 'streak.m30.msg', xp: 500 }
   };
 
   /* ── Helpers ─────────────────────────────────────────────── */
@@ -184,7 +235,7 @@
     // Grant daily login XP (only on first check-in per day)
     if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
       setTimeout(function () {
-        XPSystem.grantXP(10, 'Daily Check-in');
+        XPSystem.grantXP(10, t('streak.xp.daily'));
       }, 400);
     }
 
@@ -193,7 +244,7 @@
     if (milestone) {
       setTimeout(function () {
         if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {
-          XPSystem.grantXP(milestone.xp, milestone.emoji + ' ' + milestone.title);
+          XPSystem.grantXP(milestone.xp, milestone.emoji + ' ' + t(milestone.titleKey));
         }
         showMilestoneToast(data.current, milestone);
       }, 1200);
@@ -209,8 +260,8 @@
     if (!badge) return;
 
     if (data.current >= 2) {
-      badge.textContent = '🔥 ' + data.current + 'd';
-      badge.title = 'Current streak: ' + data.current + ' days\nBest: ' + data.best + ' days';
+      badge.textContent = t('streak.badge', { n: data.current });
+      badge.title = t('streak.badge.tip', { n: data.current, b: data.best });
       badge.style.display = '';
     } else {
       badge.style.display = 'none';
@@ -229,8 +280,8 @@
     if (!el) return;
 
     el.querySelector('.streak-toast-emoji').textContent = milestone.emoji;
-    el.querySelector('.streak-toast-title').textContent = milestone.title;
-    el.querySelector('.streak-toast-msg').textContent   = milestone.msg;
+    el.querySelector('.streak-toast-title').textContent = t(milestone.titleKey);
+    el.querySelector('.streak-toast-msg').textContent   = t(milestone.msgKey);
     el.querySelector('.streak-toast-xp').textContent    = '+' + milestone.xp + ' XP';
 
     el.classList.add('show');

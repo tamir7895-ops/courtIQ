@@ -101,9 +101,27 @@
     return LANGS[0];
   }
 
-  function t(key) {
+  function t(key, params) {
     var lang = current();
-    return (STR[lang] && STR[lang][key]) || STR.en[key] || key;
+    var s = (STR[lang] && STR[lang][key]) || STR.en[key] || key;
+    if (params) {
+      for (var p in params) {
+        s = s.split('{' + p + '}').join(String(params[p]));
+      }
+    }
+    return s;
+  }
+
+  /* Screens register their own strings on load — translations live next
+     to the screen that uses them, and adding a language never means a
+     merge in this file. Later registrations win, so a screen can also
+     override a shared string if it must. */
+  function add(dict) {
+    for (var lang in dict) {
+      if (!STR[lang]) STR[lang] = {};
+      var m = dict[lang];
+      for (var k in m) STR[lang][k] = m[k];
+    }
   }
 
   /* Direction is applied to the whole document — every flex row,
@@ -131,7 +149,7 @@
   }
 
   window.V12I18n = {
-    t: t, set: set, current: current, chosen: chosen,
+    t: t, add: add, set: set, current: current, chosen: chosen,
     LANGS: LANGS, applyDir: applyDir
   };
 

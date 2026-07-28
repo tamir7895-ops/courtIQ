@@ -19,6 +19,39 @@
 
   var LS_PREF = 'courtiq_notify';        /* 'off' = player said no */
 
+  /* ── i18n — notification templates. Resolved at SCHEDULE time (every
+     reschedule), so a language switch takes effect on the next arm. */
+  var T = {
+    en: {
+      'notify.focus.shooting':     'SHOOTING',
+      'notify.focus.handles':      'HANDLES',
+      'notify.focus.finishing':    'FINISHING',
+      'notify.focus.conditioning': 'CONDITIONING',
+      'notify.focus.defense':      'DEFENSE',
+      'notify.focus.passing':      'PASSING',
+      'notify.coach.scout':        'The Scout',
+      'notify.plan.title':         '{focus} day',
+      'notify.plan.body':          '{coach} is waiting in the gym — {min} minutes on the plan.',
+      'notify.streak.title':       '{n}-day streak on the line',
+      'notify.streak.body':        'Ten minutes keeps the fire. The court is open.'
+    },
+    he: {
+      'notify.focus.shooting':     'קליעה',
+      'notify.focus.handles':      'כדרור',
+      'notify.focus.finishing':    'סיומים',
+      'notify.focus.conditioning': 'כושר',
+      'notify.focus.defense':      'הגנה',
+      'notify.focus.passing':      'מסירות',
+      'notify.coach.scout':        'הסקאוט',
+      'notify.plan.title':         'יום {focus}',
+      'notify.plan.body':          '{coach} מחכה לך באולם — {min} דקות לפי התוכנית.',
+      'notify.streak.title':       'רצף של {n} ימים על הכף',
+      'notify.streak.body':        'עשר דקות שומרות על האש. המגרש פתוח.'
+    }
+  };
+  if (window.V12I18n && window.V12I18n.add) window.V12I18n.add(T);
+  function t(k, p) { return (window.V12I18n && window.V12I18n.t) ? window.V12I18n.t(k, p) : k; }
+
   function plugin() {
     try {
       if (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.LocalNotifications) {
@@ -61,15 +94,21 @@
           var idx = (d.getDay() + 6) % 7;              /* Monday-first */
           var fid = P.focusForDay(p, idx);
           if (!fid || fid === 'rest') continue;
-          var t = at(i, 17, 30);
-          if (t.getTime() <= now) continue;
+          var when = at(i, 17, 30);
+          if (when.getTime() <= now) continue;
           if (i === 0 && P.isDone(p, P.todayISO())) continue;   /* already trained */
+          /* Focus name via i18n; an unknown fid falls back to the raw id
+             uppercased, exactly what the old string built. */
+          var focusName = t('notify.focus.' + fid);
+          if (focusName === 'notify.focus.' + fid) focusName = fid.toUpperCase();
           list.push({
             id: 1000 + i,
-            title: fid.toUpperCase() + ' day',
-            body: (COACH_OF[fid] || 'The Scout') + ' is waiting in the gym — ' +
-                  (p.minutes || 30) + ' minutes on the plan.',
-            schedule: { at: t }
+            title: t('notify.plan.title', { focus: focusName }),
+            body: t('notify.plan.body', {
+              coach: COACH_OF[fid] || t('notify.coach.scout'),
+              min: (p.minutes || 30)
+            }),
+            schedule: { at: when }
           });
         }
       }
@@ -85,8 +124,8 @@
           if (j === 0 && streak.lastDate === new Date().toISOString().slice(0, 10)) continue;
           list.push({
             id: 2000 + j,
-            title: streak.current + '-day streak on the line',
-            body: 'Ten minutes keeps the fire. The court is open.',
+            title: t('notify.streak.title', { n: streak.current }),
+            body: t('notify.streak.body'),
             schedule: { at: ts }
           });
         }
