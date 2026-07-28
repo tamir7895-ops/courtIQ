@@ -138,7 +138,9 @@
       var fid = p && P.todaysFocus(p);
       if (fid && fid !== 'rest' && !P.isDone(p, P.todayISO())) {
         icon = 'ph-calendar-check';
-        label = t('home.next.today', { f: fid.toUpperCase(), n: (p.minutes || 30) });
+        var fLabel = t('notify.focus.' + fid);
+        if (fLabel === 'notify.focus.' + fid) fLabel = fid.toUpperCase();
+        label = t('home.next.today', { f: fLabel, n: (p.minutes || 30) });
         go = 'plan';
       } else if (window.V12Challenges) {
         var open = null;

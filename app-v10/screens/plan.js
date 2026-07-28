@@ -240,7 +240,8 @@
           sheet.appendChild(h('div', { class: 'plan12-drow' }, [
             h('div', { class: 'plan12-drow__n', text: String(i + 1) }),
             h('div', { class: 'plan12-drow__main' }, [
-              h('div', { class: 'plan12-drow__t', text: d.name }),
+              h('div', { class: 'plan12-drow__t',
+                text: window.V12Drills ? V12Drills.name(d) : d.name }),
               h('div', { class: 'plan12-drow__s', text: t('plan.sheet.drillmeta', { reps: d.reps, mins: d.mins }) })
             ])
           ]));

@@ -277,8 +277,15 @@ Deno.serve(async (req: Request) => {
     ? body.persona : "gm";
   // The app speaks the player's language; the staff must too. Allowlist
   // only — an arbitrary string here would be prompt injection with a
-  // language costume on.
-  const lang = body.lang === "he" ? "he" : "en";
+  // language costume on. Every rule pins drill names and @@ACTION lines
+  // to English: they are protocol and lookup keys, not prose.
+  const LANG_RULES: Record<string, string> = {
+    he: "LANGUAGE: Respond in Hebrew only. Natural, spoken Israeli Hebrew — short sentences, basketball terms as used on Israeli courts. Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+    es: "LANGUAGE: Respond in Spanish only. Neutral Latin-American Spanish a coach would speak — tú-form, short sentences, real court vocabulary (triple, tiro libre, bandeja). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+    ar: "LANGUAGE: Respond in Arabic only. Modern Standard Arabic with a light, contemporary sports feel — short sentences, common court vocabulary. Use Western digits for all numbers. Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+    ru: "LANGUAGE: Respond in Russian only. Modern coaching Russian, ты-form, short sentences, real court vocabulary (бросок, трёхочковый, штрафной). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+  };
+  const lang = (typeof body.lang === "string" && LANG_RULES[body.lang]) ? body.lang : "en";
   const context = typeof body.context === "string" ? body.context.slice(0, MAX_CTX_CHARS) : "";
   const rawHistory = Array.isArray(body.history) ? (body.history as Turn[]) : [];
   const messages: { role: "user" | "assistant"; content: string }[] = [];
@@ -331,9 +338,7 @@ Deno.serve(async (req: Request) => {
         // cached playbook prefix stays byte-identical across languages.
         {
           type: "text",
-          text: (lang === "he"
-            ? "LANGUAGE: Respond in Hebrew only. Natural, spoken Israeli Hebrew — short sentences, basketball terms as used on Israeli courts. Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n"
-            : "") + "DATA (real, current):\n" + context + TAIL_REMINDER,
+          text: (LANG_RULES[lang] || "") + "DATA (real, current):\n" + context + TAIL_REMINDER,
         },
       ],
       messages,

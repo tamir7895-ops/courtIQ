@@ -167,9 +167,31 @@
 <!-- Language layer. Loads before every screen so t() is always there,
      and applies dir=rtl before first paint to avoid a layout flash. -->
 <script src="lib/i18n.js?v=dev"></script>
+<!-- Language packs: en/he ship inline with the screens; other languages
+     are data-only packs and ONLY the active one loads — nobody parses
+     three dictionaries they aren't reading. Allowlisted codes only. -->
+<script>
+(function () {
+  try {
+    var l = localStorage.getItem('courtiq_lang');
+    if (l === 'es' || l === 'ar' || l === 'ru') {
+      document.write('<script src="lang/' + l + '.js?v=dev"><\/script>');
+    } else if (l === 'he') {
+      /* Hebrew UI strings ship inline with the screens; the 178 drill
+         translations are data-heavy, so they ride a pack like the
+         other languages. */
+      document.write('<script src="lang/he-drills.js?v=dev"><\/script>');
+    }
+  } catch (e) { /* storage blocked — english carries it */ }
+})();
+</script>
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
+<!-- Translated drill names/descriptions — resolves through _DRILLS_DB,
+     so it loads right after the engine. English names stay canonical
+     (plans, coach proposals and board lookups depend on them). -->
+<script src="lib/drills-i18n.js?v=dev"></script>
 <script src="../js/drill-choreo.js"></script>
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>

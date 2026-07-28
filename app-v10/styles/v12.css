@@ -2736,10 +2736,14 @@ body:is([data-screen="onboarding"], [data-screen="auth"]) #app {
   padding: calc(14px + var(--safe-top)) 22px calc(26px + var(--safe-bottom));
 }
 
-/* language chips — first thing, top corner, out of the way after */
+/* language chips — first thing, top corner, out of the way after.
+   Five languages now: wrap into tidy rows, right-aligned, capped so
+   they never crowd the brand. */
 .ld12-langs {
   display: flex; gap: 8px;
   align-self: flex-end;
+  flex-wrap: wrap; justify-content: flex-end;
+  max-width: 78vw;
 }
 .ld12-lang {
   display: flex; align-items: center; gap: 6px;
