@@ -15,13 +15,14 @@
 
   var STEPS = [
     'welcome',
-    'identity', 'position', 'style', 'scout',
+    'identity', 'avatar', 'position', 'style', 'scout',
     'schedule', 'gear', 'focus', 'goals',
     'processing', 'report'
   ];
   var TITLES = {
     welcome: 'Meet your staff',
-    identity: 'Who are you', position: 'Your spot', style: 'Your game',
+    identity: 'Who are you', avatar: 'Your look',
+    position: 'Your spot', style: 'Your game',
     scout: 'Rate yourself', schedule: 'Your schedule', gear: 'Your gear',
     focus: 'What matters', goals: 'Your goals',
     processing: 'Building your plan', report: 'Your combine card'
@@ -32,6 +33,7 @@
   var GUIDE = {
     welcome:    { c: 'gm',     t: 'I’m The Scout — the GM here. Before you touch a ball I build a file on you. A few questions, then the staff takes over.' },
     identity:   { c: 'gm',     t: 'The file starts with the basics. Who am I scouting?' },
+    avatar:     { c: 'gm',     t: 'Every file gets a face. Make yours — you can change everything later in the shop.' },
     position:   { c: 'gm',     t: 'Where do you live on the floor?' },
     style:      { c: 'gm',     t: 'And how do you hoop when nobody is coaching you?' },
     scout:      { c: 'gm',     t: 'Rate yourself straight. The court gets the final say anyway.' },
@@ -138,23 +140,169 @@
 
   function grid(cls, kids) { return h('div', { class: cls }, kids); }
 
+  /* ── units ───────────────────────────────────────────────────
+     Storage stays imperial (inches / lb) because that is what every
+     existing profile already holds — the unit system is a VIEW over
+     the same number, so flipping it never loses what was entered.
+     First-run default comes from the device region: the US, Liberia
+     and Myanmar get imperial, the rest of the world metric. */
+  var LS_UNITS = 'courtiq_units';
+  function detectUnits() {
+    try {
+      var saved = localStorage.getItem(LS_UNITS);
+      if (saved === 'metric' || saved === 'imperial') return saved;
+    } catch (e) {}
+    var region = '';
+    try {
+      var loc = (navigator.language || '') +
+                ((navigator.languages || []).join(',') || '');
+      var m = loc.match(/-(US|LR|MM)\b/i);
+      region = m ? 'imperial' : 'metric';
+    } catch (e) { region = 'metric'; }
+    return region;
+  }
+  function setUnits(u) {
+    try { localStorage.setItem(LS_UNITS, u); } catch (e) {}
+  }
+  function fmtHeight(inches, units) {
+    if (units === 'metric') return Math.round(inches * 2.54) + ' cm';
+    return Math.floor(inches / 12) + "'" + (inches % 12) + '"';
+  }
+  function fmtWeight(lb, units) {
+    if (units === 'metric') return Math.round(lb * 0.4536) + ' kg';
+    return lb + ' lb';
+  }
+
   /* ── step bodies ─────────────────────────────────────────────*/
   function stepIdentity(s, rerender) {
+    var units = detectUnits();
+    var t = function (k) { return window.V12I18n ? window.V12I18n.t(k) : k; };
+
     var name = h('input', {
       class: 'onb12-input', type: 'text', maxlength: '20',
       placeholder: 'Your name', value: s.name,
       oninput: function (e) { s.name = e.target.value; }
     });
+
+    /* the unit toggle — one tap, the sliders re-label live */
+    var toggle = h('div', { class: 'onb12-two onb12-units' }, [
+      pill(t('onb.units.imperial'), units === 'imperial', function () {
+        setUnits('imperial'); rerender();
+      }),
+      pill(t('onb.units.metric'), units === 'metric', function () {
+        setUnits('metric'); rerender();
+      })
+    ]);
+
+    /* sliders keep their IMPERIAL range (the stored unit) and only the
+       label converts — so no precision is lost round-tripping */
+    function unitSlider(labelKey, val, min, max, fmt, onChange) {
+      var out = h('span', { class: 'onb12-slider__v', text: fmt(val, detectUnits()) });
+      var input = h('input', {
+        type: 'range', min: String(min), max: String(max), value: String(val),
+        class: 'onb12-range'
+      });
+      input.addEventListener('input', function () {
+        var v = parseInt(input.value, 10);
+        out.textContent = fmt(v, detectUnits());
+        onChange(v);
+      });
+      return h('div', { class: 'onb12-slider' }, [
+        h('div', { class: 'onb12-slider__top' }, [
+          h('span', { class: 'd-label', text: t(labelKey) }), out
+        ]),
+        input
+      ]);
+    }
+
     return h('div', { class: 'onb12-body' }, [
       h('div', { class: 'd-label', text: 'NAME' }), name,
-      slider('Height', s.height, 60, 90, '"', function (v) { s.height = v; }),
-      slider('Weight', s.weight, 100, 320, ' lb', function (v) { s.weight = v; }),
+      toggle,
+      unitSlider('onb.height', s.height, 58, 90, fmtHeight, function (v) { s.height = v; }),
+      unitSlider('onb.weight', s.weight, 80, 320, fmtWeight, function (v) { s.weight = v; }),
       slider('Age', s.age, 10, 60, ' yr', function (v) { s.age = v; }),
       h('div', { class: 'd-label', text: 'SHOOTING HAND' }),
       grid('onb12-two', ['L', 'R'].map(function (hd) {
         return pill(hd === 'L' ? 'Lefty' : 'Righty', s.hand === hd,
           function () { s.hand = hd; rerender(); });
       }))
+    ]);
+  }
+
+  /* ── avatar: the file gets a face ────────────────────────────
+     A compact version of the customizer, free options only — the
+     premium catalog is the shop's job, and a paywall inside the very
+     first minute is how you lose someone. Preview re-renders live off
+     V12Avatar's own params, so what they build here is exactly what
+     the header, gym and leaderboard will show. */
+  function stepAvatar(s, rerender) {
+    var A = window.V12Avatar;
+    if (!A) return h('div', { class: 'onb12-body' });   // lib missing — skip gracefully
+
+    var params = A.load();
+    var preview = h('img', { class: 'onb12-av__img', alt: 'Your avatar',
+      src: A.buildUrl(params, { seed: s.name || 'courtiq' }) });
+
+    function commit() {
+      A.save(params);
+      preview.src = A.buildUrl(params, { seed: s.name || 'courtiq' });
+    }
+
+    function freeOpts(cat) {
+      return A.CAT[cat].options.filter(function (o) { return !o.cost; });
+    }
+
+    /* one row of choices per category; swatch categories render color
+       dots, the rest render labeled chips */
+    function row(cat, labelText) {
+      var c = A.CAT[cat];
+      var opts = freeOpts(cat);
+      var wrap = h('div', { class: 'onb12-av__opts' + (c.swatch ? ' onb12-av__opts--sw' : '') });
+      opts.forEach(function (o) {
+        var el;
+        if (c.swatch) {
+          el = h('button', {
+            class: 'onb12-av__sw' + (params[cat] === o.id ? ' is-on' : ''),
+            type: 'button', style: { background: '#' + o.v }, 'aria-label': o.id
+          });
+        } else {
+          el = h('button', {
+            class: 'onb12-chip' + (params[cat] === o.id ? ' is-active' : ''),
+            type: 'button', text: o.label || o.id
+          });
+        }
+        el.addEventListener('click', function () {
+          params[cat] = o.id;
+          commit(); rerender();
+        });
+        wrap.appendChild(el);
+      });
+      return h('div', { class: 'onb12-av__row' }, [
+        h('div', { class: 'd-label', text: labelText }), wrap
+      ]);
+    }
+
+    var shuffle = h('button', { class: 'onb12-av__shuffle', type: 'button' }, [
+      h('i', { class: 'ph-bold ph-shuffle' }),
+      h('span', { text: 'Surprise me' })
+    ]);
+    shuffle.addEventListener('click', function () {
+      ['skin', 'top', 'hairColor', 'eyes', 'mouth', 'clothesColor'].forEach(function (cat) {
+        if (!A.CAT[cat]) return;
+        var opts = freeOpts(cat);
+        if (opts.length) params[cat] = opts[Math.floor(Math.random() * opts.length)].id;
+      });
+      commit(); rerender();
+    });
+
+    return h('div', { class: 'onb12-body' }, [
+      h('div', { class: 'onb12-av__stage' }, [preview, shuffle]),
+      row('skin', 'SKIN'),
+      row('top', 'HAIR'),
+      row('hairColor', 'HAIR COLOR'),
+      row('clothesColor', 'JERSEY'),
+      h('div', { class: 'onb12-hint',
+        text: 'The full wardrobe — headbands, dreads, jerseys, gold chains — unlocks in the shop with the coins you earn.' })
     ]);
   }
 
@@ -377,6 +525,7 @@
       switch (step) {
         case 'welcome': body = stepWelcome(); break;
         case 'identity': body = stepIdentity(s, paint); break;
+        case 'avatar': body = stepAvatar(s, paint); break;
         case 'position': body = stepPosition(s, paint); break;
         case 'style': body = stepStyle(s, paint); break;
         case 'scout': body = stepScout(s); break;

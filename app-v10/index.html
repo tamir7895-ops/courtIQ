@@ -164,6 +164,9 @@
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
 <script src="lib/telemetry.js?v=dev"></script>
+<!-- Language layer. Loads before every screen so t() is always there,
+     and applies dir=rtl before first paint to avoid a layout flash. -->
+<script src="lib/i18n.js?v=dev"></script>
 <script src="../js/data-service.js"></script>
 <script src="../js/ai-coach.js"></script>
 <script src="../js/drill-engine.js"></script>
@@ -296,6 +299,7 @@
 <script src="app.js?v=dev"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
+<script src="screens/landing.js?v=dev"></script>
 <script src="screens/home.js?v=dev"></script>
 <script src="screens/track.js?v=dev"></script>
 <script src="screens/train.js?v=dev"></script>
