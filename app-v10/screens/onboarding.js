@@ -457,17 +457,53 @@
     var focusText = s.focus.length ? s.focus.map(function (f) { return focusL[f]; }).join(' · ')
                                    : 'Balanced';
 
+    /* The full scouting report: every number on it is something the
+       player just told us — nothing invented (M4). Bars make the
+       strengths/gaps readable at a glance; the strongest reads green,
+       the weakest orange, because that gap is what the program attacks
+       first. */
+    var topK = entries[0].k, lowK = entries[entries.length - 1].k;
+    var skillRows = entries.map(function (e) {
+      var cls = 'onb12-skill' +
+        (e.k === topK ? ' onb12-skill--top' : e.k === lowK ? ' onb12-skill--low' : '');
+      return h('div', { class: cls }, [
+        h('div', { class: 'onb12-skill__l', text: SKILL_L[e.k] }),
+        h('div', { class: 'onb12-skill__bar' }, [
+          h('div', { class: 'onb12-skill__fill', style: { width: (e.v * 10) + '%' } })
+        ]),
+        h('div', { class: 'onb12-skill__v', text: String(e.v) })
+      ]);
+    });
+
+    var POS_L = { PG: 'Point Guard', SG: 'Shooting Guard', SF: 'Small Forward',
+                  PF: 'Power Forward', C: 'Center' };
+    var goalsText = s.goals.length ? s.goals.join(' · ') : '—';
+
     return h('div', { class: 'onb12-body' }, [
       V12.card({ tint: 'gold', class: 'onb12-card' }, [
         h('div', { class: 'd-label', text: 'SELF-SCOUT GRADE' }),
         h('div', { class: 'onb12-grade', text: grade }),
         h('div', { class: 'onb12-arche', text: arche })
       ]),
+
+      V12.card({ class: 'onb12-skills' }, [
+        h('div', { class: 'd-label', text: 'SCOUTING REPORT' })
+      ].concat(skillRows).concat([
+        h('div', { class: 'onb12-hint', text:
+          'Strongest: ' + SKILL_L[topK] + ' · First to fix: ' + SKILL_L[lowK] +
+          '. The court gets the final say — every session updates this file.' })
+      ])),
+
       V12.card({ tint: 'ink', class: 'onb12-plan' }, [
-        h('div', { class: 'd-label', text: 'YOUR PLAN' }),
+        h('div', { class: 'd-label', text: 'YOUR PROGRAM' }),
+        h('div', { class: 'onb12-plan__row' }, [
+          h('i', { class: 'ph-fill ph-user' }),
+          h('span', { text: (POS_L[s.position] || 'Player') + ' · ' +
+            (s.hand === 'L' ? 'Lefty' : 'Righty') })
+        ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-calendar-check' }),
-          h('span', { text: s.days + ' days/week · ' + s.minutes + ' min a session' })
+          h('span', { text: s.days + ' days a week · ' + s.minutes + ' min a session' })
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-target' }),
@@ -475,9 +511,16 @@
         ]),
         h('div', { class: 'onb12-plan__row' }, [
           h('i', { class: 'ph-fill ph-barbell' }),
-          h('span', { text: 'Gear: ' + (s.equipment.length ? s.equipment.join(', ') : 'bodyweight') })
+          h('span', { text: 'Gear: ' + (s.equipment.length ? s.equipment.join(', ') : 'bodyweight only') })
+        ]),
+        h('div', { class: 'onb12-plan__row' }, [
+          h('i', { class: 'ph-fill ph-flag-banner' }),
+          h('span', { text: 'Goals: ' + goalsText })
         ])
-      ])
+      ]),
+
+      h('div', { class: 'onb12-report-hint',
+        text: 'The staff builds your weekly plan from this file the moment you step into the gym. Change anything later in Training Plan.' })
     ]);
   }
 
@@ -502,7 +545,20 @@
     var host = args.host, ctx = args.ctx;
     var s = ensure();
 
+    var lastStep = -1;
     function paint() {
+      /* Toggling a chip repaints the screen for state, and the rebuilt
+         scroller used to start back at the top — on device every tap
+         "jumped", the player tapped again, and the second tap UNDID the
+         first. Same-step repaints keep their scroll position; only a
+         real step change starts at the top. */
+      var prevScroll = 0;
+      if (lastStep === s.i) {
+        var sc0 = host.querySelector('.onb12-scroll');
+        if (sc0) prevScroll = sc0.scrollTop;
+      }
+      lastStep = s.i;
+
       while (host.firstChild) host.removeChild(host.firstChild);
       var step = STEPS[s.i];
       var last = STEPS.length - 1;
@@ -538,6 +594,7 @@
       }
       var scroll = h('div', { class: 'onb12-scroll' }, [body]);
       host.appendChild(scroll);
+      if (prevScroll) scroll.scrollTop = prevScroll;
 
       if (step === 'processing') return;  // auto-advances
 

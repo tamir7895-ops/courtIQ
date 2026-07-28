@@ -25,7 +25,9 @@
   /* ── the brand lockup, real logo ──────────────────────────────*/
   function brand() {
     return h('div', { class: 'ld12-brand' }, [
-      h('img', { src: 'assets/logomark.svg', alt: '', class: 'ld12-brand__mark' }),
+      /* light variant: the mark's hand is navy, invisible on the navy
+         landing — this one wears cream so the whole logo reads */
+      h('img', { src: 'assets/logomark-light.svg', alt: '', class: 'ld12-brand__mark' }),
       h('div', { class: 'ld12-brand__word' }, [
         document.createTextNode('COURT'), h('em', { text: 'IQ' })
       ]),

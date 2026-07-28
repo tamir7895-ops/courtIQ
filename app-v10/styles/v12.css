@@ -322,6 +322,13 @@ body[data-screen] #app > :nth-child(n+8) { animation-delay: .34s; }
 .d-bg--ink    { color: var(--d-ink); }
 
 /* ── Buttons ────────────────────────────────────────────────────*/
+/* Every tappable thing opts out of the WebView's double-tap heuristics.
+   Without this, iOS holds clicks while it decides whether a second tap
+   is coming — taps feel eaten, especially when tapping chips quickly. */
+button, [role="button"], a, input, select, label {
+  touch-action: manipulation;
+}
+
 .d-btn {
   border: 0; cursor: pointer; width: 100%;
   border-radius: 16px; min-height: 52px; padding: 0 18px;
@@ -1865,11 +1872,43 @@ body[data-screen="onboarding"] #app {
 .onb12-grade { font-family: var(--font-display); font-weight: 900; font-size: 72px; line-height: 1; color: #fff; }
 .onb12-arche { font-family: var(--d-font); font-weight: 800; font-size: 15px; letter-spacing: .08em; color: #4A3400; }
 .onb12-plan { padding: 15px 16px; }
+/* Rows sit on the ink card, which v12 redefined as PAPER (white with a
+   navy lip) — the old white text survived the redesign and rendered
+   white-on-white: "YOUR PLAN" with nothing under it on device. */
 .onb12-plan__row {
   display: flex; align-items: center; gap: 10px; padding: 6px 0;
-  font-family: var(--d-font); font-weight: 600; font-size: 13.5px; color: #fff;
+  font-family: var(--d-font); font-weight: 600; font-size: 13.5px;
+  color: var(--d-ink);
 }
-.onb12-plan__row i { font-size: 18px; color: var(--d-gold); flex: 0 0 auto; }
+.onb12-plan__row i { font-size: 18px; color: var(--d-orange); flex: 0 0 auto; }
+
+/* the scouting-report bars — one per self-rated skill, all real input */
+.onb12-skills { padding: 14px 16px; }
+.onb12-skill { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.onb12-skill__l {
+  flex: 0 0 92px; font-family: var(--d-font); font-weight: 700;
+  font-size: 11.5px; color: var(--d-body);
+}
+.onb12-skill__bar {
+  flex: 1; height: 10px; border-radius: 99px;
+  background: var(--d-alt); overflow: hidden;
+}
+.onb12-skill__fill {
+  height: 100%; border-radius: 99px; background: var(--d-blue);
+  transition: width .5s cubic-bezier(.22,1,.36,1);
+}
+.onb12-skill--top .onb12-skill__fill { background: var(--d-green); }
+.onb12-skill--low .onb12-skill__fill { background: var(--d-orange); }
+.onb12-skill__v {
+  flex: 0 0 24px; text-align: right;
+  font-family: var(--font-display); font-weight: 900; font-size: 13px;
+  color: var(--d-ink);
+}
+.onb12-report-hint {
+  font-family: var(--d-font); font-weight: 500; font-size: 12.5px;
+  color: var(--d-mute); text-align: center; line-height: 1.45;
+  padding: 2px 10px 6px;
+}
 
 .onb12-foot { flex: 0 0 auto; display: grid; grid-template-columns: 1fr 1.6fr; gap: 10px; padding-top: 12px; }
 .onb12-foot .d-btn[disabled] { opacity: .4; pointer-events: none; }
@@ -2616,6 +2655,27 @@ body[data-screen="landing"] .v10-nav { display: none; }
 .ld12 {
   position: fixed; inset: 0; overflow: hidden;
   background: linear-gradient(168deg, #0A2850 0%, #0E3562 55%, #143F6E 100%);
+}
+/* tokens.css says `#app > * { position: relative }` — an ID selector,
+   so it silently beats the class rule above and collapses the whole
+   screen to a zero-height box (every child inside is absolute). That
+   was the "blank screen with just the navbar" on device. Match the
+   specificity and pin the fallbacks so no future blanket rule can
+   flatten the front door again. */
+#app > .ld12 {
+  position: fixed; inset: 0;
+  min-height: 100dvh; z-index: 60;
+}
+
+/* The first-run flow is a locked room: no tab bar, no way to wander
+   into the app mid-signup. Guests get in through the flow's own
+   "try it first" door, not around it. */
+body:is([data-screen="landing"], [data-screen="onboarding"], [data-screen="auth"]) .d-nav {
+  display: none;
+}
+/* with the nav gone, its reserved padding goes too */
+body:is([data-screen="onboarding"], [data-screen="auth"]) #app {
+  padding-bottom: calc(12px + var(--safe-bottom));
 }
 .ld12-video {
   position: absolute; inset: 0; width: 100%; height: 100%;
