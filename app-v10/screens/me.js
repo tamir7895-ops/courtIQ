@@ -138,6 +138,23 @@
         }));
     }
 
+    /* Replay the whole first-run journey — landing, language, the
+       combine, the avatar. A do-over, not a reset: progression, XP,
+       streak and sessions stay exactly where they are; finishing the
+       combine again simply overwrites the profile answers. */
+    host.appendChild(row('ph-arrow-counter-clockwise', 'Redo intro & setup',
+      'Replay the welcome flow — your progress and sessions stay.',
+      function () {
+        try {
+          localStorage.removeItem('courtiq_onboarded');
+          window._v12Onb = null;          /* fresh combine, not a resume */
+          /* landing bounces signed-in players home — this one visit is
+             deliberate, so it carries a pass */
+          sessionStorage.setItem('courtiq_redo_intro', '1');
+        } catch (e) {}
+        ctx.go('landing');
+      }));
+
     if (signedIn) {
       host.appendChild(row('ph-sign-out', 'Sign out', null, function () {
         if (window.V10Auth && window.V10Auth.signOut) {

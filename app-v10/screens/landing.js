@@ -188,8 +188,15 @@
   function render(args) {
     var host = args.host, ctx = args.ctx;
 
-    /* Signed-in players never see the front door. */
-    if (window.V10Auth && window.V10Auth.user()) { ctx.go('home'); return; }
+    /* Signed-in players never see the front door — unless they asked
+       for it from Settings ("Redo intro & setup"), which leaves a
+       one-visit pass. */
+    var redo = false;
+    try {
+      redo = sessionStorage.getItem('courtiq_redo_intro') === '1';
+      if (redo) sessionStorage.removeItem('courtiq_redo_intro');
+    } catch (e) {}
+    if (!redo && window.V10Auth && window.V10Auth.user()) { ctx.go('home'); return; }
 
     function paint() {
       while (host.firstChild) host.removeChild(host.firstChild);
