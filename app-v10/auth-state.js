@@ -76,7 +76,12 @@
             'courtiq-ai-shots-offline',
             'courtiq-sidebar-collapsed',
             'courtiq-skip-session-prep',
-            'courtiq_debug'
+            'courtiq_debug',
+            /* device preferences, not account state — the phone still
+               speaks Hebrew and shows cm after you sign out */
+            'courtiq_lang',
+            'courtiq_units',
+            'courtiq_device_id'
           ];
           Object.keys(localStorage).forEach(function (k) {
             if (k.indexOf('courtiq') !== 0 && k !== '_sb_user_data_cache') return;

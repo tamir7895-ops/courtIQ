@@ -78,12 +78,17 @@
 
   function bootstrap() {
     var initial = (location.hash || '').replace(/^#/, '') || 'home';
-    // First run → onboarding (it sets courtiq_onboarded on finish and
-    // stores name/position that the guest profile reads). Deep links to
-    // other screens are respected.
+    // First run → the landing screen: language, brand, and the three
+    // ways in (create profile / sign in / guest). It hands off to
+    // onboarding, which sets courtiq_onboarded on finish. A returning
+    // player who finished onboarding never sees either again. Deep
+    // links to other screens are respected.
     try {
-      if (initial === 'home' && !localStorage.getItem('courtiq_onboarded') && SCREENS.onboarding) {
-        initial = 'onboarding';
+      if (initial === 'home' && !localStorage.getItem('courtiq_onboarded')) {
+        var signedIn = false;
+        try { signedIn = !!(window.V10Auth && window.V10Auth.user()); } catch (e2) {}
+        if (!signedIn && SCREENS.landing) initial = 'landing';
+        else if (SCREENS.onboarding) initial = 'onboarding';
       }
     } catch (e) { /* storage blocked — skip */ }
     go(initial);
