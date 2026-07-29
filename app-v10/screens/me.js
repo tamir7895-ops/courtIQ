@@ -289,6 +289,46 @@
     host.appendChild(grid);
   }
 
+  /* ── language picker sheet ────────────────────────────────────
+     Bottom sheet on the plan-sheet chassis: one row per language,
+     each labeled in its own tongue so you can always find your way
+     home from a language you don't read. Picking a pack language
+     that isn't loaded yet reloads the page (i18n.set handles it). */
+  function openLangSheet(host, ctx, back) {
+    var bg = h('div', { class: 'plan12-sheetbg' });
+    var sheet = h('div', { class: 'plan12-sheet' });
+    function close() { bg.remove(); }
+    bg.addEventListener('click', function (e) { if (e.target === bg) close(); });
+
+    sheet.appendChild(h('div', { class: 'plan12-sheet__hd' }, [
+      h('div', { class: 'plan12-sheet__t', text: t('me.set.lang') }),
+      h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close },
+        [h('i', { class: 'ph-bold ph-x' })])
+    ]));
+
+    var cur = V12I18n.current();
+    V12I18n.LANGS.forEach(function (lg) {
+      var isCur = lg.code === cur;
+      var r = h('button', {
+        class: 'm12-lang' + (isCur ? ' is-current' : ''), type: 'button',
+        onclick: function () {
+          if (isCur) { close(); return; }
+          close();
+          V12I18n.set(lg.code);                 /* may reload for packs */
+          settingsView(host, ctx, back);        /* repaint if it didn't */
+        }
+      }, [
+        h('span', { class: 'm12-lang__flag', text: lg.flag }),
+        h('span', { class: 'm12-lang__label', text: lg.label }),
+        isCur ? h('i', { class: 'ph-bold ph-check-circle m12-lang__check' }) : null
+      ].filter(Boolean));
+      sheet.appendChild(r);
+    });
+
+    bg.appendChild(sheet);
+    document.body.appendChild(bg);
+  }
+
   /* ── settings view ────────────────────────────────────────────*/
   function settingsView(host, ctx, back) {
     while (host.firstChild) host.removeChild(host.firstChild);
@@ -332,24 +372,20 @@
         }));
     }
 
-    /* language — the row shows the CURRENT language; each tap advances
-       to the NEXT one in the registry and repaints, same pattern as the
-       reminder toggle. V12I18n.set() flips document dir (and reloads
+    /* language — the row shows the CURRENT language and opens a picker
+       sheet listing every language in the registry, each self-labeled
+       in its own tongue. V12I18n.set() flips document dir (and reloads
        once when the target is a pack language that isn't loaded yet). */
     if (window.V12I18n && V12I18n.LANGS && V12I18n.LANGS.length > 1) {
       var LNG = V12I18n.LANGS;
       var curCode = V12I18n.current();
-      var curIdx = 0;
+      var curLang = LNG[0];
       for (var li = 0; li < LNG.length; li++) {
-        if (LNG[li].code === curCode) { curIdx = li; break; }
+        if (LNG[li].code === curCode) { curLang = LNG[li]; break; }
       }
-      var nextLang = LNG[(curIdx + 1) % LNG.length];
       host.appendChild(row('ph-translate', t('me.set.lang'),
-        LNG[curIdx].label + '  ›  ' + nextLang.label,
-        function () {
-          V12I18n.set(nextLang.code);
-          settingsView(host, ctx, back);      /* repaint in the new language */
-        }));
+        curLang.flag + '  ' + curLang.label,
+        function () { openLangSheet(host, ctx, back); }));
     }
 
     /* Replay the whole first-run journey — landing, language, the
