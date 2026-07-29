@@ -60,15 +60,14 @@
 
       var preview, coinChip, panel;
 
-      function previewUrl() { return A.buildUrl(params, { seed: seed, size: 240 }); }
-
-      function bandColor() {
-        var o = A.opt('background', params.background);
-        return o && o.bgv ? '#' + o.bgv[0] : '#FFB800';
-      }
+      /* the character renders on TRANSPARENCY and the panel paints the
+         court itself (solid or CSS gradient) — DiceBear's baked-in
+         square background never matched a styled container, which is
+         exactly the "ugly square behind the face" bug */
+      function previewUrl() { return A.buildUrl(params, { seed: seed, size: 240, noBg: true }); }
 
       function refreshPreview() {
-        preview.style.backgroundColor = bandColor();
+        preview.style.background = A.bgCss(params);
         var img = preview.querySelector('img');
         img.src = previewUrl();
       }
@@ -183,7 +182,7 @@
           }
         }, [h('i', { class: 'ph-bold ph-dice-five' })])
       ]);
-      preview.style.backgroundColor = bandColor();
+      preview.style.background = A.bgCss(params);
       host.appendChild(preview);
 
       host.appendChild(V12.seg(A.TABS.map(function (tb) {

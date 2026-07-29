@@ -92,7 +92,10 @@
       ]
     },
     top: {
-      label: 'Hair', param: 'top', icon: 'ph-scissors',
+      /* 'bald' is NOT a DiceBear value — the API 400s and the tile
+         renders a broken square. Baldness is topProbability=0, driven
+         by the off flag exactly like no-beard and no-gear. */
+      label: 'Hair', param: 'top', prob: 'topProbability', icon: 'ph-scissors',
       options: [
         { id: 'shortFlat',  label: 'Flat',      v: 'shortFlat',  cost: 0 },
         { id: 'shortCurly', label: 'Curly',     v: 'shortCurly', cost: 0 },
@@ -101,7 +104,7 @@
         { id: 'sides',      label: 'Sides',     v: 'sides',      cost: 0 },
         { id: 'fro',        label: 'Fro',       v: 'fro',        cost: 0 },
         { id: 'bun',        label: 'Bun',       v: 'bun',        cost: 0 },
-        { id: 'bald',       label: 'Bald',      v: 'bald',       cost: 0 },
+        { id: 'bald',       label: 'Bald',      off: true,       cost: 0 },
         { id: 'shortRound', label: 'Round',     v: 'shortRound', cost: 0 },
         { id: 'shavedSides', label: 'Shaved',   v: 'shavedSides', cost: 0 },
         { id: 'curly',      label: 'Coils',     v: 'curly',      cost: 0 },
@@ -323,6 +326,10 @@
       var c = CAT[cat], o = opt(cat, params[cat]);
       if (!c || !o) return;
       if (c.bg) {
+        /* noBg: the character alone on transparency — sprites standing
+           on the court (gym, band) must not stamp a colored disk over
+           the scene behind them */
+        if (opts.noBg) return;
         q.push('backgroundColor=' + o.bgv.join(','));
         q.push('backgroundType=' + (o.grad ? 'gradientLinear' : 'solid'));
         return;
@@ -338,10 +345,10 @@
      'facialHair', 'clothing', 'clothesColor', 'clothingGraphic',
      'accessories', 'background'].forEach(push);
 
-    // extra fixed colors for richness
+    // extra fixed colors for richness (topProbability now comes from
+    // the top category itself — 0 for bald, 100 otherwise)
     q.push('facialHairColor=' + (params.hairColor ? (opt('hairColor', params.hairColor) || {}).v || '2c1b18' : '2c1b18'));
     q.push('accessoriesColor=262e33');
-    q.push('topProbability=100');
 
     return BASE + '?' + q.join('&');
   }
@@ -446,6 +453,19 @@
     return true;
   }
 
+  /* The chosen court as CSS — the surface that HOSTS the avatar paints
+     this itself, and a transparent (noBg) render sits on top with no
+     seam. DiceBear's baked-in gradient never matches a solid band; CSS
+     always matches itself. */
+  function bgCss(params) {
+    params = params || load();
+    var o = opt('background', params.background);
+    if (!o || !o.bgv) return '#FFB800';
+    return o.grad
+      ? 'linear-gradient(135deg,#' + o.bgv[0] + ',#' + o.bgv[1] + ')'
+      : '#' + o.bgv[0];
+  }
+
   /* Every premium (cost>0) option, flattened, for the shop grid. */
   function catalog() {
     var out = [];
@@ -459,7 +479,7 @@
 
   window.V12Avatar = {
     CAT: CAT, TABS: TABS, DEFAULTS: DEFAULTS,
-    load: load, save: save, buildUrl: buildUrl, opt: opt,
+    load: load, save: save, buildUrl: buildUrl, opt: opt, bgCss: bgCss,
     coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
     catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf,
     labelOf: labelOf

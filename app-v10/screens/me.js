@@ -546,8 +546,10 @@
 
     /* the Duolingo band — the character's world owns the top third,
        edge to edge, tinted with the avatar's own background color */
-    var url = V12.avatarUrl(prof);
-    var bandColor = (url.match(/backgroundColor=([0-9A-Fa-f]{6})/) || [])[1] || 'FFB800';
+    /* transparent character over a band that paints the chosen court
+       itself — a baked-in PNG background was a visible square whenever
+       the court was a gradient (regex here read only its first color) */
+    var url = V12.avatarUrl(prof, { noBg: true });
     var band = h('div', {
       class: 'm12-band',
       role: 'button', tabindex: '0', 'aria-label': t('me.set.avatar.t'),
@@ -556,8 +558,18 @@
     }, [
       h('div', { class: 'm12-band__edit' }, [h('i', { class: 'ph-bold ph-pencil-simple' })])
     ]);
-    band.style.backgroundColor = '#' + bandColor;
-    band.style.backgroundImage = 'url(' + url + ')';
+    var bandBg = '#FFB800';
+    try { if (window.V12Avatar) bandBg = V12Avatar.bgCss(V12Avatar.load()); } catch (e) {}
+    if (bandBg.indexOf('gradient') >= 0) {
+      /* two layers: the character, then the court gradient under it */
+      band.style.backgroundImage = 'url(' + url + '), ' + bandBg;
+      band.style.backgroundSize = 'auto calc(100% - var(--safe-top) - 10px), 100% 100%';
+      band.style.backgroundPosition = 'bottom center, center';
+      band.style.backgroundRepeat = 'no-repeat, no-repeat';
+    } else {
+      band.style.backgroundColor = bandBg;
+      band.style.backgroundImage = 'url(' + url + ')';
+    }
     host.appendChild(band);
 
     /* name + level + XP bar */

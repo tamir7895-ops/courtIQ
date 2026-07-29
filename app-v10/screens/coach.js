@@ -796,7 +796,9 @@
     var walking = false;
     var me = V12.faceImg({
       class: 'c12-gym__me', alt: t('coach.gym.you'),
-      src: V12.avatarUrl(data.prof),
+      /* transparent render — your character stands ON the court; the
+         baked court-background disk used to sit over the scene */
+      src: V12.avatarUrl(data.prof, { noBg: true }),
       style: { left: SPOTS.player.x + '%', top: SPOTS.player.y + '%' }
     });
 
