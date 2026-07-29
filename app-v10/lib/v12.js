@@ -192,18 +192,23 @@
   /* ── avatar — always a real face, never a lonely initial ────────
      Saved customizer URL first, else a deterministic DiceBear render
      seeded by the player's name (same trick the old header pill used). */
-  function avatarUrl(prof) {
+  function avatarUrl(prof, opts) {
+    opts = opts || {};
     /* Prefer the live customizer params so the face reflects the latest
        edit even before a save round-trips through courtiq_avatar_url. */
     try {
       if (window.V12Avatar && localStorage.getItem('courtiq_avatar_params')) {
         return window.V12Avatar.buildUrl(window.V12Avatar.load(),
-          { seed: (prof && prof.name) || 'courtiq' });
+          { seed: (prof && prof.name) || 'courtiq', noBg: !!opts.noBg });
       }
     } catch (e) {}
     try {
       var u = localStorage.getItem('courtiq_avatar_url');
-      if (u) return u;
+      /* stored URLs carry a baked background — a sprite consumer strips
+         it so the character stands on the scene, not on a colored disk */
+      if (u) return opts.noBg
+        ? u.replace(/&backgroundColor=[^&]*/g, '').replace(/&backgroundType=[^&]*/g, '')
+        : u;
     } catch (e) {}
     /* Upgrading from v10: that build kept the face in the onboarding
        blob and js/avatar-customizer.js copied it across on boot. That

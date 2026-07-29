@@ -17,15 +17,15 @@
 <link href="../vendor/fonts/fonts.css" rel="stylesheet">
 <link href="../vendor/phosphor/bold/style.css" rel="stylesheet">
 <link href="../vendor/phosphor/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=8ed0ea9" />
-<link rel="stylesheet" href="styles/components.css?v=8ed0ea9" />
-<link rel="stylesheet" href="styles/v11.css?v=8ed0ea9" />
-<link rel="stylesheet" href="styles/v12.css?v=8ed0ea9" />
-<link rel="stylesheet" href="styles/mobile.css?v=8ed0ea9" />
-<link rel="stylesheet" href="styles/studio.css?v=8ed0ea9" />
+<link rel="stylesheet" href="styles/tokens.css?v=0ce9630" />
+<link rel="stylesheet" href="styles/components.css?v=0ce9630" />
+<link rel="stylesheet" href="styles/v11.css?v=0ce9630" />
+<link rel="stylesheet" href="styles/v12.css?v=0ce9630" />
+<link rel="stylesheet" href="styles/mobile.css?v=0ce9630" />
+<link rel="stylesheet" href="styles/studio.css?v=0ce9630" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=8ed0ea9" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=0ce9630" />
 </head>
 <body>
 
@@ -163,10 +163,10 @@
 <script src="../js/env.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
-<script src="lib/telemetry.js?v=8ed0ea9"></script>
+<script src="lib/telemetry.js?v=0ce9630"></script>
 <!-- Language layer. Loads before every screen so t() is always there,
      and applies dir=rtl before first paint to avoid a layout flash. -->
-<script src="lib/i18n.js?v=8ed0ea9"></script>
+<script src="lib/i18n.js?v=0ce9630"></script>
 <!-- Language packs: en/he ship inline with the screens; other languages
      are data-only packs and ONLY the active one loads — nobody parses
      three dictionaries they aren't reading. Allowlisted codes only. -->
@@ -175,12 +175,12 @@
   try {
     var l = localStorage.getItem('courtiq_lang');
     if (l === 'es' || l === 'ar' || l === 'ru' || l === 'fr' || l === 'pt') {
-      document.write('<script src="lang/' + l + '.js?v=8ed0ea9"><\/script>');
+      document.write('<script src="lang/' + l + '.js?v=0ce9630"><\/script>');
     } else if (l === 'he') {
       /* Hebrew UI strings ship inline with the screens; the 178 drill
          translations are data-heavy, so they ride a pack like the
          other languages. */
-      document.write('<script src="lang/he-drills.js?v=8ed0ea9"><\/script>');
+      document.write('<script src="lang/he-drills.js?v=0ce9630"><\/script>');
     }
   } catch (e) { /* storage blocked — english carries it */ }
 })();
@@ -191,7 +191,7 @@
 <!-- Translated drill names/descriptions — resolves through _DRILLS_DB,
      so it loads right after the engine. English names stay canonical
      (plans, coach proposals and board lookups depend on them). -->
-<script src="lib/drills-i18n.js?v=8ed0ea9"></script>
+<script src="lib/drills-i18n.js?v=0ce9630"></script>
 <script src="../js/drill-choreo.js"></script>
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
@@ -239,15 +239,15 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/courtPosition.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/courtCalibration.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/shotService.js?v=8ed0ea9"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=8ed0ea9"></script>
+<script src="../features/shot-tracking/v2/config.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/shotService.js?v=0ce9630"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=0ce9630"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -266,23 +266,23 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=8ed0ea9"></script>
-<script src="lib/data.js?v=8ed0ea9"></script>
-<script src="lib/courtiq.js?v=8ed0ea9"></script>
-<script src="lib/court.js?v=8ed0ea9"></script>
-<script src="lib/drill-court.js?v=8ed0ea9"></script>
-<script src="lib/audio.js?v=8ed0ea9"></script>
-<script src="lib/reveal.js?v=8ed0ea9"></script>
-<script src="lib/v11.js?v=8ed0ea9"></script>
-<script src="lib/v12.js?v=8ed0ea9"></script>
-<script src="lib/avatar.js?v=8ed0ea9"></script>
-<script src="lib/plan.js?v=8ed0ea9"></script>
-<script src="lib/challenges.js?v=8ed0ea9"></script>
-<script src="lib/notify.js?v=8ed0ea9"></script>
-<script src="lib/coach-insights.js?v=8ed0ea9"></script>
-<script src="lib/coach-ai.js?v=8ed0ea9"></script>
-<script src="lib/nav.js?v=8ed0ea9"></script>
-<script src="lib/mobile.js?v=8ed0ea9"></script>
+<script src="lib/ui.js?v=0ce9630"></script>
+<script src="lib/data.js?v=0ce9630"></script>
+<script src="lib/courtiq.js?v=0ce9630"></script>
+<script src="lib/court.js?v=0ce9630"></script>
+<script src="lib/drill-court.js?v=0ce9630"></script>
+<script src="lib/audio.js?v=0ce9630"></script>
+<script src="lib/reveal.js?v=0ce9630"></script>
+<script src="lib/v11.js?v=0ce9630"></script>
+<script src="lib/v12.js?v=0ce9630"></script>
+<script src="lib/avatar.js?v=0ce9630"></script>
+<script src="lib/plan.js?v=0ce9630"></script>
+<script src="lib/challenges.js?v=0ce9630"></script>
+<script src="lib/notify.js?v=0ce9630"></script>
+<script src="lib/coach-insights.js?v=0ce9630"></script>
+<script src="lib/coach-ai.js?v=0ce9630"></script>
+<script src="lib/nav.js?v=0ce9630"></script>
+<script src="lib/mobile.js?v=0ce9630"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
      ?studio in the URL so it can be opened on a real phone against a LAN
      dev server. Never ships to a production build. -->
@@ -299,7 +299,7 @@
               location.search.indexOf('studio') >= 0;
     if (!dev) return;
     var s = document.createElement('script');
-    s.src = 'lib/studio.js?v=8ed0ea9';
+    s.src = 'lib/studio.js?v=0ce9630';
     document.head.appendChild(s);
   })();
 </script>
@@ -309,36 +309,36 @@
     if (window.Capacitor) return;
     if (location.search.indexOf('smoke') < 0) return;
     var s = document.createElement('script');
-    s.src = 'lib/smoke.js?v=8ed0ea9';
+    s.src = 'lib/smoke.js?v=0ce9630';
     document.head.appendChild(s);
   })();
 </script>
-<script src="auth-state.js?v=8ed0ea9"></script>
+<script src="auth-state.js?v=0ce9630"></script>
 <!-- Progression sync. After auth-state.js and lib/data.js because it
      needs the session before it can call the RPC, and after the modules
      that own the keys it reads (streak, avatar, plan). -->
-<script src="lib/sync.js?v=8ed0ea9"></script>
-<script src="app.js?v=8ed0ea9"></script>
+<script src="lib/sync.js?v=0ce9630"></script>
+<script src="app.js?v=0ce9630"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/landing.js?v=8ed0ea9"></script>
-<script src="screens/home.js?v=8ed0ea9"></script>
-<script src="screens/track.js?v=8ed0ea9"></script>
-<script src="screens/train.js?v=8ed0ea9"></script>
-<script src="screens/coach.js?v=8ed0ea9"></script>
-<script src="screens/me.js?v=8ed0ea9"></script>
-<script src="screens/social.js?v=8ed0ea9"></script>
-<script src="screens/auth.js?v=8ed0ea9"></script>
-<script src="screens/session-prep.js?v=8ed0ea9"></script>
-<script src="screens/camera-hud.js?v=8ed0ea9"></script>
-<script src="screens/post-session.js?v=8ed0ea9"></script>
-<script src="screens/onboarding.js?v=8ed0ea9"></script>
-<script src="screens/drill-library.js?v=8ed0ea9"></script>
-<script src="screens/workout-player.js?v=8ed0ea9"></script>
-<script src="screens/avatar-customizer.js?v=8ed0ea9"></script>
-<script src="screens/shop.js?v=8ed0ea9"></script>
-<script src="screens/plan.js?v=8ed0ea9"></script>
-<script src="screens/notifications.js?v=8ed0ea9"></script>
+<script src="screens/landing.js?v=0ce9630"></script>
+<script src="screens/home.js?v=0ce9630"></script>
+<script src="screens/track.js?v=0ce9630"></script>
+<script src="screens/train.js?v=0ce9630"></script>
+<script src="screens/coach.js?v=0ce9630"></script>
+<script src="screens/me.js?v=0ce9630"></script>
+<script src="screens/social.js?v=0ce9630"></script>
+<script src="screens/auth.js?v=0ce9630"></script>
+<script src="screens/session-prep.js?v=0ce9630"></script>
+<script src="screens/camera-hud.js?v=0ce9630"></script>
+<script src="screens/post-session.js?v=0ce9630"></script>
+<script src="screens/onboarding.js?v=0ce9630"></script>
+<script src="screens/drill-library.js?v=0ce9630"></script>
+<script src="screens/workout-player.js?v=0ce9630"></script>
+<script src="screens/avatar-customizer.js?v=0ce9630"></script>
+<script src="screens/shop.js?v=0ce9630"></script>
+<script src="screens/plan.js?v=0ce9630"></script>
+<script src="screens/notifications.js?v=0ce9630"></script>
 
 <script>
   // Bootstrap after all scripts load
