@@ -69,7 +69,7 @@
         notes.push({
           tone: 'orange', icon: 'ph-fire', title: t('notif.streak.t'),
           body: t('notif.streak.b', { n: prof.streak }),
-          dest: 'camera-hud'
+          dest: 'track'
         });
       }
       if (coach && coach.verdict) {
@@ -111,7 +111,7 @@
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
           class: 'c12-back', type: 'button', 'aria-label': t('notif.back'),
-          onclick: function () { ctx.go('home'); }
+          onclick: function () { ctx.back(); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
           h('div', { class: 'c12-chat-hd__t', text: t('notif.title') }),
@@ -145,7 +145,7 @@
 
       host.appendChild(V12.btn({
         label: t('notif.start'), icon: 'ph-play-circle',
-        onClick: function () { ctx.go('camera-hud'); }
+        onClick: function () { ctx.go('track'); }
       }));
     });
   }

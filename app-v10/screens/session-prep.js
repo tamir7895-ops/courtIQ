@@ -100,7 +100,7 @@
     host.appendChild(h('div', { class: 'c12-chat-hd' }, [
       h('button', {
         class: 'c12-back', type: 'button', 'aria-label': t('prep.back'),
-        onclick: function () { ctx.go('track'); }
+        onclick: function () { ctx.back(); }
       }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
       h('div', {}, [
         h('div', { class: 'c12-chat-hd__t', text: t('prep.title') }),

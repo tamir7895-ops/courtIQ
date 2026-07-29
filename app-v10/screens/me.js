@@ -350,16 +350,23 @@
       ]);
     }
 
+    /* Leaving settings for another screen: flag the departure so that
+       coming BACK to 'me' reopens settings instead of the front page. */
+    function goFromSettings(id) {
+      try { sessionStorage.setItem('courtiq_me_return', 'settings'); } catch (e) {}
+      ctx.go(id);
+    }
+
     if (!signedIn) {
       host.appendChild(row('ph-user-circle', t('me.set.signin.t'),
         t('me.set.signin.s'),
-        function () { ctx.go('auth'); }));
+        function () { goFromSettings('auth'); }));
     }
     host.appendChild(row('ph-user-focus', t('me.set.avatar.t'),
       t('me.set.avatar.s'),
-      function () { ctx.go('avatar-customizer'); }));
+      function () { goFromSettings('avatar-customizer'); }));
     host.appendChild(row('ph-bell', t('me.set.notif'), null,
-      function () { ctx.go('notifications'); }));
+      function () { goFromSettings('notifications'); }));
 
     /* training reminders — the toggle IS the row; tap flips it */
     if (window.V12Notify) {
@@ -688,7 +695,17 @@
       window.V10CourtIQ.get(),
       ctx.data.getTotals()
     ]).then(function (r) {
-      mainView(host, ctx, r[0] || {}, r[1], r[2] || { sessions: 0, shots: 0 });
+      var main = function () { mainView(host, ctx, r[0] || {}, r[1], r[2] || { sessions: 0, shots: 0 }); };
+      /* Coming BACK from a screen that settings opened (notifications,
+         avatar, sign-in) should land back IN settings, not on the
+         profile front page — the flag is set right before leaving. */
+      var returnTo = null;
+      try {
+        returnTo = sessionStorage.getItem('courtiq_me_return');
+        if (returnTo) sessionStorage.removeItem('courtiq_me_return');
+      } catch (e) {}
+      if (returnTo === 'settings') settingsView(host, ctx, main);
+      else main();
     });
   }
 

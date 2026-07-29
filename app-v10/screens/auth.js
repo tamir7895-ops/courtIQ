@@ -148,7 +148,7 @@
       h('button', {
         class: 'v10-chip',
         style: { flex: '0 0 auto', minWidth: '64px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' },
-        onclick: function () { ctx.go('me'); }
+        onclick: function () { if (ctx.back) ctx.back(); else ctx.go('me'); }
       }, [icon('ph-arrow-left'), h('span', { text: 'BACK' })]),
       h('div', { class: 'v10-chip', style: { flex: 1, background: 'var(--ink)', color: 'var(--cream)' }, text: 'ACCOUNT' })
     ]));

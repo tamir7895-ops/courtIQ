@@ -78,7 +78,11 @@
     if (tickHandle) { clearInterval(tickHandle); tickHandle = null; }
   }
   function exit(ctx, target) {
-    stopTick(); setNav(true); ctx.go(target || 'train');
+    stopTick(); setNav(true);
+    /* 'back' retraces the trail (library, plan, coach — wherever the
+       player came from); a named target is an explicit jump */
+    if (target === 'back' && ctx.back) ctx.back();
+    else ctx.go(target || 'train');
   }
 
   function pendingDrill() {
@@ -107,14 +111,14 @@
         markDone(d.id);
         try { sessionStorage.removeItem('courtiq_v11_drill'); } catch (e) {}
         if (window.V10UI.confetti) window.V10UI.confetti({ count: 22 });
-        setTimeout(function () { exit(ctx, 'train'); }, 900);
+        setTimeout(function () { exit(ctx, 'back'); }, 900);
       }
 
       /* header */
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
           class: 'c12-back', type: 'button', 'aria-label': t('wp.back'),
-          onclick: function () { exit(ctx, 'train'); }
+          onclick: function () { exit(ctx, 'back'); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', { style: { flex: '1', minWidth: '0' } }, [
           h('div', { class: 'c12-chat-hd__t',

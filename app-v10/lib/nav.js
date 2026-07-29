@@ -61,6 +61,9 @@
 
       a.addEventListener('click', function (e) {
         e.preventDefault();
+        /* a deliberate tab tap always lands on the tab's front page —
+           drop any pending return-into-settings flag */
+        try { sessionStorage.removeItem('courtiq_me_return'); } catch (e2) {}
         if (window.app && typeof window.app.go === 'function') window.app.go(tb.id);
       });
 

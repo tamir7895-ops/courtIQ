@@ -744,7 +744,7 @@
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
           class: 'c12-back', type: 'button', 'aria-label': t('post.back'),
-          onclick: function () { ctx.go('track'); }
+          onclick: function () { ctx.back(); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', { style: { flex: '1' } }, [
           h('div', { class: 'c12-chat-hd__t', text: t('post.hd.title') }),
