@@ -69,20 +69,40 @@
   function seg(items, activeId, onPick) {
     var pill = h('div', { class: 'd-seg__pill' });
     var el = h('div', { class: 'd-seg', role: 'tablist' }, [pill]);
-    var idx = 0;
+    var btns = [];
+    var cur = activeId;
+    /* the pill is anchored inset-inline-start; in RTL the items run
+       right-to-left, so the slide flips sign — a physical +X here put
+       the white pill on the MIRROR-OPPOSITE tab of the one you tapped */
+    var sgn = (document.documentElement.getAttribute('dir') === 'rtl') ? -1 : 1;
+    function mark(i) {
+      for (var j = 0; j < btns.length; j++) {
+        btns[j].classList.toggle('is-active', j === i);
+        btns[j].setAttribute('aria-selected', j === i ? 'true' : 'false');
+      }
+      pill.style.transform = 'translateX(calc(' + (sgn * i * 100) + '% + ' + (sgn * i * 4) + 'px))';
+    }
     items.forEach(function (it, i) {
-      var on = it.id === activeId;
-      if (on) idx = i;
-      el.appendChild(h('button', {
-        class: 'd-seg__item' + (on ? ' is-active' : ''),
-        type: 'button', role: 'tab', 'aria-selected': on ? 'true' : 'false',
-        text: it.label,
-        onclick: function () { if (!on) onPick(it.id); }
-      }));
+      var b = h('button', {
+        class: 'd-seg__item', type: 'button', role: 'tab', text: it.label,
+        /* the seg marks ITSELF before telling the screen — a screen
+           that only swaps its panel (no full repaint) still shows the
+           tap landing where it landed */
+        onclick: function () {
+          if (it.id === cur) return;
+          cur = it.id;
+          mark(i);
+          onPick(it.id);
+        }
+      });
+      btns.push(b);
+      el.appendChild(b);
     });
     var w = 100 / items.length;
     pill.style.width = 'calc(' + w + '% - 4px)';
-    pill.style.transform = 'translateX(calc(' + (idx * 100) + '% + ' + (idx * 4) + 'px))';
+    var idx = 0;
+    for (var i = 0; i < items.length; i++) if (items[i].id === activeId) idx = i;
+    mark(idx);
     return el;
   }
 
