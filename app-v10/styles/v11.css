@@ -357,7 +357,7 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
   border-radius: 12px; padding: 3px; gap: 2px;
 }
 .v11-seg__pill {
-  position: absolute; top: 3px; bottom: 3px; left: 3px;
+  position: absolute; top: 3px; bottom: 3px; inset-inline-start: 3px;
   background: var(--orange); border-radius: 9px;
   transition: transform var(--t-base), width var(--t-base);
   pointer-events: none;
