@@ -1715,8 +1715,21 @@ body[data-screen="post-session"] .v10-court {
   border-radius: 20px; height: clamp(180px, 30dvh, 250px);
   border: 2.5px solid var(--d-ink); box-shadow: 4px 4px 0 var(--d-ink);
   display: grid; place-items: center; overflow: hidden;
+  position: relative;
 }
 .av12-preview__img { width: 82%; height: 82%; object-fit: contain; }
+
+/* the dice — shuffle a random owned look; lives on the preview so the
+   result is instantly visible. inset-inline flips with RTL. */
+.av12-dice {
+  position: absolute; inset-inline-end: 10px; bottom: 10px;
+  width: 44px; height: 44px; border-radius: 14px; cursor: pointer;
+  background: var(--d-bg); border: 2px solid var(--d-ink);
+  box-shadow: 0 2.5px 0 var(--d-ink);
+  display: grid; place-items: center;
+  color: var(--d-ink); font-size: 22px;
+}
+.av12-dice:active { transform: translateY(2px); box-shadow: 0 0.5px 0 var(--d-ink); }
 
 .av12-panel { display: flex; flex-direction: column; gap: 14px; }
 .av12-cat__l { margin-bottom: 7px; }

@@ -19,6 +19,7 @@
       'av.tilecost':  '{label} — {cost} coins',
       'av.save':      'Save look',
       'av.saved':     'Saved',
+      'av.random':    'Surprise me',
       'av.shop':      'Shop',
       'av.shoptitle': 'Coin shop',
       'av.shopsub':   'Spend coins on gear, hair & courts'
@@ -31,6 +32,7 @@
       'av.tilecost':  '{label} — {cost} מטבעות',
       'av.save':      'שמור לוק',
       'av.saved':     'נשמר',
+      'av.random':    'הפתע אותי',
       'av.shop':      'חנות',
       'av.shoptitle': 'חנות המטבעות',
       'av.shopsub':   'מטבעות תמורת ציוד, שיער ומגרשים'
@@ -115,6 +117,9 @@
               refreshCoins();
             }
             params[cat] = o.id;
+            /* a print only exists on the graphic tee — picking one puts
+               the tee on, so the tap is always visible on the preview */
+            if (cat === 'clothingGraphic') params.clothing = 'graphicShirt';
             A.save(params);           // persist live so preview & header agree
             refreshPreview();
             paintPanel();
@@ -160,7 +165,23 @@
       ]));
 
       preview = h('div', { class: 'av12-preview' }, [
-        h('img', { src: previewUrl(), alt: t('av.alt'), class: 'av12-preview__img' })
+        h('img', { src: previewUrl(), alt: t('av.alt'), class: 'av12-preview__img' }),
+        /* dice: a random look drawn ONLY from what's free or already
+           owned — the shuffle never spends a coin or shows a lock */
+        h('button', {
+          class: 'av12-dice', type: 'button', 'aria-label': t('av.random'),
+          onclick: function () {
+            Object.keys(A.CAT).forEach(function (cat) {
+              var pool = A.CAT[cat].options.filter(function (o) {
+                return A.isOwned(o.id);
+              });
+              if (pool.length) params[cat] = pool[Math.floor(Math.random() * pool.length)].id;
+            });
+            A.save(params);
+            refreshPreview();
+            paintPanel();
+          }
+        }, [h('i', { class: 'ph-bold ph-dice-five' })])
       ]);
       preview.style.backgroundColor = bandColor();
       host.appendChild(preview);

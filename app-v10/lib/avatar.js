@@ -40,6 +40,7 @@
   var T9N = {
     en: {
       'av.cat.skin': 'Skin', 'av.cat.top': 'Hair', 'av.cat.hairColor': 'Hair color',
+      'av.cat.hatColor': 'Hat color', 'av.cat.clothingGraphic': 'Tee print',
       'av.cat.eyes': 'Eyes', 'av.cat.eyebrows': 'Brows', 'av.cat.mouth': 'Mouth',
       'av.cat.facialHair': 'Beard', 'av.cat.clothing': 'Top', 'av.cat.clothesColor': 'Jersey',
       'av.cat.accessories': 'Gear', 'av.cat.background': 'Court',
@@ -55,6 +56,7 @@
     },
     he: {
       'av.cat.skin': 'עור', 'av.cat.top': 'שיער', 'av.cat.hairColor': 'צבע שיער',
+      'av.cat.hatColor': 'צבע כובע', 'av.cat.clothingGraphic': 'הדפס חולצה',
       'av.cat.eyes': 'עיניים', 'av.cat.eyebrows': 'גבות', 'av.cat.mouth': 'פה',
       'av.cat.facialHair': 'זקן', 'av.cat.clothing': 'חולצה', 'av.cat.clothesColor': 'גופייה',
       'av.cat.accessories': 'ציוד', 'av.cat.background': 'מגרש',
@@ -100,16 +102,37 @@
         { id: 'fro',        label: 'Fro',       v: 'fro',        cost: 0 },
         { id: 'bun',        label: 'Bun',       v: 'bun',        cost: 0 },
         { id: 'bald',       label: 'Bald',      v: 'bald',       cost: 0 },
+        { id: 'shortRound', label: 'Round',     v: 'shortRound', cost: 0 },
+        { id: 'shavedSides', label: 'Shaved',   v: 'shavedSides', cost: 0 },
+        { id: 'curly',      label: 'Coils',     v: 'curly',      cost: 0 },
+        { id: 'theCaesarAndSidePart', label: 'Side Part', v: 'theCaesarAndSidePart', cost: 0 },
         { id: 'froBand',    label: 'Headband',  v: 'froBand',    cost: 80 },
         { id: 'bigHair',    label: 'Big Hair',  v: 'bigHair',    cost: 140 },
         { id: 'dreads01',   label: 'Dreads',    v: 'dreads01',   cost: 160 },
+        { id: 'dreads02',   label: 'Locs',      v: 'dreads02',   cost: 160 },
+        { id: 'dreads',     label: 'Long Locs', v: 'dreads',     cost: 180 },
         { id: 'shaggyMullet', label: 'Mullet',  v: 'shaggyMullet', cost: 120 },
+        { id: 'shaggy',     label: 'Shaggy',    v: 'shaggy',     cost: 100 },
+        { id: 'frizzle',    label: 'Frizzle',   v: 'frizzle',    cost: 90 },
         { id: 'miaWallace', label: 'Straight',  v: 'miaWallace', cost: 140 },
+        { id: 'straight01', label: 'Long',      v: 'straight01', cost: 110 },
+        { id: 'straight02', label: 'Sleek',     v: 'straight02', cost: 110 },
+        { id: 'straightAndStrand', label: 'Strand', v: 'straightAndStrand', cost: 120 },
+        { id: 'bob',        label: 'Bob',       v: 'bob',        cost: 100 },
+        { id: 'curvy',      label: 'Curvy',     v: 'curvy',      cost: 120 },
+        { id: 'longButNotTooLong', label: 'Flow', v: 'longButNotTooLong', cost: 110 },
+        { id: 'frida',      label: 'Frida',     v: 'frida',      cost: 150 },
         { id: 'hat',        label: 'Cap',       v: 'hat',        cost: 100 },
         { id: 'turban',     label: 'Turban',    v: 'turban',     cost: 120 },
         { id: 'hijab',      label: 'Hijab',     v: 'hijab',      cost: 100 },
-        { id: 'winterHat02', label: 'Beanie',   v: 'winterHat02', cost: 110 }
+        { id: 'winterHat02', label: 'Beanie',   v: 'winterHat02', cost: 110 },
+        { id: 'winterHat03', label: 'Bobble',   v: 'winterHat03', cost: 110 },
+        { id: 'winterHat04', label: 'Ski Hat',  v: 'winterHat04', cost: 110 }
       ]
+    },
+    hatColor: {
+      label: 'Hat color', param: 'hatColor', swatch: true,
+      options: CLOTHES_COLORS.map(function (c, i) { return { id: 'htc' + i, v: c, cost: 0 }; })
     },
     hairColor: {
       label: 'Hair color', param: 'hairColor', swatch: true,
@@ -124,8 +147,12 @@
         { id: 'wink',    label: 'Wink',    v: 'wink',    cost: 0 },
         { id: 'side',    label: 'Side',    v: 'side',    cost: 0 },
         { id: 'surprised', label: 'Wide',  v: 'surprised', cost: 0 },
+        { id: 'closed',  label: 'Focus',   v: 'closed',  cost: 0 },
         { id: 'hearts',  label: 'Hearts',  v: 'hearts',  cost: 60 },
-        { id: 'eyeRoll', label: 'Roll',    v: 'eyeRoll', cost: 40 }
+        { id: 'eyeRoll', label: 'Roll',    v: 'eyeRoll', cost: 40 },
+        { id: 'winkWacky', label: 'Wacky', v: 'winkWacky', cost: 50 },
+        { id: 'cry',     label: 'Tears',   v: 'cry',     cost: 40 },
+        { id: 'xDizzy',  label: 'Dizzy',   v: 'xDizzy',  cost: 60 }
       ]
     },
     eyebrows: {
@@ -135,6 +162,9 @@
         { id: 'raised',  label: 'Raised',  v: 'raisedExcitedNatural', cost: 0 },
         { id: 'flat',    label: 'Flat',    v: 'flatNatural', cost: 0 },
         { id: 'angry',   label: 'Angry',   v: 'angryNatural', cost: 0 },
+        { id: 'frown',   label: 'Frown',   v: 'frownNatural', cost: 0 },
+        { id: 'worried', label: 'Worried', v: 'sadConcernedNatural', cost: 0 },
+        { id: 'updown',  label: 'Up-Down', v: 'upDownNatural', cost: 30 },
         { id: 'unibrow', label: 'Unibrow', v: 'unibrowNatural', cost: 40 }
       ]
     },
@@ -145,8 +175,13 @@
         { id: 'default', label: 'Chill',   v: 'default', cost: 0 },
         { id: 'serious', label: 'Serious', v: 'serious', cost: 0 },
         { id: 'twinkle', label: 'Twinkle', v: 'twinkle', cost: 0 },
+        { id: 'concerned', label: 'Game Face', v: 'concerned', cost: 0 },
+        { id: 'sad',     label: 'Sad',     v: 'sad',     cost: 0 },
         { id: 'tongue',  label: 'Tongue',  v: 'tongue',  cost: 40 },
-        { id: 'grimace', label: 'Grit',    v: 'grimace', cost: 40 }
+        { id: 'grimace', label: 'Grit',    v: 'grimace', cost: 40 },
+        { id: 'disbelief', label: 'Shook', v: 'disbelief', cost: 40 },
+        { id: 'screamOpen', label: 'Scream', v: 'screamOpen', cost: 60 },
+        { id: 'eating',  label: 'Snack',   v: 'eating',  cost: 50 }
       ]
     },
     facialHair: {
@@ -168,9 +203,27 @@
         { id: 'shirtScoopNeck', label: 'Scoop',   v: 'shirtScoopNeck', cost: 0 },
         { id: 'hoodie',         label: 'Hoodie',  v: 'hoodie',         cost: 0 },
         { id: 'collarAndSweater', label: 'Collar', v: 'collarAndSweater', cost: 0 },
-        { id: 'graphicShirt',   label: 'Graphic', v: 'graphicShirt',   cost: 100 },
+        { id: 'graphicShirt',   label: 'Graphic', v: 'graphicShirt',   cost: 0 },
         { id: 'blazerAndShirt', label: 'Blazer',  v: 'blazerAndShirt', cost: 140 },
+        { id: 'blazerAndSweater', label: 'Suit',  v: 'blazerAndSweater', cost: 140 },
         { id: 'overall',        label: 'Overall', v: 'overall',        cost: 120 }
+      ]
+    },
+    /* prints render on the Graphic tee only — picking one switches the
+       shirt (the customizer handles that), so what you tap is what you
+       see. The tee itself is free; the prints are the flex. */
+    clothingGraphic: {
+      label: 'Tee print', param: 'clothingGraphic', icon: 'ph-paint-brush',
+      options: [
+        { id: 'gBear',    label: 'Bear',    v: 'bear',         cost: 0 },
+        { id: 'gDeer',    label: 'Deer',    v: 'deer',         cost: 0 },
+        { id: 'gHola',    label: 'Hola',    v: 'hola',         cost: 30 },
+        { id: 'gPizza',   label: 'Pizza',   v: 'pizza',        cost: 40 },
+        { id: 'gResist',  label: 'Resist',  v: 'resist',       cost: 40 },
+        { id: 'gBat',     label: 'Bat',     v: 'bat',          cost: 50 },
+        { id: 'gSkullO',  label: 'Outline', v: 'skullOutline', cost: 50 },
+        { id: 'gSkull',   label: 'Skull',   v: 'skull',        cost: 60 },
+        { id: 'gDiamond', label: 'Diamond', v: 'diamond',      cost: 70 }
       ]
     },
     clothesColor: {
@@ -202,7 +255,11 @@
         { id: 'bgIce',    label: 'Ice',    bgv: ['14A5F2', 'b1e2ff'], grad: true, cost: 70 },
         { id: 'bgNight',  label: 'Night',  bgv: ['25557c', '262e33'], grad: true, cost: 90 },
         { id: 'bgFire',   label: 'Fire',   bgv: ['FF4F1F', 'FF3B30'], grad: true, cost: 90 },
-        { id: 'bgChamp',  label: 'Champ',  bgv: ['FFB800', 'FF4F1F'], grad: true, cost: 120 }
+        { id: 'bgChamp',  label: 'Champ',  bgv: ['FFB800', 'FF4F1F'], grad: true, cost: 120 },
+        { id: 'bgClean',  label: 'Clean',  bgv: ['e6e6e6'], cost: 0 },
+        { id: 'bgVice',   label: 'Vice',   bgv: ['ff488e', 'A855F7'], grad: true, cost: 100 },
+        { id: 'bgJungle', label: 'Jungle', bgv: ['47C012', '25557c'], grad: true, cost: 90 },
+        { id: 'bgBlackout', label: 'Blackout', bgv: ['262e33'], cost: 60 }
       ]
     }
   };
@@ -210,9 +267,9 @@
   /* Order the creator tabs group categories into panels. */
   var TABS = [
     { id: 'face', label: 'Face', cats: ['skin', 'eyes', 'eyebrows', 'mouth'] },
-    { id: 'hair', label: 'Hair', cats: ['top', 'hairColor'] },
+    { id: 'hair', label: 'Hair', cats: ['top', 'hairColor', 'hatColor'] },
     { id: 'beard', label: 'Beard', cats: ['facialHair'] },
-    { id: 'fit',  label: 'Fit',  cats: ['clothing', 'clothesColor'] },
+    { id: 'fit',  label: 'Fit',  cats: ['clothing', 'clothesColor', 'clothingGraphic'] },
     { id: 'gear', label: 'Gear', cats: ['accessories'] },
     { id: 'court', label: 'Court', cats: ['background'] }
   ];
@@ -221,7 +278,7 @@
     skin: 'sk2', top: 'shortFlat', hairColor: 'hc0', eyes: 'default',
     eyebrows: 'default', mouth: 'smile', facialHair: 'none',
     clothing: 'hoodie', clothesColor: 'cc0', accessories: 'none',
-    background: 'bgGold', hatColor: '262e33'
+    background: 'bgGold', hatColor: 'htc5', clothingGraphic: 'gBear'
   };
 
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
@@ -231,8 +288,13 @@
       var raw = localStorage.getItem(LS_PARAMS);
       if (raw) {
         var p = JSON.parse(raw);
-        // fill any missing keys from defaults (forward-compatible)
-        Object.keys(DEFAULTS).forEach(function (k) { if (p[k] == null) p[k] = DEFAULTS[k]; });
+        // fill any missing keys from defaults, and heal values that no
+        // longer resolve to a catalog option (e.g. the old raw hatColor
+        // hex from before hat color became a real category)
+        Object.keys(DEFAULTS).forEach(function (k) {
+          if (p[k] == null) p[k] = DEFAULTS[k];
+          else if (CAT[k] && !opt(k, p[k])) p[k] = DEFAULTS[k];
+        });
         return p;
       }
     } catch (e) {}
@@ -272,8 +334,9 @@
       if (o.v != null) q.push(c.param + '=' + encodeURIComponent(o.v));
     }
 
-    ['skin', 'top', 'hairColor', 'eyes', 'eyebrows', 'mouth',
-     'facialHair', 'clothing', 'clothesColor', 'accessories', 'background'].forEach(push);
+    ['skin', 'top', 'hairColor', 'hatColor', 'eyes', 'eyebrows', 'mouth',
+     'facialHair', 'clothing', 'clothesColor', 'clothingGraphic',
+     'accessories', 'background'].forEach(push);
 
     // extra fixed colors for richness
     q.push('facialHairColor=' + (params.hairColor ? (opt('hairColor', params.hairColor) || {}).v || '2c1b18' : '2c1b18'));
