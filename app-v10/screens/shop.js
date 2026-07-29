@@ -98,7 +98,7 @@
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
         h('button', {
           class: 'c12-back', type: 'button', 'aria-label': t('shop.back'),
-          onclick: function () { ctx.go('me'); }
+          onclick: function () { ctx.back(); }
         }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
           h('div', { class: 'c12-chat-hd__t', text: t('shop.title') }),
@@ -221,7 +221,7 @@
       }));
       host.appendChild(V12.card({
         press: true, class: 'av12-shoplink', bgIcon: 'ph-play-circle', bgTone: 'orange',
-        onClick: function () { ctx.go('camera-hud'); }, label: t('shop.more.label')
+        onClick: function () { ctx.go('track'); }, label: t('shop.more.label')
       }, [
         h('i', { class: 'ph-fill ph-play-circle av12-shoplink__ic', style: { color: 'var(--d-orange)' } }),
         h('div', {}, [

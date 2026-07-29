@@ -129,6 +129,8 @@
 
     if (commit && next >= 0 && next < ORDER.length) {
       app.style.transform = '';
+      /* like a tab tap: paging to a tab lands on its front page */
+      try { sessionStorage.removeItem('courtiq_me_return'); } catch (e3) {}
       window.app.go(ORDER[next], dir > 0 ? 'l' : 'r');
       try { if (navigator.vibrate) navigator.vibrate(8); } catch (e) {}
     } else {

@@ -7,6 +7,41 @@
   var SCREENS = {}; // populated by screens/*.js calling app.register()
   var current = null;
 
+  /* ── navigation model ─────────────────────────────────────────
+     The five tabs are ROOTS: landing on one clears the trail, like
+     every tab bar on the platform. Everything else is a sub-screen
+     that goes ON the trail, so back() returns where you actually
+     came from — a library opened from the coach goes back to the
+     coach, not to some hardcoded parent.
+     TRANSIENT screens (flows you must not "back" into: the live
+     camera, auth, onboarding) never enter the trail. PARENT is the
+     fallback when the trail is empty — a cold deep-link still gets
+     a sensible back. */
+  var ROOTS = { home: 1, track: 1, social: 1, coach: 1, me: 1 };
+  var TRANSIENT = { landing: 1, onboarding: 1, auth: 1, 'camera-hud': 1, 'session-prep': 1 };
+  var PARENT = {
+    train: 'track', plan: 'track', 'drill-library': 'track',
+    'workout-player': 'track', 'post-session': 'track',
+    'camera-hud': 'track', 'session-prep': 'track',
+    'avatar-customizer': 'me', shop: 'me', notifications: 'home',
+    auth: 'landing', onboarding: 'home', landing: 'home'
+  };
+  var stack = [];
+  var poppingBack = false;   // back() navigates without re-pushing
+
+  function back() {
+    var target = null;
+    while (stack.length) {
+      var cand = stack.pop();
+      if (cand && SCREENS[cand] && !TRANSIENT[cand] && cand !== current) {
+        target = cand; break;
+      }
+    }
+    if (!target) target = PARENT[current] || 'home';
+    poppingBack = true;
+    go(target, 'r');
+  }
+
   function host() {
     var el = document.getElementById('app');
     if (!el) {
@@ -24,6 +59,14 @@
   function go(id, slideDir) {
     if (!id) id = 'home';
     if (!SCREENS[id]) id = 'home';
+    /* keep the trail BEFORE current changes: tabs reset it, leaving a
+       normal screen records it, transient screens leave no trace */
+    if (poppingBack) { poppingBack = false; }
+    else if (ROOTS[id]) { stack.length = 0; }
+    else if (current && current !== id && !TRANSIENT[current] && SCREENS[current]) {
+      if (stack[stack.length - 1] !== current) stack.push(current);
+      if (stack.length > 12) stack.shift();
+    }
     document.body.setAttribute('data-screen', id);
     if (location.hash !== '#' + id) {
       try { history.replaceState(null, '', '#' + id); } catch (e) {}
@@ -48,6 +91,7 @@
         host: h,
         ctx: {
           go: go,
+          back: back,
           data: window.V10Data,
           ui: window.V10UI
         }
@@ -101,6 +145,7 @@
   window.app = {
     register: register,
     go: go,
+    back: back,
     bootstrap: bootstrap,
     current: function () { return current; }
   };

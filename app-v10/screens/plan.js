@@ -528,7 +528,7 @@
     function paint() {
       while (host.firstChild) host.removeChild(host.firstChild);
       host.appendChild(h('div', { class: 'c12-chat-hd' }, [
-        h('button', { class: 'c12-back', type: 'button', 'aria-label': t('plan.back'), onclick: function () { ctx.go('track'); } }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
+        h('button', { class: 'c12-back', type: 'button', 'aria-label': t('plan.back'), onclick: function () { ctx.back(); } }, [h('i', { class: 'ph-bold ph-arrow-left' })]),
         h('div', {}, [
           h('div', { class: 'c12-chat-hd__t', text: t('plan.hd.t') }),
           h('div', { class: 'c12-chat-hd__s', text: t('plan.hd.s') })
