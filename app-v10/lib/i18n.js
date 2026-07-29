@@ -19,11 +19,13 @@
      (data-only files) that the boot loader includes for the ACTIVE
      language. pack:true marks languages whose strings arrive that way. */
   var LANGS = [
-    { code: 'en', label: 'English',  dir: 'ltr', flag: '🇺🇸' },
-    { code: 'he', label: 'עברית',    dir: 'rtl', flag: '🇮🇱' },
-    { code: 'es', label: 'Español',  dir: 'ltr', flag: '🇪🇸', pack: true },
-    { code: 'ar', label: 'العربية',  dir: 'rtl', flag: '🇸🇦', pack: true },
-    { code: 'ru', label: 'Русский',  dir: 'ltr', flag: '🇷🇺', pack: true }
+    { code: 'en', label: 'English',   dir: 'ltr', flag: '🇺🇸' },
+    { code: 'he', label: 'עברית',     dir: 'rtl', flag: '🇮🇱' },
+    { code: 'es', label: 'Español',   dir: 'ltr', flag: '🇪🇸', pack: true },
+    { code: 'ar', label: 'العربية',   dir: 'rtl', flag: '🇸🇦', pack: true },
+    { code: 'ru', label: 'Русский',   dir: 'ltr', flag: '🇷🇺', pack: true },
+    { code: 'fr', label: 'Français',  dir: 'ltr', flag: '🇫🇷', pack: true },
+    { code: 'pt', label: 'Português', dir: 'ltr', flag: '🇧🇷', pack: true }
   ];
 
   /* ── strings ─────────────────────────────────────────────────

@@ -284,6 +284,8 @@ Deno.serve(async (req: Request) => {
     es: "LANGUAGE: Respond in Spanish only. Neutral Latin-American Spanish a coach would speak — tú-form, short sentences, real court vocabulary (triple, tiro libre, bandeja). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
     ar: "LANGUAGE: Respond in Arabic only. Modern Standard Arabic with a light, contemporary sports feel — short sentences, common court vocabulary. Use Western digits for all numbers. Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
     ru: "LANGUAGE: Respond in Russian only. Modern coaching Russian, ты-form, short sentences, real court vocabulary (бросок, трёхочковый, штрафной). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+    fr: "LANGUAGE: Respond in French only. Natural coaching French — tutoiement, short sentences, real court vocabulary (panier, lancer franc, trois-points, raquette). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
+    pt: "LANGUAGE: Respond in Brazilian Portuguese only. Natural coaching pt-BR — você-form, short sentences, real court vocabulary (cesta, lance livre, bola de três, garrafão, bandeja). Keep drill names in English exactly as given. Keep @@ACTION lines exactly as specified in English.\n",
   };
   const lang = (typeof body.lang === "string" && LANG_RULES[body.lang]) ? body.lang : "en";
   const context = typeof body.context === "string" ? body.context.slice(0, MAX_CTX_CHARS) : "";

@@ -174,7 +174,7 @@
 (function () {
   try {
     var l = localStorage.getItem('courtiq_lang');
-    if (l === 'es' || l === 'ar' || l === 'ru') {
+    if (l === 'es' || l === 'ar' || l === 'ru' || l === 'fr' || l === 'pt') {
       document.write('<script src="lang/' + l + '.js?v=dev"><\/script>');
     } else if (l === 'he') {
       /* Hebrew UI strings ship inline with the screens; the 178 drill

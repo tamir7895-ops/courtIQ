@@ -1527,6 +1527,24 @@ body[data-screen] #app > .m12-band { animation: none; }
 .m12-set__s { font-family: var(--d-font); font-weight: 500; font-size: 11.5px; color: var(--d-mute); margin-top: 1px; }
 .m12-set__chev { color: var(--d-mute); font-size: 14px; }
 
+/* language picker sheet rows — each language wears its own name */
+.m12-lang {
+  display: flex; align-items: center; gap: 12px;
+  width: 100%; padding: 13px 12px; margin-top: 8px;
+  background: var(--d-alt); border: 2px solid var(--d-line);
+  border-radius: 14px; cursor: pointer; text-align: start;
+}
+.m12-lang.is-current {
+  background: var(--d-bg); border-color: var(--d-ink);
+  box-shadow: 0 2px 0 var(--d-ink);
+}
+.m12-lang__flag { font-size: 20px; line-height: 1; }
+.m12-lang__label {
+  flex: 1; font-family: var(--d-font); font-weight: 700;
+  font-size: 15px; color: var(--d-ink);
+}
+.m12-lang__check { color: var(--d-green); font-size: 20px; }
+
 .me12-editscroll { display: flex; flex-direction: column; gap: 14px; padding: 2px 0 4px; }
 .m12-form { padding: 14px 16px; }
 .m12-in {
