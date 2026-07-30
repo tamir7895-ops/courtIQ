@@ -147,7 +147,7 @@
       canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;';
 
       _overlay = document.createElement('div');
-      _overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;' +
+      _overlay.style.cssText = 'position:fixed;inset:0;z-index:350000;background:#000;' +
         'display:flex;flex-direction:column;touch-action:none;';
       var stage = document.createElement('div');
       stage.style.cssText = 'position:relative;flex:1;overflow:hidden;';
@@ -225,6 +225,28 @@
         stop();
         if (opts.onError) opts.onError(err);
       });
+    },
+
+    /* ── Hoop anchor: is the camera where it was when we calibrated? ──
+       A saved homography is only valid for the SAME camera position. The
+       session gate binds the detected rim position into the saved record
+       on the first calibrated session, and compares on every later one —
+       a moved camera prompts a 10-second re-tap instead of silently
+       producing wrong meters. */
+    bindHoop: function (persistKey, cx, cy) {
+      try {
+        var j = JSON.parse(localStorage.getItem(persistKey));
+        if (!j) return false;
+        j.hoopRef = { cx: cx, cy: cy };
+        localStorage.setItem(persistKey, JSON.stringify(j));
+        return true;
+      } catch (e) { return false; }
+    },
+    getHoopRef: function (persistKey) {
+      try {
+        var j = JSON.parse(localStorage.getItem(persistKey));
+        return (j && j.hoopRef) || null;
+      } catch (e) { return null; }
     },
 
     restore: function (persistKey) {

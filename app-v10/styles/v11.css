@@ -766,6 +766,26 @@ body[data-screen="home"] .v11-sheet { flex: 0 0 auto; }
 .v11-gate__row.is-on i { color: var(--sage); }
 .v11-gate__row .v11-gate__st { margin-left: auto; font-size: 11px; opacity: .8; }
 .v11-gate__toggles { display: flex; gap: var(--s-2); }
+
+/* Gate court-calibration chip — three states: neutral (calibrate now),
+   green (calibrated + camera unmoved), amber (camera moved, re-tap). */
+.v11-gate__calib {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  width: 100%; padding: 11px 14px; margin: 2px 0 4px;
+  border-radius: 14px; border: 1.5px solid var(--d-line, #E8E2D6);
+  background: var(--d-surface, #FFFDF8); color: var(--d-body, #4A4438);
+  font-family: var(--d-font); font-weight: 700; font-size: 13px;
+  cursor: pointer;
+}
+.v11-gate__calib i { font-size: 16px; }
+.v11-gate__calib.is-ok {
+  border-color: rgba(72, 178, 106, 0.45); color: #2E8B4F;
+  background: rgba(72, 178, 106, 0.08);
+}
+.v11-gate__calib.is-moved {
+  border-color: rgba(240, 165, 50, 0.55); color: #B4700E;
+  background: rgba(240, 165, 50, 0.10);
+}
 .v11-gate__tg {
   flex: 1; padding: 9px; border-radius: 10px; cursor: pointer;
   background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.09);

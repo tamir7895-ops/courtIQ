@@ -65,6 +65,9 @@
       'cam.gate.point':     'Point at the hoop',
       'cam.gate.start':     'Start shooting',
       'cam.gate.anyway':    'Record anyway',
+      'cam.gate.calib':      'Calibrate court · 4 taps',
+      'cam.gate.calibok':    'Court calibrated',
+      'cam.gate.calibmoved': 'Camera moved — recalibrate',
       'cam.anl.loading':  'Loading models…',
       'cam.anl.title':    'Analyzing your video',
       'cam.anl.keepOpen': 'Keep the app open — analysing…',
@@ -532,6 +535,69 @@
     return el;
   }
 
+  /* ── Gate-side court calibration ─────────────────────────────
+     One saved homography per court+camera-spot (localStorage). The gate
+     compares the CURRENT detected rim against the rim position stamped
+     into the calibration record ('hoopRef'); a drift beyond ~5% of the
+     frame means the phone moved and the meters would silently be wrong. */
+  var CALIB_KEY = 'courtiq-calib-v1';
+  var calibRestoreTried = false;
+  function calibState() {
+    var CP = window.CourtPosition, CC = window.CourtCalibration;
+    if (!CP || !CC) return null;
+    if (!CP.isCalibrated() && !calibRestoreTried) {
+      calibRestoreTried = true;
+      try { CC.restore(CALIB_KEY); } catch (e) {}
+    }
+    if (!CP.isCalibrated()) return 'none';
+    var eng = window.ShotDetectionEngine;
+    var rz = eng && eng.rimZone;
+    if (!rz) return 'ok';                       // no rim yet — nothing to compare
+    var ref = CC.getHoopRef(CALIB_KEY);
+    if (!ref) {                                  // first calibrated session: bind
+      try { CC.bindHoop(CALIB_KEY, rz.centerX, rz.centerY); } catch (e) {}
+      return 'ok';
+    }
+    var moved = Math.abs(rz.centerX - ref.cx) > 0.05 ||
+                Math.abs(rz.centerY - ref.cy) > 0.05;
+    return moved ? 'moved' : 'ok';
+  }
+  function updateGateCalib() {
+    var btn = document.getElementById('v11-gate-calib');
+    if (!btn) return;
+    var st = calibState();
+    if (st === null) { btn.style.display = 'none'; return; }
+    btn.style.display = '';
+    var txt = document.getElementById('v11-gate-calib-t');
+    var ico = document.getElementById('v11-gate-calib-i');
+    btn.classList.toggle('is-ok', st === 'ok');
+    btn.classList.toggle('is-moved', st === 'moved');
+    if (txt) txt.textContent = st === 'ok' ? t('cam.gate.calibok')
+                             : st === 'moved' ? t('cam.gate.calibmoved')
+                             : t('cam.gate.calib');
+    if (ico) ico.className = 'ph-bold ' + (st === 'ok' ? 'ph-check-circle' : 'ph-ruler');
+  }
+  function launchGateCalibration() {
+    var eng = window.ShotDetectionEngine;
+    var videoEl = eng && eng.videoEl;
+    if (!videoEl || !window.CourtCalibration) return;
+    var spec = localStorage.getItem('courtiq-court-spec') || 'us_hs';
+    window.CourtCalibration.start(videoEl, {
+      spec: spec,
+      landmarkSet: 'lane',
+      persistKey: CALIB_KEY,
+      onDone: function (ok) {
+        if (ok) {
+          // re-bind the anchor to THIS camera position (if the rim isn't
+          // locked yet, the next locked gate binds it via calibState)
+          var rz = eng && eng.rimZone;
+          if (rz) { try { window.CourtCalibration.bindHoop(CALIB_KEY, rz.centerX, rz.centerY); } catch (e) {} }
+        }
+        updateGateCalib();
+      }
+    });
+  }
+
   function buildGate(onStart) {
     var startBtn = h('button', {
       class: 'v11-cta', type: 'button', disabled: 'disabled',
@@ -560,6 +626,20 @@
         h('div', { class: 'v11-gate__t', text: t('cam.gate.title') }),
         h('div', { class: 'v11-gate__s', text: t('cam.gate.sub') }),
         gateRow('hoop', t('cam.gate.hoop'), 'ph-basketball'),
+        /* Court calibration, INSIDE the session flow — the Track-screen
+           card works, but nobody remembers a separate screen exists. The
+           gate knows the rim; it can tell whether the saved homography
+           still matches this camera position and offer the 4-tap fix
+           right here (user: "why is calibration separate? I don't get
+           how it works"). States: none / ok / camera-moved. */
+        h('button', {
+          class: 'v11-gate__calib', id: 'v11-gate-calib', type: 'button',
+          style: { display: 'none' },
+          onclick: function () { launchGateCalibration(); }
+        }, [
+          h('i', { class: 'ph-bold ph-ruler', id: 'v11-gate-calib-i' }),
+          h('span', { id: 'v11-gate-calib-t', text: t('cam.gate.calib') })
+        ]),
         h('div', { class: 'v11-gate__toggles' }, [
           audioToggle('tick', t('cam.gate.tick')),
           audioToggle('count', t('cam.gate.count'))
@@ -591,6 +671,7 @@
      (1.5s). Prevents strobing on a single dropped frame. */
   function updateGate() {
     if (gatePassed) return;
+    updateGateCalib();
     var seen = rimSeen();
     rimStreak = seen ? rimStreak + 1 : 0;
 
