@@ -139,7 +139,15 @@
 
     var kids = [head];
     if (isOpen) {
-      var equip = (d.equipment_needed && d.equipment_needed.length) ? d.equipment_needed.join(' · ') : '';
+      /* equipment names translate through equip.<slug> keys; a string
+         with no key (new equipment) shows its English name unharmed */
+      function equipLabel(name) {
+        var k = 'equip.' + String(name).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+        var s = t(k);
+        return s === k ? name : s;
+      }
+      var equip = (d.equipment_needed && d.equipment_needed.length)
+        ? d.equipment_needed.map(equipLabel).join(' · ') : '';
       kids.push(h('div', { class: 'dl12-body' }, [
         h('div', { class: 'dl12-bigcourt' }, [
           /* the drill's OWN choreography — spots, paths and ball on the

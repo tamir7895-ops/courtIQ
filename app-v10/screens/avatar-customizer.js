@@ -95,7 +95,7 @@
         } else {
           kids.push(h('i', { class: 'ph-fill ' + (c.icon || 'ph-circle') + ' av12-tile__ic' }));
         }
-        if (o.label && !c.swatch) kids.push(h('span', { class: 'av12-tile__l', text: o.label }));
+        if (o.label && !c.swatch) kids.push(h('span', { class: 'av12-tile__l', text: A.optLabel ? A.optLabel(o, cat) : o.label }));
         if (locked) {
           kids.push(h('span', { class: 'av12-tile__cost' }, [
             h('i', { class: 'ph-fill ph-coin' }),
@@ -107,7 +107,8 @@
           class: 'av12-tile' + (active ? ' is-active' : '') + (locked ? ' is-locked' : '') +
                  (c.swatch ? ' av12-tile--sw' : ''),
           type: 'button', 'aria-pressed': active ? 'true' : 'false',
-          title: locked ? t('av.tilecost', { label: o.label || '', cost: o.cost }) : (o.label || ''),
+          title: locked ? t('av.tilecost', { label: (A.optLabel ? A.optLabel(o, cat) : o.label) || '', cost: o.cost })
+                        : ((A.optLabel ? A.optLabel(o, cat) : o.label) || ''),
           onclick: function () {
             if (locked) {
               var r = A.buy(o.id);
