@@ -575,7 +575,9 @@
     /* name + level + XP bar */
     var xp = prof.xp || 0;
     var next = xpNext(xp);
-    var pos = prof.position || t('me.player');
+    /* 'PLAYER' is the stored data default, not a position — show it
+       through the me.player key so it translates like everything else */
+    var pos = (prof.position && prof.position !== 'PLAYER') ? prof.position : t('me.player');
     host.appendChild(V12.card({ tint: 'ink', class: 'm12-id', bgIcon: 'ph-lightning', bgTone: 'gold' }, [
       h('div', { class: 'm12-id__row' }, [
         h('div', { class: 'm12-id__n', text: prof.name || t('me.rookie') }),

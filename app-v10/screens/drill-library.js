@@ -131,7 +131,9 @@
         h('div', { class: 'dl12-name',
           text: (window.V12Drills ? V12Drills.name(d) : d.name) || t('lib.untitled') }),
         h('div', { class: 'dl12-sub',
-          text: t('lib.cardsub', { reps: d.reps_or_sets || '', mins: d.duration_minutes || 0 }) })
+          text: t('lib.cardsub', {
+            reps: (window.V12Drills && V12Drills.reps) ? V12Drills.reps(d) : (d.reps_or_sets || ''),
+            mins: d.duration_minutes || 0 }) })
       ]),
       h('div', { class: 'dl12-diff ' + diff.cls, text: diff.t }),
       h('i', { class: 'ph-bold ' + (isOpen ? 'ph-caret-up' : 'ph-caret-down') + ' dl12-chev' })

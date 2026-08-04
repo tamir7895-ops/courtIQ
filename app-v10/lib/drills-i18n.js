@@ -58,5 +58,24 @@
     return tKey('drill.' + id + '.d', fallback);
   }
 
-  window.V12Drills = { name: name, desc: desc, idOf: idOf };
+  /* reps_or_sets ("4 sets × 10 reps per side") — the numbers and ×
+     stay, the unit PHRASES translate through rx.<slug> keys. The DB's
+     123 distinct strings decompose into ~80 phrases; an unknown phrase
+     passes through in English rather than breaking. */
+  function reps(x) {
+    var s = (x && x.reps_or_sets) || (typeof x === 'string' ? x : '');
+    if (!s) return '';
+    return String(s).split(/([0-9×()]+)/).map(function (seg) {
+      if (!seg || /^[0-9×()]+$/.test(seg)) return seg;
+      var core = seg.replace(/^\s+|\s+$/g, '');
+      if (!core) return seg;
+      var lead = seg.slice(0, seg.indexOf(core.charAt(0)));
+      var trail = seg.slice(lead.length + core.length);
+      var k = 'rx.' + core.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+      if (k === 'rx.') return seg;               // pure punctuation
+      return lead + tKey(k, core) + trail;
+    }).join('');
+  }
+
+  window.V12Drills = { name: name, desc: desc, idOf: idOf, reps: reps };
 })();

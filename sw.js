@@ -1,5 +1,5 @@
 /* Legacy-PWA kill switch — CourtIQ moved to Capacitor. */
-const CACHE_VERSION = '165316e';
+const CACHE_VERSION = 'e9fc4d3';
 self.addEventListener('install', (e) => { self.skipWaiting(); });
 self.addEventListener('activate', (e) => {
   e.waitUntil((async () => {
