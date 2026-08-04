@@ -193,11 +193,11 @@
           grid.appendChild(h('button', {
             class: 'shop12-item' + (owned ? ' is-owned' : '') + (cant ? ' is-cant' : ''),
             type: 'button',
-            title: t('shop.item.title', { item: o.label || '', cat: catName(row.catLabel) }),
+            title: t('shop.item.title', { item: (A.optLabel ? A.optLabel(o, row.cat) : o.label) || '', cat: catName(row.catLabel) }),
             onclick: function () {
               if (owned) {
                 A.equip(o.id);
-                toast(t('shop.toast.equipped', { item: o.label || t('shop.item') }));
+                toast(t('shop.toast.equipped', { item: (A.optLabel ? A.optLabel(o, row.cat) : o.label) || t('shop.item') }));
                 paint();
                 return;
               }
@@ -207,7 +207,7 @@
             }
           }, [
             visual,
-            h('div', { class: 'shop12-item__n', text: o.label || o.id }),
+            h('div', { class: 'shop12-item__n', text: (A.optLabel ? A.optLabel(o, row.cat) : o.label) || o.id }),
             h('div', { class: 'shop12-item__cat', text: catName(row.catLabel) }),
             action
           ]));

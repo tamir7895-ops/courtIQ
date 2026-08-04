@@ -81,6 +81,17 @@
     return s.indexOf('av.' + kind + '.') === 0 ? (fallback || id) : s;
   }
 
+  /* translated label for a single OPTION (Curly, Bear, Sunset…) —
+     packs register av.opt.<cat>.<id> (option ids repeat across
+     categories: eyes/mouth both have 'default'); a missing key falls
+     back to the English style name so a new option is never blank */
+  function optLabel(o, cat) {
+    if (!o || !o.label) return (o && o.label) || '';
+    if (!cat) cat = catOf(o.id) || '';
+    var s = t9('av.opt.' + cat + '.' + o.id);
+    return s.indexOf('av.opt.') === 0 ? o.label : s;
+  }
+
   var CAT = {
     skin: {
       label: 'Skin', param: 'skinColor', swatch: true,
@@ -440,7 +451,7 @@
     s.owned.push(id);
     s.spent += o.cost;
     saveShop(s);
-    return { ok: true, msg: t9('av.msg.unlocked', { item: o.label || t9('av.msg.item') }) };
+    return { ok: true, msg: t9('av.msg.unlocked', { item: optLabel(o) || t9('av.msg.item') }) };
   }
 
   /* Equip an owned option straight onto the avatar (used by the shop). */
@@ -482,6 +493,6 @@
     load: load, save: save, buildUrl: buildUrl, opt: opt, bgCss: bgCss,
     coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
     catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf,
-    labelOf: labelOf
+    labelOf: labelOf, optLabel: optLabel
   };
 })();
