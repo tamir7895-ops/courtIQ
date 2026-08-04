@@ -205,7 +205,10 @@
           ? t('train.rx.allLogged', { n: drills.length })
           : t('train.rx.left', {
               left: left.length, total: drills.length,
-              list: drills.map(function (d) { return d.reps + '×' + d.name.split(' ')[0]; }).join(' · ')
+              list: drills.map(function (d) {
+                var nm = window.V12Drills ? V12Drills.name(d) : d.name;
+                return d.reps + '×' + String(nm).split(' ')[0];
+              }).join(' · ')
             })
       }),
       h('div', { class: 'v11-rx__meta' }, [

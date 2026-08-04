@@ -401,21 +401,48 @@
     dribble_series: 'Stationary combo dribbles — follow the pattern'
   };
 
+  /* every caption resolves through choreo.<key> in the active language;
+     English text is the id AND the fallback, so an untranslated caption
+     renders exactly as authored */
+  var NOTE_KEYS = null;
+  function noteKeyOf(en) {
+    if (!NOTE_KEYS) {
+      NOTE_KEYS = {};
+      for (var k in NOTES) NOTE_KEYS[NOTES[k]] = 'choreo.' + k;
+      NOTE_KEYS['Isometric hold — set the position, breathe, no movement'] = 'choreo.iso_hold';
+      NOTE_KEYS['Explosive jumps on the spot — land soft, go again'] = 'choreo.plyo_jumps';
+      NOTE_KEYS['Explosive station reps — full effort, reset, repeat'] = 'choreo.station_explosive';
+      NOTE_KEYS['Controlled station reps — quality over speed'] = 'choreo.station_controlled';
+      NOTE_KEYS['Loaded walk — line to line and back, tall posture'] = 'choreo.loaded_walk';
+    }
+    return NOTE_KEYS[en] || null;
+  }
+  function tnote(note) {
+    try {
+      var k = noteKeyOf(note);
+      if (!k || !window.V12I18n) return note;
+      var s = window.V12I18n.t(k);
+      return s === k ? note : s;
+    } catch (e) { return note; }
+  }
+
   function get(d) {
     if (!d) return null;
     try {
       if (OVERRIDES[d.id]) {
         var o = OVERRIDES[d.id]();
         if (o && !o.note && NOTES[d.anim_type]) o.note = NOTES[d.anim_type];
+        if (o && o.note) o.note = tnote(o.note);
         return o;
       }
-      if (isStation(d)) return stationChoreo(d);
-      if (d.focus_area === 'Strength') return walkChoreo();
+      if (isStation(d)) { var st = stationChoreo(d); if (st && st.note) st.note = tnote(st.note); return st; }
+      if (d.focus_area === 'Strength') { var w = walkChoreo(); if (w && w.note) w.note = tnote(w.note); return w; }
       var c;
       var t = T[d.anim_type];
       if (t) c = t(d);
       else c = { spots: num(shootSpots(d)) };
       if (c && !c.note && NOTES[d.anim_type]) c.note = NOTES[d.anim_type];
+      if (c && c.note) c.note = tnote(c.note);
       return c;
     } catch (e) { return null; }
   }
