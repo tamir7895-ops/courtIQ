@@ -114,7 +114,20 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<!-- supabase-js ships with the app, for the same reason ORT does (see A10
+     below): this was a SYNCHRONOUS, first-in-line CDN script with no local
+     copy, so DOMContentLoaded — and with it app.bootstrap() — waited on
+     jsdelivr. On a court with one bar of signal or slow DNS that is a
+     splash screen spinning until the WebView times out, which is exactly
+     what "the app got stuck on startup" looks like. The CDN <script> stays
+     as a last-resort fallback with an SRI hash pinning it to the same
+     bytes we vendored. -->
+<script src="../vendor/supabase/supabase.min.js"></script>
+<script>
+  if (!window.supabase) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"><\/script>');
+  }
+</script>
 <!-- A10: ONNX Runtime is served from the APP BUNDLE, not a CDN. The native
      (Capacitor) app already ships the YOLOX model locally, but the engine that
      runs it was still fetched from jsdelivr — so shot tracking could not load
