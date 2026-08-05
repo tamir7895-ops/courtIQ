@@ -146,6 +146,12 @@
         ])
       ]));
 
+      /* One shop read and one avatar read for the whole grid. These two
+         were called per ITEM — ~60 items, each doing a getItem + a full
+         JSON.parse — and every purchase repaints the grid. */
+      var owns = A.ownedChecker ? A.ownedChecker() : A.isOwned;
+      var equippedParams = A.load();
+
       /* group premium catalog by category label */
       var groups = {};
       A.catalog().forEach(function (row) {
@@ -163,8 +169,8 @@
         var grid = h('div', { class: 'shop12-grid' });
         rows.forEach(function (row) {
           var o = row.opt, cat = row.cat;
-          var owned = A.isOwned(o.id);
-          var equipped = A.load()[cat] === o.id;
+          var owned = owns(o.id);
+          var equipped = equippedParams[cat] === o.id;
           var cant = !owned && bal < o.cost;
 
           var visual;

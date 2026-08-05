@@ -328,9 +328,10 @@
       thread.scrollTop = thread.scrollHeight;
     }
     function typing() {
-      var t = coachSay('…');
-      t.classList.add('c12-msg--typing');
-      return t;
+      /* not `t` — the i18n helper owns that name in this module */
+      var el = coachSay('…');
+      el.classList.add('c12-msg--typing');
+      return el;
     }
 
     /* ── the tactics board ──────────────────────────────────────────

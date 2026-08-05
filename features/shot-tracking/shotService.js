@@ -168,6 +168,17 @@
     return res.data ? res.data.length : 0;
   }
 
+  /* Three modules have listened for this since the day they were written
+     — lib/sync.js schedules a push, lib/notify.js reschedules reminders,
+     lib/data.js drops its 30s session memo — and nothing ever fired it.
+     The visible symptom was the recap showing yesterday's numbers and the
+     cloud not hearing about a session for up to a minute. Fired on every
+     path that makes a session visible, server or local, because all three
+     listeners care that the data CHANGED, not where it landed. */
+  function announceSessionSaved() {
+    try { window.dispatchEvent(new Event('courtiq:session-saved')); } catch (e) {}
+  }
+
   /* ── Save session + shots atomically (preferred) ────────────────
      Calls the save_ai_session_atomic Postgres function so the session
      row and every shot row land in a single transaction. If the RPC
@@ -191,6 +202,7 @@
       if (shots && shots.length) {
         shots.forEach(function (s) { appendOffline(LS_OFFLINE_SHOTS, s); });
       }
+      announceSessionSaved();
       return null;
     }
 
@@ -204,6 +216,7 @@
       if (rpc.error) throw rpc.error;
       // Postgres function returns the session id (TEXT). The client
       // surfaces it via rpc.data.
+      announceSessionSaved();
       return rpc.data || (session && session.id) || null;
     } catch (err) {
       // Fall back to the legacy two-write so users on projects that
@@ -213,9 +226,32 @@
       try {
         await saveSession(session);
         if (shots && shots.length) await saveShots(shots);
+        announceSessionSaved();
         return session && session.id;
       } catch (fallbackErr) {
         console.error('[ShotService] legacy save also failed:', fallbackErr);
+        /* Last line of defence. Both server paths are gone — usually a
+           court with no signal, which is this app's whole use case — and
+           until now a SIGNED-IN player simply lost the session they had
+           just shot, while an anonymous one was buffered. Same buffer,
+           same keys: lib/data.js reads them for every user (not just
+           anonymous) and dedupes the merged list by session id, so the
+           session shows up in history immediately and cannot double-count
+           if it ever reaches the server. pendingSync marks the rows that
+           still owe the server a write. */
+        try {
+          appendOffline(LS_OFFLINE_SESSIONS, Object.assign({}, session, {
+            offline: true,
+            pendingSync: true,
+            savedAt: new Date().toISOString()
+          }));
+          if (shots && shots.length) {
+            shots.forEach(function (s) { appendOffline(LS_OFFLINE_SHOTS, s); });
+          }
+          announceSessionSaved();
+        } catch (bufferErr) {
+          console.error('[ShotService] offline buffering failed too:', bufferErr);
+        }
         throw fallbackErr;
       }
     }

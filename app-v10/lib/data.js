@@ -197,7 +197,19 @@
           if (!p) return guestProfile();
           var ud = p.user_data || {};
           var xpData = (ud && ud.xp_data) || {};
-          var xp = xpData.xp || ud.xp || localXP() || 0;
+          /* The server value is a fossil. profiles.user_data.xp_data was
+             written in the old dashboard era, and nothing in the loaded
+             app writes it — js/dashboard.js, its only writer, is not
+             loaded. Reading it FIRST meant a signed-in player's XP was
+             frozen at whatever it was on migration day (60, 80 and 126
+             across the three accounts on this project, all carrying the
+             same migration timestamp) while their coins, derived from the
+             local counter, kept moving: two numbers telling different
+             stories about the same player.
+             Same treatment as streak below — take the higher of the two,
+             so the live local counter can grow without discarding a
+             legacy balance earned before it existed. */
+          var xp = Math.max(xpData.xp || ud.xp || 0, localXP() || 0);
           return {
             name:     p.first_name || (window.currentUser.email || '').split('@')[0] || 'Player',
             initial:  ((p.first_name || window.currentUser.email || 'P')[0] || 'P').toUpperCase(),
@@ -508,9 +520,24 @@
     input.style.position = 'fixed';
     input.style.left = '-9999px';
     input.style.top = '-9999px';
+    /* Removal lived only inside 'change', which does not fire when the
+       picker is dismissed — so every cancelled pick left an <input> on
+       body forever. 'cancel' covers the modern dismissal; the focus
+       fallback covers browsers that do not fire it, and both are
+       idempotent because drop() checks the parent. */
+    function drop() {
+      if (input.parentNode) input.parentNode.removeChild(input);
+    }
+    input.addEventListener('cancel', drop);
+    window.addEventListener('focus', function onBack() {
+      window.removeEventListener('focus', onBack);
+      /* one frame after the window comes back, so a real selection has
+         already fired 'change' and taken the element with it */
+      setTimeout(drop, 300);
+    });
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
-      document.body.removeChild(input);
+      drop();
       if (!file) return;
       window.__v10PendingVideoFile = file;
       if (window.app && window.app.go) {

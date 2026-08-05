@@ -67,6 +67,37 @@
       if (stack[stack.length - 1] !== current) stack.push(current);
       if (stack.length > 12) stack.shift();
     }
+    /* The settings-return flag is a ONE-HOP promise: settings sent you to
+       screen X, and arriving back at 'me' should reopen settings. Once you
+       are somewhere that is neither X nor 'me', that round trip is over.
+       Without this the flag outlived it — settings → notifications →
+       "start training" → session → home → tap the avatar, and SETTINGS
+       opened, minutes later, for no reason the player could see. Tab taps
+       and swipes clear it even for 'me' (nav.js / mobile.js), because
+       deliberately choosing the tab means you want the front page. */
+    try {
+      var mret = sessionStorage.getItem('courtiq_me_return');
+      if (mret && id !== 'me') {
+        var cut = mret.indexOf(':');
+        var mtarget = cut > 0 ? mret.slice(cut + 1) : null;
+        if (mtarget !== id) sessionStorage.removeItem('courtiq_me_return');
+      }
+    } catch (e) { /* private mode — the flag simply never persists */ }
+
+    /* Sheets live on document.body, and go() only empties #app — so a
+       sheet open at navigation time survives onto the next screen as a
+       fixed, inset-0, z-70 layer with no way to dismiss it. No user route
+       reaches that today (the sheet covers the nav, and swipes bind to
+       #app, a SIBLING of the sheet), which is why this is a guard and not
+       a bug fix: it is one deep-link handler or auth event away from
+       being one, and by then the screen is simply frozen. */
+    try {
+      var strays = document.querySelectorAll('.plan12-sheetbg, .ld12-sheethost');
+      for (var si = 0; si < strays.length; si++) {
+        if (strays[si].parentNode) strays[si].parentNode.removeChild(strays[si]);
+      }
+    } catch (e) { /* never let cleanup break navigation */ }
+
     document.body.setAttribute('data-screen', id);
     if (location.hash !== '#' + id) {
       try { history.replaceState(null, '', '#' + id); } catch (e) {}
@@ -85,6 +116,29 @@
     /* A swipe lands on a NEW page — it starts at the top, like a pager,
        not wherever the last visit left the scroller. */
     if (slideDir) { try { h.scrollTop = 0; } catch (e) {} }
+    /* ONE failure path for both halves of a render. A screen may throw
+       synchronously OR return a promise that rejects later, and the two
+       used to be treated completely differently: the sync throw showed a
+       banner, the async rejection was swallowed by `then(roll, roll)` —
+       blank screen, no console, no trace. Neither reached telemetry
+       either, because a caught error never fires window.onerror. */
+    function fail(e) {
+      try {
+        var err = document.createElement('div');
+        err.style.padding = '20px';
+        err.style.color = '#FF4F1F';
+        err.textContent = 'Screen failed: ' + (e && e.message ? e.message : e);
+        h.appendChild(err);
+      } catch (e2) { /* the host is gone — nothing to show it on */ }
+      console.error('[v10] render error:', e);
+      try {
+        if (window.V12Telemetry && window.V12Telemetry.report) {
+          window.V12Telemetry.report('render failed on ' + id + ': ' +
+            (e && e.message ? e.message : e), e && e.stack ? e.stack : null);
+        }
+      } catch (e3) { /* telemetry must never hurt the app */ }
+    }
+
     var rendered = null;
     try {
       rendered = SCREENS[id]({
@@ -97,12 +151,7 @@
         }
       });
     } catch (e) {
-      var err = document.createElement('div');
-      err.style.padding = '20px';
-      err.style.color = '#FF4F1F';
-      err.textContent = 'Screen failed: ' + (e && e.message);
-      h.appendChild(err);
-      console.error('[v10] render error:', e);
+      fail(e);
     }
     if (window.V10Nav) window.V10Nav.setActive(id);
     /* Headline numbers roll up once the sections compose.
@@ -116,7 +165,9 @@
         if (window.V10UI && window.V10UI.animateCounts) window.V10UI.animateCounts(h);
       } catch (e2) { /* purely decorative */ }
     };
-    if (rendered && typeof rendered.then === 'function') rendered.then(roll, roll);
+    if (rendered && typeof rendered.then === 'function') {
+      rendered.then(roll, function (e) { roll(); fail(e); });
+    }
     else { roll(); setTimeout(roll, 60); setTimeout(roll, 240); }
   }
 
@@ -125,10 +176,15 @@
     // First run → the landing screen: language, brand, and the three
     // ways in (create profile / sign in / guest). It hands off to
     // onboarding, which sets courtiq_onboarded on finish. A returning
-    // player who finished onboarding never sees either again. Deep
-    // links to other screens are respected.
+    // player who finished onboarding never sees either again.
     try {
-      if (initial === 'home' && !localStorage.getItem('courtiq_onboarded')) {
+      /* Applies to every destination, not just #home. The check used to
+         be `initial === 'home'`, so ANY deep link — #track, #coach, a
+         notification tap — walked straight past the gate into a screen
+         with no profile and no plan behind it. TRANSIENT screens are
+         exempt: landing, onboarding and auth ARE the gate, and
+         camera-hud/session-prep are reached from inside it. */
+      if (!TRANSIENT[initial] && !localStorage.getItem('courtiq_onboarded')) {
         var signedIn = false;
         try { signedIn = !!(window.V10Auth && window.V10Auth.user()); } catch (e2) {}
         if (!signedIn && SCREENS.landing) initial = 'landing';
@@ -139,6 +195,49 @@
     window.addEventListener('hashchange', function () {
       var next = (location.hash || '').replace(/^#/, '') || 'home';
       if (next !== current) go(next);
+    });
+    bindHardwareBack();
+  }
+
+  /* Android's hardware Back was never wired to any of this. The whole
+     back-trail above — stack, ROOTS, TRANSIENT, PARENT — was reachable
+     only from on-screen buttons, and go() uses replaceState, so the
+     WebView had no history to fall back on either. The result: Back
+     minimised or exited the app from any depth, behaving nothing like
+     every other back affordance in the product.
+
+     Sheets and overlays get first refusal, because dismissing what is on
+     top of the screen is what Back means to a person looking at one.
+     Only at a root with an empty trail do we let the OS have it. */
+  function bindHardwareBack() {
+    var App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (!App || !App.addListener) return;   // web build, or plugin not synced
+    App.addListener('backButton', function () {
+      /* The two body-level sheets in the app, dismissed the way the app
+         itself dismisses them rather than ripped out of the DOM, so their
+         own close animation and bookkeeping still run.
+           .plan12-sheetbg  — language picker (me.js), day sheet (plan.js);
+                              the backdrop's own click handler closes it
+           .ld12-sheethost  — auth sheet (landing.js); its .ld12-scrim does */
+      var bg = document.querySelector('.plan12-sheetbg');
+      if (bg) {
+        var x = bg.querySelector('.plan12-sheet__x');
+        if (x) x.click(); else bg.click();
+        return;
+      }
+      var host = document.querySelector('.ld12-sheethost');
+      if (host) {
+        var scrim = host.querySelector('.ld12-scrim');
+        if (scrim) { scrim.click(); return; }
+      }
+      if (stack.length || PARENT[current]) { back(); return; }
+      /* A root screen with nothing behind it: minimise like every other
+         Android app rather than tearing the process down, so coming back
+         resumes instead of cold-starting. */
+      try {
+        if (App.minimizeApp) App.minimizeApp();
+        else if (App.exitApp) App.exitApp();
+      } catch (e) { /* nothing sensible left to do */ }
     });
   }
 

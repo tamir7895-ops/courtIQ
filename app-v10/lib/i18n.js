@@ -97,9 +97,17 @@
     }
   };
 
+  /* Remembered, because t() calls current() and t() is called per string.
+     Rendering the drill library — 178 cards — meant hundreds of
+     synchronous localStorage reads to answer a question whose answer
+     changes at most once per session, and only through set() below.
+     `null` means "not read yet", which is distinct from a stored value. */
+  var curMem = null;
   function current() {
-    try { return localStorage.getItem(LS_KEY) || 'en'; }
-    catch (e) { return 'en'; }
+    if (curMem !== null) return curMem;
+    try { curMem = localStorage.getItem(LS_KEY) || 'en'; }
+    catch (e) { curMem = 'en'; }
+    return curMem;
   }
 
   function langOf(code) {
@@ -147,9 +155,13 @@
     return false;
   }
 
+  /* One-shot breadcrumb: which language we have already reloaded for. */
+  var LS_RELOAD = 'courtiq_lang_reload';
+
   function set(code) {
     if (!known(code)) code = 'en';
     try { localStorage.setItem(LS_KEY, code); } catch (e) {}
+    curMem = code;   // the only writer, so the memo updates here and nowhere else
     /* Pack languages load at boot (only the active one ships into the
        page). Switching TO one whose strings aren't registered yet means
        the pack isn't loaded — a reload brings it in. en/he are always
@@ -159,6 +171,26 @@
     var loaded = STR[code] && STR[code]['auth.back'] &&
                  (code === 'en' || STR[code]['drill.shoot-001.n']);
     if (!loaded) {
+      /* One reload, not a loop. set() writes the language BEFORE checking
+         whether the pack registered, so if the pack 404s (a partial
+         deploy) the reload comes back to the same failed state and asks
+         for another — a tap on a language that never resolves. A
+         sessionStorage breadcrumb makes the second attempt fall back to
+         English with the reason recorded, instead of reloading again. */
+      var attempted = null;
+      try { attempted = sessionStorage.getItem(LS_RELOAD); } catch (e3) {}
+      if (attempted === code) {
+        try { sessionStorage.removeItem(LS_RELOAD); } catch (e4) {}
+        try { localStorage.setItem(LS_KEY, 'en'); } catch (e5) {}
+        curMem = 'en';
+        console.warn('[i18n] language pack for "' + code + '" did not load — staying on English');
+        applyDir();
+        try {
+          window.dispatchEvent(new CustomEvent('courtiq:lang-changed', { detail: { lang: 'en', packMissing: code } }));
+        } catch (e6) {}
+        return;
+      }
+      try { sessionStorage.setItem(LS_RELOAD, code); } catch (e7) {}
       /* Reloading off the landing would bounce a signed-in player home
          (the redo pass was already consumed) — re-arm it so they come
          back to the same screen, now in the new language. */
@@ -169,6 +201,9 @@
       } catch (e2) {}
       try { location.reload(); return; } catch (e) {}
     }
+    /* the pack IS here — clear the breadcrumb so a later switch is free
+       to take its own one reload */
+    try { sessionStorage.removeItem(LS_RELOAD); } catch (e8) {}
     applyDir();
     try {
       window.dispatchEvent(new CustomEvent('courtiq:lang-changed', { detail: { lang: code } }));

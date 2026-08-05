@@ -206,9 +206,13 @@
 
   function checkIn() {
     var data = load();
-    var t = todayStr();
+    /* NOT `t` — that name belongs to the module's i18n helper above, and
+       a local shadow here silently turned every t('...') in this function
+       into a call on a date string (TypeError), killing the daily XP
+       grant and the milestone toast before either could run. */
+    var today = todayStr();
 
-    if (data.lastDate === t) return data; // already checked in today
+    if (data.lastDate === today) return data; // already checked in today
 
     var yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -224,13 +228,13 @@
     }
 
     data.best = Math.max(data.best || 0, data.current);
-    data.lastDate = t;
+    data.lastDate = today;
     save(data);
     /* The server derives the streak from the SET of days trained, which
        is immune to a stale device pushing a later date with worse
        information. This record only holds one date, so the set is kept
        alongside it. */
-    addTrainingDay(t);
+    addTrainingDay(today);
 
     // Grant daily login XP (only on first check-in per day)
     if (typeof XPSystem !== 'undefined' && XPSystem.grantXP) {

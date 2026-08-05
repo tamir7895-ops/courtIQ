@@ -44,15 +44,18 @@
   function toast(msg, bad) {
     var old = document.querySelector('.av12-toast');
     if (old) old.remove();
-    var t = h('div', { class: 'av12-toast' + (bad ? ' is-bad' : ''), text: msg });
-    document.body.appendChild(t);
-    setTimeout(function () { t.classList.add('is-in'); }, 10);
-    setTimeout(function () { t.classList.remove('is-in'); setTimeout(function () { t.remove(); }, 220); }, 1900);
+    /* not `t` — that name belongs to the i18n helper above, and a shadow
+       here is how the streak module lost a whole XP grant (see js/streak.js) */
+    var el = h('div', { class: 'av12-toast' + (bad ? ' is-bad' : ''), text: msg });
+    document.body.appendChild(el);
+    setTimeout(function () { el.classList.add('is-in'); }, 10);
+    setTimeout(function () { el.classList.remove('is-in'); setTimeout(function () { el.remove(); }, 220); }, 1900);
   }
 
   function render(args) {
     var host = args.host, ctx = args.ctx;
     var params = A.load();
+    var owns = A.isOwned;      // replaced per paint by paintPanel()
     var tab = 'face';
 
     return ctx.data.getProfile().then(function (prof) {
@@ -79,7 +82,7 @@
       function tile(cat, o) {
         var c = A.CAT[cat];
         var active = params[cat] === o.id;
-        var owned = A.isOwned(o.id);
+        var owned = owns(o.id);
         var locked = !owned && o.cost > 0;
 
         var kids = [];
@@ -141,8 +144,13 @@
 
       function paintPanel() {
         while (panel.firstChild) panel.removeChild(panel.firstChild);
-        var t = A.TABS.filter(function (x) { return x.id === tab; })[0] || A.TABS[0];
-        t.cats.forEach(function (cat) { panel.appendChild(catRow(cat)); });
+        /* One shop read for the whole panel. tile() called A.isOwned per
+           option — getItem + full JSON.parse each — across every category
+           in the tab, on every repaint. Taken per paint, not memoised:
+           lib/sync.js rewrites courtiq_shop_v12 on each pull. */
+        owns = A.ownedChecker ? A.ownedChecker() : A.isOwned;
+        var tabDef = A.TABS.filter(function (x) { return x.id === tab; })[0] || A.TABS[0];
+        tabDef.cats.forEach(function (cat) { panel.appendChild(catRow(cat)); });
       }
 
       /* ── compose ── */

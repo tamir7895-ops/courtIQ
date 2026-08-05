@@ -17,15 +17,15 @@
 <link href="../vendor/fonts/fonts.css" rel="stylesheet">
 <link href="../vendor/phosphor/bold/style.css" rel="stylesheet">
 <link href="../vendor/phosphor/fill/style.css" rel="stylesheet">
-<link rel="stylesheet" href="styles/tokens.css?v=e9fc4d3" />
-<link rel="stylesheet" href="styles/components.css?v=e9fc4d3" />
-<link rel="stylesheet" href="styles/v11.css?v=e9fc4d3" />
-<link rel="stylesheet" href="styles/v12.css?v=e9fc4d3" />
-<link rel="stylesheet" href="styles/mobile.css?v=e9fc4d3" />
-<link rel="stylesheet" href="styles/studio.css?v=e9fc4d3" />
+<link rel="stylesheet" href="styles/tokens.css?v=8699cd6" />
+<link rel="stylesheet" href="styles/components.css?v=8699cd6" />
+<link rel="stylesheet" href="styles/v11.css?v=8699cd6" />
+<link rel="stylesheet" href="styles/v12.css?v=8699cd6" />
+<link rel="stylesheet" href="styles/mobile.css?v=8699cd6" />
+<link rel="stylesheet" href="styles/studio.css?v=8699cd6" />
 
 <!-- Engine: legacy ShotTrackingScreen overlay styling -->
-<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=e9fc4d3" />
+<link rel="stylesheet" href="../features/shot-tracking/shot-tracking.css?v=8699cd6" />
 </head>
 <body>
 
@@ -101,20 +101,37 @@
 <!-- ג”€ג”€ג”€ Preview-mode flag (skip auth redirects when no session) ג”€ג”€ג”€ -->
 <script>
   window.__PREVIEW_MODE__ = true;   // assume preview until session confirmed
-  /* Developer instruments (canvas ENG: bar, backend/timing badge). ON
-     while the detection model is still being evaluated on real courts —
-     the ball-hit rate and inference cost are how a bad session gets
-     diagnosed at all. They are boxed and legible now rather than bare
-     text over the feed. Turn OFF for a shipping build with ?debug=0 or
-     localStorage.courtiq_debug = '0'. */
+  /* Developer instruments (canvas ENG: bar, backend/timing badge). The
+     ball-hit rate and inference cost are how a bad session gets diagnosed
+     at all, so they stay one flag away — boxed and legible rather than
+     bare text over the feed.
+     OFF by default now. It shipped ON, so a TestFlight build showed
+     backend names and inference timings to players who have no idea what
+     a WASM execution provider is. Opt IN with ?debug=1 or
+     localStorage.courtiq_debug = '1'; ?debug=0 still forces it off so an
+     existing stored opt-in can be overridden from a URL. */
   try {
-    window.__courtiqDebug = !(/[?&]debug=0/.test(location.search) ||
-                              localStorage.getItem('courtiq_debug') === '0');
-  } catch (e) { window.__courtiqDebug = true; }
+    window.__courtiqDebug = !/[?&]debug=0/.test(location.search) &&
+                            (/[?&]debug=1/.test(location.search) ||
+                             localStorage.getItem('courtiq_debug') === '1');
+  } catch (e) { window.__courtiqDebug = false; }
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" crossorigin="anonymous"></script>
+<!-- supabase-js ships with the app, for the same reason ORT does (see A10
+     below): this was a SYNCHRONOUS, first-in-line CDN script with no local
+     copy, so DOMContentLoaded — and with it app.bootstrap() — waited on
+     jsdelivr. On a court with one bar of signal or slow DNS that is a
+     splash screen spinning until the WebView times out, which is exactly
+     what "the app got stuck on startup" looks like. The CDN <script> stays
+     as a last-resort fallback with an SRI hash pinning it to the same
+     bytes we vendored. -->
+<script src="../vendor/supabase/supabase.min.js"></script>
+<script>
+  if (!window.supabase) {
+    document.write('<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js" integrity="sha384-2zrRDgDHSYB/GN3nFW3fsZXoxEhKIr3N2h63Tc6DEOB9JJdFIu8xMJT2Cph/gBil" crossorigin="anonymous"><\/script>');
+  }
+</script>
 <!-- A10: ONNX Runtime is served from the APP BUNDLE, not a CDN. The native
      (Capacitor) app already ships the YOLOX model locally, but the engine that
      runs it was still fetched from jsdelivr — so shot tracking could not load
@@ -163,10 +180,10 @@
 <script src="../js/env.js"></script>
 <script src="../js/utils.js"></script>
 <script src="../js/supabase-client.js"></script>
-<script src="lib/telemetry.js?v=e9fc4d3"></script>
+<script src="lib/telemetry.js?v=8699cd6"></script>
 <!-- Language layer. Loads before every screen so t() is always there,
      and applies dir=rtl before first paint to avoid a layout flash. -->
-<script src="lib/i18n.js?v=e9fc4d3"></script>
+<script src="lib/i18n.js?v=8699cd6"></script>
 <!-- Language packs: en/he ship inline with the screens; other languages
      are data-only packs and ONLY the active one loads — nobody parses
      three dictionaries they aren't reading. Allowlisted codes only. -->
@@ -175,12 +192,12 @@
   try {
     var l = localStorage.getItem('courtiq_lang');
     if (l === 'es' || l === 'ar' || l === 'ru' || l === 'fr' || l === 'pt') {
-      document.write('<script src="lang/' + l + '.js?v=e9fc4d3"><\/script>');
+      document.write('<script src="lang/' + l + '.js?v=8699cd6"><\/script>');
     } else if (l === 'he') {
       /* Hebrew UI strings ship inline with the screens; the 178 drill
          translations are data-heavy, so they ride a pack like the
          other languages. */
-      document.write('<script src="lang/he-drills.js?v=e9fc4d3"><\/script>');
+      document.write('<script src="lang/he-drills.js?v=8699cd6"><\/script>');
     }
   } catch (e) { /* storage blocked — english carries it */ }
 })();
@@ -191,7 +208,7 @@
 <!-- Translated drill names/descriptions — resolves through _DRILLS_DB,
      so it loads right after the engine. English names stay canonical
      (plans, coach proposals and board lookups depend on them). -->
-<script src="lib/drills-i18n.js?v=e9fc4d3"></script>
+<script src="lib/drills-i18n.js?v=8699cd6"></script>
 <script src="../js/drill-choreo.js"></script>
 <script src="../js/gamification.js"></script>
 <script src="../js/streak.js"></script>
@@ -239,15 +256,15 @@
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: shot tracking pipeline (YOLO + Pose) ג”€ג”€ג”€ -->
-<script src="../features/shot-tracking/v2/config.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/adaptiveLearning.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/courtPosition.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/courtCalibration.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/poseDetector.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/shotDetection.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/offlineProcessor.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/shotService.js?v=e9fc4d3"></script>
-<script src="../features/shot-tracking/ShotTrackingScreen.js?v=e9fc4d3"></script>
+<script src="../features/shot-tracking/v2/config.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/adaptiveLearning.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/courtPosition.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/courtCalibration.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/poseDetector.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/shotDetection.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/offlineProcessor.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/shotService.js?v=8699cd6"></script>
+<script src="../features/shot-tracking/ShotTrackingScreen.js?v=8699cd6"></script>
 
 <!-- ג”€ג”€ג”€ Session bootstrap: get real Supabase user if available ג”€ג”€ג”€ -->
 <script>
@@ -266,23 +283,23 @@
 </script>
 
 <!-- ג”€ג”€ג”€ v10 lib (foundation) ג”€ג”€ג”€ -->
-<script src="lib/ui.js?v=e9fc4d3"></script>
-<script src="lib/data.js?v=e9fc4d3"></script>
-<script src="lib/courtiq.js?v=e9fc4d3"></script>
-<script src="lib/court.js?v=e9fc4d3"></script>
-<script src="lib/drill-court.js?v=e9fc4d3"></script>
-<script src="lib/audio.js?v=e9fc4d3"></script>
-<script src="lib/reveal.js?v=e9fc4d3"></script>
-<script src="lib/v11.js?v=e9fc4d3"></script>
-<script src="lib/v12.js?v=e9fc4d3"></script>
-<script src="lib/avatar.js?v=e9fc4d3"></script>
-<script src="lib/plan.js?v=e9fc4d3"></script>
-<script src="lib/challenges.js?v=e9fc4d3"></script>
-<script src="lib/notify.js?v=e9fc4d3"></script>
-<script src="lib/coach-insights.js?v=e9fc4d3"></script>
-<script src="lib/coach-ai.js?v=e9fc4d3"></script>
-<script src="lib/nav.js?v=e9fc4d3"></script>
-<script src="lib/mobile.js?v=e9fc4d3"></script>
+<script src="lib/ui.js?v=8699cd6"></script>
+<script src="lib/data.js?v=8699cd6"></script>
+<script src="lib/courtiq.js?v=8699cd6"></script>
+<script src="lib/court.js?v=8699cd6"></script>
+<script src="lib/drill-court.js?v=8699cd6"></script>
+<script src="lib/audio.js?v=8699cd6"></script>
+<script src="lib/reveal.js?v=8699cd6"></script>
+<script src="lib/v11.js?v=8699cd6"></script>
+<script src="lib/v12.js?v=8699cd6"></script>
+<script src="lib/avatar.js?v=8699cd6"></script>
+<script src="lib/plan.js?v=8699cd6"></script>
+<script src="lib/challenges.js?v=8699cd6"></script>
+<script src="lib/notify.js?v=8699cd6"></script>
+<script src="lib/coach-insights.js?v=8699cd6"></script>
+<script src="lib/coach-ai.js?v=8699cd6"></script>
+<script src="lib/nav.js?v=8699cd6"></script>
+<script src="lib/mobile.js?v=8699cd6"></script>
 <!-- Design Studio — dev surface only. Loads on localhost, or anywhere with
      ?studio in the URL so it can be opened on a real phone against a LAN
      dev server. Never ships to a production build. -->
@@ -294,12 +311,15 @@
        Caught before it ever reached a build; the guard stays first. */
     if (window.Capacitor) return;
     var host = location.hostname;
-    var dev = host === 'localhost' || host === '127.0.0.1' ||
-              /^192\.168\./.test(host) || /^10\./.test(host) ||
-              location.search.indexOf('studio') >= 0;
-    if (!dev) return;
+    var devHost = host === 'localhost' || host === '127.0.0.1' ||
+                  /^192\.168\./.test(host) || /^10\./.test(host);
+    /* AND, not OR. `|| ?studio` meant any visitor to the public web build
+       could open the design Studio by typing it in the URL. It exists so
+       the Studio can be opened on a real phone against a LAN dev server —
+       which is a dev HOST either way, so requiring both loses nothing. */
+    if (!devHost) return;
     var s = document.createElement('script');
-    s.src = 'lib/studio.js?v=e9fc4d3';
+    s.src = 'lib/studio.js?v=8699cd6';
     document.head.appendChild(s);
   })();
 </script>
@@ -309,36 +329,36 @@
     if (window.Capacitor) return;
     if (location.search.indexOf('smoke') < 0) return;
     var s = document.createElement('script');
-    s.src = 'lib/smoke.js?v=e9fc4d3';
+    s.src = 'lib/smoke.js?v=8699cd6';
     document.head.appendChild(s);
   })();
 </script>
-<script src="auth-state.js?v=e9fc4d3"></script>
+<script src="auth-state.js?v=8699cd6"></script>
 <!-- Progression sync. After auth-state.js and lib/data.js because it
      needs the session before it can call the RPC, and after the modules
      that own the keys it reads (streak, avatar, plan). -->
-<script src="lib/sync.js?v=e9fc4d3"></script>
-<script src="app.js?v=e9fc4d3"></script>
+<script src="lib/sync.js?v=8699cd6"></script>
+<script src="app.js?v=8699cd6"></script>
 
 <!-- ג”€ג”€ג”€ Screens (each calls window.app.register on load) ג”€ג”€ג”€ -->
-<script src="screens/landing.js?v=e9fc4d3"></script>
-<script src="screens/home.js?v=e9fc4d3"></script>
-<script src="screens/track.js?v=e9fc4d3"></script>
-<script src="screens/train.js?v=e9fc4d3"></script>
-<script src="screens/coach.js?v=e9fc4d3"></script>
-<script src="screens/me.js?v=e9fc4d3"></script>
-<script src="screens/social.js?v=e9fc4d3"></script>
-<script src="screens/auth.js?v=e9fc4d3"></script>
-<script src="screens/session-prep.js?v=e9fc4d3"></script>
-<script src="screens/camera-hud.js?v=e9fc4d3"></script>
-<script src="screens/post-session.js?v=e9fc4d3"></script>
-<script src="screens/onboarding.js?v=e9fc4d3"></script>
-<script src="screens/drill-library.js?v=e9fc4d3"></script>
-<script src="screens/workout-player.js?v=e9fc4d3"></script>
-<script src="screens/avatar-customizer.js?v=e9fc4d3"></script>
-<script src="screens/shop.js?v=e9fc4d3"></script>
-<script src="screens/plan.js?v=e9fc4d3"></script>
-<script src="screens/notifications.js?v=e9fc4d3"></script>
+<script src="screens/landing.js?v=8699cd6"></script>
+<script src="screens/home.js?v=8699cd6"></script>
+<script src="screens/track.js?v=8699cd6"></script>
+<script src="screens/train.js?v=8699cd6"></script>
+<script src="screens/coach.js?v=8699cd6"></script>
+<script src="screens/me.js?v=8699cd6"></script>
+<script src="screens/social.js?v=8699cd6"></script>
+<script src="screens/auth.js?v=8699cd6"></script>
+<script src="screens/session-prep.js?v=8699cd6"></script>
+<script src="screens/camera-hud.js?v=8699cd6"></script>
+<script src="screens/post-session.js?v=8699cd6"></script>
+<script src="screens/onboarding.js?v=8699cd6"></script>
+<script src="screens/drill-library.js?v=8699cd6"></script>
+<script src="screens/workout-player.js?v=8699cd6"></script>
+<script src="screens/avatar-customizer.js?v=8699cd6"></script>
+<script src="screens/shop.js?v=8699cd6"></script>
+<script src="screens/plan.js?v=8699cd6"></script>
+<script src="screens/notifications.js?v=8699cd6"></script>
 
 <script>
   // Bootstrap after all scripts load

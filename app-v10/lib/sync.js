@@ -5,9 +5,15 @@
    the training plan. A reinstall or a new device wiped all of it.
 
    This module carries that state to the server and back. XP and badges
-   are deliberately NOT here — they already sync through
-   profiles.user_data, and moving XP needs a per-device counter and a
+   are deliberately NOT here — moving XP needs a per-device counter and a
    migration of its own.
+
+   NOTE, corrected 2026-08-05: this used to say XP "already syncs through
+   profiles.user_data". It does not. Nothing in the loaded app writes
+   user_data.xp_data — js/dashboard.js, its only writer, is not loaded —
+   so those rows are frozen at migration day. lib/data.js now reads
+   max(server, local) so the live counter can grow, but XP still does NOT
+   travel between devices. That remains open work, not a solved problem.
 
    The merge happens SERVER-side, in one RPC. Two devices that each read,
    merge locally and write back would race, and the loser's progress
@@ -111,8 +117,20 @@
       if (value === null || value === undefined) return;
       prefs.push({ key: key, value: value, client_ts: ts, device_id: deviceId() });
     }
-    pref('plan',       lsGet('courtiq-training-plan-v1', null));
+    /* courtiq_plan_v2 — the key lib/plan.js actually owns. Sync used to
+       read `courtiq-training-plan-v1`, which only the legacy (unloaded)
+       js/training-panel.js ever wrote, so the plan a player built never
+       left the device and apply() below wrote a key nobody reads. The
+       server confirms it: player_prefs has zero rows under 'plan'. */
+    pref('plan',       lsGet('courtiq_plan_v2', null));
     pref('plan_prefs', lsGet('courtiq_plan_prefs', null));
+    /* Whether this ACCOUNT has been through onboarding — account state,
+       not device state, which is why it rides here and is NOT on the
+       sign-out KEEP list. Signing out wipes the local copy on purpose
+       (the next person on this handset must onboard), and signing back
+       in restores it from the server instead of marching a five-year
+       veteran through the combine again. */
+    pref('onboarded',  lsGet('courtiq_onboarded', null));
     pref('avatar',     lsGet('courtiq_avatar_params', null));
     try {
       var url = localStorage.getItem('courtiq_avatar_url');
@@ -182,8 +200,15 @@
         shop.owned = owned;
         /* spend is derived server-side from what was actually bought, so
            it can never drift from the item list the way a stored scalar
-           did */
-        if (state.coins_spent != null) shop.spent = Number(state.coins_spent) || 0;
+           did — but it is only as fresh as the round trip. A purchase
+           made WHILE this sync was in flight is already in local `spent`
+           and not yet in the server's sum, so taking the server value
+           flat handed the coins back for up to a minute, until the next
+           cycle took them again. The higher figure is the honest one:
+           spend only ever grows, and the next pull reconciles it. */
+        if (state.coins_spent != null) {
+          shop.spent = Math.max(Number(state.coins_spent) || 0, Number(shop.spent) || 0);
+        }
         lsSet('courtiq_shop_v12', shop);
       }
     } catch (e) {}
@@ -196,8 +221,15 @@
 
     try {
       if (state.prefs) {
-        if (state.prefs.plan)       lsSet('courtiq-training-plan-v1', state.prefs.plan.value);
+        if (state.prefs.plan)       lsSet('courtiq_plan_v2', state.prefs.plan.value);
         if (state.prefs.plan_prefs) lsSet('courtiq_plan_prefs', state.prefs.plan_prefs.value);
+        /* Written raw, not JSON: every reader treats it as a truthy
+           string sentinel (`!!localStorage.getItem(...)`), and a pulled
+           `"1"` with quotes would still be truthy but would no longer
+           match what onboarding writes. */
+        if (state.prefs.onboarded && state.prefs.onboarded.value) {
+          try { localStorage.setItem('courtiq_onboarded', '1'); } catch (e2) {}
+        }
         if (state.prefs.avatar)     lsSet('courtiq_avatar_params', state.prefs.avatar.value);
         if (state.prefs.avatar_url && typeof state.prefs.avatar_url.value === 'string') {
           localStorage.setItem('courtiq_avatar_url', state.prefs.avatar_url.value);

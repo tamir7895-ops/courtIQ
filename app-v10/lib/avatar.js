@@ -397,15 +397,49 @@
     return loadShop().owned.indexOf(id) >= 0;
   }
 
+  /* One read of the shop, for callers about to ask isOwned() sixty times
+     in a row — the shop grid and the customizer both do, on every repaint,
+     and every purchase repaints. Deliberately NOT a module-level memo:
+     lib/sync.js writes courtiq_shop_v12 on every pull, so a cached copy
+     here would quietly disagree with storage. Take a fresh one per paint;
+     that is one parse instead of sixty. */
+  function ownedChecker() {
+    var owned = {};
+    var list = loadShop().owned || [];
+    for (var i = 0; i < list.length; i++) owned[list[i]] = 1;
+    return function (id) {
+      var o = findOpt(id);
+      if (!o) return false;
+      if (!o.cost) return true;
+      return !!owned[id];
+    };
+  }
+
+  /* id → { opt, cat }, built once. CAT is a static literal, so the index
+     can never go stale, and it turns findOpt/catOf from a scan across
+     every category's option list into a lookup — which matters because
+     the shop and the customizer call them once per tile, per repaint. */
+  var OPT_INDEX = null;
+  function optIndex() {
+    if (OPT_INDEX) return OPT_INDEX;
+    OPT_INDEX = {};
+    Object.keys(CAT).forEach(function (cat) {
+      var list = (CAT[cat] && CAT[cat].options) || [];
+      for (var i = 0; i < list.length; i++) {
+        /* first category wins, matching the old scan order */
+        if (!OPT_INDEX[list[i].id]) OPT_INDEX[list[i].id] = { opt: list[i], cat: cat };
+      }
+    });
+    return OPT_INDEX;
+  }
+
   function findOpt(id) {
-    var keys = Object.keys(CAT);
-    for (var i = 0; i < keys.length; i++) {
-      var found = opt(keys[i], id);
-      if (found) return found;
-    }
-    return null;
+    var hit = optIndex()[id];
+    return hit ? hit.opt : null;
   }
   function catOf(id) {
+    var hit = optIndex()[id];
+    if (hit) return hit.cat;
     var keys = Object.keys(CAT);
     for (var i = 0; i < keys.length; i++) if (opt(keys[i], id)) return keys[i];
     return null;
@@ -491,7 +525,8 @@
   window.V12Avatar = {
     CAT: CAT, TABS: TABS, DEFAULTS: DEFAULTS,
     load: load, save: save, buildUrl: buildUrl, opt: opt, bgCss: bgCss,
-    coins: coins, isOwned: isOwned, buy: buy, spend: spend, equip: equip,
+    coins: coins, isOwned: isOwned, ownedChecker: ownedChecker,
+    buy: buy, spend: spend, equip: equip,
     catalog: catalog, catOf: catOf, findOpt: findOpt, costOf: costOf,
     labelOf: labelOf, optLabel: optLabel
   };

@@ -123,10 +123,23 @@
   }
 
   function persist() {
-    var m = loadMem();
-    m.history = history.slice(-MAX_TURNS);
-    saveMem(m);
-    pushRemote();
+    persistFor(persona, history);
+  }
+
+  /* Write a thread to the coach it BELONGS to, not to whoever is on
+     screen when the reply lands. `persona` and `history` are module
+     state that setPersona() swaps wholesale, so an in-flight answer used
+     to be filed under the coach the player had switched TO — carrying
+     the original question with it, and leaving the coach who was
+     actually asked with no record of the exchange. */
+  function persistFor(pid, arr) {
+    var key = pid === 'gm' ? LS_MEM : LS_MEM + '_' + pid;
+    try {
+      var m = JSON.parse(localStorage.getItem(key) || '{}');
+      m.history = arr.slice(-MAX_TURNS);
+      localStorage.setItem(key, JSON.stringify(m));
+    } catch (e) {}
+    if (pid === persona) pushRemote();
   }
 
   function signedIn() {
@@ -350,10 +363,14 @@
     if (!signedIn()) {
       return Promise.reject({ guest: true });
     }
+    /* Whose turn this is, decided NOW rather than when the reply lands. */
+    var askPersona = persona;
     history.push({ role: 'user', content: question });
     if (history.length > MAX_TURNS) history = history.slice(-MAX_TURNS);
     /* Anthropic requires user-first after any trim. */
     while (history.length && history[0].role !== 'user') history.shift();
+    var thread = history;   // the array this turn belongs to, even if the
+                            // module moves on to another coach mid-flight
 
     return authHeaders().then(function (headers) {
       var controller = new AbortController();
@@ -409,8 +426,8 @@
       if (data2.error) throw new Error(data2.error.message || 'AI error');
       var raw = (data2.content || []).map(function (b) { return b.text || ''; }).join('');
       if (!raw) throw new Error('empty reply');
-      history.push({ role: 'assistant', content: raw });
-      persist();
+      thread.push({ role: 'assistant', content: raw });
+      persistFor(askPersona, thread);
       var parsed = extractAction(raw);
       var confirmation = applyAction(parsed.action, ctx);
       return {
@@ -419,8 +436,8 @@
       };
     }).catch(function (e) {
       /* the failed turn must not poison the next one */
-      if (history.length && history[history.length - 1].role === 'user') history.pop();
-      persist();
+      if (thread.length && thread[thread.length - 1].role === 'user') thread.pop();
+      persistFor(askPersona, thread);
       throw e;
     });
   }

@@ -73,6 +73,7 @@
       'me.tro.customizer.n': 'Style Icon',
       'me.tro.customizer.r': 'Avatar customised',
       'me.set.title':        'Settings',
+      'me.a11y.close':       'Close',
       'me.set.signin.t':     'Sign in / create account',
       'me.set.signin.s':     'Sync sessions, streak and Court IQ across devices.',
       'me.set.avatar.t':     'Customise avatar',
@@ -88,6 +89,7 @@
       'me.set.del.t':        'Delete account',
       'me.set.del.s':        'Removes your account and synced data. Cannot be undone.',
       'me.set.del.confirm':  'Delete your account and all synced data? This cannot be undone.',
+      'me.set.del.err':      'Could not delete the account — check your connection and try again.',
       'me.edit.title':       'Edit my data',
       'me.edit.sub':         'Your combine card — change anything',
       'me.edit.name':        'NAME',
@@ -167,6 +169,7 @@
       'me.tro.customizer.n': 'אייקון של סטייל',
       'me.tro.customizer.r': 'אווטאר בהתאמה אישית',
       'me.set.title':        'הגדרות',
+      'me.a11y.close':       'סגירה',
       'me.set.signin.t':     'כניסה / יצירת חשבון',
       'me.set.signin.s':     'סנכרון סשנים, רצף ו-Court IQ בין מכשירים.',
       'me.set.avatar.t':     'התאמת אווטאר',
@@ -182,6 +185,7 @@
       'me.set.del.t':        'מחיקת חשבון',
       'me.set.del.s':        'מוחק את החשבון והנתונים המסונכרנים. אי אפשר לבטל.',
       'me.set.del.confirm':  'למחוק את החשבון וכל הנתונים המסונכרנים? אי אפשר לבטל.',
+      'me.set.del.err':      'לא הצלחנו למחוק את החשבון — בדוק את החיבור ונסה שוב.',
       'me.edit.title':       'עריכת הנתונים שלי',
       'me.edit.sub':         'כרטיס הקומביין שלך — אפשר לשנות הכל',
       'me.edit.name':        'שם',
@@ -302,7 +306,7 @@
 
     sheet.appendChild(h('div', { class: 'plan12-sheet__hd' }, [
       h('div', { class: 'plan12-sheet__t', text: t('me.set.lang') }),
-      h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close },
+      h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close, 'aria-label': t('me.a11y.close') },
         [h('i', { class: 'ph-bold ph-x' })])
     ]));
 
@@ -314,6 +318,13 @@
         onclick: function () {
           if (isCur) { close(); return; }
           close();
+          /* set() reloads the page when the language ships as a pack
+             (es/ar/ru/fr/pt), and a reload lands on 'me' — the FRONT
+             page, not settings, which is where you were standing. Arm
+             the same flag goFromSettings uses so the reload comes back
+             here. Harmless when no reload happens: the repaint below
+             consumes it on the next visit to 'me' at worst. */
+          try { sessionStorage.setItem('courtiq_me_return', 'settings:me'); } catch (e2) {}
           V12I18n.set(lg.code);                 /* may reload for packs */
           settingsView(host, ctx, back);        /* repaint if it didn't */
         }
@@ -353,7 +364,12 @@
     /* Leaving settings for another screen: flag the departure so that
        coming BACK to 'me' reopens settings instead of the front page. */
     function goFromSettings(id) {
-      try { sessionStorage.setItem('courtiq_me_return', 'settings'); } catch (e) {}
+      /* Record WHERE settings sent you, not just that it did. app.js
+         drops the flag the moment you navigate anywhere other than that
+         screen or back to 'me' — otherwise it survives the whole session
+         and reopens settings minutes later, on a visit that has nothing
+         to do with this trip. */
+      try { sessionStorage.setItem('courtiq_me_return', 'settings:' + id); } catch (e) {}
       ctx.go(id);
     }
 
@@ -418,13 +434,31 @@
           window.V10Auth.signOut().then(function () { ctx.go('home'); });
         }
       }));
+      /* The most destructive control in the app, and it had no error
+         path, no busy state and no second click guard: deleteAccount()
+         throws on a failed edge call, so a network blip produced a tap
+         that did nothing at all — no spinner, no message — on the one
+         action where silence is least acceptable. */
+      var delBusy = false;
       host.appendChild(row('ph-trash', t('me.set.del.t'),
         t('me.set.del.s'),
-        function () {
-          if (window.confirm(t('me.set.del.confirm')) &&
-              window.V10Auth && window.V10Auth.deleteAccount) {
-            window.V10Auth.deleteAccount().then(function () { ctx.go('home'); });
-          }
+        function (ev) {
+          if (delBusy) return;
+          if (!window.confirm(t('me.set.del.confirm'))) return;
+          if (!(window.V10Auth && window.V10Auth.deleteAccount)) return;
+          delBusy = true;
+          /* V12.card wires onClick straight to addEventListener, so this
+             is an Event — currentTarget is the row itself. */
+          var rowEl = ev && ev.currentTarget;
+          if (rowEl) { rowEl.style.opacity = '0.5'; rowEl.style.pointerEvents = 'none'; }
+          window.V10Auth.deleteAccount()
+            .then(function () { ctx.go('home'); })
+            .catch(function (err) {
+              delBusy = false;
+              if (rowEl) { rowEl.style.opacity = ''; rowEl.style.pointerEvents = ''; }
+              console.error('[me] account deletion failed:', err);
+              window.alert(t('me.set.del.err'));
+            });
         }, true));
     }
   }
@@ -718,7 +752,8 @@
         returnTo = sessionStorage.getItem('courtiq_me_return');
         if (returnTo) sessionStorage.removeItem('courtiq_me_return');
       } catch (e) {}
-      if (returnTo === 'settings') settingsView(host, ctx, main);
+      /* 'settings' (older sessions) or 'settings:<screen>' (current) */
+      if (returnTo && returnTo.indexOf('settings') === 0) settingsView(host, ctx, main);
       else main();
     });
   }

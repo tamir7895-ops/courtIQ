@@ -65,12 +65,17 @@
       'cam.gate.point':     'Point at the hoop',
       'cam.gate.start':     'Start shooting',
       'cam.gate.anyway':    'Record anyway',
+      'cam.save.local':     'No connection — session saved on this phone',
+      'cam.reward.xp':      '+{n} XP earned',
+      'cam.reward.reason':  'AI session: {m}/{a}',
       'cam.gate.calib':      'Calibrate court · 4 taps',
       'cam.gate.calibok':    'Court calibrated',
       'cam.gate.calibmoved': 'Camera moved — recalibrate',
       'cam.anl.loading':  'Loading models…',
       'cam.anl.title':    'Analyzing your video',
       'cam.anl.keepOpen': 'Keep the app open — analysing…',
+      'cam.anl.cancel':     'Cancel analysis',
+      'cam.anl.cancelling': 'Cancelling…',
       'cam.anl.tiplabel': 'TIP',
       'cam.anl.eta':      ' · ~{t} left',
       'cam.anl.count':    '{n} shots · {m} made · {x} missed',
@@ -116,12 +121,17 @@
       'cam.gate.point':     'כוון אל הסל',
       'cam.gate.start':     'תתחיל לזרוק',
       'cam.gate.anyway':    'להקליט בכל זאת',
+      'cam.save.local':     'אין חיבור — הסשן נשמר בטלפון',
+      'cam.reward.xp':      'הרווחת {n} XP',
+      'cam.reward.reason':  'סשן AI: {m}/{a}',
       'cam.gate.calib':      'כיול מגרש · 4 נקישות',
       'cam.gate.calibok':    'המגרש מכויל',
       'cam.gate.calibmoved': 'המצלמה זזה — כייל מחדש',
       'cam.anl.loading':  'טוען מודלים…',
       'cam.anl.title':    'מנתח את הסרטון שלך',
       'cam.anl.keepOpen': 'תשאיר את האפליקציה פתוחה — מנתח…',
+      'cam.anl.cancel':     'ביטול הניתוח',
+      'cam.anl.cancelling': 'מבטל…',
       'cam.anl.tiplabel': 'טיפ',
       'cam.anl.eta':      ' · עוד ~{t}',
       'cam.anl.count':    '{n} זריקות · {m} נכנסו · {x} החטאות',
@@ -840,6 +850,85 @@
     stopPolling();
   }
 
+  /* One-off message on the shared v12 toast chassis. Lives on body, so it
+     survives the hop into the recap and is still readable there. The local
+     is `el`, never `t` — that name belongs to the translator above, and a
+     shadow here would silently break every t() call in this function. */
+  function camToast(msg) {
+    try {
+      var old = document.querySelector('.av12-toast');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      var el = h('div', { class: 'av12-toast', text: msg });
+      document.body.appendChild(el);
+      setTimeout(function () { el.classList.add('is-in'); }, 10);
+      setTimeout(function () {
+        el.classList.remove('is-in');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 240);
+      }, 3600);
+    } catch (e) { /* a missing toast must never break the recap */ }
+  }
+
+  /* The zones the app counts as threes — mirrors THREE_PT in
+     screens/post-session.js, which is where the product decides what a
+     three is. Engine vocabulary: pnt/ml/mr/topmid/lc/rc/lw/rw/top. */
+  var THREE_ZONES = { lc: 1, rc: 1, lw: 1, rw: 1, top: 1 };
+
+  /* Rewards for a session that actually happened.
+     Until now app-v10 granted NOTHING for a real session: the only
+     granter (ShotTrackingScreen.saveSessionData) sits behind the
+     `__v10AnalysisOwnsFlow` early return that every v10 session takes,
+     so twenty minutes of shooting moved neither XP, nor the streak, nor
+     a single badge — while a daily challenge worth one tap did.
+     Every system here is localStorage-backed, so this runs whether or
+     not the session reached the server: the player shot the ball either
+     way, and P3 already guarantees the session itself isn't lost. */
+  function grantSessionRewards(total, made, shots) {
+    var xp = made * 10 + total * 2;   // the same figure sessionPayload reports
+    try {
+      if (window.XPSystem && window.XPSystem.grantXP) {
+        window.XPSystem.grantXP(xp, t('cam.reward.reason', { m: made, a: total }));
+      }
+    } catch (e) { console.warn('[camera-hud] XP grant failed:', e); }
+
+    var streak = 0;
+    try {
+      if (window.StreakSystem) {
+        if (window.StreakSystem.checkIn) window.StreakSystem.checkIn();
+        if (window.StreakSystem.render) window.StreakSystem.render();
+        if (window.StreakSystem.get) streak = window.StreakSystem.get() || 0;
+      }
+    } catch (e) { console.warn('[camera-hud] streak check-in failed:', e); }
+
+    try {
+      if (window.BadgeSystem) {
+        if (window.BadgeSystem.incrementCounter) {
+          window.BadgeSystem.incrementCounter('totalAISessions', 1);
+          window.BadgeSystem.incrementCounter('sessionsThisWeek', 1);
+          window.BadgeSystem.incrementCounter('totalXP', xp);
+        }
+        if (window.BadgeSystem.checkStreakBadges) {
+          window.BadgeSystem.checkStreakBadges(streak);
+        }
+        if (window.BadgeSystem.checkShotBadges) {
+          var threes = 0;
+          (shots || []).forEach(function (s) {
+            var z = s && (s.shot_zone || s.v10Zone);
+            if (z && THREE_ZONES[String(z).toLowerCase()] && s.shot_result === 'made') threes++;
+          });
+          window.BadgeSystem.checkShotBadges({ made: made, attempts: total, threesMade: threes });
+        }
+        if (window.BadgeSystem.checkAll) window.BadgeSystem.checkAll();
+      }
+    } catch (e) { console.warn('[camera-hud] badge check failed:', e); }
+
+    /* The caller decides whether to announce this. The legacy XP toast
+       host (#xp-gain-toast) doesn't exist in v10, so XPSystem's own toast
+       is a silent no-op here — a reward the player never sees is the same
+       as no reward, and only the caller knows whether a more urgent
+       message (the save fell back to the phone) should win the slot. */
+    return xp;
+  }
+
   /* ── p11: OFFLINE upload analysis ─────────────────────────────
      An uploaded video is processed FRAME-BY-FRAME (ShotOfflineProcessor)
      instead of the real-time engine. This is the only path that produces
@@ -884,9 +973,25 @@
       fg_made: 0, fg_missed: 0, three_made: 0, three_missed: 0,
       ft_made: made, ft_missed: total - made
     };
+    var xpEarned = grantSessionRewards(total, made, shots);
+
     if (window.ShotService && window.ShotService.saveSessionAtomic) {
-      return window.ShotService.saveSessionAtomic(sessionPayload, shots).catch(function () {});
+      return window.ShotService.saveSessionAtomic(sessionPayload, shots)
+        .then(function () {
+          if (xpEarned > 0) camToast(t('cam.reward.xp', { n: xpEarned }));
+        })
+        .catch(function (err) {
+          /* ShotService has already buffered the session locally, so it is
+             NOT lost — but the player deserves to know it hasn't reached
+             the cloud. Resolving (not rethrowing) is deliberate: the caller
+             chains straight into the recap, and a rejection here would
+             bounce the whole flow into fallbackToRealtime(). */
+          console.warn('[camera-hud] session save failed, kept on device:',
+            err && err.message ? err.message : err);
+          camToast(t('cam.save.local'));
+        });
     }
+    if (xpEarned > 0) camToast(t('cam.reward.xp', { n: xpEarned }));
     return Promise.resolve();
   }
 
@@ -944,6 +1049,24 @@
     // analysis frames start flowing and the canvas takes over.
     var loaderEl = logoLoader();
 
+    /* A way out. offlineProcessor has taken an AbortSignal since it was
+       written (offlineProcessor.js:312, checked every frame) and nothing
+       was ever wired to it — so a long analyse on a slow phone was a
+       screen you could only wait out. The reject lands in the existing
+       .catch, which already knows how to fall back. */
+    var abortCtl = null;
+    try { abortCtl = new AbortController(); } catch (e) {}
+    var cancelBtn = h('button', {
+      class: 'd-btn d-btn--ghost',
+      type: 'button',
+      style: { marginTop: 'clamp(8px, 1.6dvh, 16px)', flexShrink: '0' },
+      onclick: function () {
+        cancelBtn.setAttribute('disabled', 'disabled');
+        stageEl.textContent = t('cam.anl.cancelling');
+        if (abortCtl) { try { abortCtl.abort(); } catch (e) {} }
+      }
+    }, [h('span', { text: t('cam.anl.cancel') })]);
+
     var overlay = h('div', {
       style: {
         position: 'fixed', inset: '0', background: 'var(--d-bg, #FFFFFF)', color: 'var(--d-ink)', zIndex: '70',
@@ -969,7 +1092,8 @@
       pct,
       stageEl,
       tipEl,
-      diagEl
+      diagEl,
+      cancelBtn
     ]);
     // Two soft brand-coloured blobs drift behind everything so the screen
     // is alive during a long analyse instead of a static white wait.
@@ -977,6 +1101,32 @@
     overlay.appendChild(h('div', { class: 'v12-anl__glow v12-anl__glow--b' }));
     document.body.appendChild(overlay);
     v10Layer = overlay;
+
+    /* The overlay is fixed, inset:0, z-70, and it lives on document.body —
+       which the router never clears; go() only empties #app. So if the
+       route changes while analysis is up, the overlay stays, full-screen,
+       on top of whatever loaded next, with nothing left alive to remove
+       it. render()'s leaveObs does NOT cover this: an uploaded video is
+       handed to runOfflineUpload and render() returns before that observer
+       is ever created.
+
+       Watch from here instead, where the overlay is actually owned. Every
+       planned exit — finished, no-shots, fallback — removes the overlay
+       BEFORE it navigates, so finding it still parented after a route
+       change means the navigation came from somewhere else entirely (an
+       Android back press, a deep link, an auth event). */
+    var strandObs = new MutationObserver(function () {
+      if (document.body.getAttribute('data-screen') === 'camera-hud') return;
+      strandObs.disconnect();
+      if (!overlay.parentNode) return;   // a planned exit already cleaned up
+      window.__v10AnalysisOwnsFlow = false;
+      try { overlay.parentNode.removeChild(overlay); } catch (e) {}
+      if (v10Layer === overlay) v10Layer = null;
+      try { releaseWake(); } catch (e) {}
+      document.body.classList.remove('v10-cam-active');
+      setNav(true);
+    });
+    strandObs.observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
 
     /* Rotating coaching tips — the analyse can run 2-3x the clip length,
        and a wall of progress bar is where people get bored and leave. The
@@ -1115,6 +1265,7 @@
          Half the frames = half the wait the user actually feels after
          every session. */
       fps: 15,
+      signal: abortCtl ? abortCtl.signal : null,
       // Show the execution provider alongside progress: on a phone WebView
       // that fell back to wasm this is the whole explanation for a slow
       // analyze, and it is otherwise invisible.
@@ -1231,7 +1382,23 @@
         setNav(true);
         window.app.go('post-session');
       });
-    }).catch(function () { releaseWake(); fallbackToRealtime(); });
+    }).catch(function (err) {
+      releaseWake();
+      /* A cancel is a decision, not a failure: honour it by leaving,
+         rather than dropping the player into the realtime fallback they
+         just asked to get out of. */
+      if (abortCtl && abortCtl.signal && abortCtl.signal.aborted) {
+        window.__v10AnalysisOwnsFlow = false;
+        try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
+        v10Layer = null;
+        document.body.classList.remove('v10-cam-active');
+        setNav(true);
+        window.app.go('track');
+        return;
+      }
+      console.warn('[camera-hud] analysis failed:', err && err.message ? err.message : err);
+      fallbackToRealtime();
+    });
   }
 
   function render(args) {
@@ -1324,8 +1491,17 @@
         if (wasActive && !isActive) {
           obs.disconnect();
           unmountChrome();
-          document.body.classList.remove('v10-cam-active');
-          setNav(true);
+          /* The twin of this observer in lib/data.js checks the analysis
+             flag before it acts; this one did not, and it is the one that
+             shows the nav. On record-then-analyse the tracker closes so
+             the clip can be handed to the analyser, and restoring the nav
+             here flashed the tab bar for a frame before the analysis
+             overlay covered it. The analysis flow restores the nav itself
+             when it is genuinely done. */
+          if (!window.__v10AnalysisOwnsFlow) {
+            document.body.classList.remove('v10-cam-active');
+            setNav(true);
+          }
         }
         wasActive = isActive;
       });
@@ -1334,13 +1510,29 @@
 
     // If user uses the v10 nav (rare; nav is hidden) — clean up before route change.
     var leaveObs = new MutationObserver(function () {
-      if (window.__v10AnalysisOwnsFlow) return;   // analysis overlay owns v10Layer now
-      if (document.body.getAttribute('data-screen') !== 'camera-hud') {
-        unmountChrome();
-        document.body.classList.remove('v10-cam-active');
-        setNav(true);
-        leaveObs.disconnect();
+      if (document.body.getAttribute('data-screen') === 'camera-hud') return;
+
+      /* The analysis flag used to make this observer return outright, so
+         that a route change could not delete the analysis UI out from
+         under the processor. But every legitimate exit from the analysis
+         — finished, no-shots, fallback — clears the flag and removes the
+         overlay BEFORE it navigates. So a route change that arrives with
+         the flag STILL SET did not come from the analysis at all; it came
+         from somewhere else (an Android back press, a deep link, an auth
+         event), and a fixed inset-0 z-70 overlay is about to sit on top
+         of the whole app with nothing left alive to remove it. That is
+         the stuck screen, and this is the only place that can see it. */
+      if (window.__v10AnalysisOwnsFlow) {
+        window.__v10AnalysisOwnsFlow = false;
+        try {
+          if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
+        } catch (e) {}
+        v10Layer = null;
       }
+      unmountChrome();
+      document.body.classList.remove('v10-cam-active');
+      setNav(true);
+      leaveObs.disconnect();
     });
     leaveObs.observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
   }
