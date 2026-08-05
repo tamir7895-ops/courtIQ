@@ -67,6 +67,23 @@
       if (stack[stack.length - 1] !== current) stack.push(current);
       if (stack.length > 12) stack.shift();
     }
+    /* The settings-return flag is a ONE-HOP promise: settings sent you to
+       screen X, and arriving back at 'me' should reopen settings. Once you
+       are somewhere that is neither X nor 'me', that round trip is over.
+       Without this the flag outlived it — settings → notifications →
+       "start training" → session → home → tap the avatar, and SETTINGS
+       opened, minutes later, for no reason the player could see. Tab taps
+       and swipes clear it even for 'me' (nav.js / mobile.js), because
+       deliberately choosing the tab means you want the front page. */
+    try {
+      var mret = sessionStorage.getItem('courtiq_me_return');
+      if (mret && id !== 'me') {
+        var cut = mret.indexOf(':');
+        var mtarget = cut > 0 ? mret.slice(cut + 1) : null;
+        if (mtarget !== id) sessionStorage.removeItem('courtiq_me_return');
+      }
+    } catch (e) { /* private mode — the flag simply never persists */ }
+
     document.body.setAttribute('data-screen', id);
     if (location.hash !== '#' + id) {
       try { history.replaceState(null, '', '#' + id); } catch (e) {}

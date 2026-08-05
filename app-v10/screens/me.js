@@ -353,7 +353,12 @@
     /* Leaving settings for another screen: flag the departure so that
        coming BACK to 'me' reopens settings instead of the front page. */
     function goFromSettings(id) {
-      try { sessionStorage.setItem('courtiq_me_return', 'settings'); } catch (e) {}
+      /* Record WHERE settings sent you, not just that it did. app.js
+         drops the flag the moment you navigate anywhere other than that
+         screen or back to 'me' — otherwise it survives the whole session
+         and reopens settings minutes later, on a visit that has nothing
+         to do with this trip. */
+      try { sessionStorage.setItem('courtiq_me_return', 'settings:' + id); } catch (e) {}
       ctx.go(id);
     }
 
@@ -718,7 +723,8 @@
         returnTo = sessionStorage.getItem('courtiq_me_return');
         if (returnTo) sessionStorage.removeItem('courtiq_me_return');
       } catch (e) {}
-      if (returnTo === 'settings') settingsView(host, ctx, main);
+      /* 'settings' (older sessions) or 'settings:<screen>' (current) */
+      if (returnTo && returnTo.indexOf('settings') === 0) settingsView(host, ctx, main);
       else main();
     });
   }
