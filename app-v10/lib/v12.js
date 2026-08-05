@@ -231,7 +231,8 @@
         : u;
     } catch (e) {}
     /* Upgrading from v10: that build kept the face in the onboarding
-       blob and js/avatar-customizer.js copied it across on boot. That
+       blob and the legacy avatar customizer copied it across on boot
+       (that file was deleted 2026-08-05). That
        file is gone — it was dead UI whose only live act was writing this
        key behind V12Avatar's back — so the one useful thing it did is
        done here instead, as a read rather than a rogue write. */

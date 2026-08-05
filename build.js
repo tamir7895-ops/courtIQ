@@ -50,6 +50,33 @@ function copyRecursive(src, dest) {
   }
 }
 
+/* Delete anything in a COPIED directory that the source no longer has.
+   This build copied and never deleted, so www/ accumulated forever:
+   two orphan stylesheets from a redesign, and — the reason this exists —
+   29 dead js/ files that kept shipping to the web deploy and the phone
+   long after they were removed from source. Deleting a file used to be
+   a no-op as far as what actually ships.
+
+   Scoped to the directories build.js owns, never to www/ itself: the
+   root also holds generated files (sw.js, index.html) that have no
+   source counterpart and must survive. */
+function pruneOrphans(src, dest, rel) {
+  if (!fs.existsSync(dest) || !fs.statSync(dest).isDirectory()) return 0;
+  let removed = 0;
+  for (const child of fs.readdirSync(dest)) {
+    const s = path.join(src, child);
+    const d = path.join(dest, child);
+    if (!fs.existsSync(s)) {
+      fs.rmSync(d, { recursive: true, force: true });
+      console.log(`  ✗ removed stale ${path.posix.join(rel, child)}`);
+      removed++;
+    } else if (fs.statSync(d).isDirectory()) {
+      removed += pruneOrphans(s, d, path.posix.join(rel, child));
+    }
+  }
+  return removed;
+}
+
 /* Development payload that must never reach a deploy. www/ is served
    publicly (GitHub Pages), so these were live URLs: 54MB of calibration
    audit frames, 16MB of eval clips, and six debug harness pages anyone
@@ -72,8 +99,11 @@ for (const target of COPY_TARGETS) {
     console.warn(`⚠ Skipped ${target} (not found)`);
     continue;
   }
-  copyRecursive(srcPath, path.join(DEST, target));
-  console.log(`✓ Copied ${target}`);
+  const destPath = path.join(DEST, target);
+  copyRecursive(srcPath, destPath);
+  const stale = fs.statSync(srcPath).isDirectory()
+    ? pruneOrphans(srcPath, destPath, target) : 0;
+  console.log(`✓ Copied ${target}${stale ? ` (${stale} stale removed)` : ''}`);
 }
 
 // Prune the dev payload — including anything a previous build left here.

@@ -9,9 +9,9 @@
    migration of its own.
 
    NOTE, corrected 2026-08-05: this used to say XP "already syncs through
-   profiles.user_data". It does not. Nothing in the loaded app writes
-   user_data.xp_data — js/dashboard.js, its only writer, is not loaded —
-   so those rows are frozen at migration day. lib/data.js now reads
+   profiles.user_data". It does not. Nothing writes user_data.xp_data —
+   its only writer was the legacy dashboard, deleted the same day — so
+   those rows are frozen at migration day. lib/data.js now reads
    max(server, local) so the live counter can grow, but XP still does NOT
    travel between devices. That remains open work, not a solved problem.
 
@@ -118,10 +118,10 @@
       prefs.push({ key: key, value: value, client_ts: ts, device_id: deviceId() });
     }
     /* courtiq_plan_v2 — the key lib/plan.js actually owns. Sync used to
-       read `courtiq-training-plan-v1`, which only the legacy (unloaded)
-       js/training-panel.js ever wrote, so the plan a player built never
-       left the device and apply() below wrote a key nobody reads. The
-       server confirms it: player_prefs has zero rows under 'plan'. */
+       read `courtiq-training-plan-v1`, which only the legacy training
+       panel ever wrote (deleted 2026-08-05), so the plan a player built
+       never left the device and apply() below wrote a key nobody reads.
+       The server confirms it: player_prefs has zero rows under 'plan'. */
     pref('plan',       lsGet('courtiq_plan_v2', null));
     pref('plan_prefs', lsGet('courtiq_plan_prefs', null));
     /* Whether this ACCOUNT has been through onboarding — account state,
