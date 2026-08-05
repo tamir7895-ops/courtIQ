@@ -197,7 +197,19 @@
           if (!p) return guestProfile();
           var ud = p.user_data || {};
           var xpData = (ud && ud.xp_data) || {};
-          var xp = xpData.xp || ud.xp || localXP() || 0;
+          /* The server value is a fossil. profiles.user_data.xp_data was
+             written in the old dashboard era, and nothing in the loaded
+             app writes it — js/dashboard.js, its only writer, is not
+             loaded. Reading it FIRST meant a signed-in player's XP was
+             frozen at whatever it was on migration day (60, 80 and 126
+             across the three accounts on this project, all carrying the
+             same migration timestamp) while their coins, derived from the
+             local counter, kept moving: two numbers telling different
+             stories about the same player.
+             Same treatment as streak below — take the higher of the two,
+             so the live local counter can grow without discarding a
+             legacy balance earned before it existed. */
+          var xp = Math.max(xpData.xp || ud.xp || 0, localXP() || 0);
           return {
             name:     p.first_name || (window.currentUser.email || '').split('@')[0] || 'Player',
             initial:  ((p.first_name || window.currentUser.email || 'P')[0] || 'P').toUpperCase(),

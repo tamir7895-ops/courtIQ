@@ -5,9 +5,15 @@
    the training plan. A reinstall or a new device wiped all of it.
 
    This module carries that state to the server and back. XP and badges
-   are deliberately NOT here — they already sync through
-   profiles.user_data, and moving XP needs a per-device counter and a
+   are deliberately NOT here — moving XP needs a per-device counter and a
    migration of its own.
+
+   NOTE, corrected 2026-08-05: this used to say XP "already syncs through
+   profiles.user_data". It does not. Nothing in the loaded app writes
+   user_data.xp_data — js/dashboard.js, its only writer, is not loaded —
+   so those rows are frozen at migration day. lib/data.js now reads
+   max(server, local) so the live counter can grow, but XP still does NOT
+   travel between devices. That remains open work, not a solved problem.
 
    The merge happens SERVER-side, in one RPC. Two devices that each read,
    merge locally and write back would race, and the loser's progress
