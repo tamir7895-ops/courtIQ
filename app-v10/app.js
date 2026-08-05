@@ -85,6 +85,29 @@
     /* A swipe lands on a NEW page — it starts at the top, like a pager,
        not wherever the last visit left the scroller. */
     if (slideDir) { try { h.scrollTop = 0; } catch (e) {} }
+    /* ONE failure path for both halves of a render. A screen may throw
+       synchronously OR return a promise that rejects later, and the two
+       used to be treated completely differently: the sync throw showed a
+       banner, the async rejection was swallowed by `then(roll, roll)` —
+       blank screen, no console, no trace. Neither reached telemetry
+       either, because a caught error never fires window.onerror. */
+    function fail(e) {
+      try {
+        var err = document.createElement('div');
+        err.style.padding = '20px';
+        err.style.color = '#FF4F1F';
+        err.textContent = 'Screen failed: ' + (e && e.message ? e.message : e);
+        h.appendChild(err);
+      } catch (e2) { /* the host is gone — nothing to show it on */ }
+      console.error('[v10] render error:', e);
+      try {
+        if (window.V12Telemetry && window.V12Telemetry.report) {
+          window.V12Telemetry.report('render failed on ' + id + ': ' +
+            (e && e.message ? e.message : e), e && e.stack ? e.stack : null);
+        }
+      } catch (e3) { /* telemetry must never hurt the app */ }
+    }
+
     var rendered = null;
     try {
       rendered = SCREENS[id]({
@@ -97,12 +120,7 @@
         }
       });
     } catch (e) {
-      var err = document.createElement('div');
-      err.style.padding = '20px';
-      err.style.color = '#FF4F1F';
-      err.textContent = 'Screen failed: ' + (e && e.message);
-      h.appendChild(err);
-      console.error('[v10] render error:', e);
+      fail(e);
     }
     if (window.V10Nav) window.V10Nav.setActive(id);
     /* Headline numbers roll up once the sections compose.
@@ -116,7 +134,9 @@
         if (window.V10UI && window.V10UI.animateCounts) window.V10UI.animateCounts(h);
       } catch (e2) { /* purely decorative */ }
     };
-    if (rendered && typeof rendered.then === 'function') rendered.then(roll, roll);
+    if (rendered && typeof rendered.then === 'function') {
+      rendered.then(roll, function (e) { roll(); fail(e); });
+    }
     else { roll(); setTimeout(roll, 60); setTimeout(roll, 240); }
   }
 
