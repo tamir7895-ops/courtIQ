@@ -177,6 +177,49 @@
       var next = (location.hash || '').replace(/^#/, '') || 'home';
       if (next !== current) go(next);
     });
+    bindHardwareBack();
+  }
+
+  /* Android's hardware Back was never wired to any of this. The whole
+     back-trail above — stack, ROOTS, TRANSIENT, PARENT — was reachable
+     only from on-screen buttons, and go() uses replaceState, so the
+     WebView had no history to fall back on either. The result: Back
+     minimised or exited the app from any depth, behaving nothing like
+     every other back affordance in the product.
+
+     Sheets and overlays get first refusal, because dismissing what is on
+     top of the screen is what Back means to a person looking at one.
+     Only at a root with an empty trail do we let the OS have it. */
+  function bindHardwareBack() {
+    var App = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App;
+    if (!App || !App.addListener) return;   // web build, or plugin not synced
+    App.addListener('backButton', function () {
+      /* The two body-level sheets in the app, dismissed the way the app
+         itself dismisses them rather than ripped out of the DOM, so their
+         own close animation and bookkeeping still run.
+           .plan12-sheetbg  — language picker (me.js), day sheet (plan.js);
+                              the backdrop's own click handler closes it
+           .ld12-sheethost  — auth sheet (landing.js); its .ld12-scrim does */
+      var bg = document.querySelector('.plan12-sheetbg');
+      if (bg) {
+        var x = bg.querySelector('.plan12-sheet__x');
+        if (x) x.click(); else bg.click();
+        return;
+      }
+      var host = document.querySelector('.ld12-sheethost');
+      if (host) {
+        var scrim = host.querySelector('.ld12-scrim');
+        if (scrim) { scrim.click(); return; }
+      }
+      if (stack.length || PARENT[current]) { back(); return; }
+      /* A root screen with nothing behind it: minimise like every other
+         Android app rather than tearing the process down, so coming back
+         resumes instead of cold-starting. */
+      try {
+        if (App.minimizeApp) App.minimizeApp();
+        else if (App.exitApp) App.exitApp();
+      } catch (e) { /* nothing sensible left to do */ }
+    });
   }
 
   window.app = {
