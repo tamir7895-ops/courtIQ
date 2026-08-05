@@ -118,6 +118,13 @@
        server confirms it: player_prefs has zero rows under 'plan'. */
     pref('plan',       lsGet('courtiq_plan_v2', null));
     pref('plan_prefs', lsGet('courtiq_plan_prefs', null));
+    /* Whether this ACCOUNT has been through onboarding — account state,
+       not device state, which is why it rides here and is NOT on the
+       sign-out KEEP list. Signing out wipes the local copy on purpose
+       (the next person on this handset must onboard), and signing back
+       in restores it from the server instead of marching a five-year
+       veteran through the combine again. */
+    pref('onboarded',  lsGet('courtiq_onboarded', null));
     pref('avatar',     lsGet('courtiq_avatar_params', null));
     try {
       var url = localStorage.getItem('courtiq_avatar_url');
@@ -203,6 +210,13 @@
       if (state.prefs) {
         if (state.prefs.plan)       lsSet('courtiq_plan_v2', state.prefs.plan.value);
         if (state.prefs.plan_prefs) lsSet('courtiq_plan_prefs', state.prefs.plan_prefs.value);
+        /* Written raw, not JSON: every reader treats it as a truthy
+           string sentinel (`!!localStorage.getItem(...)`), and a pulled
+           `"1"` with quotes would still be truthy but would no longer
+           match what onboarding writes. */
+        if (state.prefs.onboarded && state.prefs.onboarded.value) {
+          try { localStorage.setItem('courtiq_onboarded', '1'); } catch (e2) {}
+        }
         if (state.prefs.avatar)     lsSet('courtiq_avatar_params', state.prefs.avatar.value);
         if (state.prefs.avatar_url && typeof state.prefs.avatar_url.value === 'string') {
           localStorage.setItem('courtiq_avatar_url', state.prefs.avatar_url.value);

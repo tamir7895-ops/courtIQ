@@ -97,7 +97,28 @@
           return;
         }
         setMsg('Welcome!', true);
-        setTimeout(function () { ctx.go('me'); }, 250);
+        /* Where to land is not obvious, and this screen used to not ask:
+           it always went to 'me'. Meanwhile signing out wipes
+           courtiq_onboarded (correctly — the next person on this handset
+           must onboard), so a returning player arrived with no local
+           record of ever having onboarded and the NEXT cold start threw
+           them back into the full combine.
+
+           The account's answer lives on the server now (lib/sync.js
+           'onboarded'), so ask before deciding. One pull settles it;
+           if it is slow or fails we fall back to the local flag rather
+           than trap a veteran in onboarding over a bad connection. */
+        setTimeout(function () {
+          function land() {
+            var onboarded = false;
+            try { onboarded = !!localStorage.getItem('courtiq_onboarded'); } catch (e2) {}
+            ctx.go(onboarded ? 'me' : 'onboarding');
+          }
+          var pull = (window.V12Sync && window.V12Sync.run)
+            ? window.V12Sync.run() : Promise.resolve(null);
+          var timed = new Promise(function (r) { setTimeout(r, 2500); });
+          Promise.race([pull, timed]).then(land, land);
+        }, 250);
       }).catch(function (e) {
         busy = false;
         setMsg((e && e.message) || 'Network error — try again.');
