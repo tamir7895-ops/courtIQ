@@ -1,5 +1,10 @@
 # CourtIQ Redesign — Decisions Log
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> יומן החלטות מ-2026-04-29. ההחלטות עצמן עדיין מעניינות; מפת הקבצים שבו כבר לא.
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 Living record of every decision made during the redesign. Append only; never rewrite history. Each entry dated, with rationale.
 
 ## 2026-04-20 — Phase 0 decisions

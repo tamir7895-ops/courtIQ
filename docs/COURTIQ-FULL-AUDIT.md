@@ -1,5 +1,10 @@
 # CourtIQ — Complete App Audit for UI Redesign
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> תצלום מ-2026-04-29, נכתב לקראת עיצוב מחדש. רוב הקבצים שהוא ממפה ב-`js/` נמחקו מאז (2026-08-05).
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 ## Project Overview
 
 **Type:** AI-Powered Basketball Training Platform (PWA)

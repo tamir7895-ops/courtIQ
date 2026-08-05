@@ -1,5 +1,10 @@
 # YOLOX v6 Retraining Plan — Basketball Shot Detection
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> תוכנית אימון ל-v6. השושלת המשיכה מאז: `v7m5` → `B1` → `m6_fp16`, שהוא המודל הנטען היום.
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 ## Current Model Performance (v4)
 
 | Metric | Score | Notes |

@@ -36,9 +36,26 @@ CourtIQ delivers personalized basketball training programs powered by artificial
 
 ## Getting Started
 
-Simply open `index.html` in any modern browser — no build step required.
+There **is** a build step. The app lives in `app-v10/`, and everything is served
+from the generated `www/` — so a file you just created 404s until you build.
 
-For the AI Coach and Calendar features, you'll need an Anthropic API key.
+```bash
+npm install
+node build.js        # root/ -> www/
+node serve.js        # http://localhost:8080/app-v10/index.html
+```
+
+Never edit `www/` by hand: it is generated, not in git, and every build overwrites
+it. Native builds go `node build.js` → `npx cap sync ios|android`; for iPhone use
+`npm run ios:sync`, which also prunes the bundle.
+
+No API key is needed to run it. The AI coach talks to a Supabase edge function
+that holds the Anthropic key server-side — the client never sees one.
+
+**Before changing anything, read [`docs/STATE-2026-08.md`](docs/STATE-2026-08.md)** —
+it is the current picture of what loads, what ships, and what is deliberately
+left open. [`docs/README.md`](docs/README.md) says which of the older documents
+still tell the truth.
 
 ---
 

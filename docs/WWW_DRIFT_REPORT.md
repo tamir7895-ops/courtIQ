@@ -1,5 +1,10 @@
 # WWW / Root Drift Audit — Commit 1 Safety Report
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> תצלום מ-2026-04-29. הדריפט שתועד כאן טופל: מאז 2026-08-05 `build.js` ממרר את הספריות שהוא מעתיק, כך ששאריות ב-`www/` נמחקות בכל בנייה. הדוח גם מזכיר עשרות קבצי `js/` שנמחקו מאז.
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 **Generated:** 2026-04-19
 **Branch:** `claude/fix-shot-tracker`
 **Purpose:** Before deleting `www/` (per target-state plan), verify every feature and every design improvement survives in root at its latest version.

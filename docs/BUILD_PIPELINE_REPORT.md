@@ -1,5 +1,10 @@
 # Build Pipeline Report
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> תצלום מ-2026-04-29. צנרת הבנייה השתנתה מאז: ראו סעיף 4 במסמך המצב.
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 **Generated:** 2026-04-19
 **Scope:** Understand `build.js`, CI workflows, and gh-pages deploy to narrow the 5 blocker questions in `WWW_DRIFT_REPORT.md`.
 **No files modified except this report.**

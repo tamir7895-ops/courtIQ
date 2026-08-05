@@ -1,5 +1,10 @@
 # Production State Report
 
+> ⚠️ **מסמך היסטורי — לא מתאר את המצב הנוכחי.**
+> תצלום מ-2026-04-29. מתאר את עידן הדשבורד — `js/dashboard.js` ו-`js/auth.js` שהוא מסתמך עליהם נמחקו מאז.
+> למצב העדכני: [`docs/STATE-2026-08.md`](STATE-2026-08.md).
+> התוכן להלן נשמר כפי שנכתב, בכוונה.
+
 **Generated:** 2026-04-19
 **Scope:** Verify the "CI frozen" and "391-line gap" claims from BUILD_PIPELINE_REPORT.md.
 **No files modified except this report.**
