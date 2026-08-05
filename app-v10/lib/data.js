@@ -198,9 +198,9 @@
           var ud = p.user_data || {};
           var xpData = (ud && ud.xp_data) || {};
           /* The server value is a fossil. profiles.user_data.xp_data was
-             written in the old dashboard era, and nothing in the loaded
-             app writes it — js/dashboard.js, its only writer, is not
-             loaded. Reading it FIRST meant a signed-in player's XP was
+             written in the old dashboard era, and nothing writes it any
+             more: its only writer was the legacy dashboard, deleted
+             2026-08-05. Reading it FIRST meant a signed-in player's XP was
              frozen at whatever it was on migration day (60, 80 and 126
              across the three accounts on this project, all carrying the
              same migration timestamp) while their coins, derived from the
