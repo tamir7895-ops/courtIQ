@@ -82,6 +82,26 @@
     console.warn('[ShotDetection] Web Worker unavailable, using main thread CHW');
   }
 
+  /* How long to wait for the worker's reply before giving up on it.
+     The transposition is ~520K writes — single-digit ms on anything, and
+     a few tens of ms on a loaded phone. 2.5s means something is wrong,
+     not slow. */
+  var CHW_WORKER_TIMEOUT_MS = 2500;
+
+  /* RGBA (canvas) → CHW float, with the BGR swap YOLOX was trained on.
+     Same body as yoloxWorker.js — see there for the channel-order
+     rationale, and training/v7/verify_channel_order.py for the check.
+     Lives here so the worker path has somewhere to fall back TO. */
+  function _chwTranspose(src, sz) {
+    var chSize = sz * sz;
+    for (var i = 0; i < chSize; i++) {
+      _yoloxBuf[i]              = src[i * 4 + 2]; // B
+      _yoloxBuf[chSize + i]     = src[i * 4 + 1]; // G
+      _yoloxBuf[chSize * 2 + i] = src[i * 4];     // R
+    }
+    return _yoloxBuf;
+  }
+
   /* Area thresholds as fractions of total frame area */
   var BALL_MIN_AREA_FRAC   = 0.00005;  // Very small — distant shots
   var BALL_MAX_AREA_FRAC   = 0.18;     // Very large — close-up shots
@@ -1992,21 +2012,54 @@
       // changes, switch to a request-id keyed map of pending resolvers.
       var chwReady;
       if (_chwWorker) {
-        chwReady = new Promise(function (resolve) {
-          _chwWorker.onmessage = function (ev) { resolve(ev.data.buffer); };
-          _chwWorker.postMessage({ imageData: imgData, size: sz }, [imgData.buffer]);
+        chwReady = new Promise(function (resolve, reject) {
+          /* Settle exactly once, and ALWAYS settle. Before this there was
+             no reject, no onerror and no timeout — so a worker that died,
+             or a reply that never arrived, left this promise pending
+             forever. `_isDetecting` clears only in the then/catch below,
+             which means detection stopped for the rest of the session
+             with the camera still running, no error, and nothing counted.
+             That is the silent freeze the audit ranked first. */
+          var settled = false;
+          var timer = setTimeout(function () {
+            finish(reject, new Error('CHW worker timed out after ' + CHW_WORKER_TIMEOUT_MS + 'ms'));
+          }, CHW_WORKER_TIMEOUT_MS);
+          function finish(fn, arg) {
+            if (settled) return;
+            settled = true;
+            clearTimeout(timer);
+            fn(arg);
+          }
+          _chwWorker.onmessage = function (ev) { finish(resolve, ev.data.buffer); };
+          _chwWorker.onerror   = function (err) {
+            finish(reject, new Error('CHW worker error: ' + ((err && err.message) || 'unknown')));
+          };
+          try {
+            _chwWorker.postMessage({ imageData: imgData, size: sz }, [imgData.buffer]);
+          } catch (postErr) { finish(reject, postErr); }
+        }).catch(function (err) {
+          /* Retire the worker instead of retrying it. The request/response
+             pairing here rests on exactly one reply per postMessage (we
+             reassign onmessage every call), so a reply that was merely
+             LATE would land on the NEXT frame's handler and feed that
+             inference the previous frame's pixels. terminate() makes that
+             impossible; the inline path below is what a device without
+             Worker support has always used, so this is a known-good gear
+             to drop into, not a new one. */
+          console.warn('[ShotDetection] CHW worker retired, falling back to main thread:',
+            (err && err.message) || err);
+          try { if (_chwWorker) _chwWorker.terminate(); } catch (e) {}
+          _chwWorker = null;
+          /* imgData.buffer was transferred to the worker and is detached
+             on this side now, so re-read the letterboxed frame from the
+             canvas — nothing has drawn over it since. */
+          return _chwTranspose(_yoloxCtx.getImageData(0, 0, sz, sz).data, sz);
         });
       } else {
         // YOLOX trained on cv2.imread (BGR); canvas gives RGB. Must swap so
         // channel 0 = B, channel 2 = R. See yoloxWorker.js for full rationale
         // and training/v7/verify_channel_order.py for the empirical check.
-        var chSize = sz * sz;
-        for (var i = 0; i < chSize; i++) {
-          _yoloxBuf[i]              = imgData[i * 4 + 2]; // B
-          _yoloxBuf[chSize + i]     = imgData[i * 4 + 1]; // G
-          _yoloxBuf[chSize * 2 + i] = imgData[i * 4];     // R
-        }
-        chwReady = Promise.resolve(_yoloxBuf);
+        chwReady = Promise.resolve(_chwTranspose(imgData, sz));
       }
 
       var pendingInputTensor = null;
