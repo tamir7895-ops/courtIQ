@@ -23,6 +23,8 @@
   var T = {
     en: {
       'social.invite.withcode':    'Training with CourtIQ — AI shot tracking. Add me with my code: {code}',
+      'social.req.accept':         'Accept',
+      'social.req.reject':         'Decline',
       'social.invite.nocode':      'Training with CourtIQ — AI shot tracking. Come compete with me.',
       'social.toast.copied':       'Invite copied',
       'social.you':                'You',
@@ -68,6 +70,8 @@
     },
     he: {
       'social.invite.withcode':    'מתאמן עם CourtIQ — מעקב זריקות עם AI. תוסיפו אותי עם הקוד: {code}',
+      'social.req.accept':         'אישור',
+      'social.req.reject':         'דחייה',
       'social.invite.nocode':      'מתאמן עם CourtIQ — מעקב זריקות עם AI. בואו להתחרות בי.',
       'social.toast.copied':       'ההזמנה הועתקה',
       'social.you':                'אני',
@@ -229,9 +233,11 @@
   /* ── requests waiting on you ────────────────────────────────────*/
   function requestsCard(ctx, reqs, refresh) {
     var rows = reqs.map(function (r) {
-      var accept = h('button', { class: 's12-req__btn s12-req__btn--yes', type: 'button' },
+      var accept = h('button', { class: 's12-req__btn s12-req__btn--yes', type: 'button',
+                                 'aria-label': t('social.req.accept') },
         [h('i', { class: 'ph-bold ph-check' })]);
-      var reject = h('button', { class: 's12-req__btn s12-req__btn--no', type: 'button' },
+      var reject = h('button', { class: 's12-req__btn s12-req__btn--no', type: 'button',
+                                 'aria-label': t('social.req.reject') },
         [h('i', { class: 'ph-bold ph-x' })]);
       accept.addEventListener('click', function () {
         ctx.data.respondToRequest(r.id, true).then(function (ok) {

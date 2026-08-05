@@ -50,6 +50,18 @@ function copyRecursive(src, dest) {
   }
 }
 
+/* Development payload that must never reach a deploy. www/ is served
+   publicly (GitHub Pages), so these were live URLs: 54MB of calibration
+   audit frames, 16MB of eval clips, and six debug harness pages anyone
+   could open. build.js copies and never deletes, so they also survived
+   every rebuild once they had landed. Pruned AFTER the copy, which also
+   cleans up whatever an earlier build left behind. */
+const PRUNE_FROM_WWW = [
+  '_audit', '_eval', 'v2-preview',
+  'debug-auto-rim-eval.html', 'debug-eval-run.html', 'debug-l7-eval.html',
+  'debug-pose-poc.html', 'debug-pose-shot-bench.html', 'debug-shot-log.html',
+];
+
 // Ensure www/ exists
 fs.mkdirSync(DEST, { recursive: true });
 
@@ -62,6 +74,15 @@ for (const target of COPY_TARGETS) {
   }
   copyRecursive(srcPath, path.join(DEST, target));
   console.log(`✓ Copied ${target}`);
+}
+
+// Prune the dev payload — including anything a previous build left here.
+for (const junk of PRUNE_FROM_WWW) {
+  const p = path.join(DEST, junk);
+  if (fs.existsSync(p)) {
+    fs.rmSync(p, { recursive: true, force: true });
+    console.log(`✓ Pruned ${junk}`);
+  }
 }
 
 // Cache-bust: stamp every ?v=... asset URL in the built app-v10/index.html

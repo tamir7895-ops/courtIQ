@@ -10,8 +10,7 @@
       "*.supabase.in",
       "api.anthropic.com",
       "cdn.jsdelivr.net",
-      "storage.googleapis.com",
-      "tfhub.dev"
+      "storage.googleapis.com"
     ]
   },
   "ios": {
@@ -21,7 +20,9 @@
   },
   "plugins": {
     "Camera": {
-      "permissions": ["camera"]
+      "permissions": [
+        "camera"
+      ]
     }
   }
 }

@@ -53,6 +53,11 @@
       'plan.sheet.done':      'Mark done',
       'plan.sheet.start':     'Start',
       'plan.week.this':       'This week',
+      'plan.a11y.close': 'Close',
+      'plan.a11y.prevweek': 'Previous week',
+      'plan.a11y.nextweek': 'Next week',
+      'plan.a11y.prevmonth': 'Previous month',
+      'plan.a11y.nextmonth': 'Next month',
       'plan.week.ago':        '{n}w ago',
       'plan.week.in':         'In {n}w',
       'plan.week.sessions':   '{done} of {planned} sessions',
@@ -120,6 +125,11 @@
       'plan.sheet.done':      'סמן כבוצע',
       'plan.sheet.start':     'התחל',
       'plan.week.this':       'השבוע',
+      'plan.a11y.close': 'סגירה',
+      'plan.a11y.prevweek': 'השבוע הקודם',
+      'plan.a11y.nextweek': 'השבוע הבא',
+      'plan.a11y.prevmonth': 'החודש הקודם',
+      'plan.a11y.nextmonth': 'החודש הבא',
       'plan.week.ago':        'לפני {n} שב׳',
       'plan.week.in':         'בעוד {n} שב׳',
       'plan.week.sessions':   '{done} מתוך {planned} אימונים',
@@ -216,7 +226,7 @@
         h('div', { class: 'plan12-sheet__t', text: dateISO
           ? t('plan.sheet.title', { dow: t('plan.dow.' + dowIdx), date: dateISO.slice(5) })
           : t('plan.dow.' + dowIdx) }),
-        h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close }, [h('i', { class: 'ph-bold ph-x' })])
+        h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close, 'aria-label': t('plan.a11y.close') }, [h('i', { class: 'ph-bold ph-x' })])
       ]));
 
       /* focus swap */
@@ -292,9 +302,9 @@
 
     /* week nav + summary */
     host.appendChild(h('div', { class: 'plan12-nav' }, [
-      h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.weekOff--; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-left' })]),
+      h('button', { class: 'plan12-nav__b', type: 'button', 'aria-label': t('plan.a11y.prevweek'), onclick: function () { state.weekOff--; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-left' })]),
       h('div', { class: 'plan12-nav__l', text: label }),
-      h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.weekOff++; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-right' })])
+      h('button', { class: 'plan12-nav__b', type: 'button', 'aria-label': t('plan.a11y.nextweek'), onclick: function () { state.weekOff++; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-right' })])
     ]));
 
     var streak = 0; try { streak = (window.StreakSystem && window.StreakSystem.get) ? window.StreakSystem.get() : 0; } catch (e) {}
@@ -354,9 +364,9 @@
     var todayISO = P.todayISO();
 
     host.appendChild(h('div', { class: 'plan12-nav' }, [
-      h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.monthOff--; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-left' })]),
+      h('button', { class: 'plan12-nav__b', type: 'button', 'aria-label': t('plan.a11y.prevmonth'), onclick: function () { state.monthOff--; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-left' })]),
       h('div', { class: 'plan12-nav__l', text: t('plan.monthyear', { m: t('plan.month.' + month), y: year }) }),
-      h('button', { class: 'plan12-nav__b', type: 'button', onclick: function () { state.monthOff++; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-right' })])
+      h('button', { class: 'plan12-nav__b', type: 'button', 'aria-label': t('plan.a11y.nextmonth'), onclick: function () { state.monthOff++; state.paint(); } }, [h('i', { class: 'ph-bold ph-caret-right' })])
     ]));
 
     /* periodization strip — 4 weeks emphasis */

@@ -84,6 +84,20 @@
       }
     } catch (e) { /* private mode — the flag simply never persists */ }
 
+    /* Sheets live on document.body, and go() only empties #app — so a
+       sheet open at navigation time survives onto the next screen as a
+       fixed, inset-0, z-70 layer with no way to dismiss it. No user route
+       reaches that today (the sheet covers the nav, and swipes bind to
+       #app, a SIBLING of the sheet), which is why this is a guard and not
+       a bug fix: it is one deep-link handler or auth event away from
+       being one, and by then the screen is simply frozen. */
+    try {
+      var strays = document.querySelectorAll('.plan12-sheetbg, .ld12-sheethost');
+      for (var si = 0; si < strays.length; si++) {
+        if (strays[si].parentNode) strays[si].parentNode.removeChild(strays[si]);
+      }
+    } catch (e) { /* never let cleanup break navigation */ }
+
     document.body.setAttribute('data-screen', id);
     if (location.hash !== '#' + id) {
       try { history.replaceState(null, '', '#' + id); } catch (e) {}
@@ -162,10 +176,15 @@
     // First run → the landing screen: language, brand, and the three
     // ways in (create profile / sign in / guest). It hands off to
     // onboarding, which sets courtiq_onboarded on finish. A returning
-    // player who finished onboarding never sees either again. Deep
-    // links to other screens are respected.
+    // player who finished onboarding never sees either again.
     try {
-      if (initial === 'home' && !localStorage.getItem('courtiq_onboarded')) {
+      /* Applies to every destination, not just #home. The check used to
+         be `initial === 'home'`, so ANY deep link — #track, #coach, a
+         notification tap — walked straight past the gate into a screen
+         with no profile and no plan behind it. TRANSIENT screens are
+         exempt: landing, onboarding and auth ARE the gate, and
+         camera-hud/session-prep are reached from inside it. */
+      if (!TRANSIENT[initial] && !localStorage.getItem('courtiq_onboarded')) {
         var signedIn = false;
         try { signedIn = !!(window.V10Auth && window.V10Auth.user()); } catch (e2) {}
         if (!signedIn && SCREENS.landing) initial = 'landing';

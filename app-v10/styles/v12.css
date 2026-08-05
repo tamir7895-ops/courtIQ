@@ -2936,3 +2936,28 @@ html[dir="rtl"] .ld12-guest i { transform: scaleX(-1); }
 .onb12-av__sw.is-on {
   border-color: var(--d-ink); box-shadow: 0 0 0 2px var(--d-orange);
 }
+
+/* ── Touch targets ────────────────────────────────────────────────
+   Four controls sat under Apple's 44px minimum: the chat back button
+   (40), the sheet close and the plan steppers (36-38), and the v11
+   header avatar (36). Rather than resize them — the design reads at
+   these sizes, and growing them would push the layouts around — each
+   gets an invisible ::after that extends the HIT area to 44px while
+   the painted control stays exactly as it is. The gym sprites nearby
+   are decoration, not controls, so they are deliberately untouched. */
+.c12-back,
+.plan12-sheet__x,
+.plan12-nav__b { position: relative; }
+
+.c12-back::after,
+.plan12-sheet__x::after,
+.plan12-nav__b::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 44px; height: 44px;
+  transform: translate(-50%, -50%);
+  /* the button itself still paints and still receives the click —
+     this only widens where a fingertip counts as "on" it */
+  border-radius: inherit;
+}

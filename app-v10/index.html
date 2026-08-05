@@ -101,13 +101,11 @@
 <!-- ג”€ג”€ג”€ Preview-mode flag (skip auth redirects when no session) ג”€ג”€ג”€ -->
 <script>
   window.__PREVIEW_MODE__ = true;   // assume preview until session confirmed
-  /* Developer instruments (canvas ENG: bar, backend/timing badge). ON
-     while the detection model is still being evaluated on real courts —
-     the ball-hit rate and inference cost are how a bad session gets
-     diagnosed at all. They are boxed and legible now rather than bare
-     text over the feed. Turn OFF for a shipping build with ?debug=0 or
-     localStorage.courtiq_debug = '0'. */
-  /* OFF by default now. It shipped ON, so a TestFlight build showed
+  /* Developer instruments (canvas ENG: bar, backend/timing badge). The
+     ball-hit rate and inference cost are how a bad session gets diagnosed
+     at all, so they stay one flag away — boxed and legible rather than
+     bare text over the feed.
+     OFF by default now. It shipped ON, so a TestFlight build showed
      backend names and inference timings to players who have no idea what
      a WASM execution provider is. Opt IN with ?debug=1 or
      localStorage.courtiq_debug = '1'; ?debug=0 still forces it off so an
@@ -313,10 +311,13 @@
        Caught before it ever reached a build; the guard stays first. */
     if (window.Capacitor) return;
     var host = location.hostname;
-    var dev = host === 'localhost' || host === '127.0.0.1' ||
-              /^192\.168\./.test(host) || /^10\./.test(host) ||
-              location.search.indexOf('studio') >= 0;
-    if (!dev) return;
+    var devHost = host === 'localhost' || host === '127.0.0.1' ||
+                  /^192\.168\./.test(host) || /^10\./.test(host);
+    /* AND, not OR. `|| ?studio` meant any visitor to the public web build
+       could open the design Studio by typing it in the URL. It exists so
+       the Studio can be opened on a real phone against a LAN dev server —
+       which is a dev HOST either way, so requiring both loses nothing. */
+    if (!devHost) return;
     var s = document.createElement('script');
     s.src = 'lib/studio.js?v=dev';
     document.head.appendChild(s);

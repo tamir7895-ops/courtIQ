@@ -73,6 +73,7 @@
       'me.tro.customizer.n': 'Style Icon',
       'me.tro.customizer.r': 'Avatar customised',
       'me.set.title':        'Settings',
+      'me.a11y.close':       'Close',
       'me.set.signin.t':     'Sign in / create account',
       'me.set.signin.s':     'Sync sessions, streak and Court IQ across devices.',
       'me.set.avatar.t':     'Customise avatar',
@@ -168,6 +169,7 @@
       'me.tro.customizer.n': 'אייקון של סטייל',
       'me.tro.customizer.r': 'אווטאר בהתאמה אישית',
       'me.set.title':        'הגדרות',
+      'me.a11y.close':       'סגירה',
       'me.set.signin.t':     'כניסה / יצירת חשבון',
       'me.set.signin.s':     'סנכרון סשנים, רצף ו-Court IQ בין מכשירים.',
       'me.set.avatar.t':     'התאמת אווטאר',
@@ -304,7 +306,7 @@
 
     sheet.appendChild(h('div', { class: 'plan12-sheet__hd' }, [
       h('div', { class: 'plan12-sheet__t', text: t('me.set.lang') }),
-      h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close },
+      h('button', { class: 'plan12-sheet__x', type: 'button', onclick: close, 'aria-label': t('me.a11y.close') },
         [h('i', { class: 'ph-bold ph-x' })])
     ]));
 
@@ -316,6 +318,13 @@
         onclick: function () {
           if (isCur) { close(); return; }
           close();
+          /* set() reloads the page when the language ships as a pack
+             (es/ar/ru/fr/pt), and a reload lands on 'me' — the FRONT
+             page, not settings, which is where you were standing. Arm
+             the same flag goFromSettings uses so the reload comes back
+             here. Harmless when no reload happens: the repaint below
+             consumes it on the next visit to 'me' at worst. */
+          try { sessionStorage.setItem('courtiq_me_return', 'settings:me'); } catch (e2) {}
           V12I18n.set(lg.code);                 /* may reload for packs */
           settingsView(host, ctx, back);        /* repaint if it didn't */
         }
