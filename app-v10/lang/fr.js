@@ -1001,6 +1001,7 @@
     'cam.gate.point': 'Vise le panier',
     'cam.gate.start': 'Commence à shooter',
     'cam.gate.anyway': 'Filmer quand même',
+    'cam.save.local': 'Pas de connexion — séance enregistrée sur le téléphone',
     'cam.anl.loading': 'Chargement des modèles…',
     'cam.anl.title': 'Analyse de ta vidéo',
     'cam.anl.keepOpen': 'Garde l\'app ouverte — analyse en cours…',

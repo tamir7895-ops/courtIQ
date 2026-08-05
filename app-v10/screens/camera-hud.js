@@ -65,6 +65,7 @@
       'cam.gate.point':     'Point at the hoop',
       'cam.gate.start':     'Start shooting',
       'cam.gate.anyway':    'Record anyway',
+      'cam.save.local':     'No connection — session saved on this phone',
       'cam.gate.calib':      'Calibrate court · 4 taps',
       'cam.gate.calibok':    'Court calibrated',
       'cam.gate.calibmoved': 'Camera moved — recalibrate',
@@ -116,6 +117,7 @@
       'cam.gate.point':     'כוון אל הסל',
       'cam.gate.start':     'תתחיל לזרוק',
       'cam.gate.anyway':    'להקליט בכל זאת',
+      'cam.save.local':     'אין חיבור — הסשן נשמר בטלפון',
       'cam.gate.calib':      'כיול מגרש · 4 נקישות',
       'cam.gate.calibok':    'המגרש מכויל',
       'cam.gate.calibmoved': 'המצלמה זזה — כייל מחדש',
@@ -840,6 +842,24 @@
     stopPolling();
   }
 
+  /* One-off message on the shared v12 toast chassis. Lives on body, so it
+     survives the hop into the recap and is still readable there. The local
+     is `el`, never `t` — that name belongs to the translator above, and a
+     shadow here would silently break every t() call in this function. */
+  function camToast(msg) {
+    try {
+      var old = document.querySelector('.av12-toast');
+      if (old && old.parentNode) old.parentNode.removeChild(old);
+      var el = h('div', { class: 'av12-toast', text: msg });
+      document.body.appendChild(el);
+      setTimeout(function () { el.classList.add('is-in'); }, 10);
+      setTimeout(function () {
+        el.classList.remove('is-in');
+        setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 240);
+      }, 3600);
+    } catch (e) { /* a missing toast must never break the recap */ }
+  }
+
   /* ── p11: OFFLINE upload analysis ─────────────────────────────
      An uploaded video is processed FRAME-BY-FRAME (ShotOfflineProcessor)
      instead of the real-time engine. This is the only path that produces
@@ -885,7 +905,17 @@
       ft_made: made, ft_missed: total - made
     };
     if (window.ShotService && window.ShotService.saveSessionAtomic) {
-      return window.ShotService.saveSessionAtomic(sessionPayload, shots).catch(function () {});
+      return window.ShotService.saveSessionAtomic(sessionPayload, shots)
+        .catch(function (err) {
+          /* ShotService has already buffered the session locally, so it is
+             NOT lost — but the player deserves to know it hasn't reached
+             the cloud. Resolving (not rethrowing) is deliberate: the caller
+             chains straight into the recap, and a rejection here would
+             bounce the whole flow into fallbackToRealtime(). */
+          console.warn('[camera-hud] session save failed, kept on device:',
+            err && err.message ? err.message : err);
+          camToast(t('cam.save.local'));
+        });
     }
     return Promise.resolve();
   }

@@ -1001,6 +1001,7 @@
     'cam.gate.point': 'Apunta al aro',
     'cam.gate.start': 'Empieza a tirar',
     'cam.gate.anyway': 'Grabar igual',
+    'cam.save.local': 'Sin conexión — la sesión se guardó en el teléfono',
     'cam.anl.loading': 'Cargando modelos…',
     'cam.anl.title': 'Analizando tu video',
     'cam.anl.keepOpen': 'Mantén la app abierta — analizando…',

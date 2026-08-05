@@ -1001,6 +1001,7 @@
     'cam.gate.point': 'Aponte pra cesta',
     'cam.gate.start': 'Começar a arremessar',
     'cam.gate.anyway': 'Gravar mesmo assim',
+    'cam.save.local': 'Sem conexão — sessão salva no celular',
     'cam.anl.loading': 'Carregando modelos…',
     'cam.anl.title': 'Analisando seu vídeo',
     'cam.anl.keepOpen': 'Mantenha o app aberto — analisando…',
