@@ -310,11 +310,20 @@
     // device rotation, or app entering/leaving fullscreen. resizeCanvas
     // is cheap (a few math ops + a couple style writes) so debouncing
     // is unnecessary at typical resize cadence.
-    window.addEventListener('resize', function () {
-      if (phase === 'tracking' || phase === 'rimlock' || phase === 'threept') {
-        resizeCanvas();
-      }
-    });
+    /* Named and removed-first, because bindEvents() runs on every
+       openScreen(). The per-element listeners above are safe — buildHTML()
+       replaces those elements each open, so their handlers go with them —
+       but `window` survives, so an anonymous listener here stacked up: ten
+       sessions meant ten handlers all calling resizeCanvas() on a single
+       rotation, at the least convenient moment there is. */
+    window.removeEventListener('resize', onWindowResize);
+    window.addEventListener('resize', onWindowResize);
+  }
+
+  function onWindowResize() {
+    if (phase === 'tracking' || phase === 'rimlock' || phase === 'threept') {
+      resizeCanvas();
+    }
   }
 
   /* ══════════════════════════════════════════════════════════════

@@ -370,12 +370,22 @@
     });
 
     // Close on escape
-    function onKey(e) { if (e.key === 'Escape') { closeReplay(overlay); document.removeEventListener('keydown', onKey); } }
+    function onKey(e) { if (e.key === 'Escape') closeReplay(overlay); }
     document.addEventListener('keydown', onKey);
+    /* Parked on the overlay so EVERY exit can unbind it. Unbinding only
+       inside the Escape branch meant closing with the X button left this
+       listener on document — and, through its closure, the whole detached
+       overlay and its video element — alive for the rest of the app's
+       life, once per replay opened. */
+    overlay.__onKey = onKey;
   }
 
   function closeReplay(overlay) {
     if (!overlay) return;
+    if (overlay.__onKey) {
+      document.removeEventListener('keydown', overlay.__onKey);
+      overlay.__onKey = null;
+    }
     var video = overlay.querySelector('video');
     if (video) {
       video.pause();
