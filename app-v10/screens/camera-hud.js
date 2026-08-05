@@ -1079,6 +1079,32 @@
     document.body.appendChild(overlay);
     v10Layer = overlay;
 
+    /* The overlay is fixed, inset:0, z-70, and it lives on document.body —
+       which the router never clears; go() only empties #app. So if the
+       route changes while analysis is up, the overlay stays, full-screen,
+       on top of whatever loaded next, with nothing left alive to remove
+       it. render()'s leaveObs does NOT cover this: an uploaded video is
+       handed to runOfflineUpload and render() returns before that observer
+       is ever created.
+
+       Watch from here instead, where the overlay is actually owned. Every
+       planned exit — finished, no-shots, fallback — removes the overlay
+       BEFORE it navigates, so finding it still parented after a route
+       change means the navigation came from somewhere else entirely (an
+       Android back press, a deep link, an auth event). */
+    var strandObs = new MutationObserver(function () {
+      if (document.body.getAttribute('data-screen') === 'camera-hud') return;
+      strandObs.disconnect();
+      if (!overlay.parentNode) return;   // a planned exit already cleaned up
+      window.__v10AnalysisOwnsFlow = false;
+      try { overlay.parentNode.removeChild(overlay); } catch (e) {}
+      if (v10Layer === overlay) v10Layer = null;
+      try { releaseWake(); } catch (e) {}
+      document.body.classList.remove('v10-cam-active');
+      setNav(true);
+    });
+    strandObs.observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
+
     /* Rotating coaching tips — the analyse can run 2-3x the clip length,
        and a wall of progress bar is where people get bored and leave. The
        tips are also genuinely useful: every one is a "next clip is better"
@@ -1435,13 +1461,29 @@
 
     // If user uses the v10 nav (rare; nav is hidden) — clean up before route change.
     var leaveObs = new MutationObserver(function () {
-      if (window.__v10AnalysisOwnsFlow) return;   // analysis overlay owns v10Layer now
-      if (document.body.getAttribute('data-screen') !== 'camera-hud') {
-        unmountChrome();
-        document.body.classList.remove('v10-cam-active');
-        setNav(true);
-        leaveObs.disconnect();
+      if (document.body.getAttribute('data-screen') === 'camera-hud') return;
+
+      /* The analysis flag used to make this observer return outright, so
+         that a route change could not delete the analysis UI out from
+         under the processor. But every legitimate exit from the analysis
+         — finished, no-shots, fallback — clears the flag and removes the
+         overlay BEFORE it navigates. So a route change that arrives with
+         the flag STILL SET did not come from the analysis at all; it came
+         from somewhere else (an Android back press, a deep link, an auth
+         event), and a fixed inset-0 z-70 overlay is about to sit on top
+         of the whole app with nothing left alive to remove it. That is
+         the stuck screen, and this is the only place that can see it. */
+      if (window.__v10AnalysisOwnsFlow) {
+        window.__v10AnalysisOwnsFlow = false;
+        try {
+          if (v10Layer && v10Layer.parentNode) v10Layer.parentNode.removeChild(v10Layer);
+        } catch (e) {}
+        v10Layer = null;
       }
+      unmountChrome();
+      document.body.classList.remove('v10-cam-active');
+      setNav(true);
+      leaveObs.disconnect();
     });
     leaveObs.observe(document.body, { attributes: true, attributeFilter: ['data-screen'] });
   }
