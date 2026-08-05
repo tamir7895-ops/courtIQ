@@ -208,12 +208,25 @@
       }));
 
       stopTick();
+      /* Counted from the clock, not from ticks. `state.seconds -= 1` per
+         interval assumes every interval fires — but iOS suspends the
+         WebView the moment the screen locks or the app is backgrounded,
+         and browsers throttle background timers hard. Lock the phone
+         mid-drill for two minutes and the old timer came back believing
+         two minutes had not passed. Deadline arithmetic is right whether
+         the ticks arrived or not; the tick is only what repaints. */
+      var deadline = Date.now() + state.seconds * 1000;
       tickHandle = setInterval(function () {
-        if (state.paused || state.done) return;
-        state.seconds -= 1;
+        if (state.done) return;
+        if (state.paused) {
+          /* a pause is a promise that the clock stops with you */
+          deadline = Date.now() + state.seconds * 1000;
+          return;
+        }
+        state.seconds = Math.ceil((deadline - Date.now()) / 1000);
         timerEl.textContent = fmt(Math.max(0, state.seconds));
         if (state.seconds <= 0) finish();
-      }, 1000);
+      }, 250);
 
       /* if the router swaps the screen out from under us, clean up */
       var obs = new MutationObserver(function () {

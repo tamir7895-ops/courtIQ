@@ -74,6 +74,8 @@
       'cam.anl.loading':  'Loading models…',
       'cam.anl.title':    'Analyzing your video',
       'cam.anl.keepOpen': 'Keep the app open — analysing…',
+      'cam.anl.cancel':     'Cancel analysis',
+      'cam.anl.cancelling': 'Cancelling…',
       'cam.anl.tiplabel': 'TIP',
       'cam.anl.eta':      ' · ~{t} left',
       'cam.anl.count':    '{n} shots · {m} made · {x} missed',
@@ -128,6 +130,8 @@
       'cam.anl.loading':  'טוען מודלים…',
       'cam.anl.title':    'מנתח את הסרטון שלך',
       'cam.anl.keepOpen': 'תשאיר את האפליקציה פתוחה — מנתח…',
+      'cam.anl.cancel':     'ביטול הניתוח',
+      'cam.anl.cancelling': 'מבטל…',
       'cam.anl.tiplabel': 'טיפ',
       'cam.anl.eta':      ' · עוד ~{t}',
       'cam.anl.count':    '{n} זריקות · {m} נכנסו · {x} החטאות',
@@ -1045,6 +1049,24 @@
     // analysis frames start flowing and the canvas takes over.
     var loaderEl = logoLoader();
 
+    /* A way out. offlineProcessor has taken an AbortSignal since it was
+       written (offlineProcessor.js:312, checked every frame) and nothing
+       was ever wired to it — so a long analyse on a slow phone was a
+       screen you could only wait out. The reject lands in the existing
+       .catch, which already knows how to fall back. */
+    var abortCtl = null;
+    try { abortCtl = new AbortController(); } catch (e) {}
+    var cancelBtn = h('button', {
+      class: 'd-btn d-btn--ghost',
+      type: 'button',
+      style: { marginTop: 'clamp(8px, 1.6dvh, 16px)', flexShrink: '0' },
+      onclick: function () {
+        cancelBtn.setAttribute('disabled', 'disabled');
+        stageEl.textContent = t('cam.anl.cancelling');
+        if (abortCtl) { try { abortCtl.abort(); } catch (e) {} }
+      }
+    }, [h('span', { text: t('cam.anl.cancel') })]);
+
     var overlay = h('div', {
       style: {
         position: 'fixed', inset: '0', background: 'var(--d-bg, #FFFFFF)', color: 'var(--d-ink)', zIndex: '70',
@@ -1070,7 +1092,8 @@
       pct,
       stageEl,
       tipEl,
-      diagEl
+      diagEl,
+      cancelBtn
     ]);
     // Two soft brand-coloured blobs drift behind everything so the screen
     // is alive during a long analyse instead of a static white wait.
@@ -1242,6 +1265,7 @@
          Half the frames = half the wait the user actually feels after
          every session. */
       fps: 15,
+      signal: abortCtl ? abortCtl.signal : null,
       // Show the execution provider alongside progress: on a phone WebView
       // that fell back to wasm this is the whole explanation for a slow
       // analyze, and it is otherwise invisible.
@@ -1358,7 +1382,23 @@
         setNav(true);
         window.app.go('post-session');
       });
-    }).catch(function () { releaseWake(); fallbackToRealtime(); });
+    }).catch(function (err) {
+      releaseWake();
+      /* A cancel is a decision, not a failure: honour it by leaving,
+         rather than dropping the player into the realtime fallback they
+         just asked to get out of. */
+      if (abortCtl && abortCtl.signal && abortCtl.signal.aborted) {
+        window.__v10AnalysisOwnsFlow = false;
+        try { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); } catch (e) {}
+        v10Layer = null;
+        document.body.classList.remove('v10-cam-active');
+        setNav(true);
+        window.app.go('track');
+        return;
+      }
+      console.warn('[camera-hud] analysis failed:', err && err.message ? err.message : err);
+      fallbackToRealtime();
+    });
   }
 
   function render(args) {

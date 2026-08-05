@@ -107,10 +107,16 @@
      diagnosed at all. They are boxed and legible now rather than bare
      text over the feed. Turn OFF for a shipping build with ?debug=0 or
      localStorage.courtiq_debug = '0'. */
+  /* OFF by default now. It shipped ON, so a TestFlight build showed
+     backend names and inference timings to players who have no idea what
+     a WASM execution provider is. Opt IN with ?debug=1 or
+     localStorage.courtiq_debug = '1'; ?debug=0 still forces it off so an
+     existing stored opt-in can be overridden from a URL. */
   try {
-    window.__courtiqDebug = !(/[?&]debug=0/.test(location.search) ||
-                              localStorage.getItem('courtiq_debug') === '0');
-  } catch (e) { window.__courtiqDebug = true; }
+    window.__courtiqDebug = !/[?&]debug=0/.test(location.search) &&
+                            (/[?&]debug=1/.test(location.search) ||
+                             localStorage.getItem('courtiq_debug') === '1');
+  } catch (e) { window.__courtiqDebug = false; }
 </script>
 
 <!-- ג”€ג”€ג”€ Engine: 3rd-party CDNs ג”€ג”€ג”€ -->

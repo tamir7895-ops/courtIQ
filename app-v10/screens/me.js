@@ -88,6 +88,7 @@
       'me.set.del.t':        'Delete account',
       'me.set.del.s':        'Removes your account and synced data. Cannot be undone.',
       'me.set.del.confirm':  'Delete your account and all synced data? This cannot be undone.',
+      'me.set.del.err':      'Could not delete the account — check your connection and try again.',
       'me.edit.title':       'Edit my data',
       'me.edit.sub':         'Your combine card — change anything',
       'me.edit.name':        'NAME',
@@ -182,6 +183,7 @@
       'me.set.del.t':        'מחיקת חשבון',
       'me.set.del.s':        'מוחק את החשבון והנתונים המסונכרנים. אי אפשר לבטל.',
       'me.set.del.confirm':  'למחוק את החשבון וכל הנתונים המסונכרנים? אי אפשר לבטל.',
+      'me.set.del.err':      'לא הצלחנו למחוק את החשבון — בדוק את החיבור ונסה שוב.',
       'me.edit.title':       'עריכת הנתונים שלי',
       'me.edit.sub':         'כרטיס הקומביין שלך — אפשר לשנות הכל',
       'me.edit.name':        'שם',
@@ -423,13 +425,31 @@
           window.V10Auth.signOut().then(function () { ctx.go('home'); });
         }
       }));
+      /* The most destructive control in the app, and it had no error
+         path, no busy state and no second click guard: deleteAccount()
+         throws on a failed edge call, so a network blip produced a tap
+         that did nothing at all — no spinner, no message — on the one
+         action where silence is least acceptable. */
+      var delBusy = false;
       host.appendChild(row('ph-trash', t('me.set.del.t'),
         t('me.set.del.s'),
-        function () {
-          if (window.confirm(t('me.set.del.confirm')) &&
-              window.V10Auth && window.V10Auth.deleteAccount) {
-            window.V10Auth.deleteAccount().then(function () { ctx.go('home'); });
-          }
+        function (ev) {
+          if (delBusy) return;
+          if (!window.confirm(t('me.set.del.confirm'))) return;
+          if (!(window.V10Auth && window.V10Auth.deleteAccount)) return;
+          delBusy = true;
+          /* V12.card wires onClick straight to addEventListener, so this
+             is an Event — currentTarget is the row itself. */
+          var rowEl = ev && ev.currentTarget;
+          if (rowEl) { rowEl.style.opacity = '0.5'; rowEl.style.pointerEvents = 'none'; }
+          window.V10Auth.deleteAccount()
+            .then(function () { ctx.go('home'); })
+            .catch(function (err) {
+              delBusy = false;
+              if (rowEl) { rowEl.style.opacity = ''; rowEl.style.pointerEvents = ''; }
+              console.error('[me] account deletion failed:', err);
+              window.alert(t('me.set.del.err'));
+            });
         }, true));
     }
   }
