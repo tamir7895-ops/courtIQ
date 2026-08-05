@@ -520,9 +520,24 @@
     input.style.position = 'fixed';
     input.style.left = '-9999px';
     input.style.top = '-9999px';
+    /* Removal lived only inside 'change', which does not fire when the
+       picker is dismissed — so every cancelled pick left an <input> on
+       body forever. 'cancel' covers the modern dismissal; the focus
+       fallback covers browsers that do not fire it, and both are
+       idempotent because drop() checks the parent. */
+    function drop() {
+      if (input.parentNode) input.parentNode.removeChild(input);
+    }
+    input.addEventListener('cancel', drop);
+    window.addEventListener('focus', function onBack() {
+      window.removeEventListener('focus', onBack);
+      /* one frame after the window comes back, so a real selection has
+         already fired 'change' and taken the element with it */
+      setTimeout(drop, 300);
+    });
     input.addEventListener('change', function () {
       var file = input.files && input.files[0];
-      document.body.removeChild(input);
+      drop();
       if (!file) return;
       window.__v10PendingVideoFile = file;
       if (window.app && window.app.go) {

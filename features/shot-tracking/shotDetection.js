@@ -1082,6 +1082,17 @@
 
       this.videoEl = videoEl;
       this.isRunning = true;
+      /* A monotonic stamp for THIS session. The engine is a singleton and
+         an inference can take longer than it takes a user to leave the
+         camera and come back — so a detection fired for the old session
+         used to land in the new session's tracker, one frame of a court
+         that is no longer on screen. The chain compares this stamp on
+         resolution and drops anything from a previous run. */
+      this._sessionToken = (this._sessionToken || 0) + 1;
+      /* stop() leaves this true if it interrupts an in-flight inference;
+         a fresh session must not inherit a detector that believes it is
+         already busy and therefore never schedules again. */
+      this._isDetecting = false;
       this.stats = { made: 0, attempts: 0 };
       this.lastShotTime = 0;
       this._mlMissCount = 0;
@@ -1991,6 +2002,7 @@
     _runYoloxInference: function (vw, vh, pw, ph, scaleX, scaleY, offsetX, offsetY, colorBall) {
       var self = this;
       var sz = YOLOX_INPUT_SIZE;
+      var myToken = self._sessionToken;   // which session asked for this
 
       // Letterbox preprocess: fit processing canvas into 640×640 with gray padding.
       // NOTE: image is drawn at (0,0), not centered. The decode at _yoloxDecode uses
@@ -2064,6 +2076,14 @@
 
       var pendingInputTensor = null;
       var chain = chwReady.then(function (chwBuf) {
+        /* The session this inference was fired for is over — the user
+           left the camera, or restarted it. Feeding the result to the
+           tracker now would mix a frame of the old court into the new
+           session's shot state. Stop here; start() has already cleared
+           _isDetecting for the new run, so nothing is left hanging. */
+        if (myToken !== self._sessionToken) {
+          throw { staleSession: true };
+        }
         var inputTensor = new ort.Tensor('float32', chwBuf, [1, 3, sz, sz]);
         pendingInputTensor = inputTensor;
         // Debug: log input stats once
@@ -2221,9 +2241,22 @@
         } catch (_) { /* tensor lifecycle is best-effort */ }
         pendingInputTensor = null;
 
+        if (myToken !== self._sessionToken) return;   // not our session any more
         self._isDetecting = false;
         self._scheduleDetection();
       }).catch(function (e) {
+        /* A stale result is a normal outcome of leaving the camera, not a
+           failure: say nothing, touch nothing, and above all do not clear
+           a flag or schedule a frame for the session that replaced us. */
+        if (e && e.staleSession) {
+          try {
+            if (pendingInputTensor && typeof pendingInputTensor.dispose === 'function') {
+              pendingInputTensor.dispose();
+            }
+          } catch (_) {}
+          pendingInputTensor = null;
+          return;
+        }
         console.warn('[ShotDetection] YOLOX inference error:', e);
         // Whatever happens below, the detection flag MUST clear or the
         // engine will deadlock on the next gate check. Wrap fallback work
@@ -2243,6 +2276,7 @@
           }
         } catch (_) { /* ignore */ }
         pendingInputTensor = null;
+        if (myToken !== self._sessionToken) return;
         self._isDetecting = false;
         self._scheduleDetection();
       });

@@ -1491,8 +1491,17 @@
         if (wasActive && !isActive) {
           obs.disconnect();
           unmountChrome();
-          document.body.classList.remove('v10-cam-active');
-          setNav(true);
+          /* The twin of this observer in lib/data.js checks the analysis
+             flag before it acts; this one did not, and it is the one that
+             shows the nav. On record-then-analyse the tracker closes so
+             the clip can be handed to the analyser, and restoring the nav
+             here flashed the tab bar for a frame before the analysis
+             overlay covered it. The analysis flow restores the nav itself
+             when it is genuinely done. */
+          if (!window.__v10AnalysisOwnsFlow) {
+            document.body.classList.remove('v10-cam-active');
+            setNav(true);
+          }
         }
         wasActive = isActive;
       });

@@ -200,8 +200,15 @@
         shop.owned = owned;
         /* spend is derived server-side from what was actually bought, so
            it can never drift from the item list the way a stored scalar
-           did */
-        if (state.coins_spent != null) shop.spent = Number(state.coins_spent) || 0;
+           did — but it is only as fresh as the round trip. A purchase
+           made WHILE this sync was in flight is already in local `spent`
+           and not yet in the server's sum, so taking the server value
+           flat handed the coins back for up to a minute, until the next
+           cycle took them again. The higher figure is the honest one:
+           spend only ever grows, and the next pull reconciles it. */
+        if (state.coins_spent != null) {
+          shop.spent = Math.max(Number(state.coins_spent) || 0, Number(shop.spent) || 0);
+        }
         lsSet('courtiq_shop_v12', shop);
       }
     } catch (e) {}
