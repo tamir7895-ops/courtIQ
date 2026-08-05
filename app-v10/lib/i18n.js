@@ -97,9 +97,17 @@
     }
   };
 
+  /* Remembered, because t() calls current() and t() is called per string.
+     Rendering the drill library — 178 cards — meant hundreds of
+     synchronous localStorage reads to answer a question whose answer
+     changes at most once per session, and only through set() below.
+     `null` means "not read yet", which is distinct from a stored value. */
+  var curMem = null;
   function current() {
-    try { return localStorage.getItem(LS_KEY) || 'en'; }
-    catch (e) { return 'en'; }
+    if (curMem !== null) return curMem;
+    try { curMem = localStorage.getItem(LS_KEY) || 'en'; }
+    catch (e) { curMem = 'en'; }
+    return curMem;
   }
 
   function langOf(code) {
@@ -150,6 +158,7 @@
   function set(code) {
     if (!known(code)) code = 'en';
     try { localStorage.setItem(LS_KEY, code); } catch (e) {}
+    curMem = code;   // the only writer, so the memo updates here and nowhere else
     /* Pack languages load at boot (only the active one ships into the
        page). Switching TO one whose strings aren't registered yet means
        the pack isn't loaded — a reload brings it in. en/he are always

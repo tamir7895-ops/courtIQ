@@ -339,18 +339,36 @@
      successful load is drawn to a canvas and stored as a dataURL
      (LRU-ish, 24 entries); later renders never touch the network. */
   var FACE_LS = 'courtiq_face_cache';
+  /* Parsed once, then held. Every read used to JSON.parse the WHOLE cache
+     — up to 24 base64 PNGs, already 27KB on a lightly-used account and
+     growing — and a coach conversation calls this per bubble. That is
+     tens of milliseconds of main-thread blocking to look up one string.
+     The map is only ever mutated through faceCachePut, so keeping it in
+     memory and writing through cannot drift from storage. */
+  var faceMem = null;
+  function faceMap() {
+    if (faceMem) return faceMem;
+    try { faceMem = JSON.parse(localStorage.getItem(FACE_LS) || '{}'); }
+    catch (e) { faceMem = {}; }
+    return faceMem;
+  }
   function faceCacheGet(url) {
-    try { return (JSON.parse(localStorage.getItem(FACE_LS) || '{}'))[url] || null; }
+    try { return faceMap()[url] || null; }
     catch (e) { return null; }
   }
   function faceCachePut(url, data) {
     try {
-      var m = JSON.parse(localStorage.getItem(FACE_LS) || '{}');
+      var m = faceMap();
       var keys = Object.keys(m);
       if (keys.length > 24) delete m[keys[0]];
       m[url] = data;
       localStorage.setItem(FACE_LS, JSON.stringify(m));
-    } catch (e) {}
+    } catch (e) {
+      /* Quota, most likely. The in-memory map now holds an entry storage
+         does not; drop the cache so the next read re-syncs from what
+         actually persisted rather than promising an image that is gone. */
+      faceMem = null;
+    }
   }
   function faceImg(props) {
     var url = props.src;
