@@ -111,7 +111,12 @@
       if (value === null || value === undefined) return;
       prefs.push({ key: key, value: value, client_ts: ts, device_id: deviceId() });
     }
-    pref('plan',       lsGet('courtiq-training-plan-v1', null));
+    /* courtiq_plan_v2 — the key lib/plan.js actually owns. Sync used to
+       read `courtiq-training-plan-v1`, which only the legacy (unloaded)
+       js/training-panel.js ever wrote, so the plan a player built never
+       left the device and apply() below wrote a key nobody reads. The
+       server confirms it: player_prefs has zero rows under 'plan'. */
+    pref('plan',       lsGet('courtiq_plan_v2', null));
     pref('plan_prefs', lsGet('courtiq_plan_prefs', null));
     pref('avatar',     lsGet('courtiq_avatar_params', null));
     try {
@@ -196,7 +201,7 @@
 
     try {
       if (state.prefs) {
-        if (state.prefs.plan)       lsSet('courtiq-training-plan-v1', state.prefs.plan.value);
+        if (state.prefs.plan)       lsSet('courtiq_plan_v2', state.prefs.plan.value);
         if (state.prefs.plan_prefs) lsSet('courtiq_plan_prefs', state.prefs.plan_prefs.value);
         if (state.prefs.avatar)     lsSet('courtiq_avatar_params', state.prefs.avatar.value);
         if (state.prefs.avatar_url && typeof state.prefs.avatar_url.value === 'string') {
