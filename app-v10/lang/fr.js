@@ -1002,6 +1002,8 @@
     'cam.gate.start': 'Commence à shooter',
     'cam.gate.anyway': 'Filmer quand même',
     'cam.save.local': 'Pas de connexion — séance enregistrée sur le téléphone',
+    'cam.reward.xp': '+{n} XP gagnés',
+    'cam.reward.reason': 'Séance IA : {m}/{a}',
     'cam.anl.loading': 'Chargement des modèles…',
     'cam.anl.title': 'Analyse de ta vidéo',
     'cam.anl.keepOpen': 'Garde l\'app ouverte — analyse en cours…',

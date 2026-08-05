@@ -1001,6 +1001,8 @@
     'cam.gate.start': 'ابدأ التسديد',
     'cam.gate.anyway': 'سجّل على أي حال',
     'cam.save.local': 'لا يوجد اتصال — حُفظت الجلسة على الهاتف',
+    'cam.reward.xp': '‏+{n} نقطة خبرة',
+    'cam.reward.reason': 'جلسة الذكاء الاصطناعي: {m}/{a}',
     'cam.anl.loading': 'تحميل النماذج…',
     'cam.anl.title': 'نحلل الفيديو الخاص بك',
     'cam.anl.keepOpen': 'أبقِ التطبيق مفتوحاً — جارٍ التحليل…',

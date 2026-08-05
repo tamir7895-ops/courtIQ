@@ -1001,6 +1001,8 @@
     'cam.gate.start': 'Начать бросать',
     'cam.gate.anyway': 'Записать всё равно',
     'cam.save.local': 'Нет связи — сессия сохранена на телефоне',
+    'cam.reward.xp': '+{n} XP получено',
+    'cam.reward.reason': 'ИИ-сессия: {m}/{a}',
     'cam.anl.loading': 'Загружаем модели…',
     'cam.anl.title': 'Разбираем твоё видео',
     'cam.anl.keepOpen': 'Не закрывай приложение — идёт разбор…',

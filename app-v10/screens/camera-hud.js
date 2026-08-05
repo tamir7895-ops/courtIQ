@@ -66,6 +66,8 @@
       'cam.gate.start':     'Start shooting',
       'cam.gate.anyway':    'Record anyway',
       'cam.save.local':     'No connection — session saved on this phone',
+      'cam.reward.xp':      '+{n} XP earned',
+      'cam.reward.reason':  'AI session: {m}/{a}',
       'cam.gate.calib':      'Calibrate court · 4 taps',
       'cam.gate.calibok':    'Court calibrated',
       'cam.gate.calibmoved': 'Camera moved — recalibrate',
@@ -118,6 +120,8 @@
       'cam.gate.start':     'תתחיל לזרוק',
       'cam.gate.anyway':    'להקליט בכל זאת',
       'cam.save.local':     'אין חיבור — הסשן נשמר בטלפון',
+      'cam.reward.xp':      'הרווחת {n} XP',
+      'cam.reward.reason':  'סשן AI: {m}/{a}',
       'cam.gate.calib':      'כיול מגרש · 4 נקישות',
       'cam.gate.calibok':    'המגרש מכויל',
       'cam.gate.calibmoved': 'המצלמה זזה — כייל מחדש',
@@ -860,6 +864,67 @@
     } catch (e) { /* a missing toast must never break the recap */ }
   }
 
+  /* The zones the app counts as threes — mirrors THREE_PT in
+     screens/post-session.js, which is where the product decides what a
+     three is. Engine vocabulary: pnt/ml/mr/topmid/lc/rc/lw/rw/top. */
+  var THREE_ZONES = { lc: 1, rc: 1, lw: 1, rw: 1, top: 1 };
+
+  /* Rewards for a session that actually happened.
+     Until now app-v10 granted NOTHING for a real session: the only
+     granter (ShotTrackingScreen.saveSessionData) sits behind the
+     `__v10AnalysisOwnsFlow` early return that every v10 session takes,
+     so twenty minutes of shooting moved neither XP, nor the streak, nor
+     a single badge — while a daily challenge worth one tap did.
+     Every system here is localStorage-backed, so this runs whether or
+     not the session reached the server: the player shot the ball either
+     way, and P3 already guarantees the session itself isn't lost. */
+  function grantSessionRewards(total, made, shots) {
+    var xp = made * 10 + total * 2;   // the same figure sessionPayload reports
+    try {
+      if (window.XPSystem && window.XPSystem.grantXP) {
+        window.XPSystem.grantXP(xp, t('cam.reward.reason', { m: made, a: total }));
+      }
+    } catch (e) { console.warn('[camera-hud] XP grant failed:', e); }
+
+    var streak = 0;
+    try {
+      if (window.StreakSystem) {
+        if (window.StreakSystem.checkIn) window.StreakSystem.checkIn();
+        if (window.StreakSystem.render) window.StreakSystem.render();
+        if (window.StreakSystem.get) streak = window.StreakSystem.get() || 0;
+      }
+    } catch (e) { console.warn('[camera-hud] streak check-in failed:', e); }
+
+    try {
+      if (window.BadgeSystem) {
+        if (window.BadgeSystem.incrementCounter) {
+          window.BadgeSystem.incrementCounter('totalAISessions', 1);
+          window.BadgeSystem.incrementCounter('sessionsThisWeek', 1);
+          window.BadgeSystem.incrementCounter('totalXP', xp);
+        }
+        if (window.BadgeSystem.checkStreakBadges) {
+          window.BadgeSystem.checkStreakBadges(streak);
+        }
+        if (window.BadgeSystem.checkShotBadges) {
+          var threes = 0;
+          (shots || []).forEach(function (s) {
+            var z = s && (s.shot_zone || s.v10Zone);
+            if (z && THREE_ZONES[String(z).toLowerCase()] && s.shot_result === 'made') threes++;
+          });
+          window.BadgeSystem.checkShotBadges({ made: made, attempts: total, threesMade: threes });
+        }
+        if (window.BadgeSystem.checkAll) window.BadgeSystem.checkAll();
+      }
+    } catch (e) { console.warn('[camera-hud] badge check failed:', e); }
+
+    /* The caller decides whether to announce this. The legacy XP toast
+       host (#xp-gain-toast) doesn't exist in v10, so XPSystem's own toast
+       is a silent no-op here — a reward the player never sees is the same
+       as no reward, and only the caller knows whether a more urgent
+       message (the save fell back to the phone) should win the slot. */
+    return xp;
+  }
+
   /* ── p11: OFFLINE upload analysis ─────────────────────────────
      An uploaded video is processed FRAME-BY-FRAME (ShotOfflineProcessor)
      instead of the real-time engine. This is the only path that produces
@@ -904,8 +969,13 @@
       fg_made: 0, fg_missed: 0, three_made: 0, three_missed: 0,
       ft_made: made, ft_missed: total - made
     };
+    var xpEarned = grantSessionRewards(total, made, shots);
+
     if (window.ShotService && window.ShotService.saveSessionAtomic) {
       return window.ShotService.saveSessionAtomic(sessionPayload, shots)
+        .then(function () {
+          if (xpEarned > 0) camToast(t('cam.reward.xp', { n: xpEarned }));
+        })
         .catch(function (err) {
           /* ShotService has already buffered the session locally, so it is
              NOT lost — but the player deserves to know it hasn't reached
@@ -917,6 +987,7 @@
           camToast(t('cam.save.local'));
         });
     }
+    if (xpEarned > 0) camToast(t('cam.reward.xp', { n: xpEarned }));
     return Promise.resolve();
   }
 
