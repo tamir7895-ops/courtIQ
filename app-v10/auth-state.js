@@ -19,7 +19,15 @@
     var next = user ? user.id : null;
     if (prev !== next) {
       try {
-        document.dispatchEvent(new CustomEvent('v10:auth', { detail: { user: window.currentUser } }));
+        /* bubbles:true is load-bearing, not decoration. lib/sync.js
+           listens on WINDOW, and a non-bubbling event dispatched on
+           document never reaches it — so the first cloud pull after
+           sign-in waited for the 60s timer instead of firing at once.
+           Bubbling serves listeners on either target. */
+        document.dispatchEvent(new CustomEvent('v10:auth', {
+          detail: { user: window.currentUser },
+          bubbles: true
+        }));
       } catch (e) { /* non-fatal */ }
     }
   }
